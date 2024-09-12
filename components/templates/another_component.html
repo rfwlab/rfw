@@ -1,6 +1,6 @@
 <div>
-    <h1>Current State: %s</h1>
-    <input type="text" id="stateInput" value="%s">
-    <button onclick="updateState()">Update State</button>
+    <h1>Another Component</h1>
+    <p>State is currently: {{sharedState}}</p>
+    <input type="text" id="stateInput" value="{{sharedState}}" oninput="updateState(this.value)">
     <button onclick="goNavigate('/')">Go to Home</button>
 </div>

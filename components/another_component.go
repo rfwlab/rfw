@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package components
 
 import (
@@ -11,23 +13,22 @@ import (
 var anotherComponentTemplate embed.FS
 
 type AnotherComponent struct {
-	Template    string
-	SharedState *framework.ReactiveVar
+	Template string
 }
 
-func NewAnotherComponent(sharedState *framework.ReactiveVar) *AnotherComponent {
+func NewAnotherComponent() *AnotherComponent {
 	templateLoader := framework.NewTemplateLoader(anotherComponentTemplate)
 	template, err := templateLoader.LoadComponentTemplate("another_component")
 	if err != nil {
 		panic(fmt.Sprintf("Error loading template: %v", err))
 	}
+
 	return &AnotherComponent{
-		Template:    template,
-		SharedState: sharedState,
+		Template: template,
 	}
 }
 
 func (c *AnotherComponent) Render() string {
-	state := c.SharedState.Get()
-	return fmt.Sprintf(c.Template, state, state)
+	autoReactive := framework.NewAutoReactiveComponent(c.Template)
+	return autoReactive.RenderWithAutoReactive([]string{"sharedState"})
 }

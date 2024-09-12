@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package components
 
 import (
@@ -20,9 +22,13 @@ func NewMyComponent() *MyComponent {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading template: %v", err))
 	}
-	return &MyComponent{Template: template}
+
+	return &MyComponent{
+		Template: template,
+	}
 }
 
 func (c *MyComponent) Render() string {
-	return fmt.Sprintf(c.Template, "MyComponent render")
+	autoReactive := framework.NewAutoReactiveComponent(c.Template)
+	return autoReactive.RenderWithAutoReactive([]string{"sharedState"})
 }

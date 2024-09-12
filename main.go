@@ -9,24 +9,20 @@ import (
 	"github.com/mirkobrombin/rfw/framework"
 )
 
-var sharedState *framework.ReactiveVar
-
 func ExposeStateUpdate() {
-	framework.ExposeFunction("goUpdateState", func() {
-		document := js.Global().Get("document")
-		newValue := document.Call("getElementById", "stateInput").Get("value").String()
-		sharedState.Set(newValue)
+	framework.ExposeFunction("goUpdateState", func(this js.Value, args []js.Value) interface{} {
+		newValue := args[0].String()
+		framework.GetGlobalStore().Set("sharedState", newValue)
+		return nil
 	})
 }
 
 func main() {
-	sharedState = framework.NewReactiveVar("Initial State")
-	sharedState.OnChange(func(newValue string) {
-		framework.UpdateDOM(newValue)
-	})
+	framework.InitGlobalStore()
+	framework.GetGlobalStore().Set("sharedState", "Initial State")
 
 	myComponent := components.NewMyComponent()
-	anotherComponent := components.NewAnotherComponent(sharedState)
+	anotherComponent := components.NewAnotherComponent()
 
 	framework.ExposeNavigate()
 	ExposeStateUpdate()
