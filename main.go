@@ -27,9 +27,9 @@ func main() {
 	framework.ExposeNavigate()
 	ExposeStateUpdate()
 
-	framework.RegisterRoute("/", mainComponent.Render)
-	framework.RegisterRoute("/test", myComponent.Render)
-	framework.RegisterRoute("/another", anotherComponent.Render)
+	framework.RegisterRoute("/", mainComponent)
+	framework.RegisterRoute("/test", myComponent)
+	framework.RegisterRoute("/another", anotherComponent)
 
 	framework.InitRouter()
 	framework.Navigate("/")

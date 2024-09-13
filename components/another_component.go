@@ -3,34 +3,26 @@
 package components
 
 import (
-	"embed"
-	"fmt"
+	_ "embed"
 
 	"github.com/mirkobrombin/rfw/framework"
 )
 
 //go:embed templates/another_component.html
-var anotherComponentTemplate embed.FS
+var anotherComponentTemplate []byte
 
 type AnotherComponent struct {
-	Template string
+	*framework.BaseComponent
 }
 
 func NewAnotherComponent() *AnotherComponent {
-	templateLoader := framework.NewTemplateLoader(anotherComponentTemplate)
-	template, err := templateLoader.LoadComponentTemplate("another_component")
-	if err != nil {
-		panic(fmt.Sprintf("Error loading template: %v", err))
+	component := &AnotherComponent{
+		BaseComponent: framework.NewBaseComponent("AnotherComponent", anotherComponentTemplate),
 	}
+	component.Init()
 
-	return &AnotherComponent{
-		Template: template,
-	}
-}
-
-func (c *AnotherComponent) Render() string {
-	autoReactive := framework.NewAutoReactiveComponent(c.Template)
 	headerComponent := NewHeaderComponent()
-	autoReactive.RegisterChildComponent("header", headerComponent)
-	return autoReactive.RenderWithAutoReactive()
+	component.RegisterChildComponent("header", headerComponent)
+
+	return component
 }

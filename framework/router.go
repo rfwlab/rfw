@@ -3,18 +3,25 @@
 package framework
 
 import (
+	"log"
 	"syscall/js"
 )
 
-var routes = map[string]func() string{}
+var routes = map[string]Component{}
+var currentComponent Component
 
-func RegisterRoute(path string, renderFunc func() string) {
-	routes[path] = renderFunc
+func RegisterRoute(path string, component Component) {
+	routes[path] = component
 }
 
 func Navigate(path string) {
-	if renderFunc, exists := routes[path]; exists {
-		UpdateDOM(renderFunc())
+	if component, exists := routes[path]; exists {
+		if currentComponent != nil {
+			log.Println("Unmounting current component:", currentComponent.GetName())
+			currentComponent.Unmount()
+		}
+		currentComponent = component
+		UpdateDOM(component.Render())
 		js.Global().Get("history").Call("pushState", nil, "", path)
 	}
 }

@@ -4,24 +4,100 @@ package framework
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 )
 
-type AutoReactiveComponent struct {
-	Template string
-	Children map[string]Component // Mappa dei componenti figli
-}
-
 type Component interface {
 	Render() string
+	Mount()
+	Unmount()
+	GetName() string
 }
 
-func NewAutoReactiveComponent(template string) *AutoReactiveComponent {
-	return &AutoReactiveComponent{
-		Template: template,
-		Children: make(map[string]Component),
+type BaseComponent struct {
+	Name         string
+	Template     string
+	TemplateFS   []byte
+	Children     map[string]Component
+	unsubscribes []func()
+}
+
+func NewBaseComponent(name string, templateFs []byte) *BaseComponent {
+	return &BaseComponent{
+		Name:       name,
+		TemplateFS: templateFs,
+		Children:   make(map[string]Component),
 	}
+}
+
+func (c *BaseComponent) Init() {
+	template, err := LoadComponentTemplate(c.TemplateFS)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading template for component %s: %v", c.Name, err))
+	}
+	c.Template = template
+	c.Children = make(map[string]Component)
+}
+
+func (c *BaseComponent) RegisterChildComponent(name string, child Component) {
+	if c.Children == nil {
+		c.Children = make(map[string]Component)
+	}
+	c.Children[name] = child
+}
+
+func (c *BaseComponent) Render() string {
+	for _, unsubscribe := range c.unsubscribes {
+		unsubscribe()
+	}
+	c.unsubscribes = nil
+
+	usedVariables := detectUsedVariables(c.Template)
+	renderedTemplate := c.Template
+
+	for _, key := range usedVariables {
+		store := GetStore("sharedStateStore")
+		value := fmt.Sprintf("%v", store.Get(key))
+		placeholder := fmt.Sprintf("{{%s}}", key)
+		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, value)
+
+		unsubscribe := store.OnChange(key, func(newValue interface{}) {
+			UpdateDOM(c.Render())
+		})
+		c.unsubscribes = append(c.unsubscribes, unsubscribe)
+	}
+
+	for name, child := range c.Children {
+		childRender := child.Render()
+		placeholder := fmt.Sprintf("@component:%s", name)
+		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, childRender)
+	}
+
+	return renderedTemplate
+}
+
+func (c *BaseComponent) Unmount() {
+	for _, unsubscribe := range c.unsubscribes {
+		log.Printf("Unsubscribing %s from all stores", c.Name)
+		unsubscribe()
+	}
+	c.unsubscribes = nil
+
+	for _, child := range c.Children {
+		child.Unmount()
+	}
+}
+
+func (c *BaseComponent) Mount() {
+	for _, child := range c.Children {
+		child.Mount()
+	}
+}
+
+func (c *BaseComponent) GetName() string {
+	return c.Name
 }
 
 func detectUsedVariables(template string) []string {
@@ -35,35 +111,4 @@ func detectUsedVariables(template string) []string {
 		}
 	}
 	return variables
-}
-
-func (c *AutoReactiveComponent) RegisterChildComponent(name string, child Component) {
-	c.Children[name] = child
-}
-
-func (c *AutoReactiveComponent) RenderWithAutoReactive() string {
-	usedVariables := detectUsedVariables(c.Template)
-	renderedTemplate := c.Template
-
-	for _, key := range usedVariables {
-		store := GetStore("sharedStateStore")
-		value := fmt.Sprintf("%v", store.Get(key))
-		placeholder := fmt.Sprintf("{{%s}}", key)
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, value)
-
-		store.OnChange(key, func(newValue interface{}) {
-			UpdateDOM(c.RenderWithAutoReactive())
-		})
-	}
-
-	for name, child := range c.Children {
-		childRender := child.Render()
-
-		placeholder := fmt.Sprintf("@component:%s", name)
-		fmt.Printf("renderedTemplate: %s\n", renderedTemplate)
-		fmt.Printf("Placeholder %s is present %d times\n", placeholder, strings.Count(renderedTemplate, placeholder))
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, childRender)
-	}
-
-	return renderedTemplate
 }
