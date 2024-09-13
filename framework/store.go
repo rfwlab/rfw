@@ -5,21 +5,19 @@ type Store struct {
 	listeners map[string][]func(interface{})
 }
 
-var globalStore *Store
+var stores = make(map[string]*Store)
 
-func NewStore() *Store {
-	return &Store{
+func NewStore(name string) *Store {
+	store := &Store{
 		state:     make(map[string]interface{}),
 		listeners: make(map[string][]func(interface{})),
 	}
+	stores[name] = store
+	return store
 }
 
-func InitGlobalStore() {
-	globalStore = NewStore()
-}
-
-func GetGlobalStore() *Store {
-	return globalStore
+func GetStore(name string) *Store {
+	return stores[name]
 }
 
 func (s *Store) Set(key string, value interface{}) {

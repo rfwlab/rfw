@@ -17,6 +17,8 @@ type MyComponent struct {
 }
 
 func NewMyComponent() *MyComponent {
+	framework.GetStore("sharedStateStore").Set("sharedState", "Initial State")
+
 	templateLoader := framework.NewTemplateLoader(myComponentTemplate)
 	template, err := templateLoader.LoadComponentTemplate("my_component")
 	if err != nil {
@@ -30,5 +32,7 @@ func NewMyComponent() *MyComponent {
 
 func (c *MyComponent) Render() string {
 	autoReactive := framework.NewAutoReactiveComponent(c.Template)
-	return autoReactive.RenderWithAutoReactive([]string{"sharedState"})
+	headerComponent := NewHeaderComponent()
+	autoReactive.RegisterChildComponent("header", headerComponent)
+	return autoReactive.RenderWithAutoReactive()
 }

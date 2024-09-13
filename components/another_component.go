@@ -30,5 +30,7 @@ func NewAnotherComponent() *AnotherComponent {
 
 func (c *AnotherComponent) Render() string {
 	autoReactive := framework.NewAutoReactiveComponent(c.Template)
-	return autoReactive.RenderWithAutoReactive([]string{"sharedState"})
+	headerComponent := NewHeaderComponent()
+	autoReactive.RegisterChildComponent("header", headerComponent)
+	return autoReactive.RenderWithAutoReactive()
 }
