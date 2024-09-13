@@ -19,7 +19,7 @@ func NewHeaderComponent() *HeaderComponent {
 	component := &HeaderComponent{
 		BaseComponent: framework.NewBaseComponent("HeaderComponent", headerComponentTemplate),
 	}
-	component.Init()
+	component.Init(nil)
 
 	return component
 }

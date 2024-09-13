@@ -12,13 +12,16 @@ import (
 func ExposeStateUpdate() {
 	framework.ExposeFunction("goUpdateState", func(this js.Value, args []js.Value) interface{} {
 		newValue := args[0].String()
-		framework.GetStore("sharedStateStore").Set("sharedState", newValue)
+		store := framework.GlobalStoreManager.GetStore("sharedStateStore")
+		store.Set("sharedState", newValue)
 		return nil
 	})
 }
 
 func main() {
-	framework.NewStore("sharedStateStore")
+
+	sharedStateStore := framework.NewStore("sharedStateStore")
+	framework.GlobalStoreManager.RegisterStore("default", sharedStateStore)
 
 	mainComponent := components.NewMainComponent()
 	myComponent := components.NewMyComponent()

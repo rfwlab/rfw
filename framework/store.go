@@ -6,19 +6,29 @@ type Store struct {
 	listenerID int
 }
 
-var stores = make(map[string]*Store)
+type StoreManager struct {
+	stores map[string]*Store
+}
+
+var GlobalStoreManager = &StoreManager{
+	stores: make(map[string]*Store),
+}
 
 func NewStore(name string) *Store {
 	store := &Store{
 		state:     make(map[string]interface{}),
 		listeners: make(map[string]map[int]func(interface{})),
 	}
-	stores[name] = store
+	GlobalStoreManager.RegisterStore(name, store)
 	return store
 }
 
-func GetStore(name string) *Store {
-	return stores[name]
+func (sm *StoreManager) RegisterStore(name string, store *Store) {
+	sm.stores[name] = store
+}
+
+func (sm *StoreManager) GetStore(name string) *Store {
+	return sm.stores[name]
 }
 
 func (s *Store) Set(key string, value interface{}) {

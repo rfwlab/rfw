@@ -15,11 +15,11 @@ type MainComponent struct {
 	*framework.BaseComponent
 }
 
-func NewMainComponent() *MyComponent {
-	component := &MyComponent{
+func NewMainComponent() *MainComponent {
+	component := &MainComponent{
 		BaseComponent: framework.NewBaseComponent("MainComponent", mainComponentTemplate),
 	}
-	component.Init()
+	component.Init(nil)
 
 	headerComponent := NewHeaderComponent()
 	component.RegisterChildComponent("header", headerComponent)

@@ -19,7 +19,7 @@ func NewAnotherComponent() *AnotherComponent {
 	component := &AnotherComponent{
 		BaseComponent: framework.NewBaseComponent("AnotherComponent", anotherComponentTemplate),
 	}
-	component.Init()
+	component.Init(nil)
 
 	headerComponent := NewHeaderComponent()
 	component.RegisterChildComponent("header", headerComponent)

@@ -19,9 +19,10 @@ func NewMyComponent() *MyComponent {
 	component := &MyComponent{
 		BaseComponent: framework.NewBaseComponent("MyComponent", myComponentTemplate),
 	}
-	component.Init()
+	component.Init(nil)
 
-	framework.GetStore("sharedStateStore").Set("sharedState", "Initial State")
+	store := framework.GlobalStoreManager.GetStore("sharedStateStore")
+	store.Set("sharedState", "Initial State")
 
 	headerComponent := NewHeaderComponent()
 	component.RegisterChildComponent("header", headerComponent)

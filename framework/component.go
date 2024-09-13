@@ -22,6 +22,7 @@ type BaseComponent struct {
 	TemplateFS   []byte
 	Children     map[string]Component
 	unsubscribes []func()
+	Store        *Store
 }
 
 func NewBaseComponent(name string, templateFs []byte) *BaseComponent {
@@ -32,18 +33,29 @@ func NewBaseComponent(name string, templateFs []byte) *BaseComponent {
 	}
 }
 
-func (c *BaseComponent) Init() {
+func (c *BaseComponent) Init(store *Store) {
 	template, err := LoadComponentTemplate(c.TemplateFS)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading template for component %s: %v", c.Name, err))
 	}
 	c.Template = template
-	c.Children = make(map[string]Component)
+
+	if store != nil {
+		c.Store = store
+	} else {
+		c.Store = GlobalStoreManager.GetStore("default")
+		if c.Store == nil {
+			panic(fmt.Sprintf("No store provided and no default store found for component %s", c.Name))
+		}
+	}
 }
 
 func (c *BaseComponent) RegisterChildComponent(name string, child Component) {
 	if c.Children == nil {
 		c.Children = make(map[string]Component)
+	}
+	if childComp, ok := child.(*BaseComponent); ok {
+		childComp.Init(c.Store)
 	}
 	c.Children[name] = child
 }
@@ -58,7 +70,7 @@ func (c *BaseComponent) Render() string {
 	renderedTemplate := c.Template
 
 	for _, key := range usedVariables {
-		store := GetStore("sharedStateStore")
+		store := c.Store
 		value := fmt.Sprintf("%v", store.Get(key))
 		placeholder := fmt.Sprintf("{{%s}}", key)
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, value)
