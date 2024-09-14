@@ -1,36 +1,29 @@
+// Path: /home/mirko/Projects/personal/rfw/main.go
 //go:build js && wasm
 
 package main
 
 import (
-	"syscall/js"
-
 	"github.com/mirkobrombin/rfw/components"
 	"github.com/mirkobrombin/rfw/framework"
 )
 
-func ExposeStateUpdate() {
-	framework.ExposeFunction("goUpdateState", func(this js.Value, args []js.Value) interface{} {
-		newValue := args[0].String()
-		store := framework.GlobalStoreManager.GetStore("sharedStateStore")
-		store.Set("sharedState", newValue)
-		return nil
-	})
-}
-
 func main() {
-
 	sharedStateStore := framework.NewStore("sharedStateStore")
+	anotherStore := framework.NewStore("anotherStore")
 	framework.GlobalStoreManager.RegisterStore("default", sharedStateStore)
+	framework.GlobalStoreManager.RegisterStore("anotherStore", anotherStore)
 
-	mainComponent := components.NewMainComponent()
+	mainComponentA := components.NewMainComponent("A")
+	mainComponentB := components.NewMainComponent("B")
 	myComponent := components.NewMyComponent()
 	anotherComponent := components.NewAnotherComponent()
 
 	framework.ExposeNavigate()
-	ExposeStateUpdate()
+	framework.ExposeUpdateStore()
 
-	framework.RegisterRoute("/", mainComponent)
+	framework.RegisterRoute("/", mainComponentA)
+	framework.RegisterRoute("/mainB", mainComponentB)
 	framework.RegisterRoute("/test", myComponent)
 	framework.RegisterRoute("/another", anotherComponent)
 

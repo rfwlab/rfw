@@ -2,5 +2,7 @@
     @component:header
     <h1>Another Component</h1>
     <p>State is currently: {{sharedState}}</p>
-    <input type="text" id="stateInput" value="{{sharedState}}" oninput="updateState(this.value)">
+    <input type="text" id="stateInput" value="{{sharedState}}" data-store="sharedStateStore" data-key="sharedState">
+    <input type="text" id="anotherStateInput" value="{{anotherState}}" data-store="anotherStore"
+        data-key="anotherState">
 </div>

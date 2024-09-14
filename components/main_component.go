@@ -15,13 +15,20 @@ type MainComponent struct {
 	*framework.BaseComponent
 }
 
-func NewMainComponent() *MainComponent {
+func NewMainComponent(title string) *MainComponent {
 	component := &MainComponent{
-		BaseComponent: framework.NewBaseComponent("MainComponent", mainComponentTemplate),
+		BaseComponent: framework.NewBaseComponent("MainComponent", mainComponentTemplate, nil),
 	}
 	component.Init(nil)
 
-	headerComponent := NewHeaderComponent()
+	cardComponent := NewCardComponent(map[string]interface{}{
+		"title": title,
+	})
+	component.RegisterChildComponent("card", cardComponent)
+
+	headerComponent := NewHeaderComponent(map[string]interface{}{
+		"title": title,
+	})
 	component.RegisterChildComponent("header", headerComponent)
 
 	return component

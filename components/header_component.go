@@ -15,9 +15,9 @@ type HeaderComponent struct {
 	*framework.BaseComponent
 }
 
-func NewHeaderComponent() *HeaderComponent {
+func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
 	component := &HeaderComponent{
-		BaseComponent: framework.NewBaseComponent("HeaderComponent", headerComponentTemplate),
+		BaseComponent: framework.NewBaseComponent("HeaderComponent", headerComponentTemplate, props),
 	}
 	component.Init(nil)
 

@@ -17,14 +17,16 @@ type MyComponent struct {
 
 func NewMyComponent() *MyComponent {
 	component := &MyComponent{
-		BaseComponent: framework.NewBaseComponent("MyComponent", myComponentTemplate),
+		BaseComponent: framework.NewBaseComponent("MyComponent", myComponentTemplate, nil),
 	}
 	component.Init(nil)
 
 	store := framework.GlobalStoreManager.GetStore("sharedStateStore")
 	store.Set("sharedState", "Initial State")
 
-	headerComponent := NewHeaderComponent()
+	headerComponent := NewHeaderComponent(map[string]interface{}{
+		"title": "Another Component",
+	})
 	component.RegisterChildComponent("header", headerComponent)
 
 	return component

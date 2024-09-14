@@ -21,7 +21,7 @@ func Navigate(path string) {
 			currentComponent.Unmount()
 		}
 		currentComponent = component
-		UpdateDOM(component.Render())
+		UpdateDOM("", component.Render())
 		js.Global().Get("history").Call("pushState", nil, "", path)
 	}
 }

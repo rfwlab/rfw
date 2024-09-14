@@ -17,11 +17,13 @@ type AnotherComponent struct {
 
 func NewAnotherComponent() *AnotherComponent {
 	component := &AnotherComponent{
-		BaseComponent: framework.NewBaseComponent("AnotherComponent", anotherComponentTemplate),
+		BaseComponent: framework.NewBaseComponent("AnotherComponent", anotherComponentTemplate, nil),
 	}
 	component.Init(nil)
 
-	headerComponent := NewHeaderComponent()
+	headerComponent := NewHeaderComponent(map[string]interface{}{
+		"title": "Another Component",
+	})
 	component.RegisterChildComponent("header", headerComponent)
 
 	return component

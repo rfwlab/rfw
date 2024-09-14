@@ -3,9 +3,12 @@
 package framework
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -14,22 +17,54 @@ type Component interface {
 	Mount()
 	Unmount()
 	GetName() string
+	GetID() string
 }
 
 type BaseComponent struct {
+	ID           string
 	Name         string
 	Template     string
 	TemplateFS   []byte
 	Children     map[string]Component
 	unsubscribes []func()
 	Store        *Store
+	Props        map[string]interface{}
 }
 
-func NewBaseComponent(name string, templateFs []byte) *BaseComponent {
+func generateComponentID(name string, props map[string]interface{}) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(name))
+	propsString := serializeProps(props)
+	hasher.Write([]byte(propsString))
+
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func serializeProps(props map[string]interface{}) string {
+	if props == nil {
+		return ""
+	}
+	var sb strings.Builder
+	keys := make([]string, 0, len(props))
+	for k := range props {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := props[k]
+		sb.WriteString(fmt.Sprintf("%s=%v;", k, v))
+	}
+	return sb.String()
+}
+
+func NewBaseComponent(name string, templateFs []byte, props map[string]interface{}) *BaseComponent {
+	id := generateComponentID(name, props)
 	return &BaseComponent{
+		ID:         id,
 		Name:       name,
 		TemplateFS: templateFs,
 		Children:   make(map[string]Component),
+		Props:      props,
 	}
 }
 
@@ -50,14 +85,14 @@ func (c *BaseComponent) Init(store *Store) {
 	}
 }
 
-func (c *BaseComponent) RegisterChildComponent(name string, child Component) {
+func (c *BaseComponent) RegisterChildComponent(placeholderName string, child Component) {
 	if c.Children == nil {
 		c.Children = make(map[string]Component)
 	}
 	if childComp, ok := child.(*BaseComponent); ok {
 		childComp.Init(c.Store)
 	}
-	c.Children[name] = child
+	c.Children[placeholderName] = child
 }
 
 func (c *BaseComponent) Render() string {
@@ -66,9 +101,15 @@ func (c *BaseComponent) Render() string {
 	}
 	c.unsubscribes = nil
 
-	usedVariables := detectUsedVariables(c.Template)
 	renderedTemplate := c.Template
+	renderedTemplate = strings.Replace(renderedTemplate, "<div", fmt.Sprintf("<div data-component-id=\"%s\"", c.ID), 1)
 
+	for key, value := range c.Props {
+		placeholder := fmt.Sprintf("{{%s}}", key)
+		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, fmt.Sprintf("%v", value))
+	}
+
+	usedVariables := detectUsedVariables(renderedTemplate)
 	for _, key := range usedVariables {
 		store := c.Store
 		value := fmt.Sprintf("%v", store.Get(key))
@@ -76,15 +117,14 @@ func (c *BaseComponent) Render() string {
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, value)
 
 		unsubscribe := store.OnChange(key, func(newValue interface{}) {
-			UpdateDOM(c.Render())
+			UpdateDOM(c.ID, c.Render())
 		})
 		c.unsubscribes = append(c.unsubscribes, unsubscribe)
 	}
 
-	for name, child := range c.Children {
-		childRender := child.Render()
-		placeholder := fmt.Sprintf("@component:%s", name)
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, childRender)
+	for placeholderName, child := range c.Children {
+		placeholder := fmt.Sprintf("@component:%s", placeholderName)
+		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, child.Render())
 	}
 
 	return renderedTemplate
@@ -110,6 +150,10 @@ func (c *BaseComponent) Mount() {
 
 func (c *BaseComponent) GetName() string {
 	return c.Name
+}
+
+func (c *BaseComponent) GetID() string {
+	return c.ID
 }
 
 func detectUsedVariables(template string) []string {
