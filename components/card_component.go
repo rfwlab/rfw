@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed templates/card_component.html
-var cardComponentTemplate []byte
+var cardComponentTpl []byte
 
 type CardComponent struct {
 	*framework.BaseComponent
@@ -17,7 +17,7 @@ type CardComponent struct {
 
 func NewCardComponent(props map[string]interface{}) *CardComponent {
 	component := &CardComponent{
-		BaseComponent: framework.NewBaseComponent("CardComponent", cardComponentTemplate, props),
+		BaseComponent: framework.NewBaseComponent("CardComponent", cardComponentTpl, props),
 	}
 	component.Init(nil)
 	return component

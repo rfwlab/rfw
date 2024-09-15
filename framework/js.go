@@ -6,6 +6,11 @@ import (
 	"syscall/js"
 )
 
+func init() {
+	ExposeNavigate()
+	ExposeUpdateStore()
+}
+
 func ExposeFunction(name string, fn interface{}) {
 	js.Global().Set(name, js.FuncOf(fn.(func(this js.Value, args []js.Value) interface{})))
 }

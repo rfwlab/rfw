@@ -8,26 +8,26 @@ import (
 	"github.com/mirkobrombin/rfw/framework"
 )
 
-//go:embed templates/my_component.html
-var myComponentTemplate []byte
+//go:embed templates/test_component.html
+var testComponentTpl []byte
 
 type MyComponent struct {
 	*framework.BaseComponent
 }
 
-func NewMyComponent() *MyComponent {
+func NewTestComponent() *MyComponent {
 	component := &MyComponent{
-		BaseComponent: framework.NewBaseComponent("MyComponent", myComponentTemplate, nil),
+		BaseComponent: framework.NewBaseComponent("MyComponent", testComponentTpl, nil),
 	}
 	component.Init(nil)
 
-	store := framework.GlobalStoreManager.GetStore("sharedStateStore")
+	store := framework.GlobalStoreManager.GetStore("default")
 	store.Set("sharedState", "Initial State")
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Another Component",
 	})
-	component.RegisterChildComponent("header", headerComponent)
+	component.AddDependency("header", headerComponent)
 
 	return component
 }

@@ -25,46 +25,20 @@ type BaseComponent struct {
 	Name         string
 	Template     string
 	TemplateFS   []byte
-	Children     map[string]Component
+	Dependencies map[string]Component
 	unsubscribes []func()
 	Store        *Store
 	Props        map[string]interface{}
 }
 
-func generateComponentID(name string, props map[string]interface{}) string {
-	hasher := sha1.New()
-	hasher.Write([]byte(name))
-	propsString := serializeProps(props)
-	hasher.Write([]byte(propsString))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-func serializeProps(props map[string]interface{}) string {
-	if props == nil {
-		return ""
-	}
-	var sb strings.Builder
-	keys := make([]string, 0, len(props))
-	for k := range props {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		v := props[k]
-		sb.WriteString(fmt.Sprintf("%s=%v;", k, v))
-	}
-	return sb.String()
-}
-
 func NewBaseComponent(name string, templateFs []byte, props map[string]interface{}) *BaseComponent {
 	id := generateComponentID(name, props)
 	return &BaseComponent{
-		ID:         id,
-		Name:       name,
-		TemplateFS: templateFs,
-		Children:   make(map[string]Component),
-		Props:      props,
+		ID:           id,
+		Name:         name,
+		TemplateFS:   templateFs,
+		Dependencies: make(map[string]Component),
+		Props:        props,
 	}
 }
 
@@ -83,16 +57,6 @@ func (c *BaseComponent) Init(store *Store) {
 			panic(fmt.Sprintf("No store provided and no default store found for component %s", c.Name))
 		}
 	}
-}
-
-func (c *BaseComponent) RegisterChildComponent(placeholderName string, child Component) {
-	if c.Children == nil {
-		c.Children = make(map[string]Component)
-	}
-	if childComp, ok := child.(*BaseComponent); ok {
-		childComp.Init(c.Store)
-	}
-	c.Children[placeholderName] = child
 }
 
 func (c *BaseComponent) Render() string {
@@ -122,12 +86,22 @@ func (c *BaseComponent) Render() string {
 		c.unsubscribes = append(c.unsubscribes, unsubscribe)
 	}
 
-	for placeholderName, child := range c.Children {
+	for placeholderName, dep := range c.Dependencies {
 		placeholder := fmt.Sprintf("@component:%s", placeholderName)
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, child.Render())
+		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, dep.Render())
 	}
 
 	return renderedTemplate
+}
+
+func (c *BaseComponent) AddDependency(placeholderName string, dep Component) {
+	if c.Dependencies == nil {
+		c.Dependencies = make(map[string]Component)
+	}
+	if depComp, ok := dep.(*BaseComponent); ok {
+		depComp.Init(c.Store)
+	}
+	c.Dependencies[placeholderName] = dep
 }
 
 func (c *BaseComponent) Unmount() {
@@ -137,14 +111,14 @@ func (c *BaseComponent) Unmount() {
 	}
 	c.unsubscribes = nil
 
-	for _, child := range c.Children {
-		child.Unmount()
+	for _, dep := range c.Dependencies {
+		dep.Unmount()
 	}
 }
 
 func (c *BaseComponent) Mount() {
-	for _, child := range c.Children {
-		child.Mount()
+	for _, dep := range c.Dependencies {
+		dep.Mount()
 	}
 }
 
@@ -167,4 +141,32 @@ func detectUsedVariables(template string) []string {
 		}
 	}
 	return variables
+}
+
+func generateComponentID(name string, props map[string]interface{}) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(name))
+	propsString := serializeProps(props)
+	hasher.Write([]byte(propsString))
+
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func serializeProps(props map[string]interface{}) string {
+	if props == nil {
+		return ""
+	}
+
+	var sb strings.Builder
+	keys := make([]string, 0, len(props))
+	for k := range props {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := props[k]
+		sb.WriteString(fmt.Sprintf("%s=%v;", k, v))
+	}
+
+	return sb.String()
 }

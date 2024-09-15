@@ -9,27 +9,27 @@ import (
 )
 
 //go:embed templates/main_component.html
-var mainComponentTemplate []byte
+var mainComponentTpl []byte
 
 type MainComponent struct {
 	*framework.BaseComponent
 }
 
-func NewMainComponent(title string) *MainComponent {
+func NewMainComponent() *MainComponent {
 	component := &MainComponent{
-		BaseComponent: framework.NewBaseComponent("MainComponent", mainComponentTemplate, nil),
+		BaseComponent: framework.NewBaseComponent("MainComponent", mainComponentTpl, nil),
 	}
 	component.Init(nil)
 
 	cardComponent := NewCardComponent(map[string]interface{}{
-		"title": title,
+		"title": "just a card",
 	})
-	component.RegisterChildComponent("card", cardComponent)
+	component.AddDependency("card", cardComponent)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
-		"title": title,
+		"title": "Main Component",
 	})
-	component.RegisterChildComponent("header", headerComponent)
+	component.AddDependency("header", headerComponent)
 
 	return component
 }

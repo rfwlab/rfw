@@ -1,8 +1,8 @@
 <div>
     @component:header
-    <h1>Another Component</h1>
-    <p>State is currently: {{sharedState}}</p>
-    <input type="text" id="stateInput" value="{{sharedState}}" data-store="sharedStateStore" data-key="sharedState">
-    <input type="text" id="anotherStateInput" value="{{anotherState}}" data-store="anotherStore"
-        data-key="anotherState">
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <p>State is currently: {{sharedState}}</p>
+        <input type="text" id="stateInput" value="{{sharedState}}" data-store="default" data-key="sharedState"
+            class="p-2 border border-gray-300 rounded-md">
+    </div>
 </div>

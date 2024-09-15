@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed templates/another_component.html
-var anotherComponentTemplate []byte
+var anotherComponentTpl []byte
 
 type AnotherComponent struct {
 	*framework.BaseComponent
@@ -17,14 +17,14 @@ type AnotherComponent struct {
 
 func NewAnotherComponent() *AnotherComponent {
 	component := &AnotherComponent{
-		BaseComponent: framework.NewBaseComponent("AnotherComponent", anotherComponentTemplate, nil),
+		BaseComponent: framework.NewBaseComponent("AnotherComponent", anotherComponentTpl, nil),
 	}
 	component.Init(nil)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Another Component",
 	})
-	component.RegisterChildComponent("header", headerComponent)
+	component.AddDependency("header", headerComponent)
 
 	return component
 }

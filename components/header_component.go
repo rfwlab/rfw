@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed templates/header_component.html
-var headerComponentTemplate []byte
+var headerComponentTpl []byte
 
 type HeaderComponent struct {
 	*framework.BaseComponent
@@ -17,7 +17,7 @@ type HeaderComponent struct {
 
 func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
 	component := &HeaderComponent{
-		BaseComponent: framework.NewBaseComponent("HeaderComponent", headerComponentTemplate, props),
+		BaseComponent: framework.NewBaseComponent("HeaderComponent", headerComponentTpl, props),
 	}
 	component.Init(nil)
 
