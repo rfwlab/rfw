@@ -7,5 +7,17 @@
         <input type="text" value="@store:default.sharedState:w" class="p-2 border border-gray-300 rounded-md">
         <p>Testing State is currently: @store:testing.testingState</p>
         <input type="text" value="@store:testing.testingState:w" class="p-2 border border-gray-300 rounded-md">
+
+        @if:store:default.sharedState == "123"
+        <div class="bg-green-200 p-4 mb-4 flex flex-col gap-4 items-start">
+            <h2 class="text-2xl font-bold">Shared State is 123</h2>
+            <p>Try setting it to something else.</p>
+        </div>
+        @else
+        <div class="bg-red-200 p-4 mb-4 flex flex-col gap-4 items-start">
+            <h2 class="text-2xl font-bold">Shared State is not 123</h2>
+            <p>Try setting it to 123.</p>
+        </div>
+        @endif
     </div>
 </div>

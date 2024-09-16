@@ -75,6 +75,9 @@ func (c *HTMLComponent) Render() string {
 	// Handle @prop:propName syntax for props
 	renderedTemplate = replacePropPlaceholders(renderedTemplate, c)
 
+	// Handle @if:condition syntax for conditional rendering
+	renderedTemplate = replaceConditionals(renderedTemplate, c)
+
 	return renderedTemplate
 }
 
@@ -209,4 +212,74 @@ func serializeProps(props map[string]interface{}) string {
 	}
 
 	return sb.String()
+}
+
+type ConditionalBlock struct {
+	Condition   string
+	IfContent   string
+	ElseContent string
+}
+
+func replaceConditionals(template string, c *HTMLComponent) string {
+	ifRegex := regexp.MustCompile(`(@if:.+)([\S\s]+)(@else)([\S\s]+)(@endif)`)
+	parts := ifRegex.FindStringSubmatch(template)
+	if parts == nil || len(parts) == 0 || len(parts) < 3 {
+		return template
+	}
+
+	conditionalBlock := ConditionalBlock{}
+
+	conditionalBlock.Condition = strings.TrimSpace(parts[1])
+	conditionalBlock.IfContent = strings.TrimSpace(parts[2])
+
+	trimmedElseContent := strings.TrimSpace(parts[4])
+	if trimmedElseContent != "@endif" {
+		conditionalBlock.ElseContent = trimmedElseContent
+	}
+
+	if evaluateCondition(conditionalBlock.Condition, c) {
+		template = strings.Replace(template, parts[0], conditionalBlock.IfContent, 1)
+	} else if conditionalBlock.ElseContent != "" {
+		template = strings.Replace(template, parts[0], conditionalBlock.ElseContent, 1)
+	} else {
+		template = strings.Replace(template, parts[0], "", 1)
+	}
+
+	return template
+}
+
+func evaluateCondition(condition string, c *HTMLComponent) bool {
+	conditionParts := strings.Split(condition, "==")
+	if len(conditionParts) != 2 {
+		return false
+	}
+
+	leftSide := strings.TrimSpace(conditionParts[0])
+	leftSide = strings.Replace(leftSide, "@if:", "", 1)
+	leftSide = strings.Replace(leftSide, "@elseif:", "", 1)
+	expectedValue := strings.ReplaceAll(conditionParts[1], `"`, "")
+	expectedValue = strings.TrimSpace(expectedValue)
+
+	if strings.HasPrefix(leftSide, "store:") {
+		storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
+		if len(storeParts) == 2 {
+			storeName, key := storeParts[0], storeParts[1]
+			store := GlobalStoreManager.GetStore(storeName)
+			if store != nil {
+				actualValue := fmt.Sprintf("%v", store.Get(key))
+				fmt.Printf("Comparing %s with %s\n", actualValue, expectedValue)
+				return actualValue == expectedValue
+			}
+		}
+	}
+
+	if strings.HasPrefix(leftSide, "prop:") {
+		propName := strings.TrimPrefix(leftSide, "prop:")
+		if value, exists := c.Props[propName]; exists {
+			actualValue := fmt.Sprintf("%v", value)
+			return actualValue == expectedValue
+		}
+	}
+
+	return false
 }
