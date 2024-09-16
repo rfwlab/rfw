@@ -12,17 +12,20 @@ import (
 var testComponentTpl []byte
 
 type MyComponent struct {
-	*framework.BaseComponent
+	*framework.HTMLComponent
 }
 
 func NewTestComponent() *MyComponent {
 	component := &MyComponent{
-		BaseComponent: framework.NewBaseComponent("MyComponent", testComponentTpl, nil),
+		HTMLComponent: framework.NewHTMLComponent("MyComponent", testComponentTpl, nil),
 	}
 	component.Init(nil)
 
 	store := framework.GlobalStoreManager.GetStore("default")
 	store.Set("sharedState", "Initial State")
+
+	framework.NewStore("testing")
+	framework.GlobalStoreManager.GetStore("testing").Set("testingState", "Testing Initial State")
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Another Component",

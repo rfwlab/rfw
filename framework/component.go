@@ -20,7 +20,7 @@ type Component interface {
 	GetID() string
 }
 
-type BaseComponent struct {
+type HTMLComponent struct {
 	ID           string
 	Name         string
 	Template     string
@@ -31,9 +31,9 @@ type BaseComponent struct {
 	Props        map[string]interface{}
 }
 
-func NewBaseComponent(name string, templateFs []byte, props map[string]interface{}) *BaseComponent {
+func NewHTMLComponent(name string, templateFs []byte, props map[string]interface{}) *HTMLComponent {
 	id := generateComponentID(name, props)
-	return &BaseComponent{
+	return &HTMLComponent{
 		ID:           id,
 		Name:         name,
 		TemplateFS:   templateFs,
@@ -42,7 +42,7 @@ func NewBaseComponent(name string, templateFs []byte, props map[string]interface
 	}
 }
 
-func (c *BaseComponent) Init(store *Store) {
+func (c *HTMLComponent) Init(store *Store) {
 	template, err := LoadComponentTemplate(c.TemplateFS)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading template for component %s: %v", c.Name, err))
@@ -59,7 +59,7 @@ func (c *BaseComponent) Init(store *Store) {
 	}
 }
 
-func (c *BaseComponent) Render() string {
+func (c *HTMLComponent) Render() string {
 	for _, unsubscribe := range c.unsubscribes {
 		unsubscribe()
 	}
@@ -72,39 +72,64 @@ func (c *BaseComponent) Render() string {
 		placeholder := fmt.Sprintf("{{%s}}", key)
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, fmt.Sprintf("%v", value))
 	}
+	// Handle @store:storeName.varName syntax:
+	// - :w stands for writeable inputs
+	// - :r stands for read-only inputs (default, not required, actually not even implemented)
+	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
 
-	usedVariables := detectUsedVariables(renderedTemplate)
-	for _, key := range usedVariables {
-		store := c.Store
-		value := fmt.Sprintf("%v", store.Get(key))
-		placeholder := fmt.Sprintf("{{%s}}", key)
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, value)
-
-		unsubscribe := store.OnChange(key, func(newValue interface{}) {
-			UpdateDOM(c.ID, c.Render())
-		})
-		c.unsubscribes = append(c.unsubscribes, unsubscribe)
-	}
-
+	// Handle @include:componentName syntax for dependencies
 	for placeholderName, dep := range c.Dependencies {
-		placeholder := fmt.Sprintf("@component:%s", placeholderName)
+		placeholder := fmt.Sprintf("@include:%s", placeholderName)
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, dep.Render())
 	}
 
 	return renderedTemplate
 }
 
-func (c *BaseComponent) AddDependency(placeholderName string, dep Component) {
+func replaceStorePlaceholders(template string, c *HTMLComponent) string {
+	storeRegex := regexp.MustCompile(`@store:(\w+)\.(\w+)(:w)?`)
+	return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := storeRegex.FindStringSubmatch(match)
+		if len(parts) < 3 {
+			return match
+		}
+
+		storeName := parts[1]
+		key := parts[2]
+		isWriteable := len(parts) == 4 && parts[3] == ":w"
+
+		store := GlobalStoreManager.GetStore(storeName)
+		if store != nil {
+			value := store.Get(key)
+			if value == nil {
+				value = ""
+			}
+
+			unsubscribe := store.OnChange(key, func(newValue interface{}) {
+				UpdateDOM(c.ID, c.Render())
+			})
+			c.unsubscribes = append(c.unsubscribes, unsubscribe)
+
+			if isWriteable {
+				return fmt.Sprintf("@store:%s.%s:w", storeName, key)
+			}
+			return fmt.Sprintf("%v", value)
+		}
+		return match
+	})
+}
+
+func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 	if c.Dependencies == nil {
 		c.Dependencies = make(map[string]Component)
 	}
-	if depComp, ok := dep.(*BaseComponent); ok {
+	if depComp, ok := dep.(*HTMLComponent); ok {
 		depComp.Init(c.Store)
 	}
 	c.Dependencies[placeholderName] = dep
 }
 
-func (c *BaseComponent) Unmount() {
+func (c *HTMLComponent) Unmount() {
 	for _, unsubscribe := range c.unsubscribes {
 		log.Printf("Unsubscribing %s from all stores", c.Name)
 		unsubscribe()
@@ -116,17 +141,17 @@ func (c *BaseComponent) Unmount() {
 	}
 }
 
-func (c *BaseComponent) Mount() {
+func (c *HTMLComponent) Mount() {
 	for _, dep := range c.Dependencies {
 		dep.Mount()
 	}
 }
 
-func (c *BaseComponent) GetName() string {
+func (c *HTMLComponent) GetName() string {
 	return c.Name
 }
 
-func (c *BaseComponent) GetID() string {
+func (c *HTMLComponent) GetID() string {
 	return c.ID
 }
 

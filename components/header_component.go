@@ -12,12 +12,12 @@ import (
 var headerComponentTpl []byte
 
 type HeaderComponent struct {
-	*framework.BaseComponent
+	*framework.HTMLComponent
 }
 
 func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
 	component := &HeaderComponent{
-		BaseComponent: framework.NewBaseComponent("HeaderComponent", headerComponentTpl, props),
+		HTMLComponent: framework.NewHTMLComponent("HeaderComponent", headerComponentTpl, props),
 	}
 	component.Init(nil)
 

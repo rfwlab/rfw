@@ -1,7 +1,7 @@
 <div>
-    @component:header
+    @include:header
     <div class="p-4 pt-0">
-        @component:card
-        <p>State is currently: {{sharedState}}</p>
+        @include:card
+        <p>State is currently: @store.default.sharedState</p>
     </div>
 </div>

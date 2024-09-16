@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"regexp"
 	"syscall/js"
 )
 
@@ -25,19 +26,28 @@ func UpdateDOM(componentID string, html string) {
 }
 
 func bindStoreInputs(element js.Value) {
-	inputs := element.Call("querySelectorAll", "input[data-store][data-key]")
+	inputs := element.Call("querySelectorAll", "input")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
-		storeName := input.Get("dataset").Get("store").String()
-		key := input.Get("dataset").Get("key").String()
+		storeMatch := regexp.MustCompile(`@store:(\w+)\.(\w+)(:w)?`).FindStringSubmatch(input.Get("value").String())
 
-		input.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			newValue := this.Get("value").String()
+		if len(storeMatch) >= 3 {
+			storeName := storeMatch[1]
+			key := storeMatch[2]
+			isWriteable := len(storeMatch) == 4 && storeMatch[3] == ":w"
+
 			store := GlobalStoreManager.GetStore(storeName)
 			if store != nil {
-				store.Set(key, newValue)
+				input.Set("value", store.Get(key))
+
+				if isWriteable {
+					input.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+						newValue := this.Get("value").String()
+						store.Set(key, newValue)
+						return nil
+					}))
+				}
 			}
-			return nil
-		}))
+		}
 	}
 }

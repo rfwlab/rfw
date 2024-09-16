@@ -12,12 +12,12 @@ import (
 var mainComponentTpl []byte
 
 type MainComponent struct {
-	*framework.BaseComponent
+	*framework.HTMLComponent
 }
 
 func NewMainComponent() *MainComponent {
 	component := &MainComponent{
-		BaseComponent: framework.NewBaseComponent("MainComponent", mainComponentTpl, nil),
+		HTMLComponent: framework.NewHTMLComponent("MainComponent", mainComponentTpl, nil),
 	}
 	component.Init(nil)
 

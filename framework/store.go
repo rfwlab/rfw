@@ -1,6 +1,9 @@
 package framework
 
+import "fmt"
+
 type Store struct {
+	name       string
 	state      map[string]interface{}
 	listeners  map[string]map[int]func(interface{})
 	listenerID int
@@ -16,6 +19,7 @@ var GlobalStoreManager = &StoreManager{
 
 func NewStore(name string) *Store {
 	store := &Store{
+		name:      name,
 		state:     make(map[string]interface{}),
 		listeners: make(map[string]map[int]func(interface{})),
 	}
@@ -41,6 +45,7 @@ func (s *Store) Set(key string, value interface{}) {
 }
 
 func (s *Store) Get(key string) interface{} {
+	fmt.Printf("Getting key %s from store %v\n", key, s.name)
 	return s.state[key]
 }
 
@@ -51,6 +56,17 @@ func (s *Store) OnChange(key string, listener func(interface{})) func() {
 	s.listenerID++
 	id := s.listenerID
 	s.listeners[key][id] = listener
+
+	fmt.Println("------")
+	for storeName, store := range GlobalStoreManager.stores {
+		fmt.Printf("Store: %s\n", storeName)
+
+		for key, value := range store.state {
+			fmt.Printf("  %s: %v\n", key, value)
+		}
+	}
+	fmt.Println("------")
+
 	return func() {
 		delete(s.listeners[key], id)
 	}

@@ -12,12 +12,12 @@ import (
 var cardComponentTpl []byte
 
 type CardComponent struct {
-	*framework.BaseComponent
+	*framework.HTMLComponent
 }
 
 func NewCardComponent(props map[string]interface{}) *CardComponent {
 	component := &CardComponent{
-		BaseComponent: framework.NewBaseComponent("CardComponent", cardComponentTpl, props),
+		HTMLComponent: framework.NewHTMLComponent("CardComponent", cardComponentTpl, props),
 	}
 	component.Init(nil)
 	return component
