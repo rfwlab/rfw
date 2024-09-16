@@ -8,7 +8,7 @@ import (
 	"github.com/mirkobrombin/rfw/framework"
 )
 
-//go:embed templates/card_component.html
+//go:embed templates/card_component.rtml
 var cardComponentTpl []byte
 
 type CardComponent struct {

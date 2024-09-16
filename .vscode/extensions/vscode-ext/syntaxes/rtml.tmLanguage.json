@@ -1,0 +1,41 @@
+{
+    "name": "RTML",
+    "scopeName": "text.html.rtml",
+    "fileTypes": [
+        "rtml"
+    ],
+    "patterns": [
+        {
+            "include": "#html"
+        },
+        {
+            "include": "#rtml"
+        }
+    ],
+    "repository": {
+        "html": {
+            "patterns": [
+                {
+                    "include": "text.html.basic"
+                }
+            ]
+        },
+        "rtml": {
+            "patterns": [
+                {
+                    "name": "keyword.control.rtml",
+                    "match": "@[a-zA-Z0-9_]+"
+                },
+                {
+                    "name": "entity.name.namespace.rtml",
+                    "match": "[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+"
+                },
+                {
+                    "name": "variable.parameter.rtml",
+                    "match": ":[a-zA-Z0-9_]+"
+                }
+            ]
+        }
+    },
+    "scope": "text.html.rtml"
+}

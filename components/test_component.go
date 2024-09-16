@@ -8,7 +8,7 @@ import (
 	"github.com/mirkobrombin/rfw/framework"
 )
 
-//go:embed templates/test_component.html
+//go:embed templates/test_component.rtml
 var testComponentTpl []byte
 
 type MyComponent struct {
