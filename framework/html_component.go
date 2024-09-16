@@ -173,19 +173,6 @@ func (c *HTMLComponent) GetID() string {
 	return c.ID
 }
 
-func detectUsedVariables(template string) []string {
-	var re = regexp.MustCompile(`\{\{(.*?)\}\}`)
-	matches := re.FindAllStringSubmatch(template, -1)
-
-	var variables []string
-	for _, match := range matches {
-		if len(match) > 1 {
-			variables = append(variables, strings.TrimSpace(match[1]))
-		}
-	}
-	return variables
-}
-
 func generateComponentID(name string, props map[string]interface{}) string {
 	hasher := sha1.New()
 	hasher.Write([]byte(name))
