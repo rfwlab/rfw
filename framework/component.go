@@ -78,11 +78,19 @@ func (c *HTMLComponent) Render() string {
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
 
 	// Handle @include:componentName syntax for dependencies
+	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
+
+	// Handle @prop:propName syntax for props
+	renderedTemplate = replacePropPlaceholders(renderedTemplate, c)
+
+	return renderedTemplate
+}
+
+func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
 	for placeholderName, dep := range c.Dependencies {
 		placeholder := fmt.Sprintf("@include:%s", placeholderName)
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, dep.Render())
 	}
-
 	return renderedTemplate
 }
 
@@ -113,6 +121,21 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 			if isWriteable {
 				return fmt.Sprintf("@store:%s.%s:w", storeName, key)
 			}
+			return fmt.Sprintf("%v", value)
+		}
+		return match
+	})
+}
+
+func replacePropPlaceholders(template string, c *HTMLComponent) string {
+	propRegex := regexp.MustCompile(`@prop:(\w+)`)
+	return propRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := propRegex.FindStringSubmatch(match)
+		if len(parts) != 2 {
+			return match
+		}
+		propName := parts[1]
+		if value, exists := c.Props[propName]; exists {
 			return fmt.Sprintf("%v", value)
 		}
 		return match
