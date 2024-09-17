@@ -17,7 +17,18 @@ type MyComponent struct {
 
 func NewTestComponent() *MyComponent {
 	component := &MyComponent{
-		HTMLComponent: framework.NewHTMLComponent("MyComponent", testComponentTpl, nil),
+		HTMLComponent: framework.NewHTMLComponent("MyComponent", testComponentTpl, map[string]interface{}{
+			"items": []interface{}{
+				map[string]interface{}{
+					"name": "Mario",
+					"age":  30,
+				},
+				map[string]interface{}{
+					"name": "Luigi",
+					"age":  25,
+				},
+			},
+		}),
 	}
 	component.Init(nil)
 

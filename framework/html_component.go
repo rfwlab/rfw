@@ -99,6 +99,9 @@ func (c *HTMLComponent) Render() string {
 	// Handle @if:condition syntax for conditional rendering
 	renderedTemplate = replaceConditionals(renderedTemplate, c)
 
+	// Sostituisci i placeholder del foreach
+	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
+
 	return renderedTemplate
 }
 
@@ -439,4 +442,78 @@ func UpdateStoreBindings(c *HTMLComponent, storeName, key string, newValue inter
 	}
 
 	UpdateConditionsForStoreVariable(c, storeName, key)
+}
+
+func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
+	foreachRegex := regexp.MustCompile(`@foreach:(\S+)\s+as\s+(\w+)([\s\S]*?)@endforeach`)
+	return foreachRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := foreachRegex.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+
+		collectionExpr := parts[1]
+		itemAlias := parts[2]
+		loopContent := parts[3]
+
+		var collection []interface{}
+
+		if strings.HasPrefix(collectionExpr, "store:") {
+			storeParts := strings.Split(strings.TrimPrefix(collectionExpr, "store:"), ".")
+			if len(storeParts) == 2 {
+				storeName, key := storeParts[0], storeParts[1]
+				store := GlobalStoreManager.GetStore(storeName)
+				if store != nil {
+					if col, ok := store.Get(key).([]interface{}); ok {
+						collection = col
+
+						unsubscribe := store.OnChange(key, func(newValue interface{}) {
+							UpdateDOM(c.ID, c.Render())
+						})
+						c.unsubscribes = append(c.unsubscribes, unsubscribe)
+					} else {
+						return match
+					}
+				} else {
+					return match
+				}
+			} else {
+				return match
+			}
+		} else if value, exists := c.Props[collectionExpr]; exists {
+			if col, ok := value.([]interface{}); ok {
+				collection = col
+			} else {
+				return match
+			}
+		} else {
+			return match
+		}
+
+		var result strings.Builder
+
+		for _, item := range collection {
+			iterContent := loopContent
+
+			if itemMap, ok := item.(map[string]interface{}); ok {
+				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, itemAlias))
+				iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
+					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						fieldName := fieldParts[1]
+						if fieldValue, exists := itemMap[fieldName]; exists {
+							return fmt.Sprintf("%v", fieldValue)
+						}
+					}
+					return fieldMatch
+				})
+			} else {
+				iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", itemAlias), fmt.Sprintf("%v", item))
+			}
+
+			result.WriteString(iterContent)
+		}
+
+		return result.String()
+	})
 }

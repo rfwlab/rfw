@@ -19,5 +19,12 @@
             <p>Try setting it to 123.</p>
         </div>
         @endif
+
+        <div>
+            @foreach:items as item
+                <p>Nome: @prop:item.name, Età: @prop:item.age</p>
+            @endforeach
+        </div>
+
     </div>
 </div>
