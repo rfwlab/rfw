@@ -78,7 +78,7 @@ func (c *HTMLComponent) Render() string {
 	c.unsubscribes = nil
 
 	renderedTemplate := c.Template
-	renderedTemplate = strings.Replace(renderedTemplate, "<div", fmt.Sprintf("<div data-component-id=\"%s\"", c.ID), 1)
+	renderedTemplate = strings.Replace(renderedTemplate, "<root", fmt.Sprintf("<root data-component-id=\"%s\"", c.ID), 1)
 
 	for key, value := range c.Props {
 		placeholder := fmt.Sprintf("{{%s}}", key)

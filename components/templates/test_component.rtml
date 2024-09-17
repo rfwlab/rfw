@@ -1,4 +1,4 @@
-<div>
+<root>
     @include:header
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
         <button onclick="goNavigate('/another')"
@@ -38,4 +38,4 @@
         </ul>
 
     </div>
-</div>
+</root>
