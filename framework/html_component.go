@@ -85,22 +85,22 @@ func (c *HTMLComponent) Render() string {
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, fmt.Sprintf("%v", value))
 	}
 
+	// Handle @include:componentName syntax for dependencies
+	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
+
+	// Handle @foreach:collection as item syntax
+	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
+
 	// Handle @store:storeName.varName syntax:
 	// - :w stands for writeable inputs
 	// - :r stands for read-only inputs (default, not required, actually not even implemented)
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
-
-	// Handle @include:componentName syntax for dependencies
-	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
 
 	// Handle @prop:propName syntax for props
 	renderedTemplate = replacePropPlaceholders(renderedTemplate, c)
 
 	// Handle @if:condition syntax for conditional rendering
 	renderedTemplate = replaceConditionals(renderedTemplate, c)
-
-	// Sostituisci i placeholder del foreach
-	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
 
 	return renderedTemplate
 }

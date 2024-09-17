@@ -34,6 +34,14 @@ func NewTestComponent() *MyComponent {
 
 	store := framework.GlobalStoreManager.GetStore("default")
 	store.Set("sharedState", "Initial State")
+	store.Set("testLoop", []interface{}{
+		map[string]interface{}{
+			"name": "test1",
+		},
+		map[string]interface{}{
+			"name": "test2",
+		},
+	})
 
 	framework.NewStore("testing")
 	framework.GlobalStoreManager.GetStore("testing").Set("testingState", "Testing Initial State")

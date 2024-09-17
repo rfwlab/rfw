@@ -20,11 +20,22 @@
         </div>
         @endif
 
-        <div>
+        <ul class="list-disc ml-4">
             @foreach:items as item
-                <p>Nome: @prop:item.name, Età: @prop:item.age</p>
+                <li>
+                    <p><b>Name:</b> @prop:item.name</p>
+                    <p><b>Age:</b> @prop:item.age</p>
+                </li>
             @endforeach
-        </div>
+        </ul>
+
+        <ul class="list-disc ml-4">
+            @foreach:store:default.testLoop as item
+                <li>
+                    <p><b>Name:</b> @prop:item.name</p>
+                </li>
+            @endforeach
+        </ul>
 
     </div>
 </div>
