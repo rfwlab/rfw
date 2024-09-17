@@ -40,4 +40,7 @@ func InitRouter() {
 		Navigate(path)
 		return nil
 	}))
+
+	currentPath := js.Global().Get("location").Get("pathname").String()
+	Navigate(currentPath)
 }

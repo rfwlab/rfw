@@ -20,7 +20,6 @@ func main() {
 	framework.RegisterRoute("/another", anotherComponent)
 
 	framework.InitRouter()
-	framework.Navigate("/")
 
 	select {}
 }
