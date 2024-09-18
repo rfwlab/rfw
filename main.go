@@ -1,4 +1,3 @@
-// Path: /home/mirko/Projects/personal/rfw/main.go
 //go:build js && wasm
 
 package main

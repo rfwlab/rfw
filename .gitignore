@@ -4,3 +4,4 @@ wasm_exec.js
 # not willing to share my crazy notes
 *.txt
 gen.sh
+testing/
