@@ -12,7 +12,7 @@ const port = "8080"
 func main() {
 	fs := http.FileServer(http.Dir("."))
 
-	http.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Serving", r.URL.Path)
 
 		if _, err := os.Stat("." + r.URL.Path); os.IsNotExist(err) {
