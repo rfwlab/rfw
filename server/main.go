@@ -15,7 +15,7 @@ import (
 	"github.com/fatih/color"
 )
 
-const port = "8080"
+const defaultPort = "8080"
 
 var (
 	green      = color.New(color.FgGreen).SprintFunc()
@@ -25,6 +25,7 @@ var (
 	faintGreen = color.New(color.FgGreen, color.Faint).SprintFunc()
 	boldGreen  = color.New(color.FgGreen, color.Bold).SprintFunc()
 	indent     = "  "
+	port       = defaultPort
 )
 
 func main() {
@@ -40,6 +41,10 @@ func main() {
 	localIP, err := getLocalIP()
 	if err != nil {
 		log.Fatalf("Failed to get local IP address: %v", err)
+	}
+
+	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "--port=") {
+		port = strings.TrimPrefix(os.Args[1], "--port=")
 	}
 
 	clearScreen()
