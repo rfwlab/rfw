@@ -19,6 +19,7 @@ const defaultPort = "8080"
 
 var (
 	green      = color.New(color.FgGreen).SprintFunc()
+	red		= color.New(color.FgRed).SprintFunc()
 	white      = color.New(color.FgWhite).SprintFunc()
 	bold       = color.New(color.FgWhite, color.Bold).SprintFunc()
 	faint      = color.New(color.FgWhite, color.Faint).SprintFunc()
@@ -98,12 +99,17 @@ func listenForShutdown(stop chan os.Signal) {
 		input = strings.TrimSpace(input)
 
 		if strings.ToLower(input) == "h" {
+			clearScreen()
 			fmt.Println()
-			fmt.Println(indent, green("➜ "), bold("Help (Shortcuts)"))
-			fmt.Println(indent, indent, faint("Press"), bold("c + enter"), faint("to stop the server"))
-			fmt.Println(indent, indent, faint("Press"), bold("o + enter"), faint("to open the browser"))
-			fmt.Println(indent, indent, faint("Press"), bold("u + enter"), faint("to show the startup info and clear logs"))
-			fmt.Println(indent, indent, faint("Press"), bold("h + enter"), faint("to show this help"))
+			fmt.Println(indent, green("➜ "), bold("Help"))
+			fmt.Println(indent, indent, red("➜ "), bold("Shortcuts"))
+			fmt.Println(indent, indent, indent, faint("Press"), bold("c + enter"), faint("to stop the server"))
+			fmt.Println(indent, indent, indent, faint("Press"), bold("o + enter"), faint("to open the browser"))
+			fmt.Println(indent, indent, indent, faint("Press"), bold("u + enter"), faint("to show the startup info and clear logs"))
+			fmt.Println(indent, indent, indent, faint("Press"), bold("h + enter"), faint("to show this help"))
+			fmt.Println(indent, indent, red("➜ "), bold("Flags"))
+			fmt.Println(indent, indent, indent, faint("Use"), bold("--host"), faint("to expose the server to the network"))
+			fmt.Println(indent, indent, indent, faint("Use"), bold("--port=XXXX"), faint("to specify a port"))
 			fmt.Println()
 		}
 
@@ -135,6 +141,7 @@ func listenForShutdown(stop chan os.Signal) {
 
 		if strings.ToLower(input) == "o" {
 			fmt.Println("Opening the browser...")
+			fmt.Println()
 			url := fmt.Sprintf("http://localhost:%s/", port)
 			openBrowser(url)
 		}
