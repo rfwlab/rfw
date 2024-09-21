@@ -112,11 +112,15 @@ func listenForShutdown(stop chan os.Signal) {
 			printStartupInfo(localIP)
 		}
 
+		/*
+		// This feature is disabled because it's not working properly yet.
+
 		if strings.ToLower(input) == "r" {
 			fmt.Println("Reloading the server...")
 			clearScreen()
 			go startServer()
 		}
+		*/
 
 		if strings.ToLower(input) == "c" || strings.ToLower(input) == "q" {
 			fmt.Println("Closing the server...")
