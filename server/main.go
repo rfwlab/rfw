@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -19,12 +20,14 @@ const defaultPort = "8080"
 
 var (
 	green      = color.New(color.FgGreen).SprintFunc()
-	red		= color.New(color.FgRed).SprintFunc()
+	red        = color.New(color.FgRed).SprintFunc()
 	white      = color.New(color.FgWhite).SprintFunc()
 	bold       = color.New(color.FgWhite, color.Bold).SprintFunc()
 	faint      = color.New(color.FgWhite, color.Faint).SprintFunc()
 	faintGreen = color.New(color.FgGreen, color.Faint).SprintFunc()
 	boldGreen  = color.New(color.FgGreen, color.Bold).SprintFunc()
+	boldYellow = color.New(color.FgYellow, color.Bold).SprintFunc()
+	boldRed    = color.New(color.FgRed, color.Bold).SprintFunc()
 	indent     = "  "
 	port       = defaultPort
 )
@@ -35,7 +38,7 @@ func main() {
 
 	fs := http.FileServer(http.Dir("."))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(bold("Serving"), r.URL.Path)
+		fmt.Printf("%s %s %s\n", faint(time.Now().Format("15:04:05")), boldYellow("serving"), faint(r.URL.Path))
 		handleFileRequest(w, r, fs)
 	})
 
@@ -55,7 +58,7 @@ func main() {
 	go listenForShutdown(stop)
 
 	<-stop
-	fmt.Println("Server stopped.")
+	fmt.Println(boldGreen("[rfw]"), "Server stopped.")
 }
 
 func handleFileRequest(w http.ResponseWriter, r *http.Request, fs http.Handler) {
@@ -88,7 +91,7 @@ func printStartupInfo(localIP string) {
 
 func startServer() {
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		log.Fatalf(boldGreen("[rfw]"), "Server failed: %v", err)
 	}
 }
 
@@ -124,13 +127,13 @@ func listenForShutdown(stop chan os.Signal) {
 		}
 
 		/*
-		// This feature is disabled because it's not working properly yet.
+			// This feature is disabled because it's not working properly yet.
 
-		if strings.ToLower(input) == "r" {
-			fmt.Println("Reloading the server...")
-			clearScreen()
-			go startServer()
-		}
+			if strings.ToLower(input) == "r" {
+				fmt.Println("Reloading the server...")
+				clearScreen()
+				go startServer()
+			}
 		*/
 
 		if strings.ToLower(input) == "c" || strings.ToLower(input) == "q" {
@@ -140,7 +143,7 @@ func listenForShutdown(stop chan os.Signal) {
 		}
 
 		if strings.ToLower(input) == "o" {
-			fmt.Println("Opening the browser...")
+			fmt.Println(boldGreen("[rfw]"), "Opening the browser...")
 			fmt.Println()
 			url := fmt.Sprintf("http://localhost:%s/", port)
 			openBrowser(url)
