@@ -19,13 +19,12 @@ import (
 const defaultPort = "8080"
 
 var (
-	green      = color.New(color.FgGreen).SprintFunc()
 	red        = color.New(color.FgRed).SprintFunc()
 	white      = color.New(color.FgWhite).SprintFunc()
+	yellow     = color.New(color.FgYellow).SprintFunc()
 	bold       = color.New(color.FgWhite, color.Bold).SprintFunc()
 	faint      = color.New(color.FgWhite, color.Faint).SprintFunc()
-	faintGreen = color.New(color.FgGreen, color.Faint).SprintFunc()
-	boldGreen  = color.New(color.FgGreen, color.Bold).SprintFunc()
+	faintRed   = color.New(color.FgRed, color.Faint).SprintFunc()
 	boldYellow = color.New(color.FgYellow, color.Bold).SprintFunc()
 	boldRed    = color.New(color.FgRed, color.Bold).SprintFunc()
 	indent     = "  "
@@ -58,7 +57,7 @@ func main() {
 	go listenForShutdown(stop)
 
 	<-stop
-	fmt.Println(boldGreen("[rfw]"), "Server stopped.")
+	fmt.Println(boldRed("[rfw]"), "Server stopped.")
 }
 
 func handleFileRequest(w http.ResponseWriter, r *http.Request, fs http.Handler) {
@@ -75,23 +74,23 @@ func clearScreen() {
 }
 
 func printStartupInfo(localIP string) {
-	fmt.Println(indent, boldGreen("rfw"), faint("v0.0.0"))
+	fmt.Println(indent, boldRed("rfw"), faint("v0.0.0"))
 	fmt.Println()
-	fmt.Println(indent, green("➜ "), bold("Local:"), green(fmt.Sprintf("http://localhost:%s/", port)))
+	fmt.Println(indent, red("➜ "), bold("Local:"), red(fmt.Sprintf("http://localhost:%s/", port)))
 
 	if len(os.Args) > 1 && os.Args[1] == "--host" {
-		fmt.Println(indent, green("➜ "), faint(bold("Network:")), white(fmt.Sprintf("http://%s:%s/", localIP, port)))
+		fmt.Println(indent, red("➜ "), faint(bold("Network:")), white(fmt.Sprintf("http://%s:%s/", localIP, port)))
 	} else {
-		fmt.Println(indent, green("➜ "), faint(bold("Network:")), white("--host"), faint("to expose"))
+		fmt.Println(indent, red("➜ "), faint(bold("Network:")), white("--host"), faint("to expose"))
 	}
 
-	fmt.Println(indent, faintGreen("➜ "), faint("Press"), bold("h + enter"), faint("to show help"))
+	fmt.Println(indent, faintRed("➜ "), faint("Press"), bold("h + enter"), faint("to show help"))
 	fmt.Println()
 }
 
 func startServer() {
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
-		log.Fatalf(boldGreen("[rfw]"), "Server failed: %v", err)
+		log.Fatalf(boldRed("[rfw]"), "Server failed: %v", err)
 	}
 }
 
@@ -104,13 +103,13 @@ func listenForShutdown(stop chan os.Signal) {
 		if strings.ToLower(input) == "h" {
 			clearScreen()
 			fmt.Println()
-			fmt.Println(indent, green("➜ "), bold("Help"))
-			fmt.Println(indent, indent, red("➜ "), bold("Shortcuts"))
+			fmt.Println(indent, red("➜ "), bold("Help"))
+			fmt.Println(indent, indent, yellow("➜ "), bold("Shortcuts"))
 			fmt.Println(indent, indent, indent, faint("Press"), bold("c + enter"), faint("to stop the server"))
 			fmt.Println(indent, indent, indent, faint("Press"), bold("o + enter"), faint("to open the browser"))
 			fmt.Println(indent, indent, indent, faint("Press"), bold("u + enter"), faint("to show the startup info and clear logs"))
 			fmt.Println(indent, indent, indent, faint("Press"), bold("h + enter"), faint("to show this help"))
-			fmt.Println(indent, indent, red("➜ "), bold("Flags"))
+			fmt.Println(indent, indent, yellow("➜ "), bold("Flags"))
 			fmt.Println(indent, indent, indent, faint("Use"), bold("--host"), faint("to expose the server to the network"))
 			fmt.Println(indent, indent, indent, faint("Use"), bold("--port=XXXX"), faint("to specify a port"))
 			fmt.Println()
@@ -143,7 +142,7 @@ func listenForShutdown(stop chan os.Signal) {
 		}
 
 		if strings.ToLower(input) == "o" {
-			fmt.Println(boldGreen("[rfw]"), "Opening the browser...")
+			fmt.Println(boldRed("[rfw]"), "Opening the browser...")
 			fmt.Println()
 			url := fmt.Sprintf("http://localhost:%s/", port)
 			openBrowser(url)
