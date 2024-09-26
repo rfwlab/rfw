@@ -357,3 +357,25 @@ func updateConditionsForStoreVariable(c *HTMLComponent, storeName, key string) {
 		}
 	}
 }
+
+func getConditionDependencies(condition string) ([]ConditionDependency, error) {
+	conditionParts := strings.Split(condition, "==")
+	if len(conditionParts) != 2 {
+		return nil, fmt.Errorf("Invalid condition format")
+	}
+
+	leftSide := strings.TrimSpace(conditionParts[0])
+	leftSide = strings.Replace(leftSide, "@if:", "", 1)
+
+	dependencies := []ConditionDependency{}
+
+	if strings.HasPrefix(leftSide, "store:") {
+		storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
+		if len(storeParts) == 2 {
+			storeName, key := storeParts[0], storeParts[1]
+			dependencies = append(dependencies, ConditionDependency{storeName, key})
+		}
+	}
+
+	return dependencies, nil
+}
