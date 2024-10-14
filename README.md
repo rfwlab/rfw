@@ -77,7 +77,8 @@ Install the `rfw-cli`:
 go install github.com/rfwlab/rfw-cli@latest
 ```
 
-Create your project (currently it will create a limited example, read the code of the framework for a more complex example=:
+Create your project (currently it will create a limited example, read the code of the framework for a more 
+complex example:
 
 ```bash
 rfw-cli init github.com/username/project-name
