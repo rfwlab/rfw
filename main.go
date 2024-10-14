@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/mirkobrombin/rfw/components"
-	"github.com/mirkobrombin/rfw/framework"
+	"github.com/rfwlab/rfw/components"
+	"github.com/rfwlab/rfw/framework"
 )
 
 func main() {

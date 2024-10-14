@@ -5,7 +5,7 @@ package components
 import (
 	_ "embed"
 
-	"github.com/mirkobrombin/rfw/framework"
+	"github.com/rfwlab/rfw/framework"
 )
 
 //go:embed templates/header_component.rtml

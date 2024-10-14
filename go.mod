@@ -1,6 +1,6 @@
-module github.com/mirkobrombin/rfw
+module github.com/rfwlab/rfw
 
-go 1.22.3
+go 1.22
 
 require (
 	github.com/fatih/color v1.17.0
