@@ -1,7 +1,12 @@
-# rfw
+<div align="center">
+<img src="https://github.com/rfwlab/brandbook/blob/main/light-full.png?raw=true#gh-dark-mode-only" height="100">
+<img src="https://github.com/rfwlab/brandbook/blob/main/dark-full.png?raw=true#gh-light-mode-only" height="100">
 
-rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, 
-with future plans to support native applications and the use of GL libraries.
+<hr />
+
+<p>rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, 
+with future plans to support native applications and the use of GL libraries.</p>
+</div>
 
 > This is currently an experimental project, the source code is nothing more than a kind-of-working mockup.
 
