@@ -47,11 +47,11 @@ RTML code example:
 
 ```html
 <root>
-@include:header
-<div class="p-4 pt-0">
-@include:card
-<p>State is currently: @store.default.sharedState</p>
-</div>
+  @include:header
+  <div class="p-4 pt-0">
+    @include:card
+    <p>State is currently: @store.default.sharedState</p>
+  </div>
 </root>
 ```
 
