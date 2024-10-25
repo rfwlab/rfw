@@ -90,3 +90,56 @@ make your changes and serve it with:
 rfw-cli dev
 ```
 
+## Contributing
+
+This project is currently in the experimental phase, so any help is welcome. If you want to contribute,
+please feel free to open an issue or a pull request, we are open to any suggestions and improvements.
+
+### My IDE is not recognizing the RTML syntax
+
+If you are using Visual Studio Code, look for a pop-up in the bottom right corner of the screen that prompts
+you to install the recommended extensions for the project.
+
+Other IDEs are not yet supported in the current state of the project. I suggest to just map the `.rtml`
+extension to HTML in your IDE settings, you will not see the syntax highlighting for the RTML specific
+syntax, but it will work.
+
+### My IDE is not recognizing imports
+
+This happens because the project has specific build tags in most of the files (`//go:build js && wasm`).
+To fix this just set the build tags in your IDE settings to `js,wasm`.
+
+#### VSCode
+
+Add the following to your `settings.json`:
+
+```json
+{
+  "go.buildTags": "js wasm"
+}
+```
+
+#### Zed IDE
+
+Add the following to your `settings.json` (extending the `lsp` key):
+
+```json
+{
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        "buildFlags": ["-tags=js,wasm"]
+      }
+    }
+  }
+}
+```
+
+#### Other IDEs
+
+Please refer to the documentation of your IDE to find out how to set build tags for Go projects.
+
+### Proper LSP support for RTML
+
+Currently there is no LSP support for RTML, so you will not have autocompletion or syntax checking
+for RTML files.
