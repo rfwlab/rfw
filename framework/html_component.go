@@ -23,23 +23,6 @@ type HTMLComponent struct {
 	conditionContents map[string]ConditionContent
 }
 
-type ConditionContent struct {
-	conditionStr string
-	ifContent    string
-	elseContent  string
-}
-
-type ConditionalBlock struct {
-	Condition   string
-	IfContent   string
-	ElseContent string
-}
-
-type ConditionDependency struct {
-	storeName string
-	key       string
-}
-
 func NewHTMLComponent(name string, templateFs []byte, props map[string]interface{}) *HTMLComponent {
 	id := generateComponentID(name, props)
 	return &HTMLComponent{
