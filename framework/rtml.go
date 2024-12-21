@@ -10,6 +10,23 @@ import (
 	"syscall/js"
 )
 
+type ConditionContent struct {
+	conditionStr string
+	ifContent    string
+	elseContent  string
+}
+
+type ConditionalBlock struct {
+	Condition   string
+	IfContent   string
+	ElseContent string
+}
+
+type ConditionDependency struct {
+	storeName string
+	key       string
+}
+
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
 	for placeholderName, dep := range c.Dependencies {
 		placeholder := fmt.Sprintf("@include:%s", placeholderName)
