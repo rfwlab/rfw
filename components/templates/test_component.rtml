@@ -1,7 +1,7 @@
 <root>
     @include:header
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
-        <button onclick="goNavigate('/another')"
+        <button onclick="goNavigate('/user/Luigi')"
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Go to another page</button>
         <p>State is currently: @store:default.sharedState</p>
         <input type="text" value="@store:default.sharedState:w" class="p-2 border border-gray-300 rounded-md">

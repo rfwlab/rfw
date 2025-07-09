@@ -10,10 +10,10 @@
 <body>
     <div id="app"></div>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css">
-    <script src="wasm_exec.js"></script>
+    <script src="/wasm_exec.js"></script>
     <script>
         const go = new Go();
-        WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+        WebAssembly.instantiateStreaming(fetch("/main.wasm"), go.importObject).then((result) => {
             go.run(result.instance);
         });
 

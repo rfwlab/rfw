@@ -28,3 +28,7 @@ func NewAnotherComponent() *AnotherComponent {
 
 	return component
 }
+
+func (c *AnotherComponent) SetRouteParams(params map[string]string) {
+	c.HTMLComponent.SetRouteParams(params)
+}
