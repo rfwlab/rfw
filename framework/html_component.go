@@ -122,6 +122,15 @@ func (c *HTMLComponent) GetID() string {
 	return c.ID
 }
 
+func (c *HTMLComponent) SetRouteParams(params map[string]string) {
+	if c.Props == nil {
+		c.Props = make(map[string]interface{})
+	}
+	for k, v := range params {
+		c.Props[k] = v
+	}
+}
+
 func generateComponentID(name string, props map[string]interface{}) string {
 	hasher := sha1.New()
 	hasher.Write([]byte(name))

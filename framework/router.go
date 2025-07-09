@@ -4,25 +4,71 @@ package framework
 
 import (
 	"log"
+	"regexp"
+	"strings"
 	"syscall/js"
 )
 
-var routes = map[string]Component{}
+type route struct {
+	pattern    string
+	regex      *regexp.Regexp
+	paramNames []string
+	component  Component
+}
+
+var routes []route
 var currentComponent Component
 
 func RegisterRoute(path string, component Component) {
-	routes[path] = component
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	regexParts := make([]string, len(segments))
+	paramNames := []string{}
+
+	for i, segment := range segments {
+		if strings.HasPrefix(segment, ":") {
+			name := strings.TrimPrefix(segment, ":")
+			paramNames = append(paramNames, name)
+			regexParts[i] = "([^/]+)"
+		} else {
+			regexParts[i] = regexp.QuoteMeta(segment)
+		}
+	}
+
+	pattern := "^/" + strings.Join(regexParts, "/") + "$"
+	r := route{
+		pattern:    path,
+		regex:      regexp.MustCompile(pattern),
+		paramNames: paramNames,
+		component:  component,
+	}
+	routes = append(routes, r)
+}
+
+type routeParamReceiver interface {
+	SetRouteParams(map[string]string)
 }
 
 func Navigate(path string) {
-	if component, exists := routes[path]; exists {
-		if currentComponent != nil {
-			log.Println("Unmounting current component:", currentComponent.GetName())
-			currentComponent.Unmount()
+	for _, r := range routes {
+		if matches := r.regex.FindStringSubmatch(path); matches != nil {
+			params := map[string]string{}
+			for i, name := range r.paramNames {
+				if i+1 < len(matches) {
+					params[name] = matches[i+1]
+				}
+			}
+			if receiver, ok := r.component.(routeParamReceiver); ok {
+				receiver.SetRouteParams(params)
+			}
+			if currentComponent != nil {
+				log.Println("Unmounting current component:", currentComponent.GetName())
+				currentComponent.Unmount()
+			}
+			currentComponent = r.component
+			UpdateDOM("", r.component.Render())
+			js.Global().Get("history").Call("pushState", nil, "", path)
+			return
 		}
-		currentComponent = component
-		UpdateDOM("", component.Render())
-		js.Global().Get("history").Call("pushState", nil, "", path)
 	}
 }
 

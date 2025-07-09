@@ -16,7 +16,7 @@ func main() {
 
 	framework.RegisterRoute("/", mainComponent)
 	framework.RegisterRoute("/test", testComponent)
-	framework.RegisterRoute("/another", anotherComponent)
+	framework.RegisterRoute("/user/:name", anotherComponent)
 
 	framework.InitRouter()
 
