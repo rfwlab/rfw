@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package framework
+package core
 
 import (
 	"crypto/sha1"
@@ -9,6 +9,8 @@ import (
 	"log"
 	"sort"
 	"strings"
+
+	"github.com/rfwlab/rfw/v1/state"
 )
 
 type HTMLComponent struct {
@@ -18,7 +20,7 @@ type HTMLComponent struct {
 	TemplateFS        []byte
 	Dependencies      map[string]Component
 	unsubscribes      []func()
-	Store             *Store
+	Store             *state.Store
 	Props             map[string]interface{}
 	conditionContents map[string]ConditionContent
 }
@@ -35,7 +37,7 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]interface
 	}
 }
 
-func (c *HTMLComponent) Init(store *Store) {
+func (c *HTMLComponent) Init(store *state.Store) {
 	template, err := LoadComponentTemplate(c.TemplateFS)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading template for component %s: %v", c.Name, err))
@@ -45,7 +47,7 @@ func (c *HTMLComponent) Init(store *Store) {
 	if store != nil {
 		c.Store = store
 	} else {
-		c.Store = GlobalStoreManager.GetStore("default")
+		c.Store = state.GlobalStoreManager.GetStore("default")
 		if c.Store == nil {
 			panic(fmt.Sprintf("No store provided and no default store found for component %s", c.Name))
 		}

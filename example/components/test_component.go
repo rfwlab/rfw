@@ -5,19 +5,20 @@ package components
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/framework"
+	core "github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v1/state"
 )
 
 //go:embed templates/test_component.rtml
 var testComponentTpl []byte
 
 type MyComponent struct {
-	*framework.HTMLComponent
+	*core.HTMLComponent
 }
 
 func NewTestComponent() *MyComponent {
-	component := &MyComponent{
-		HTMLComponent: framework.NewHTMLComponent("MyComponent", testComponentTpl, map[string]interface{}{
+	c := &MyComponent{
+		HTMLComponent: core.NewHTMLComponent("MyComponent", testComponentTpl, map[string]interface{}{
 			"items": []interface{}{
 				map[string]interface{}{
 					"name": "Mario",
@@ -30,9 +31,9 @@ func NewTestComponent() *MyComponent {
 			},
 		}),
 	}
-	component.Init(nil)
+	c.Init(nil)
 
-	store := framework.GlobalStoreManager.GetStore("default")
+	store := state.GlobalStoreManager.GetStore("default")
 	store.Set("sharedState", "Initial State")
 	store.Set("testLoop", []interface{}{
 		map[string]interface{}{
@@ -43,13 +44,13 @@ func NewTestComponent() *MyComponent {
 		},
 	})
 
-	framework.NewStore("testing")
-	framework.GlobalStoreManager.GetStore("testing").Set("testingState", "Testing Initial State")
+	state.NewStore("testing")
+	state.GlobalStoreManager.GetStore("testing").Set("testingState", "Testing Initial State")
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Another Component",
 	})
-	component.AddDependency("header", headerComponent)
+	c.AddDependency("header", headerComponent)
 
-	return component
+	return c
 }

@@ -5,31 +5,31 @@ package components
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/framework"
+	core "github.com/rfwlab/rfw/v1/core"
 )
 
 //go:embed templates/main_component.rtml
 var mainComponentTpl []byte
 
 type MainComponent struct {
-	*framework.HTMLComponent
+	*core.HTMLComponent
 }
 
 func NewMainComponent() *MainComponent {
-	component := &MainComponent{
-		HTMLComponent: framework.NewHTMLComponent("MainComponent", mainComponentTpl, nil),
+	c := &MainComponent{
+		HTMLComponent: core.NewHTMLComponent("MainComponent", mainComponentTpl, nil),
 	}
-	component.Init(nil)
+	c.Init(nil)
 
 	cardComponent := NewCardComponent(map[string]interface{}{
 		"title": "just a card",
 	})
-	component.AddDependency("card", cardComponent)
+	c.AddDependency("card", cardComponent)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Main Component",
 	})
-	component.AddDependency("header", headerComponent)
+	c.AddDependency("header", headerComponent)
 
-	return component
+	return c
 }

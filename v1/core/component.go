@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package framework
+package core
 
 type Component interface {
 	Render() string

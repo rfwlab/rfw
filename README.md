@@ -10,6 +10,9 @@ with future plans to support native applications and the use of GL libraries.</p
 
 > This is currently an experimental project, the source code is nothing more than a kind-of-working mockup.
 
+The repository is organized so that the framework lives at the root under versioned packages (e.g. `v1/core`, `v1/router`).
+An example application demonstrating the current capabilities is available in the `example/` directory.
+
 ## The idea
 
 The idea behind rfw is to create a highly performant and reactive framework that leverages Go and WebAssembly, 

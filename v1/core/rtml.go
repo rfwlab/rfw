@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package framework
+package core
 
 import (
 	"crypto/sha1"
@@ -8,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 	"syscall/js"
+
+	"github.com/rfwlab/rfw/v1/dom"
+	"github.com/rfwlab/rfw/v1/state"
 )
 
 type ConditionContent struct {
@@ -47,7 +50,7 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 		key := parts[2]
 		isWriteable := len(parts) == 4 && parts[3] == ":w"
 
-		store := GlobalStoreManager.GetStore(storeName)
+		store := state.GlobalStoreManager.GetStore(storeName)
 		if store != nil {
 			value := store.Get(key)
 			if value == nil {
@@ -108,7 +111,7 @@ func replaceConditionals(template string, c *HTMLComponent) string {
 
 		for _, dep := range dependencies {
 			storeName, key := dep.storeName, dep.key
-			store := GlobalStoreManager.GetStore(storeName)
+			store := state.GlobalStoreManager.GetStore(storeName)
 			if store != nil {
 				unsubscribe := store.OnChange(key, func(newValue interface{}) {
 					updateConditionBindings(c, conditionID, conditionStr)
@@ -154,7 +157,7 @@ func replaceConditionals(template string, c *HTMLComponent) string {
 		for _, dep := range dependencies {
 			storeName, key := dep.storeName, dep.key
 			fmt.Printf("Registering listener for condition '%s' on store '%s', key '%s'\n", conditionStr, storeName, key)
-			store := GlobalStoreManager.GetStore(storeName)
+			store := state.GlobalStoreManager.GetStore(storeName)
 			if store != nil {
 				unsubscribe := store.OnChange(key, func(newValue interface{}) {
 					fmt.Printf("Listener triggered for store '%s', key '%s', new value: '%v'\n", storeName, key, newValue)
@@ -201,7 +204,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 		if len(storeParts) == 2 {
 			storeName, key := storeParts[0], storeParts[1]
 			fmt.Printf("Dependency detected: Store '%s', Key '%s'\n", storeName, key)
-			store := GlobalStoreManager.GetStore(storeName)
+			store := state.GlobalStoreManager.GetStore(storeName)
 			if store != nil {
 				dependencies = append(dependencies, ConditionDependency{storeName, key})
 				actualValue := fmt.Sprintf("%v", store.Get(key))
@@ -274,13 +277,13 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 			storeParts := strings.Split(strings.TrimPrefix(collectionExpr, "store:"), ".")
 			if len(storeParts) == 2 {
 				storeName, key := storeParts[0], storeParts[1]
-				store := GlobalStoreManager.GetStore(storeName)
+				store := state.GlobalStoreManager.GetStore(storeName)
 				if store != nil {
 					if col, ok := store.Get(key).([]interface{}); ok {
 						collection = col
 
 						unsubscribe := store.OnChange(key, func(newValue interface{}) {
-							UpdateDOM(c.ID, c.Render())
+							dom.UpdateDOM(c.ID, c.Render())
 						})
 						c.unsubscribes = append(c.unsubscribes, unsubscribe)
 					} else {
@@ -360,7 +363,7 @@ func updateConditionBindings(c *HTMLComponent, conditionID, conditionStr string)
 
 	node.Set("innerHTML", newContent)
 
-	bindStoreInputs(node)
+	dom.BindStoreInputs(node)
 }
 
 func updateConditionsForStoreVariable(c *HTMLComponent, storeName, key string) {

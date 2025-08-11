@@ -1,4 +1,4 @@
-package framework
+package state
 
 type ReactiveVar struct {
 	value     string
