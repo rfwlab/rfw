@@ -5,28 +5,28 @@ package components
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/framework"
+	core "github.com/rfwlab/rfw/v1/core"
 )
 
 //go:embed templates/another_component.rtml
 var anotherComponentTpl []byte
 
 type AnotherComponent struct {
-	*framework.HTMLComponent
+	*core.HTMLComponent
 }
 
 func NewAnotherComponent() *AnotherComponent {
-	component := &AnotherComponent{
-		HTMLComponent: framework.NewHTMLComponent("AnotherComponent", anotherComponentTpl, nil),
+	c := &AnotherComponent{
+		HTMLComponent: core.NewHTMLComponent("AnotherComponent", anotherComponentTpl, nil),
 	}
-	component.Init(nil)
+	c.Init(nil)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Another Component",
 	})
-	component.AddDependency("header", headerComponent)
+	c.AddDependency("header", headerComponent)
 
-	return component
+	return c
 }
 
 func (c *AnotherComponent) SetRouteParams(params map[string]string) {

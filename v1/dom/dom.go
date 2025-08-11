@@ -1,11 +1,13 @@
 //go:build js && wasm
 
-package framework
+package dom
 
 import (
 	"fmt"
 	"regexp"
 	"syscall/js"
+
+	"github.com/rfwlab/rfw/v1/state"
 )
 
 func UpdateDOM(componentID string, html string) {
@@ -22,10 +24,11 @@ func UpdateDOM(componentID string, html string) {
 
 	patchInnerHTML(element, html)
 
-	bindStoreInputs(element)
+	BindStoreInputs(element)
 }
 
-func bindStoreInputs(element js.Value) {
+// BindStoreInputs binds input elements to store variables.
+func BindStoreInputs(element js.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
@@ -36,7 +39,7 @@ func bindStoreInputs(element js.Value) {
 			storeName := storeMatch[1]
 			key := storeMatch[2]
 
-			store := GlobalStoreManager.GetStore(storeName)
+			store := state.GlobalStoreManager.GetStore(storeName)
 			if store != nil {
 				storeValue := store.Get(key)
 				if storeValue == nil {

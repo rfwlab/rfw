@@ -1,25 +1,28 @@
 //go:build js && wasm
 
-package framework
+package router
 
 import (
 	"log"
 	"regexp"
 	"strings"
 	"syscall/js"
+
+	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v1/dom"
 )
 
 type route struct {
 	pattern    string
 	regex      *regexp.Regexp
 	paramNames []string
-	component  Component
+	component  core.Component
 }
 
 var routes []route
-var currentComponent Component
+var currentComponent core.Component
 
-func RegisterRoute(path string, component Component) {
+func RegisterRoute(path string, component core.Component) {
 	segments := strings.Split(strings.Trim(path, "/"), "/")
 	regexParts := make([]string, len(segments))
 	paramNames := []string{}
@@ -65,7 +68,7 @@ func Navigate(path string) {
 				currentComponent.Unmount()
 			}
 			currentComponent = r.component
-			UpdateDOM("", r.component.Render())
+			dom.UpdateDOM("", r.component.Render())
 			js.Global().Get("history").Call("pushState", nil, "", path)
 			return
 		}

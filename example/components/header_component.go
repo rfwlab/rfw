@@ -5,21 +5,21 @@ package components
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/framework"
+	core "github.com/rfwlab/rfw/v1/core"
 )
 
 //go:embed templates/header_component.rtml
 var headerComponentTpl []byte
 
 type HeaderComponent struct {
-	*framework.HTMLComponent
+	*core.HTMLComponent
 }
 
 func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
-	component := &HeaderComponent{
-		HTMLComponent: framework.NewHTMLComponent("HeaderComponent", headerComponentTpl, props),
+	c := &HeaderComponent{
+		HTMLComponent: core.NewHTMLComponent("HeaderComponent", headerComponentTpl, props),
 	}
-	component.Init(nil)
+	c.Init(nil)
 
-	return component
+	return c
 }

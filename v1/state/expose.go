@@ -1,20 +1,8 @@
-//go:build js && wasm
+package state
 
-package framework
+import "syscall/js"
 
-import (
-	"syscall/js"
-)
-
-func init() {
-	ExposeNavigate()
-	ExposeUpdateStore()
-}
-
-func ExposeFunction(name string, fn interface{}) {
-	js.Global().Set(name, js.FuncOf(fn.(func(this js.Value, args []js.Value) interface{})))
-}
-
+// ExposeUpdateStore exposes a JS function to update store values.
 func ExposeUpdateStore() {
 	js.Global().Set("goUpdateStore", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) < 3 {
