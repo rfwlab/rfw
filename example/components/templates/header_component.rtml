@@ -1,8 +1,8 @@
 <root>
     <div class="bg-gray-200 p-4 mb-4 flex flex-col gap-4 items-start">
         <h1 class="text-2xl font-bold">@prop:title</h1>
-        <p class="text-sm">Mounted: @store:default.headerMounts - Unmounted: @store:default.headerUnmounts</p>
-        <p class="text-sm">Protected allowed: @store:default.allowProtected</p>
+        <p class="text-sm">Mounted: @store:app.default.headerMounts - Unmounted: @store:app.default.headerUnmounts</p>
+        <p class="text-sm">Protected allowed: @store:app.default.allowProtected</p>
         <nav>
             <ul class="flex space-x-4">
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" onclick="goNavigate('/')">Main</a>
@@ -16,11 +16,13 @@
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/computed')">Computed</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
+                        onclick="goNavigate('/stores')">Stores</a></li>
+                <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/parent')">Parent</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/protected')">Protected</a></li>
                 <li><button class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
-                        onclick="goUpdateStore('default','allowProtected', true)">Unlock Protected</button></li>
+                        onclick="goUpdateStore('app','default','allowProtected', true)">Unlock Protected</button></li>
                 </ul>
             </nav>
         </div>

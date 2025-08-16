@@ -49,7 +49,7 @@ func (c *HTMLComponent) Init(store *state.Store) {
 	if store != nil {
 		c.Store = store
 	} else {
-		c.Store = state.GlobalStoreManager.GetStore("default")
+               c.Store = state.GlobalStoreManager.GetStore("app", "default")
 		if c.Store == nil {
 			panic(fmt.Sprintf("No store provided and no default store found for component %s", c.Name))
 		}
@@ -76,7 +76,7 @@ func (c *HTMLComponent) Render() string {
 	// Handle @foreach:collection as item syntax
 	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
 
-	// Handle @store:storeName.varName syntax:
+       // Handle @store:module.storeName.varName syntax:
 	// - :w stands for writeable inputs
 	// - :r stands for read-only inputs (default, not required, actually not even implemented)
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)

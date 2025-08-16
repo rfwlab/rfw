@@ -34,22 +34,20 @@ func NewTestComponent() *MyComponent {
 	c.SetComponent(c)
 	c.Init(nil)
 
-	store := state.GlobalStoreManager.GetStore("default")
-	store.Set("sharedState", "Initial State")
-	store.Set("testLoop", []interface{}{
-		map[string]interface{}{
-			"name": "test1",
-		},
-		map[string]interface{}{
-			"name": "test2",
-		},
-	})
-
-	state.NewStore("testing")
-	state.GlobalStoreManager.GetStore("testing").Set("testingState", "Testing Initial State")
+	store := state.GlobalStoreManager.GetStore("app", "default")
+	if store.Get("testLoop") == nil {
+		store.Set("testLoop", []interface{}{
+			map[string]interface{}{
+				"name": "test1",
+			},
+			map[string]interface{}{
+				"name": "test2",
+			},
+		})
+	}
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
-		"title": "Another Component",
+		"title": "Test Component",
 	})
 	c.AddDependency("header", headerComponent)
 

@@ -6,7 +6,7 @@
             <button class="bg-blue-500 text-white px-4 py-2 rounded" @on:click="setAda">Ada Lovelace</button>
             <button class="bg-green-500 text-white px-4 py-2 rounded" @on:click="setGrace">Grace Hopper</button>
         </div>
-        <p class="mt-4">Full name: @store:default.fullName</p>
-        <p class="mt-2 italic text-sm">@store:default.lastChange</p>
+        <p class="mt-4">Full name: @store:app.default.fullName</p>
+        <p class="mt-2 italic text-sm">@store:app.default.lastChange</p>
     </div>
 </root>

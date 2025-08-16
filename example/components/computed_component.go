@@ -26,8 +26,10 @@ func NewComputedComponent() *ComputedComponent {
 	c.SetComponent(c)
 	c.Init(nil)
 
-	store := state.GlobalStoreManager.GetStore("default")
-	store.Set("lastChange", "")
+       store := state.GlobalStoreManager.GetStore("app", "default")
+       if store.Get("lastChange") == nil {
+               store.Set("lastChange", "")
+       }
 	// register computed full name
 	store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]interface{}) interface{} {
 		first, _ := s["first"].(string)

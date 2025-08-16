@@ -3,12 +3,12 @@
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
         <button onclick="goNavigate('/user/Luigi')"
             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Go to another page</button>
-        <p>State is currently: @store:default.sharedState</p>
-        <input type="text" value="@store:default.sharedState:w" class="p-2 border border-gray-300 rounded-md">
-        <p>Testing State is currently: @store:testing.testingState</p>
-        <input type="text" value="@store:testing.testingState:w" class="p-2 border border-gray-300 rounded-md">
+        <p>State is currently: @store:app.default.sharedState</p>
+        <input type="text" value="@store:app.default.sharedState:w" class="p-2 border border-gray-300 rounded-md">
+        <p>Testing State is currently: @store:default.testing.testingState</p>
+        <input type="text" value="@store:default.testing.testingState:w" class="p-2 border border-gray-300 rounded-md">
 
-        @if:store:default.sharedState == "123"
+        @if:store:app.default.sharedState == "123"
         <div class="bg-green-200 p-4 mb-4 flex flex-col gap-4 items-start">
             <h2 class="text-2xl font-bold">Shared State is 123</h2>
             <p>Try setting it to something else.</p>
@@ -30,7 +30,7 @@
         </ul>
 
         <ul class="list-disc ml-4">
-            @foreach:store:default.testLoop as item
+            @foreach:store:app.default.testLoop as item
                 <li>
                     <p><b>Name:</b> @prop:item.name</p>
                 </li>
