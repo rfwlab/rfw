@@ -2,6 +2,11 @@ package state
 
 import "fmt"
 
+// StoreHook, if non-nil, is invoked on every mutation allowing external
+// observers (e.g. plugins) to react to state changes without creating an
+// import cycle with core.
+var StoreHook func(module, store, key string, value interface{})
+
 // StoreOption configures optional behaviour for a Store during creation.
 type StoreOption func(*Store)
 
@@ -73,12 +78,31 @@ func (sm *StoreManager) GetStore(module, name string) *Store {
 	return nil
 }
 
+// Snapshot returns a deep copy of all registered stores and their states.
+func (sm *StoreManager) Snapshot() map[string]map[string]map[string]interface{} {
+	snap := make(map[string]map[string]map[string]interface{})
+	for module, stores := range sm.modules {
+		snap[module] = make(map[string]map[string]interface{})
+		for name, store := range stores {
+			stateCopy := make(map[string]interface{})
+			for k, v := range store.state {
+				stateCopy[k] = v
+			}
+			snap[module][name] = stateCopy
+		}
+	}
+	return snap
+}
+
 func (s *Store) storageKey() string { return s.module + ":" + s.name }
 
 func (s *Store) Set(key string, value interface{}) {
 	s.state[key] = value
 	if s.devTools {
 		fmt.Printf("%s/%s -> %s: %v\n", s.module, s.name, key, value)
+	}
+	if StoreHook != nil {
+		StoreHook(s.module, s.name, key, value)
 	}
 	if listeners, exists := s.listeners[key]; exists {
 		for _, listener := range listeners {

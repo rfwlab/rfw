@@ -4,13 +4,15 @@ package main
 
 import (
 	"github.com/rfwlab/rfw/example/components"
+	"github.com/rfwlab/rfw/example/plugins/logging"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
 func main() {
-	store := state.NewStore("default", state.WithModule("app"), state.WithDevTools())
+	core.RegisterPlugin(logging.New())
+	store := state.NewStore("default", state.WithModule("app"))
 	store.Set("count", 0)
 	store.Set("allowProtected", false)
 	if store.Get("sharedState") == nil {

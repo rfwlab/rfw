@@ -123,11 +123,14 @@ func Navigate(path string) {
 	}
 	if currentComponent != nil {
 		log.Println("Unmounting current component:", currentComponent.GetName())
+		core.TriggerUnmount(currentComponent)
 		currentComponent.Unmount()
 	}
 	currentComponent = r.component
 	dom.UpdateDOM("", r.component.Render())
 	r.component.Mount()
+	core.TriggerMount(r.component)
+	core.TriggerRouter(path)
 	js.Global().Get("history").Call("pushState", nil, "", path)
 }
 
