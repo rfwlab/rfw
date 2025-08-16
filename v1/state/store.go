@@ -1,6 +1,9 @@
 package state
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // StoreHook, if non-nil, is invoked on every mutation allowing external
 // observers (e.g. plugins) to react to state changes without creating an
@@ -152,6 +155,7 @@ func (s *Store) RegisterComputed(c *Computed) {
 	s.computeds[c.Key()] = c
 	val := c.Evaluate(s.state)
 	s.state[c.Key()] = val
+	c.lastDeps = snapshotDeps(s.state, c.Deps())
 }
 
 // RegisterWatcher registers a watcher that triggers when any of its
@@ -166,15 +170,19 @@ func (s *Store) RegisterWatcher(w *Watcher) {
 func (s *Store) evaluateDependents(key string) {
 	for _, c := range s.computeds {
 		if contains(c.Deps(), key) {
-			val := c.Evaluate(s.state)
-			s.state[c.Key()] = val
-			if listeners, exists := s.listeners[c.Key()]; exists {
-				for _, listener := range listeners {
-					listener(val)
+			current := snapshotDeps(s.state, c.Deps())
+			if c.lastDeps == nil || !reflect.DeepEqual(current, c.lastDeps) {
+				val := c.Evaluate(s.state)
+				s.state[c.Key()] = val
+				c.lastDeps = current
+				if listeners, exists := s.listeners[c.Key()]; exists {
+					for _, listener := range listeners {
+						listener(val)
+					}
 				}
+				// propagate to computeds/watchers depending on this key
+				s.evaluateDependents(c.Key())
 			}
-			// propagate to computeds/watchers depending on this key
-			s.evaluateDependents(c.Key())
 		}
 	}
 	for _, w := range s.watchers {
@@ -192,4 +200,12 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func snapshotDeps(state map[string]interface{}, deps []string) map[string]interface{} {
+	snap := make(map[string]interface{}, len(deps))
+	for _, d := range deps {
+		snap[d] = state[d]
+	}
+	return snap
 }

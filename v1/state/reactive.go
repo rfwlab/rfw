@@ -30,9 +30,10 @@ func (rv *ReactiveVar) OnChange(listener func(string)) {
 // It holds the target key for the computed value, the list of dependencies
 // and the function used to calculate the value.
 type Computed struct {
-	key     string
-	deps    []string
-	compute func(map[string]interface{}) interface{}
+	key      string
+	deps     []string
+	compute  func(map[string]interface{}) interface{}
+	lastDeps map[string]interface{}
 }
 
 // NewComputed creates a new Computed value.
