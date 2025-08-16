@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // StoreHook, if non-nil, is invoked on every mutation allowing external
@@ -160,9 +161,21 @@ func (s *Store) RegisterComputed(c *Computed) {
 
 // RegisterWatcher registers a watcher that triggers when any of its
 // dependencies change. If the dependency list is empty the watcher is triggered
-// on every state update.
-func (s *Store) RegisterWatcher(w *Watcher) {
+// on every state update. It returns a function that removes the watcher.
+func (s *Store) RegisterWatcher(w *Watcher) func() {
 	s.watchers = append(s.watchers, w)
+	if w.immediate {
+		w.Run(s.state)
+	}
+
+	return func() {
+		for i, watcher := range s.watchers {
+			if watcher == w {
+				s.watchers = append(s.watchers[:i], s.watchers[i+1:]...)
+				break
+			}
+		}
+	}
 }
 
 // evaluateDependents re-evaluates computed values and triggers watchers for a
@@ -187,8 +200,22 @@ func (s *Store) evaluateDependents(key string) {
 	}
 	for _, w := range s.watchers {
 		deps := w.Deps()
-		if len(deps) == 0 || contains(deps, key) {
+		if len(deps) == 0 {
 			w.Run(s.state)
+			continue
+		}
+		for _, dep := range deps {
+			if w.deep {
+				if pathMatches(key, dep) {
+					w.Run(s.state)
+					break
+				}
+			} else {
+				if key == dep {
+					w.Run(s.state)
+					break
+				}
+			}
 		}
 	}
 }
@@ -198,6 +225,19 @@ func contains(slice []string, item string) bool {
 		if s == item {
 			return true
 		}
+	}
+	return false
+}
+
+func pathMatches(key, dep string) bool {
+	if key == dep {
+		return true
+	}
+	if strings.HasPrefix(key, dep+".") {
+		return true
+	}
+	if strings.HasPrefix(dep, key+".") {
+		return true
 	}
 	return false
 }

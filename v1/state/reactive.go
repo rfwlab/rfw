@@ -56,13 +56,28 @@ func (c *Computed) Evaluate(state map[string]interface{}) interface{} {
 // Watcher represents a callback that reacts to changes on specific store keys.
 // When any of the dependencies change, the associated function is triggered.
 type Watcher struct {
-	deps []string
-	run  func(map[string]interface{})
+	deps      []string
+	run       func(map[string]interface{})
+	deep      bool
+	immediate bool
 }
 
+// WatcherOption configures optional watcher behaviour.
+type WatcherOption func(*Watcher)
+
+// WatcherDeep enables deep watching of nested keys.
+func WatcherDeep() WatcherOption { return func(w *Watcher) { w.deep = true } }
+
+// WatcherImmediate triggers the watcher immediately after registration.
+func WatcherImmediate() WatcherOption { return func(w *Watcher) { w.immediate = true } }
+
 // NewWatcher creates a new Watcher.
-func NewWatcher(deps []string, run func(map[string]interface{})) *Watcher {
-	return &Watcher{deps: deps, run: run}
+func NewWatcher(deps []string, run func(map[string]interface{}), opts ...WatcherOption) *Watcher {
+	w := &Watcher{deps: deps, run: run}
+	for _, opt := range opts {
+		opt(w)
+	}
+	return w
 }
 
 // Deps returns the list of keys the watcher observes.
