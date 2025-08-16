@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package state
 
 import "syscall/js"
@@ -5,27 +7,28 @@ import "syscall/js"
 // ExposeUpdateStore exposes a JS function to update store values.
 func ExposeUpdateStore() {
 	js.Global().Set("goUpdateStore", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) < 3 {
+		if len(args) < 4 {
 			return nil
 		}
-		storeName := args[0].String()
-		key := args[1].String()
+		module := args[0].String()
+		storeName := args[1].String()
+		key := args[2].String()
 
 		var newValue interface{}
-		switch args[2].Type() {
+		switch args[3].Type() {
 		case js.TypeString:
-			newValue = args[2].String()
+			newValue = args[3].String()
 		case js.TypeBoolean:
-			newValue = args[2].Bool()
+			newValue = args[3].Bool()
 		case js.TypeNumber:
-			newValue = args[2].Float()
+			newValue = args[3].Float()
 		default:
-			newValue = args[2]
+			newValue = args[3]
 		}
 
-		store := GlobalStoreManager.GetStore(storeName)
+		store := GlobalStoreManager.GetStore(module, storeName)
 		if store == nil {
-			store = NewStore(storeName)
+			store = NewStore(storeName, WithModule(module))
 		}
 		store.Set(key, newValue)
 		return nil

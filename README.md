@@ -36,7 +36,7 @@ effects. A computed value derives its output from one or more store keys and is 
 its dependencies changes. Watchers observe specific keys and execute a callback after the state updates.
 
 ```go
-store := state.NewStore("default")
+store := state.NewStore("profile", state.WithModule("user"), state.WithPersistence())
 
 // register a computed value
 store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]interface{}) interface{} {
@@ -56,9 +56,13 @@ store.Set("last", "Lovelace")
 Use computed values to keep derived data in sync without manual bookkeeping and watchers for side effects
 such as logging or triggering network calls.
 
+State values can optionally persist to `localStorage` when a store is created with `state.WithPersistence()`. Temporary
+stores omit this option and reset on reload. The example application includes a `/stores` route demonstrating both
+behaviors side by side.
+
 ### Updating state from JavaScript
 
-Call `state.ExposeUpdateStore()` to register a global `goUpdateStore(store, key, value)` function. It accepts
+Call `state.ExposeUpdateStore()` to register a global `goUpdateStore(module, store, key, value)` function. It accepts
 strings, numbers, booleans and other serializable values, letting external scripts change store entries with
 their native types.
 
@@ -86,7 +90,7 @@ RTML code example:
   @include:header
   <div class="p-4 pt-0">
     @include:card
-    <p>State is currently: @store:default.sharedState</p>
+    <p>State is currently: @store:app.default.sharedState</p>
   </div>
 </root>
 ```

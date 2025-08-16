@@ -2,54 +2,99 @@ package state
 
 import "fmt"
 
+// StoreOption configures optional behaviour for a Store during creation.
+type StoreOption func(*Store)
+
+// WithModule namespaces a store under the provided module.
+func WithModule(module string) StoreOption { return func(s *Store) { s.module = module } }
+
+// WithPersistence enables localStorage persistence for the store.
+func WithPersistence() StoreOption { return func(s *Store) { s.persist = true } }
+
+// WithDevTools enables logging of state mutations for development.
+func WithDevTools() StoreOption { return func(s *Store) { s.devTools = true } }
+
 type Store struct {
+	module     string
 	name       string
 	state      map[string]interface{}
 	listeners  map[string]map[int]func(interface{})
 	listenerID int
 	computeds  map[string]*Computed
 	watchers   []*Watcher
+	persist    bool
+	devTools   bool
 }
 
 type StoreManager struct {
-	stores map[string]*Store
+	modules map[string]map[string]*Store
 }
 
 var GlobalStoreManager = &StoreManager{
-	stores: make(map[string]*Store),
+	modules: make(map[string]map[string]*Store),
 }
 
-func NewStore(name string) *Store {
+// NewStore creates a new store with the given name and optional configuration.
+// By default stores are registered under the "default" module.
+func NewStore(name string, opts ...StoreOption) *Store {
 	store := &Store{
+		module:    "default",
 		name:      name,
 		state:     make(map[string]interface{}),
 		listeners: make(map[string]map[int]func(interface{})),
 		computeds: make(map[string]*Computed),
 	}
-	GlobalStoreManager.RegisterStore(name, store)
+	for _, opt := range opts {
+		opt(store)
+	}
+
+	GlobalStoreManager.RegisterStore(store.module, name, store)
+
+	if store.persist {
+		if state := loadPersistedState(store.storageKey()); state != nil {
+			store.state = state
+		}
+	}
+
 	return store
 }
 
-func (sm *StoreManager) RegisterStore(name string, store *Store) {
-	sm.stores[name] = store
+func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
+	if sm.modules[module] == nil {
+		sm.modules[module] = make(map[string]*Store)
+	}
+	sm.modules[module][name] = store
 }
 
-func (sm *StoreManager) GetStore(name string) *Store {
-	return sm.stores[name]
+func (sm *StoreManager) GetStore(module, name string) *Store {
+	if stores, ok := sm.modules[module]; ok {
+		return stores[name]
+	}
+	return nil
 }
+
+func (s *Store) storageKey() string { return s.module + ":" + s.name }
 
 func (s *Store) Set(key string, value interface{}) {
 	s.state[key] = value
+	if s.devTools {
+		fmt.Printf("%s/%s -> %s: %v\n", s.module, s.name, key, value)
+	}
 	if listeners, exists := s.listeners[key]; exists {
 		for _, listener := range listeners {
 			listener(value)
 		}
 	}
 	s.evaluateDependents(key)
+	if s.persist {
+		saveState(s.storageKey(), s.state)
+	}
 }
 
 func (s *Store) Get(key string) interface{} {
-	fmt.Printf("Getting key %s from store %v\n", key, s.name)
+	if s.devTools {
+		fmt.Printf("Getting %s from %s/%s\n", key, s.module, s.name)
+	}
 	return s.state[key]
 }
 
@@ -62,11 +107,12 @@ func (s *Store) OnChange(key string, listener func(interface{})) func() {
 	s.listeners[key][id] = listener
 
 	fmt.Println("------")
-	for storeName, store := range GlobalStoreManager.stores {
-		fmt.Printf("Store: %s\n", storeName)
-
-		for key, value := range store.state {
-			fmt.Printf("  %s: %v\n", key, value)
+	for moduleName, stores := range GlobalStoreManager.modules {
+		for storeName, store := range stores {
+			fmt.Printf("Store: %s/%s\n", moduleName, storeName)
+			for key, value := range store.state {
+				fmt.Printf("  %s: %v\n", key, value)
+			}
 		}
 	}
 	fmt.Println("------")

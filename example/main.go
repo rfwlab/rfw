@@ -10,9 +10,18 @@ import (
 )
 
 func main() {
-	store := state.NewStore("default")
+	store := state.NewStore("default", state.WithModule("app"), state.WithDevTools())
 	store.Set("count", 0)
 	store.Set("allowProtected", false)
+	if store.Get("sharedState") == nil {
+		store.Set("sharedState", "Initial State")
+	}
+
+	testingStore := state.NewStore("testing")
+	if testingStore.Get("testingState") == nil {
+		testingStore.Set("testingState", "Testing Initial State")
+	}
+
 	router.ExposeNavigate()
 	state.ExposeUpdateStore()
 
@@ -40,6 +49,10 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/computed",
 		Component: func() core.Component { return components.NewComputedComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/stores",
+		Component: func() core.Component { return components.NewStoresComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/parent",

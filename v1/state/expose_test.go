@@ -9,8 +9,8 @@ import (
 
 func TestExposeUpdateStoreBool(t *testing.T) {
 	ExposeUpdateStore()
-	js.Global().Call("goUpdateStore", "test", "flag", true)
-	store := GlobalStoreManager.GetStore("test")
+	js.Global().Call("goUpdateStore", "mod", "test", "flag", true)
+	store := GlobalStoreManager.GetStore("mod", "test")
 	if store == nil {
 		t.Fatalf("store not created")
 	}
