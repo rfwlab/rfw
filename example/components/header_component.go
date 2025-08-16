@@ -19,7 +19,28 @@ func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
 	c := &HeaderComponent{
 		HTMLComponent: core.NewHTMLComponent("HeaderComponent", headerComponentTpl, props),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 
 	return c
+}
+
+func (c *HeaderComponent) OnMount() {
+	if count, ok := c.Store.Get("headerMounts").(int); ok {
+		c.Store.Set("headerMounts", count+1)
+	} else {
+		c.Store.Set("headerMounts", 1)
+	}
+
+	if _, ok := c.Store.Get("headerUnmounts").(int); !ok {
+		c.Store.Set("headerUnmounts", 0)
+	}
+}
+
+func (c *HeaderComponent) OnUnmount() {
+	if count, ok := c.Store.Get("headerUnmounts").(int); ok {
+		c.Store.Set("headerUnmounts", count+1)
+	} else {
+		c.Store.Set("headerUnmounts", 1)
+	}
 }

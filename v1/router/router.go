@@ -69,6 +69,7 @@ func Navigate(path string) {
 			}
 			currentComponent = r.component
 			dom.UpdateDOM("", r.component.Render())
+			r.component.Mount()
 			js.Global().Get("history").Call("pushState", nil, "", path)
 			return
 		}

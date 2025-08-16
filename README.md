@@ -107,6 +107,33 @@ func init() {
 }
 ```
 
+#### Lifecycle Hooks
+
+Components can react when they are added to or removed from the DOM using the `OnMount` and `OnUnmount` hooks. The `HTMLComponent` provides default no-op implementations so you can override only the hooks you need. When embedding `HTMLComponent`, register the struct itself with `SetComponent` so that lifecycle hooks are invoked.
+
+```go
+type HeaderComponent struct {
+    *core.HTMLComponent
+}
+
+func (c *HeaderComponent) OnMount() {
+    fmt.Println("header mounted")
+}
+
+func (c *HeaderComponent) OnUnmount() {
+    fmt.Println("header unmounted")
+}
+
+func NewHeaderComponent() *HeaderComponent {
+    c := &HeaderComponent{HTMLComponent: core.NewHTMLComponent("HeaderComponent", tpl, nil)}
+    c.SetComponent(c)
+    c.Init(nil)
+    return c
+}
+```
+
+The example application uses these hooks to count how many times the navigation header is mounted and unmounted.
+
 ### 2. **GLComponent**
 
 _Work in progress._

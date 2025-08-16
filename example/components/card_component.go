@@ -19,6 +19,7 @@ func NewCardComponent(props map[string]interface{}) *CardComponent {
 	c := &CardComponent{
 		HTMLComponent: core.NewHTMLComponent("CardComponent", cardComponentTpl, props),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 	return c
 }

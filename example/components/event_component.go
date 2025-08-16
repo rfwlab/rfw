@@ -20,6 +20,7 @@ func NewEventComponent() *EventComponent {
 	c := &EventComponent{
 		HTMLComponent: core.NewHTMLComponent("EventComponent", eventComponentTpl, nil),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 
 	if c.Store.Get("count") == nil {
