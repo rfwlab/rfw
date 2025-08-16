@@ -11,6 +11,8 @@
                         onclick="goNavigate('/user/Mario')">Dynamic</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/event')">Event</a></li>
+                <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
+                        onclick="goNavigate('/computed')">Computed</a></li>
                 </ul>
             </nav>
         </div>
