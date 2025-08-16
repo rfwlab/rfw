@@ -23,11 +23,38 @@ of WebAssembly to update only the parts of the DOM that change based on state.
 
 ## Reactivity Implementation
 
-Reactivity in rfw is based on a **direct binding system** between state variables and the DOM; each reactive 
-variable (`ReactiveVar`) is connected to DOM elements through listeners that are registered at component 
-rendering level. When the value of a reactive variable changes, the framework automatically updates the 
-portions of the DOM associated with that variable, without recalculating or differentiating the entire DOM 
+Reactivity in rfw is based on a **direct binding system** between state variables and the DOM; each reactive
+variable (`ReactiveVar`) is connected to DOM elements through listeners that are registered at component
+rendering level. When the value of a reactive variable changes, the framework automatically updates the
+portions of the DOM associated with that variable, without recalculating or differentiating the entire DOM
 structure, minimizing unnecessary updates that could impact the browser.
+
+### Computed Values and Watchers
+
+The state package also provides **computed values** and **watchers** for handling derived state and side
+effects. A computed value derives its output from one or more store keys and is re-evaluated whenever one of
+its dependencies changes. Watchers observe specific keys and execute a callback after the state updates.
+
+```go
+store := state.NewStore("default")
+
+// register a computed value
+store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]interface{}) interface{} {
+    return s["first"].(string) + " " + s["last"].(string)
+}))
+
+// react to changes
+store.RegisterWatcher(state.NewWatcher([]string{"fullName"}, func(s map[string]interface{}) {
+    fmt.Println("name changed to", s["fullName"])
+}))
+
+// best practice: set dependencies first so computeds are evaluated correctly
+store.Set("first", "Ada")
+store.Set("last", "Lovelace")
+```
+
+Use computed values to keep derived data in sync without manual bookkeeping and watchers for side effects
+such as logging or triggering network calls.
 
 ## Components Types
 

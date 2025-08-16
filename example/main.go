@@ -18,11 +18,13 @@ func main() {
 	testComponent := components.NewTestComponent()
 	anotherComponent := components.NewAnotherComponent()
 	eventComponent := components.NewEventComponent()
+	computedComponent := components.NewComputedComponent()
 
 	router.RegisterRoute("/", mainComponent)
 	router.RegisterRoute("/test", testComponent)
 	router.RegisterRoute("/user/:name", anotherComponent)
 	router.RegisterRoute("/event", eventComponent)
+	router.RegisterRoute("/computed", computedComponent)
 
 	router.InitRouter()
 

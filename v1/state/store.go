@@ -7,6 +7,8 @@ type Store struct {
 	state      map[string]interface{}
 	listeners  map[string]map[int]func(interface{})
 	listenerID int
+	computeds  map[string]*Computed
+	watchers   []*Watcher
 }
 
 type StoreManager struct {
@@ -22,6 +24,7 @@ func NewStore(name string) *Store {
 		name:      name,
 		state:     make(map[string]interface{}),
 		listeners: make(map[string]map[int]func(interface{})),
+		computeds: make(map[string]*Computed),
 	}
 	GlobalStoreManager.RegisterStore(name, store)
 	return store
@@ -42,6 +45,7 @@ func (s *Store) Set(key string, value interface{}) {
 			listener(value)
 		}
 	}
+	s.evaluateDependents(key)
 }
 
 func (s *Store) Get(key string) interface{} {
@@ -70,4 +74,52 @@ func (s *Store) OnChange(key string, listener func(interface{})) func() {
 	return func() {
 		delete(s.listeners[key], id)
 	}
+}
+
+// RegisterComputed registers a computed value on the store. The computed value
+// is evaluated immediately and whenever one of its dependencies changes.
+func (s *Store) RegisterComputed(c *Computed) {
+	s.computeds[c.Key()] = c
+	val := c.Evaluate(s.state)
+	s.state[c.Key()] = val
+}
+
+// RegisterWatcher registers a watcher that triggers when any of its
+// dependencies change. If the dependency list is empty the watcher is triggered
+// on every state update.
+func (s *Store) RegisterWatcher(w *Watcher) {
+	s.watchers = append(s.watchers, w)
+}
+
+// evaluateDependents re-evaluates computed values and triggers watchers for a
+// given key.
+func (s *Store) evaluateDependents(key string) {
+	for _, c := range s.computeds {
+		if contains(c.Deps(), key) {
+			val := c.Evaluate(s.state)
+			s.state[c.Key()] = val
+			if listeners, exists := s.listeners[c.Key()]; exists {
+				for _, listener := range listeners {
+					listener(val)
+				}
+			}
+			// propagate to computeds/watchers depending on this key
+			s.evaluateDependents(c.Key())
+		}
+	}
+	for _, w := range s.watchers {
+		deps := w.Deps()
+		if len(deps) == 0 || contains(deps, key) {
+			w.Run(s.state)
+		}
+	}
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
