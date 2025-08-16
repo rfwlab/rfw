@@ -56,6 +56,12 @@ store.Set("last", "Lovelace")
 Use computed values to keep derived data in sync without manual bookkeeping and watchers for side effects
 such as logging or triggering network calls.
 
+### Updating state from JavaScript
+
+Call `state.ExposeUpdateStore()` to register a global `goUpdateStore(store, key, value)` function. It accepts
+strings, numbers, booleans and other serializable values, letting external scripts change store entries with
+their native types.
+
 ## Components Types
 
 Components are the primary entities used to build applications. In rfw there are 2 different type of 
@@ -144,9 +150,36 @@ allowing to build both web-based applications (WebGL/Canvas) and native applicat
 in this last case it is rfw that draws the window. The plans include interpolation between HTMLComponent(s) 
 and GLComponent(s).
 
-Some examples of use include: Development of simple and complex games (my idea is to create a game engine as 
-an exercise), advanced data and graphics visualization, and development of native applications for all devices 
+Some examples of use include: Development of simple and complex games (my idea is to create a game engine as
+an exercise), advanced data and graphics visualization, and development of native applications for all devices
 with OpenGL and Vulkan support.
+
+## Router
+
+The `v1/router` package provides client-side navigation with support for nested routes, navigation guards and
+lazy loaded components. Components are created only when their route becomes active.
+
+```go
+router.RegisterRoute(router.Route{
+    Path: "/parent",
+    Component: func() core.Component { return components.NewParentComponent() },
+    Children: []router.Route{
+        {
+            Path: "/parent/child",
+            Component: func() core.Component { return components.NewChildComponent() },
+        },
+    },
+    Guards: []router.Guard{func(params map[string]string) bool {
+        return true // block navigation by returning false
+    }},
+})
+```
+
+Guards run before navigation and can cancel the transition when they return `false`. See the `example/`
+directory for a working demonstration. The example's header shows whether the protected route is enabled;
+click the "Unlock Protected" button to update the store, then use the "Protected" link to navigate to the
+guarded page. If a guard blocks the first navigation (for example by visiting `/protected` directly), the
+router falls back to the root route instead of rendering a blank page.
 
 ## Usage
 

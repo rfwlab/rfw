@@ -12,18 +12,34 @@ import (
 	"github.com/rfwlab/rfw/v1/dom"
 )
 
+type Guard func(map[string]string) bool
+
+type Route struct {
+	Path      string
+	Component func() core.Component
+	Guards    []Guard
+	Children  []Route
+}
+
 type route struct {
 	pattern    string
 	regex      *regexp.Regexp
 	paramNames []string
 	component  core.Component
+	loader     func() core.Component
+	children   []route
+	guards     []Guard
 }
 
 var routes []route
 var currentComponent core.Component
 
-func RegisterRoute(path string, component core.Component) {
-	segments := strings.Split(strings.Trim(path, "/"), "/")
+func RegisterRoute(r Route) {
+	routes = append(routes, buildRoute(r))
+}
+
+func buildRoute(r Route) route {
+	segments := strings.Split(strings.Trim(r.Path, "/"), "/")
 	regexParts := make([]string, len(segments))
 	paramNames := []string{}
 
@@ -37,22 +53,33 @@ func RegisterRoute(path string, component core.Component) {
 		}
 	}
 
-	pattern := "^/" + strings.Join(regexParts, "/") + "$"
-	r := route{
-		pattern:    path,
+	suffix := "$"
+	if len(r.Children) > 0 {
+		suffix = "(?:/|$)"
+	}
+	pattern := "^/" + strings.Join(regexParts, "/") + suffix
+	rt := route{
+		pattern:    r.Path,
 		regex:      regexp.MustCompile(pattern),
 		paramNames: paramNames,
-		component:  component,
+		loader:     r.Component,
+		guards:     r.Guards,
 	}
-	routes = append(routes, r)
+
+	for _, child := range r.Children {
+		rt.children = append(rt.children, buildRoute(child))
+	}
+
+	return rt
 }
 
 type routeParamReceiver interface {
 	SetRouteParams(map[string]string)
 }
 
-func Navigate(path string) {
-	for _, r := range routes {
+func matchRoute(routes []route, path string) (*route, []Guard, map[string]string) {
+	for i := range routes {
+		r := &routes[i]
 		if matches := r.regex.FindStringSubmatch(path); matches != nil {
 			params := map[string]string{}
 			for i, name := range r.paramNames {
@@ -60,20 +87,48 @@ func Navigate(path string) {
 					params[name] = matches[i+1]
 				}
 			}
-			if receiver, ok := r.component.(routeParamReceiver); ok {
-				receiver.SetRouteParams(params)
+			if child, guards, childParams := matchRoute(r.children, path); child != nil {
+				for k, v := range params {
+					childParams[k] = v
+				}
+				return child, append(r.guards, guards...), childParams
 			}
-			if currentComponent != nil {
-				log.Println("Unmounting current component:", currentComponent.GetName())
-				currentComponent.Unmount()
+			return r, r.guards, params
+		}
+	}
+	return nil, nil, nil
+}
+
+func Navigate(path string) {
+	r, guards, params := matchRoute(routes, path)
+	if r == nil {
+		return
+	}
+
+	for _, g := range guards {
+		if !g(params) {
+			if currentComponent == nil && path != "/" {
+				Navigate("/")
 			}
-			currentComponent = r.component
-			dom.UpdateDOM("", r.component.Render())
-			r.component.Mount()
-			js.Global().Get("history").Call("pushState", nil, "", path)
 			return
 		}
 	}
+
+	if r.component == nil && r.loader != nil {
+		r.component = r.loader()
+	}
+
+	if receiver, ok := r.component.(routeParamReceiver); ok {
+		receiver.SetRouteParams(params)
+	}
+	if currentComponent != nil {
+		log.Println("Unmounting current component:", currentComponent.GetName())
+		currentComponent.Unmount()
+	}
+	currentComponent = r.component
+	dom.UpdateDOM("", r.component.Render())
+	r.component.Mount()
+	js.Global().Get("history").Call("pushState", nil, "", path)
 }
 
 func ExposeNavigate() {

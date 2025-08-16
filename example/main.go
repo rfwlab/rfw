@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/rfwlab/rfw/example/components"
+	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 )
@@ -11,20 +12,50 @@ import (
 func main() {
 	store := state.NewStore("default")
 	store.Set("count", 0)
+	store.Set("allowProtected", false)
 	router.ExposeNavigate()
 	state.ExposeUpdateStore()
 
-	mainComponent := components.NewMainComponent()
-	testComponent := components.NewTestComponent()
-	anotherComponent := components.NewAnotherComponent()
-	eventComponent := components.NewEventComponent()
-	computedComponent := components.NewComputedComponent()
+	authGuard := func(params map[string]string) bool {
+		allowed, _ := store.Get("allowProtected").(bool)
+		return allowed
+	}
 
-	router.RegisterRoute("/", mainComponent)
-	router.RegisterRoute("/test", testComponent)
-	router.RegisterRoute("/user/:name", anotherComponent)
-	router.RegisterRoute("/event", eventComponent)
-	router.RegisterRoute("/computed", computedComponent)
+	router.RegisterRoute(router.Route{
+		Path:      "/",
+		Component: func() core.Component { return components.NewMainComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/test",
+		Component: func() core.Component { return components.NewTestComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/user/:name",
+		Component: func() core.Component { return components.NewAnotherComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/event",
+		Component: func() core.Component { return components.NewEventComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/computed",
+		Component: func() core.Component { return components.NewComputedComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/parent",
+		Component: func() core.Component { return components.NewParentComponent() },
+		Children: []router.Route{
+			{
+				Path:      "/parent/child",
+				Component: func() core.Component { return components.NewChildComponent() },
+			},
+		},
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/protected",
+		Component: func() core.Component { return components.NewProtectedComponent() },
+		Guards:    []router.Guard{authGuard},
+	})
 
 	router.InitRouter()
 
