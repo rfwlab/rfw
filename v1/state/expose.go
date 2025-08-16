@@ -10,7 +10,18 @@ func ExposeUpdateStore() {
 		}
 		storeName := args[0].String()
 		key := args[1].String()
-		newValue := args[2].String()
+
+		var newValue interface{}
+		switch args[2].Type() {
+		case js.TypeString:
+			newValue = args[2].String()
+		case js.TypeBoolean:
+			newValue = args[2].Bool()
+		case js.TypeNumber:
+			newValue = args[2].Float()
+		default:
+			newValue = args[2]
+		}
 
 		store := GlobalStoreManager.GetStore(storeName)
 		if store == nil {
