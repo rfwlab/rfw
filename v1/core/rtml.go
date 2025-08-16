@@ -87,6 +87,22 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+func replaceEventHandlers(template string) string {
+	eventRegex := regexp.MustCompile(`@on:(\w+)=(?:"([^"]+)"|'([^']+)')`)
+	return eventRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := eventRegex.FindStringSubmatch(match)
+		if len(parts) != 4 {
+			return match
+		}
+		handler := parts[2]
+		if handler == "" {
+			handler = parts[3]
+		}
+		event := parts[1]
+		return fmt.Sprintf("data-on-%s=\"%s\"", event, handler)
+	})
+}
+
 func replaceConditionals(template string, c *HTMLComponent) string {
 	ifRegex := regexp.MustCompile(`(@if:.+)([\S\s]+)(@else)([\S\s]+)(@endif)`)
 	template = ifRegex.ReplaceAllStringFunc(template, func(match string) string {

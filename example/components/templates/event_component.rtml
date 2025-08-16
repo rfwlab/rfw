@@ -1,0 +1,8 @@
+<root>
+    @include:header
+    <div class="p-4 pt-0">
+        <h2 class="text-xl font-bold mb-4">Event Component</h2>
+        <button class="bg-blue-500 text-white px-4 py-2 rounded" @on:click="increment">Increment</button>
+        <p class="mt-4">Count: @store:default.count</p>
+    </div>
+</root>
