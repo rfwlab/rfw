@@ -53,9 +53,31 @@ RTML code example:
   @include:header
   <div class="p-4 pt-0">
     @include:card
-    <p>State is currently: @store.default.sharedState</p>
+    <p>State is currently: @store:default.sharedState</p>
   </div>
 </root>
+```
+
+#### Event Handling
+
+RTML supports attaching DOM events with the `@on:<event>` syntax. The template token is converted
+into a `data-on-<event>` attribute and listeners are registered automatically.
+
+```html
+<button @on:click="toggle">Toggle</button>
+```
+
+The handler must be exposed on the JavaScript global object. You can do this using
+the helper functions from the `v1/js` package:
+
+```go
+import jsa "github.com/rfwlab/rfw/v1/js"
+
+func init() {
+    jsa.Expose("toggle", func() {
+        fmt.Println("clicked")
+    })
+}
 ```
 
 ### 2. **GLComponent**

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -85,6 +86,9 @@ func (c *HTMLComponent) Render() string {
 	// Handle @if:condition syntax for conditional rendering
 	renderedTemplate = replaceConditionals(renderedTemplate, c)
 
+	// Handle @on:event="handler" syntax for event binding
+	renderedTemplate = replaceEventHandlers(renderedTemplate)
+
 	return renderedTemplate
 }
 
@@ -99,6 +103,8 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 }
 
 func (c *HTMLComponent) Unmount() {
+	dom.RemoveEventListeners(c.ID)
+
 	for _, unsubscribe := range c.unsubscribes {
 		log.Printf("Unsubscribing %s from all stores", c.Name)
 		unsubscribe()
