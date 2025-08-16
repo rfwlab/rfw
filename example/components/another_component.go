@@ -19,6 +19,7 @@ func NewAnotherComponent() *AnotherComponent {
 	c := &AnotherComponent{
 		HTMLComponent: core.NewHTMLComponent("AnotherComponent", anotherComponentTpl, nil),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{

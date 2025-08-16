@@ -31,6 +31,7 @@ func NewTestComponent() *MyComponent {
 			},
 		}),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 
 	store := state.GlobalStoreManager.GetStore("default")

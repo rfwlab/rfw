@@ -19,6 +19,7 @@ func NewMainComponent() *MainComponent {
 	c := &MainComponent{
 		HTMLComponent: core.NewHTMLComponent("MainComponent", mainComponentTpl, nil),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 
 	cardComponent := NewCardComponent(map[string]interface{}{

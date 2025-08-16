@@ -24,6 +24,7 @@ type HTMLComponent struct {
 	Store             *state.Store
 	Props             map[string]interface{}
 	conditionContents map[string]ConditionContent
+	component         Component
 }
 
 func NewHTMLComponent(name string, templateFs []byte, props map[string]interface{}) *HTMLComponent {
@@ -114,11 +115,18 @@ func (c *HTMLComponent) Unmount() {
 	for _, dep := range c.Dependencies {
 		dep.Unmount()
 	}
+
+	if c.component != nil {
+		c.component.OnUnmount()
+	}
 }
 
 func (c *HTMLComponent) Mount() {
 	for _, dep := range c.Dependencies {
 		dep.Mount()
+	}
+	if c.component != nil {
+		c.component.OnMount()
 	}
 }
 
@@ -128,6 +136,14 @@ func (c *HTMLComponent) GetName() string {
 
 func (c *HTMLComponent) GetID() string {
 	return c.ID
+}
+
+func (c *HTMLComponent) OnMount() {}
+
+func (c *HTMLComponent) OnUnmount() {}
+
+func (c *HTMLComponent) SetComponent(component Component) {
+	c.component = component
 }
 
 func (c *HTMLComponent) SetRouteParams(params map[string]string) {

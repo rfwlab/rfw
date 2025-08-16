@@ -23,6 +23,7 @@ func NewComputedComponent() *ComputedComponent {
 	c := &ComputedComponent{
 		HTMLComponent: core.NewHTMLComponent("ComputedComponent", computedComponentTpl, nil),
 	}
+	c.SetComponent(c)
 	c.Init(nil)
 
 	store := state.GlobalStoreManager.GetStore("default")
