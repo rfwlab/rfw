@@ -1,0 +1,6 @@
+<root>
+    <div class="p-4">
+        <h2 class="text-xl font-bold mb-2">JS Plugin Demo</h2>
+        <p>Open the browser console to see logs from a plugin registered in JavaScript.</p>
+    </div>
+</root>

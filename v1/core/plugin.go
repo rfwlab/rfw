@@ -7,13 +7,18 @@ import (
 	"github.com/rfwlab/rfw/v1/state"
 )
 
-// Plugin defines interface for plugins to register hooks.
+// Plugin defines interface for plugins to register hooks on the App.
 type Plugin interface {
-	Register(*Hooks)
+	Install(*App)
 }
 
-// Hooks stores callbacks for router, store, and lifecycle events.
-type Hooks struct {
+// App maintains registered hooks and exposes helper methods for plugins
+// to attach to framework events.
+type App struct {
+	*hooks
+}
+
+type hooks struct {
 	routerHooks   []func(string)
 	storeHooks    []func(module, store, key string, value interface{})
 	templateHooks []func(componentID, html string)
@@ -21,67 +26,72 @@ type Hooks struct {
 	unmountHooks  []func(Component)
 }
 
+// newApp creates an App with initialized hook storage.
+func newApp() *App {
+	return &App{hooks: &hooks{}}
+}
+
 // RegisterRouter adds a router navigation hook.
-func (h *Hooks) RegisterRouter(fn func(string)) {
-	h.routerHooks = append(h.routerHooks, fn)
+func (a *App) RegisterRouter(fn func(string)) {
+	a.routerHooks = append(a.routerHooks, fn)
 }
 
 // RegisterStore adds a store mutation hook.
-func (h *Hooks) RegisterStore(fn func(module, store, key string, value interface{})) {
-	h.storeHooks = append(h.storeHooks, fn)
+func (a *App) RegisterStore(fn func(module, store, key string, value interface{})) {
+	a.storeHooks = append(a.storeHooks, fn)
 }
 
 // RegisterTemplate adds a template render hook.
-func (h *Hooks) RegisterTemplate(fn func(componentID, html string)) {
-	h.templateHooks = append(h.templateHooks, fn)
+func (a *App) RegisterTemplate(fn func(componentID, html string)) {
+	a.templateHooks = append(a.templateHooks, fn)
 }
 
 // RegisterLifecycle adds hooks for component mount and unmount.
-func (h *Hooks) RegisterLifecycle(mount, unmount func(Component)) {
+func (a *App) RegisterLifecycle(mount, unmount func(Component)) {
 	if mount != nil {
-		h.mountHooks = append(h.mountHooks, mount)
+		a.mountHooks = append(a.mountHooks, mount)
 	}
 	if unmount != nil {
-		h.unmountHooks = append(h.unmountHooks, unmount)
+		a.unmountHooks = append(a.unmountHooks, unmount)
 	}
 }
 
-var globalHooks = &Hooks{}
+var app = newApp()
 
 // RegisterPlugin registers a plugin and allows it to add hooks.
-func RegisterPlugin(p Plugin) { p.Register(globalHooks) }
+func RegisterPlugin(p Plugin) { p.Install(app) }
 
 // TriggerRouter invokes router hooks with the given path.
 func TriggerRouter(path string) {
-	for _, h := range globalHooks.routerHooks {
+	for _, h := range app.routerHooks {
 		h(path)
 	}
 }
 
 // TriggerStore invokes store hooks for a mutation.
 func TriggerStore(module, store, key string, value interface{}) {
-	for _, h := range globalHooks.storeHooks {
+	for _, h := range app.storeHooks {
 		h(module, store, key, value)
 	}
 }
 
 // TriggerTemplate invokes template hooks with rendered HTML for a component.
 func TriggerTemplate(componentID, html string) {
-	for _, h := range globalHooks.templateHooks {
+	for _, h := range app.templateHooks {
 		h(componentID, html)
 	}
 }
 
 // TriggerMount invokes mount lifecycle hooks.
 func TriggerMount(c Component) {
-	for _, h := range globalHooks.mountHooks {
+	for _, h := range app.mountHooks {
 		h(c)
 	}
 }
 
 // TriggerUnmount invokes unmount lifecycle hooks.
 func TriggerUnmount(c Component) {
-	for _, h := range globalHooks.unmountHooks {
+	for _, h := range app.unmountHooks {
 		h(c)
 	}
 }

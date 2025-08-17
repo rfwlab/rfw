@@ -3,15 +3,15 @@
 package core
 
 // Plugin is a no-op stub for non-WASM builds.
-type Plugin interface{ Register(*Hooks) }
+type Plugin interface{ Install(*App) }
 
-// Hooks is a stub holder for callbacks.
-type Hooks struct{}
+// App is a stub holder for callbacks.
+type App struct{}
 
-func (h *Hooks) RegisterRouter(fn func(string))                                      {}
-func (h *Hooks) RegisterStore(fn func(module, store, key string, value interface{})) {}
-func (h *Hooks) RegisterLifecycle(mount, unmount func(Component))                    {}
-func (h *Hooks) RegisterTemplate(fn func(componentID, html string))                  {}
+func (a *App) RegisterRouter(fn func(string))                                      {}
+func (a *App) RegisterStore(fn func(module, store, key string, value interface{})) {}
+func (a *App) RegisterLifecycle(mount, unmount func(Component))                    {}
+func (a *App) RegisterTemplate(fn func(componentID, html string))                  {}
 
 type Component interface{}
 

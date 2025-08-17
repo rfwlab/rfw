@@ -3,14 +3,13 @@
 package state
 
 import (
+	jst "syscall/js"
 	"testing"
-
-	"github.com/rfwlab/rfw/v1/js"
 )
 
 func TestExposeUpdateStoreBool(t *testing.T) {
 	ExposeUpdateStore()
-	js.Global().Call("goUpdateStore", "mod", "test", "flag", true)
+	jst.Global().Call("goUpdateStore", "mod", "test", "flag", true)
 	store := GlobalStoreManager.GetStore("mod", "test")
 	if store == nil {
 		t.Fatalf("store not created")

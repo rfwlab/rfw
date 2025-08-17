@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/rfwlab/rfw/example/components"
+	plugs "github.com/rfwlab/rfw/example/plugins"
 	"github.com/rfwlab/rfw/example/plugins/logging"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/router"
@@ -67,6 +68,10 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/computed",
 		Component: func() core.Component { return components.NewComputedComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/plugins",
+		Component: func() core.Component { return plugs.NewPluginsComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/stores",
