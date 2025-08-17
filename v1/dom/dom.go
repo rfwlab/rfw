@@ -5,19 +5,11 @@ package dom
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"syscall/js"
 
 	"github.com/rfwlab/rfw/v1/state"
 )
 
-type eventListener struct {
-	element js.Value
-	event   string
-	handler js.Value
-}
-
-var listeners = make(map[string][]eventListener)
 var TemplateHook func(componentID, html string)
 
 func UpdateDOM(componentID string, html string) {
@@ -194,34 +186,5 @@ func patchAttributes(oldNode, newNode js.Value) {
 		if oldNode.Call("getAttribute", name).String() != val.String() {
 			oldNode.Call("setAttribute", name, val)
 		}
-	}
-}
-
-func BindEventListeners(componentID string, root js.Value) {
-	nodes := root.Call("querySelectorAll", "*")
-	for i := 0; i < nodes.Length(); i++ {
-		node := nodes.Index(i)
-		attrs := node.Call("getAttributeNames")
-		for j := 0; j < attrs.Length(); j++ {
-			name := attrs.Index(j).String()
-			if strings.HasPrefix(name, "data-on-") {
-				event := strings.TrimPrefix(name, "data-on-")
-				handlerName := node.Call("getAttribute", name).String()
-				handler := js.Global().Get(handlerName)
-				if handler.Truthy() {
-					node.Call("addEventListener", event, handler)
-					listeners[componentID] = append(listeners[componentID], eventListener{node, event, handler})
-				}
-			}
-		}
-	}
-}
-
-func RemoveEventListeners(componentID string) {
-	if ls, ok := listeners[componentID]; ok {
-		for _, l := range ls {
-			l.element.Call("removeEventListener", l.event, l.handler)
-		}
-		delete(listeners, componentID)
 	}
 }
