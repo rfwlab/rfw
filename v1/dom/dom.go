@@ -5,8 +5,9 @@ package dom
 import (
 	"fmt"
 	"regexp"
-	"syscall/js"
+	jst "syscall/js"
 
+	"github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -14,7 +15,7 @@ var TemplateHook func(componentID, html string)
 
 func UpdateDOM(componentID string, html string) {
 	document := js.Global().Get("document")
-	var element js.Value
+	var element jst.Value
 	if componentID == "" {
 		element = document.Call("getElementById", "app")
 	} else {
@@ -38,7 +39,7 @@ func UpdateDOM(componentID string, html string) {
 }
 
 // BindStoreInputs binds input elements to store variables.
-func BindStoreInputs(element js.Value) {
+func BindStoreInputs(element jst.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
@@ -58,7 +59,7 @@ func BindStoreInputs(element js.Value) {
 				}
 
 				input.Set("value", fmt.Sprintf("%v", storeValue))
-				input.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+				input.Call("addEventListener", "input", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
 					newValue := this.Get("value").String()
 					store.Set(key, newValue)
 					return nil
@@ -68,7 +69,7 @@ func BindStoreInputs(element js.Value) {
 	}
 }
 
-func patchInnerHTML(element js.Value, html string) {
+func patchInnerHTML(element jst.Value, html string) {
 	document := js.Global().Get("document")
 	template := document.Call("createElement", "template")
 	template.Set("innerHTML", html)
@@ -76,11 +77,11 @@ func patchInnerHTML(element js.Value, html string) {
 	patchChildren(element, newContent)
 }
 
-func patchChildren(oldParent, newParent js.Value) {
+func patchChildren(oldParent, newParent jst.Value) {
 	oldChildren := oldParent.Get("childNodes")
 	newChildren := newParent.Get("childNodes")
 
-	keyed := make(map[string]js.Value)
+	keyed := make(map[string]jst.Value)
 	for i := 0; i < oldChildren.Length(); i++ {
 		child := oldChildren.Index(i)
 		if key := getDataKey(child); key != "" {
@@ -141,7 +142,7 @@ func patchChildren(oldParent, newParent js.Value) {
 	}
 }
 
-func getDataKey(node js.Value) string {
+func getDataKey(node jst.Value) string {
 	if node.Get("nodeType").Int() != 1 {
 		return ""
 	}
@@ -152,7 +153,7 @@ func getDataKey(node js.Value) string {
 	return ""
 }
 
-func patchNode(oldNode, newNode js.Value) {
+func patchNode(oldNode, newNode jst.Value) {
 	nodeType := newNode.Get("nodeType").Int()
 	if nodeType == 3 { // Text node
 		if oldNode.Get("nodeValue").String() != newNode.Get("nodeValue").String() {
@@ -170,7 +171,7 @@ func patchNode(oldNode, newNode js.Value) {
 	patchChildren(oldNode, newNode)
 }
 
-func patchAttributes(oldNode, newNode js.Value) {
+func patchAttributes(oldNode, newNode jst.Value) {
 	oldAttrs := oldNode.Call("getAttributeNames")
 	for i := 0; i < oldAttrs.Length(); i++ {
 		name := oldAttrs.Index(i).String()

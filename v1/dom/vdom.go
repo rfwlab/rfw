@@ -5,9 +5,11 @@ package dom
 import (
 	"fmt"
 	"strings"
-	"syscall/js"
+	jst "syscall/js"
 
 	"golang.org/x/net/html"
+
+	"github.com/rfwlab/rfw/v1/js"
 )
 
 type VDOMNode struct {
@@ -78,9 +80,9 @@ func printVDOM(node *VDOMNode, indent string) {
 }
 
 type eventListener struct {
-	element js.Value
+	element jst.Value
 	event   string
-	handler js.Func
+	handler jst.Func
 }
 
 var listeners = make(map[string][]eventListener)
@@ -99,7 +101,7 @@ func parseModifiers(attr string) map[string]bool {
 	return mods
 }
 
-func BindEventListeners(componentID string, root js.Value) {
+func BindEventListeners(componentID string, root jst.Value) {
 	nodes := root.Call("querySelectorAll", "*")
 	for i := 0; i < nodes.Length(); i++ {
 		node := nodes.Index(i)
@@ -113,7 +115,7 @@ func BindEventListeners(componentID string, root js.Value) {
 				modifiers := parseModifiers(modsAttr)
 				handler := js.Global().Get(handlerName)
 				if handler.Truthy() {
-					wrapped := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+					wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
 						if modifiers["stopPropagation"] && len(args) > 0 {
 							args[0].Call("stopPropagation")
 						}
@@ -128,7 +130,7 @@ func BindEventListeners(componentID string, root js.Value) {
 						return nil
 					})
 					if modifiers["once"] {
-						node.Call("addEventListener", event, wrapped, js.ValueOf(map[string]interface{}{"once": true}))
+						node.Call("addEventListener", event, wrapped, jst.ValueOf(map[string]interface{}{"once": true}))
 					} else {
 						node.Call("addEventListener", event, wrapped)
 					}

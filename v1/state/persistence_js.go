@@ -4,7 +4,9 @@ package state
 
 import (
 	"encoding/json"
-	"syscall/js"
+	jst "syscall/js"
+
+	"github.com/rfwlab/rfw/v1/js"
 )
 
 // loadPersistedState retrieves persisted state from localStorage.
@@ -14,7 +16,7 @@ func loadPersistedState(key string) map[string]interface{} {
 		return nil
 	}
 	item := ls.Call("getItem", key)
-	if item.Type() != js.TypeString {
+	if item.Type() != jst.TypeString {
 		return nil
 	}
 	var state map[string]interface{}

@@ -3,8 +3,9 @@
 package state
 
 import (
-	"syscall/js"
 	"testing"
+
+	"github.com/rfwlab/rfw/v1/js"
 )
 
 func TestExposeUpdateStoreBool(t *testing.T) {

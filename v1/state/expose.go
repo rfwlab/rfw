@@ -2,11 +2,15 @@
 
 package state
 
-import "syscall/js"
+import (
+	jst "syscall/js"
+
+	"github.com/rfwlab/rfw/v1/js"
+)
 
 // ExposeUpdateStore exposes a JS function to update store values.
 func ExposeUpdateStore() {
-	js.Global().Set("goUpdateStore", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.ExposeFunc("goUpdateStore", func(this jst.Value, args []jst.Value) interface{} {
 		if len(args) < 4 {
 			return nil
 		}
@@ -16,11 +20,11 @@ func ExposeUpdateStore() {
 
 		var newValue interface{}
 		switch args[3].Type() {
-		case js.TypeString:
+		case jst.TypeString:
 			newValue = args[3].String()
-		case js.TypeBoolean:
+		case jst.TypeBoolean:
 			newValue = args[3].Bool()
-		case js.TypeNumber:
+		case jst.TypeNumber:
 			newValue = args[3].Float()
 		default:
 			newValue = args[3]
@@ -32,5 +36,5 @@ func ExposeUpdateStore() {
 		}
 		store.Set(key, newValue)
 		return nil
-	}))
+	})
 }
