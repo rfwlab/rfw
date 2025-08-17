@@ -66,6 +66,28 @@ Call `state.ExposeUpdateStore()` to register a global `goUpdateStore(module, sto
 strings, numbers, booleans and other serializable values, letting external scripts change store entries with
 their native types.
 
+## Logging
+
+rfw uses a pluggable logger exposed through the `core` package. By default log messages are printed to
+`stdout`, but applications can replace the logger to integrate with custom logging solutions. Implement the
+`core.Logger` interface and register it with `core.SetLogger`:
+
+```go
+type myLogger struct{}
+
+func (myLogger) Debug(f string, v ...interface{}) { /* ... */ }
+func (myLogger) Info(f string, v ...interface{})  { /* ... */ }
+func (myLogger) Warn(f string, v ...interface{})  { /* ... */ }
+func (myLogger) Error(f string, v ...interface{}) { /* ... */ }
+
+func init() {
+    core.SetLogger(myLogger{})
+}
+```
+
+All framework packages log through this interface, allowing easy redirection to structured loggers or other
+destinations.
+
 ## Components Types
 
 Components are the primary entities used to build applications. In rfw there are 2 different type of 

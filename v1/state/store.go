@@ -1,10 +1,22 @@
 package state
 
 import (
-	"fmt"
+	"log"
 	"reflect"
 	"strings"
 )
+
+type Logger interface {
+	Debug(format string, args ...interface{})
+}
+
+type defaultLogger struct{}
+
+func (defaultLogger) Debug(format string, args ...interface{}) { log.Printf(format, args...) }
+
+var logger Logger = defaultLogger{}
+
+func SetLogger(l Logger) { logger = l }
 
 // StoreHook, if non-nil, is invoked on every mutation allowing external
 // observers (e.g. plugins) to react to state changes without creating an
@@ -103,7 +115,7 @@ func (s *Store) storageKey() string { return s.module + ":" + s.name }
 func (s *Store) Set(key string, value interface{}) {
 	s.state[key] = value
 	if s.devTools {
-		fmt.Printf("%s/%s -> %s: %v\n", s.module, s.name, key, value)
+		logger.Debug("%s/%s -> %s: %v", s.module, s.name, key, value)
 	}
 	if StoreHook != nil {
 		StoreHook(s.module, s.name, key, value)
@@ -121,7 +133,7 @@ func (s *Store) Set(key string, value interface{}) {
 
 func (s *Store) Get(key string) interface{} {
 	if s.devTools {
-		fmt.Printf("Getting %s from %s/%s\n", key, s.module, s.name)
+		logger.Debug("Getting %s from %s/%s", key, s.module, s.name)
 	}
 	return s.state[key]
 }
@@ -134,16 +146,16 @@ func (s *Store) OnChange(key string, listener func(interface{})) func() {
 	id := s.listenerID
 	s.listeners[key][id] = listener
 
-	fmt.Println("------")
+	logger.Debug("------")
 	for moduleName, stores := range GlobalStoreManager.modules {
 		for storeName, store := range stores {
-			fmt.Printf("Store: %s/%s\n", moduleName, storeName)
+			logger.Debug("Store: %s/%s", moduleName, storeName)
 			for key, value := range store.state {
-				fmt.Printf("  %s: %v\n", key, value)
+				logger.Debug("  %s: %v", key, value)
 			}
 		}
 	}
-	fmt.Println("------")
+	logger.Debug("------")
 
 	return func() {
 		delete(s.listeners[key], id)

@@ -2,8 +2,6 @@
 
 package core
 
-import "github.com/rfwlab/rfw/v1/state"
-
 // Plugin is a no-op stub for non-WASM builds.
 type Plugin interface{ Register(*Hooks) }
 
@@ -23,5 +21,3 @@ func TriggerStore(module, store, key string, value interface{}) {}
 func TriggerMount(c Component)                                  {}
 func TriggerUnmount(c Component)                                {}
 func TriggerTemplate(componentID, html string)                  {}
-
-func init() { state.StoreHook = TriggerStore }
