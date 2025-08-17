@@ -5,7 +5,8 @@ package main
 import (
 	"github.com/rfwlab/rfw/example/components"
 	plugs "github.com/rfwlab/rfw/example/plugins"
-	"github.com/rfwlab/rfw/example/plugins/logging"
+	"github.com/rfwlab/rfw/example/plugins/i18n"
+	"github.com/rfwlab/rfw/example/plugins/logger"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
@@ -13,13 +14,22 @@ import (
 
 func main() {
 	core.SetDevMode(true)
-	core.RegisterPlugin(logging.New())
-	store := state.NewStore("default", state.WithModule("app"))
+	store := state.NewStore("default", state.WithModule("app"), state.WithPersistence(), state.WithDevTools())
 	store.Set("count", 0)
 	store.Set("allowProtected", false)
 	if store.Get("sharedState") == nil {
 		store.Set("sharedState", "Initial State")
 	}
+
+	core.RegisterPlugin(logger.New())
+	core.RegisterPlugin(i18n.New(map[string]map[string]string{
+		"en": {
+			"hello": "Hello",
+		},
+		"it": {
+			"hello": "Ciao",
+		},
+	}))
 
 	testingStore := state.NewStore("testing")
 	if testingStore.Get("testingState") == nil {
