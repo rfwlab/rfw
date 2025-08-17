@@ -326,10 +326,10 @@ func replaceConditionals(template string, c *HTMLComponent) string {
 }
 
 func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDependency) {
-	fmt.Printf("Evaluating condition: '%s'\n", condition)
+	Log().Debug("Evaluating condition: '%s'", condition)
 	conditionParts := strings.Split(condition, "==")
 	if len(conditionParts) != 2 {
-		fmt.Println("Condition format is invalid. Expected '=='.")
+		Log().Debug("Condition format is invalid. Expected '=='.")
 		return false, nil
 	}
 
@@ -339,7 +339,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 	expectedValue := strings.ReplaceAll(conditionParts[1], `"`, "")
 	expectedValue = strings.TrimSpace(expectedValue)
 
-	fmt.Printf("Left side: '%s', Expected value: '%s'\n", leftSide, expectedValue)
+	Log().Debug("Left side: '%s', Expected value: '%s'", leftSide, expectedValue)
 
 	dependencies := []ConditionDependency{}
 
@@ -347,18 +347,18 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 		storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
 		if len(storeParts) == 3 {
 			module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
-			fmt.Printf("Dependency detected: Module '%s', Store '%s', Key '%s'\n", module, storeName, key)
+			Log().Debug("Dependency detected: Module '%s', Store '%s', Key '%s'", module, storeName, key)
 			store := state.GlobalStoreManager.GetStore(module, storeName)
 			if store != nil {
 				dependencies = append(dependencies, ConditionDependency{module, storeName, key})
 				actualValue := fmt.Sprintf("%v", store.Get(key))
-				fmt.Printf("Actual value from store: '%s'\n", actualValue)
+				Log().Debug("Actual value from store: '%s'", actualValue)
 				return actualValue == expectedValue, dependencies
 			} else {
-				fmt.Printf("Store '%s' in module '%s' not found.\n", storeName, module)
+				Log().Debug("Store '%s' in module '%s' not found.", storeName, module)
 			}
 		} else {
-			fmt.Println("Store parts length is not 3.")
+			Log().Debug("Store parts length is not 3.")
 		}
 	}
 
@@ -366,12 +366,12 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 		propName := strings.TrimPrefix(leftSide, "prop:")
 		if value, exists := c.Props[propName]; exists {
 			actualValue := fmt.Sprintf("%v", value)
-			fmt.Printf("Actual value from props: '%s'\n", actualValue)
+			Log().Debug("Actual value from props: '%s'", actualValue)
 			return actualValue == expectedValue, dependencies
 		}
 	}
 
-	fmt.Println("No dependencies detected.")
+	Log().Debug("No dependencies detected.")
 	return false, dependencies
 }
 

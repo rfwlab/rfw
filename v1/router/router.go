@@ -3,7 +3,6 @@
 package router
 
 import (
-	"log"
 	"regexp"
 	"strings"
 	"syscall/js"
@@ -122,7 +121,7 @@ func Navigate(path string) {
 		receiver.SetRouteParams(params)
 	}
 	if currentComponent != nil {
-		log.Println("Unmounting current component:", currentComponent.GetName())
+		core.Log().Debug("Unmounting current component: %s", currentComponent.GetName())
 		core.TriggerUnmount(currentComponent)
 		currentComponent.Unmount()
 	}
