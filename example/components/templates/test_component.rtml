@@ -13,6 +13,11 @@
             <h2 class="text-2xl font-bold">Shared State is 123</h2>
             <p>Try setting it to something else.</p>
         </div>
+        @else-if:store:app.default.sharedState == "456"
+        <div class="bg-yellow-200 p-4 mb-4 flex flex-col gap-4 items-start">
+            <h2 class="text-2xl font-bold">Shared State is 456</h2>
+            <p>Try setting it to something else.</p>
+        </div>
         @else
         <div class="bg-red-200 p-4 mb-4 flex flex-col gap-4 items-start">
             <h2 class="text-2xl font-bold">Shared State is not 123</h2>
