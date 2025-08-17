@@ -5,10 +5,11 @@ package router
 import (
 	"regexp"
 	"strings"
-	"syscall/js"
+	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
+	"github.com/rfwlab/rfw/v1/js"
 )
 
 type Guard func(map[string]string) bool
@@ -134,15 +135,15 @@ func Navigate(path string) {
 }
 
 func ExposeNavigate() {
-	js.Global().Set("goNavigate", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.ExposeFunc("goNavigate", func(this jst.Value, args []jst.Value) interface{} {
 		path := args[0].String()
 		Navigate(path)
 		return nil
-	}))
+	})
 }
 
 func InitRouter() {
-	js.Global().Get("window").Call("addEventListener", "popstate", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Get("window").Call("addEventListener", "popstate", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
 		path := js.Global().Get("location").Get("pathname").String()
 		Navigate(path)
 		return nil

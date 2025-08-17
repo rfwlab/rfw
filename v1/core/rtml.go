@@ -9,9 +9,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall/js"
+	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/dom"
+	"github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -377,7 +378,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 
 func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue interface{}) {
 	document := js.Global().Get("document")
-	var element js.Value
+	var element jst.Value
 	if c.ID == "" {
 		element = document.Call("getElementById", "app")
 	} else {
@@ -656,7 +657,7 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
 	document := js.Global().Get("document")
-	var element js.Value
+	var element jst.Value
 	if c.ID == "" {
 		element = document.Call("getElementById", "app")
 	} else {
