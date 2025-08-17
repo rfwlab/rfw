@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	core "github.com/rfwlab/rfw/v1/core"
-	jsa "github.com/rfwlab/rfw/v1/js"
+	dom "github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -26,10 +26,10 @@ func NewComputedComponent() *ComputedComponent {
 	c.SetComponent(c)
 	c.Init(nil)
 
-       store := state.GlobalStoreManager.GetStore("app", "default")
-       if store.Get("lastChange") == nil {
-               store.Set("lastChange", "")
-       }
+	store := state.GlobalStoreManager.GetStore("app", "default")
+	if store.Get("lastChange") == nil {
+		store.Set("lastChange", "")
+	}
 	// register computed full name
 	store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]interface{}) interface{} {
 		first, _ := s["first"].(string)
@@ -44,11 +44,11 @@ func NewComputedComponent() *ComputedComponent {
 		store.Set("lastChange", msg)
 	}))
 
-	jsa.Expose("setAda", func() {
+	dom.RegisterHandlerFunc("setAda", func() {
 		store.Set("first", "Ada")
 		store.Set("last", "Lovelace")
 	})
-	jsa.Expose("setGrace", func() {
+	dom.RegisterHandlerFunc("setGrace", func() {
 		store.Set("first", "Grace")
 		store.Set("last", "Hopper")
 	})

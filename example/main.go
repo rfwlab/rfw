@@ -7,6 +7,7 @@ import (
 	plugs "github.com/rfwlab/rfw/example/plugins"
 	"github.com/rfwlab/rfw/example/plugins/i18n"
 	"github.com/rfwlab/rfw/example/plugins/logger"
+	mon "github.com/rfwlab/rfw/example/plugins/monitor"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
@@ -30,6 +31,7 @@ func main() {
 			"hello": "Ciao",
 		},
 	}))
+	core.RegisterPlugin(mon.New())
 
 	testingStore := state.NewStore("testing")
 	if testingStore.Get("testingState") == nil {

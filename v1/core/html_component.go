@@ -66,6 +66,7 @@ func (c *HTMLComponent) Init(store *state.Store) {
 		panic(fmt.Sprintf("Error loading template for component %s: %v", c.Name, err))
 	}
 	c.Template = template
+	dom.RegisterBindings(c.ID, c.Name, template)
 
 	if store != nil {
 		c.Store = store
@@ -120,7 +121,7 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle @if:condition syntax for conditional rendering
 	renderedTemplate = replaceConditionals(renderedTemplate, c)
 
-	// Handle @on:event="handler" syntax for event binding
+	// Handle @on:event:handler and @event:handler syntax for event binding
 	renderedTemplate = replaceEventHandlers(renderedTemplate)
 
 	// Handle rt-is="ComponentName" for dynamic component loading
