@@ -12,6 +12,7 @@ import (
 //go:embed templates/event_component.rtml
 var eventComponentTpl []byte
 
+// EventComponent demonstrates both basic event handling and event modifiers.
 type EventComponent struct {
 	*core.HTMLComponent
 }
@@ -27,6 +28,7 @@ func NewEventComponent() *EventComponent {
 		c.Store.Set("count", 0)
 	}
 
+	// expose increment so buttons in the template can call it
 	jsa.Expose("increment", func() {
 		if val, ok := c.Store.Get("count").(int); ok {
 			c.Store.Set("count", val+1)

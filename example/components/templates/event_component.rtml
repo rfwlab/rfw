@@ -2,7 +2,12 @@
     @include:header
     <div class="p-4 pt-0">
         <h2 class="text-xl font-bold mb-4">Event Component</h2>
-        <button class="bg-blue-500 text-white px-4 py-2 rounded" @on:click="increment">Increment</button>
+        <p class="mb-2">Basic click increments the counter:</p>
+        <button class="bg-blue-500 text-white px-4 py-2 rounded mr-2" @on:click="increment">Increment</button>
+
+        <p class="mt-4 mb-2">With once, stopPropagation and preventDefault modifiers (only the first click counts):</p>
+        <button class="bg-green-500 text-white px-4 py-2 rounded" @on:click.once.stopPropagation.preventDefault="increment">Increment with modifiers</button>
+
         <p class="mt-4">Count: @store:app.default.count</p>
     </div>
 </root>
