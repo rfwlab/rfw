@@ -6,6 +6,8 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -322,6 +324,183 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 	}
 
 	updateConditionsForStoreVariable(c, module, storeName, key)
+}
+
+func insertDataKey(content string, key interface{}) string {
+	tagRegex := regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
+	loc := tagRegex.FindStringSubmatchIndex(content)
+	if loc == nil {
+		return content
+	}
+	return content[:loc[1]] + fmt.Sprintf(` data-key="%v"`, key) + content[loc[1]:]
+}
+
+func resolveNumber(expr string, c *HTMLComponent) (int, error) {
+	if n, err := strconv.Atoi(expr); err == nil {
+		return n, nil
+	}
+	if strings.HasPrefix(expr, "store:") {
+		parts := strings.Split(strings.TrimPrefix(expr, "store:"), ".")
+		if len(parts) == 3 {
+			module, storeName, key := parts[0], parts[1], parts[2]
+			store := state.GlobalStoreManager.GetStore(module, storeName)
+			if store != nil {
+				if val := store.Get(key); val != nil {
+					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+						dom.UpdateDOM(c.ID, c.Render())
+					})
+					c.unsubscribes.Add(unsubscribe)
+					switch v := val.(type) {
+					case int:
+						return v, nil
+					case float64:
+						return int(v), nil
+					case string:
+						return strconv.Atoi(v)
+					}
+				}
+			}
+		}
+	}
+	if val, ok := c.Props[expr]; ok {
+		switch v := val.(type) {
+		case int:
+			return v, nil
+		case float64:
+			return int(v), nil
+		case string:
+			return strconv.Atoi(v)
+		}
+	}
+	return 0, fmt.Errorf("invalid number")
+}
+
+func replaceForPlaceholders(template string, c *HTMLComponent) string {
+	forRegex := regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
+	return forRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := forRegex.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+
+		varsPart := parts[1]
+		expr := parts[2]
+		loopContent := parts[3]
+
+		aliases := strings.Split(varsPart, ",")
+		for i := range aliases {
+			aliases[i] = strings.TrimSpace(aliases[i])
+		}
+
+		if strings.Contains(expr, "..") {
+			rangeParts := strings.Split(expr, "..")
+			if len(rangeParts) != 2 {
+				return match
+			}
+			start, err := resolveNumber(rangeParts[0], c)
+			if err != nil {
+				return match
+			}
+			end, err := resolveNumber(rangeParts[1], c)
+			if err != nil {
+				return match
+			}
+			var result strings.Builder
+			for i := start; i <= end; i++ {
+				iter := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", aliases[0]), fmt.Sprintf("%d", i))
+				iter = insertDataKey(iter, i)
+				result.WriteString(iter)
+			}
+			return result.String()
+		}
+
+		var collection interface{}
+		if strings.HasPrefix(expr, "store:") {
+			storeParts := strings.Split(strings.TrimPrefix(expr, "store:"), ".")
+			if len(storeParts) == 3 {
+				module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
+				store := state.GlobalStoreManager.GetStore(module, storeName)
+				if store != nil {
+					collection = store.Get(key)
+					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+						dom.UpdateDOM(c.ID, c.Render())
+					})
+					c.unsubscribes.Add(unsubscribe)
+				} else {
+					return match
+				}
+			} else {
+				return match
+			}
+		} else if val, ok := c.Props[expr]; ok {
+			collection = val
+		} else {
+			return match
+		}
+
+		switch col := collection.(type) {
+		case []interface{}:
+			var result strings.Builder
+			alias := aliases[0]
+			for idx, item := range col {
+				iterContent := loopContent
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, alias))
+					iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
+						fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+						if len(fieldParts) == 2 {
+							if fieldValue, exists := itemMap[fieldParts[1]]; exists {
+								return fmt.Sprintf("%v", fieldValue)
+							}
+						}
+						return fieldMatch
+					})
+				} else {
+					iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", item))
+				}
+				iterContent = insertDataKey(iterContent, idx)
+				result.WriteString(iterContent)
+			}
+			return result.String()
+		case map[string]interface{}:
+			keyAlias := aliases[0]
+			valAlias := keyAlias
+			if len(aliases) > 1 {
+				valAlias = aliases[1]
+			}
+			keys := make([]string, 0, len(col))
+			for k := range col {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			var result strings.Builder
+			for _, k := range keys {
+				v := col[k]
+				iterContent := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", keyAlias), k)
+				if len(aliases) > 1 {
+					if vMap, ok := v.(map[string]interface{}); ok {
+						fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, valAlias))
+						iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
+							fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+							if len(fieldParts) == 2 {
+								if fieldValue, exists := vMap[fieldParts[1]]; exists {
+									return fmt.Sprintf("%v", fieldValue)
+								}
+							}
+							return fieldMatch
+						})
+					} else {
+						iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", valAlias), fmt.Sprintf("%v", v))
+					}
+				}
+				iterContent = insertDataKey(iterContent, k)
+				result.WriteString(iterContent)
+			}
+			return result.String()
+		default:
+			return match
+		}
+	})
 }
 func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 	foreachRegex := regexp.MustCompile(`@foreach:(\S+)\s+as\s+(\w+)([\s\S]*?)@endforeach`)

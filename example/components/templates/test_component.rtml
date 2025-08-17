@@ -26,20 +26,32 @@
         @endif
 
         <ul class="list-disc ml-4">
-            @foreach:items as item
+            @for:item in items
                 <li>
                     <p><b>Name:</b> @prop:item.name</p>
                     <p><b>Age:</b> @prop:item.age</p>
                 </li>
-            @endforeach
+            @endfor
         </ul>
 
         <ul class="list-disc ml-4">
-            @foreach:store:app.default.testLoop as item
+            @for:item in store:app.default.testLoop
                 <li>
                     <p><b>Name:</b> @prop:item.name</p>
                 </li>
-            @endforeach
+            @endfor
+        </ul>
+
+        <ul class="list-disc ml-4">
+            @for:key,val in obj
+                <li>@prop:key: @prop:val</li>
+            @endfor
+        </ul>
+
+        <ul class="list-disc ml-4">
+            @for:i in 0..n
+                <li>Number: @prop:i</li>
+            @endfor
         </ul>
 
     </div>

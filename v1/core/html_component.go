@@ -87,7 +87,8 @@ func (c *HTMLComponent) Render() string {
 	// Handle @include:componentName syntax for dependencies
 	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
 
-	// Handle @foreach:collection as item syntax
+	// Handle @for loops and legacy @foreach syntax
+	renderedTemplate = replaceForPlaceholders(renderedTemplate, c)
 	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
 
 	// Handle @store:module.storeName.varName syntax:

@@ -29,6 +29,11 @@ func NewTestComponent() *MyComponent {
 					"age":  25,
 				},
 			},
+			"obj": map[string]interface{}{
+				"first":  "Mario",
+				"second": "Luigi",
+			},
+			"n": 3,
 		}),
 	}
 	c.SetComponent(c)
