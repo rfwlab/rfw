@@ -38,3 +38,8 @@ func ExposeEvent(name string, fn func(jst.Value)) {
 func ExposeFunc(name string, fn func(this jst.Value, args []jst.Value) interface{}) {
 	Global().Set(name, jst.FuncOf(fn))
 }
+
+// Stack returns the current JavaScript stack trace using Error().stack.
+func Stack() string {
+	return Global().Get("Error").New().Get("stack").String()
+}

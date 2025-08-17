@@ -101,6 +101,9 @@ func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) strin
 		if dep, ok := c.Dependencies[name]; ok {
 			return dep.Render()
 		}
+		if DevMode {
+			Log().Warn("component %s missing dependency '%s'", c.Name, name)
+		}
 		return match
 	})
 }
@@ -121,6 +124,9 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 		if dep, ok := c.Dependencies[depName]; ok {
 			dep.SetSlots(map[string]string{slotName: content})
 			return ""
+		}
+		if DevMode {
+			Log().Warn("component %s missing dependency '%s' for slot '%s'", c.Name, depName, slotName)
 		}
 		return match
 	})
@@ -176,6 +182,9 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 				return fmt.Sprintf(`<span data-store="%s.%s.%s">%v</span>`, module, storeName, key, value)
 			}
 		}
+		if DevMode {
+			Log().Warn("store %s.%s not found for key '%s' in component %s", module, storeName, key, c.Name)
+		}
 		return match
 	})
 }
@@ -190,6 +199,9 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 		propName := parts[1]
 		if value, exists := c.Props[propName]; exists {
 			return fmt.Sprintf("%v", value)
+		}
+		if DevMode {
+			Log().Warn("component %s missing prop '%s'", c.Name, propName)
 		}
 		return match
 	})
@@ -237,6 +249,9 @@ func replaceRtIsAttributes(template string, c *HTMLComponent) string {
 		name := parts[3]
 		comp := LoadComponent(name)
 		if comp == nil {
+			if DevMode {
+				Log().Warn("rt-is referenced unknown component '%s'", name)
+			}
 			return match
 		}
 		placeholder := fmt.Sprintf("rtis-%s-%d", name, idx)

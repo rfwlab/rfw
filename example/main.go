@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	core.SetDevMode(true)
 	core.RegisterPlugin(logging.New())
 	store := state.NewStore("default", state.WithModule("app"))
 	store.Set("count", 0)
