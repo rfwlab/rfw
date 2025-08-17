@@ -4,7 +4,7 @@
         <div>
             <p class="font-semibold">User with custom avatar and details:</p>
             @slot:userCard.avatar
-                <img src="https://via.placeholder.com/64" class="rounded-full" />
+                <img src="https://placehold.co/64x64" class="rounded-full" />
             @endslot
             @slot:userCard
                 <p>Jane Doe is a software engineer from Milan.</p>
