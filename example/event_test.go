@@ -11,7 +11,7 @@ import (
 )
 
 func TestEventBindingToken(t *testing.T) {
-	tpl := []byte("<root><button @on:click=\"increment\"></button></root>")
+	tpl := []byte("<root><button @click:increment></button></root>")
 	store := state.NewStore("default")
 	c := core.NewHTMLComponent("TestComponent", tpl, nil)
 	c.Init(store)

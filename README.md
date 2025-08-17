@@ -119,18 +119,39 @@ RTML code example:
 
 #### Event Handling
 
-RTML supports attaching DOM events with the `@on:<event>` syntax. The template token is converted
-into a `data-on-<event>` attribute and listeners are registered automatically.
+RTML offers two ways to wire DOM events to Go code.
 
-> **Deprecated:** This `@on` approach relies on exposing Go functions to JavaScript. It is kept for
-> compatibility but will be replaced by channel-based listeners in the `v1/events` package.
+##### Standard registry-based bindings
+
+Use directive-style attributes such as `@click:toggle` (or the explicit `@on:click:toggle`).
+They are translated into `data-on-click` attributes and listeners are resolved via a Go
+registry, so no JavaScript needs to be written.
 
 ```html
-<button @on:click="toggle">Toggle</button>
+<button @click:toggle>Toggle</button>
 ```
 
-The handler must be exposed on the JavaScript global object. You can do this using
-the helper functions from the `v1/js` package:
+Register handlers from Go:
+
+```go
+import "github.com/rfwlab/rfw/v1/dom"
+
+func init() {
+    dom.RegisterHandlerFunc("toggle", func() {
+        fmt.Println("clicked")
+    })
+}
+```
+
+##### Legacy exposed handlers (deprecated)
+
+For compatibility, functions can still be exposed to the JavaScript global scope and
+referenced with the `@on:` prefix. This requires `jsa.Expose` and should be avoided in new
+code.
+
+```html
+<button @on:click:toggle>Toggle</button>
+```
 
 ```go
 import jsa "github.com/rfwlab/rfw/v1/js"

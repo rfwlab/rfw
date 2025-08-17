@@ -99,7 +99,54 @@ func parseModifiers(attr string) map[string]bool {
 	return mods
 }
 
+func nodeByPath(root jst.Value, path []int) jst.Value {
+	node := root
+	for _, idx := range path {
+		children := node.Get("children")
+		if idx >= children.Length() {
+			return jst.Null()
+		}
+		node = children.Index(idx)
+	}
+	return node
+}
+
 func BindEventListeners(componentID string, root jst.Value) {
+	if bs, ok := compiledBindings[componentID]; ok {
+		for _, b := range bs {
+			node := nodeByPath(root, b.Path)
+			handler := GetHandler(b.Handler)
+			if !handler.Truthy() {
+				continue
+			}
+			mods := make(map[string]bool)
+			for _, m := range b.Modifiers {
+				mods[m] = true
+			}
+			wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+				if mods["stopPropagation"] && len(args) > 0 {
+					args[0].Call("stopPropagation")
+				}
+				if mods["preventDefault"] && len(args) > 0 {
+					args[0].Call("preventDefault")
+				}
+				anyArgs := make([]any, len(args))
+				for i, a := range args {
+					anyArgs[i] = a
+				}
+				handler.Invoke(anyArgs...)
+				return nil
+			})
+			if mods["once"] {
+				node.Call("addEventListener", b.Event, wrapped, jst.ValueOf(map[string]interface{}{"once": true}))
+			} else {
+				node.Call("addEventListener", b.Event, wrapped)
+			}
+			listeners[componentID] = append(listeners[componentID], eventListener{node, b.Event, wrapped})
+		}
+		return
+	}
+
 	nodes := root.Call("querySelectorAll", "*")
 	for i := 0; i < nodes.Length(); i++ {
 		node := nodes.Index(i)
@@ -111,7 +158,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				handlerName := node.Call("getAttribute", name).String()
 				modsAttr := node.Call("getAttribute", fmt.Sprintf("data-on-%s-modifiers", event)).String()
 				modifiers := parseModifiers(modsAttr)
-				handler := jst.Global().Get(handlerName)
+				handler := GetHandler(handlerName)
 				if handler.Truthy() {
 					wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
 						if modifiers["stopPropagation"] && len(args) > 0 {
@@ -147,4 +194,5 @@ func RemoveEventListeners(componentID string) {
 		}
 		delete(listeners, componentID)
 	}
+	delete(compiledBindings, componentID)
 }

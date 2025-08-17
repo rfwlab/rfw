@@ -207,17 +207,14 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceEventHandlers(template string) string {
-	eventRegex := regexp.MustCompile(`@on:(\w+(?:\.\w+)*)=(?:"([^"]+)"|'([^']+)')`)
+	eventRegex := regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)`)
 	return eventRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := eventRegex.FindStringSubmatch(match)
 		if len(parts) != 4 {
 			return match
 		}
-		handler := parts[2]
-		if handler == "" {
-			handler = parts[3]
-		}
-		fullEvent := parts[1]
+		fullEvent := parts[2]
+		handler := parts[3]
 		eventParts := strings.Split(fullEvent, ".")
 		event := eventParts[0]
 		modifiers := []string{}
