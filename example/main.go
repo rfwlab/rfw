@@ -53,10 +53,6 @@ func main() {
 		Component: func() core.Component { return components.NewComputedComponent() },
 	})
 	router.RegisterRoute(router.Route{
-		Path:      "/watcher",
-		Component: func() core.Component { return components.NewWatcherComponent() },
-	})
-	router.RegisterRoute(router.Route{
 		Path:      "/stores",
 		Component: func() core.Component { return components.NewStoresComponent() },
 	})
