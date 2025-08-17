@@ -94,11 +94,14 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
-	for placeholderName, dep := range c.Dependencies {
-		placeholder := fmt.Sprintf("@include:%s", placeholderName)
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, dep.Render())
-	}
-	return renderedTemplate
+	includeRegex := regexp.MustCompile(`@include:(\w+)`)
+	return includeRegex.ReplaceAllStringFunc(renderedTemplate, func(match string) string {
+		name := includeRegex.FindStringSubmatch(match)[1]
+		if dep, ok := c.Dependencies[name]; ok {
+			return dep.Render()
+		}
+		return match
+	})
 }
 
 func extractSlotContents(template string, c *HTMLComponent) string {
@@ -115,13 +118,8 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 		}
 		content := parts[3]
 		if dep, ok := c.Dependencies[depName]; ok {
-			if hc, ok := dep.(*HTMLComponent); ok {
-				if hc.Slots == nil {
-					hc.Slots = make(map[string]string)
-				}
-				hc.Slots[slotName] = content
-				return ""
-			}
+			dep.SetSlots(map[string]string{slotName: content})
+			return ""
 		}
 		return match
 	})

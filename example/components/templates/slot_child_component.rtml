@@ -1,7 +1,7 @@
 <root>
     <div class="border p-4 flex items-center space-x-4">
         @slot:avatar
-            <div class="w-16 h-16 bg-gray-300"></div>
+            <img src="https://placehold.co/64x64" class="rounded-full" />
         @endslot
         <div>
             @slot
