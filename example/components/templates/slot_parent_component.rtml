@@ -1,0 +1,19 @@
+<root>
+    @include:header
+    <div class="p-4 pt-0 space-y-4">
+        <div>
+            <p class="font-semibold">With provided slots:</p>
+            @slot:slotChild.header
+                <h3 class="text-blue-500">Parent Header</h3>
+            @endslot
+            @slot:slotChild
+                <p class="text-green-600">Parent default slot content</p>
+            @endslot
+            @include:slotChild
+        </div>
+        <div>
+            <p class="font-semibold">Without slots (fallback shown):</p>
+            @include:slotChildFallback
+        </div>
+    </div>
+</root>

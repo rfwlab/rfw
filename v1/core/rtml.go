@@ -101,6 +101,51 @@ func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) strin
 	return renderedTemplate
 }
 
+func extractSlotContents(template string, c *HTMLComponent) string {
+	slotRegex := regexp.MustCompile(`@slot:(\w+)(?:\.(\w+))?([\s\S]*?)@endslot`)
+	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := slotRegex.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+		depName := parts[1]
+		slotName := parts[2]
+		if slotName == "" {
+			slotName = "default"
+		}
+		content := parts[3]
+		if dep, ok := c.Dependencies[depName]; ok {
+			if hc, ok := dep.(*HTMLComponent); ok {
+				if hc.Slots == nil {
+					hc.Slots = make(map[string]string)
+				}
+				hc.Slots[slotName] = content
+				return ""
+			}
+		}
+		return match
+	})
+}
+
+func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
+	slotRegex := regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
+	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := slotRegex.FindStringSubmatch(match)
+		if len(parts) < 3 {
+			return match
+		}
+		slotName := parts[1]
+		if slotName == "" {
+			slotName = "default"
+		}
+		fallback := parts[2]
+		if content, ok := c.Slots[slotName]; ok {
+			return content
+		}
+		return fallback
+	})
+}
+
 func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 	storeRegex := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
 	return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
