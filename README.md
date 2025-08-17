@@ -271,6 +271,15 @@ click the "Unlock Protected" button to update the store, then use the "Protected
 guarded page. If a guard blocks the first navigation (for example by visiting `/protected` directly), the
 router falls back to the root route instead of rendering a blank page.
 
+## Animations
+
+The `v1/animation` package provides pure-Go helpers that drive
+`requestAnimationFrame` loops and update element styles without relying on the
+Web Animations API. Helpers like `Translate`, `Fade`, `Scale`, and `ColorCycle`
+let components apply motion effects to elements selected by CSS selectors. The
+example app exposes an `/animations` route demonstrating these helpers with
+moving, fading, scaling and color-cycling blocks.
+
 ## Usage
 
 Install the `rfw-cli`:

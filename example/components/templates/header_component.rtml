@@ -24,6 +24,8 @@
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/slots')">Slots</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
+                        onclick="goNavigate('/animations')">Animations</a></li>
+                <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/dynamic')">Dynamic comp. import</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/protected')">Protected</a></li>
