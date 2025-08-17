@@ -87,26 +87,77 @@ func patchInnerHTML(element js.Value, html string) {
 func patchChildren(oldParent, newParent js.Value) {
 	oldChildren := oldParent.Get("childNodes")
 	newChildren := newParent.Get("childNodes")
-	oldLen := oldChildren.Length()
-	newLen := newChildren.Length()
 
-	minLen := oldLen
-	if newLen < minLen {
-		minLen = newLen
+	keyed := make(map[string]js.Value)
+	for i := 0; i < oldChildren.Length(); i++ {
+		child := oldChildren.Index(i)
+		if key := getDataKey(child); key != "" {
+			keyed[key] = child
+		}
 	}
 
-	for i := 0; i < minLen; i++ {
-		patchNode(oldChildren.Index(i), newChildren.Index(i))
+	index := 0
+	for i := 0; i < newChildren.Length(); i++ {
+		newChild := newChildren.Index(i)
+		key := getDataKey(newChild)
+		if key != "" {
+			if oldChild, ok := keyed[key]; ok {
+				patchNode(oldChild, newChild)
+				ref := oldParent.Get("childNodes").Index(index)
+				if !oldChild.Equal(ref) {
+					if ref.Truthy() {
+						oldParent.Call("insertBefore", oldChild, ref)
+					} else {
+						oldParent.Call("appendChild", oldChild)
+					}
+				}
+				delete(keyed, key)
+			} else {
+				clone := newChild.Call("cloneNode", true)
+				ref := oldParent.Get("childNodes").Index(index)
+				if ref.Truthy() {
+					oldParent.Call("insertBefore", clone, ref)
+				} else {
+					oldParent.Call("appendChild", clone)
+				}
+			}
+			index++
+			continue
+		}
+
+		oldChild := oldParent.Get("childNodes").Index(index)
+		if oldChild.Truthy() && getDataKey(oldChild) == "" {
+			patchNode(oldChild, newChild)
+		} else {
+			clone := newChild.Call("cloneNode", true)
+			ref := oldParent.Get("childNodes").Index(index)
+			if ref.Truthy() {
+				oldParent.Call("insertBefore", clone, ref)
+			} else {
+				oldParent.Call("appendChild", clone)
+			}
+		}
+		index++
 	}
 
-	for i := minLen; i < newLen; i++ {
-		clone := newChildren.Index(i).Call("cloneNode", true)
-		oldParent.Call("appendChild", clone)
+	for _, child := range keyed {
+		child.Call("remove")
 	}
 
-	for i := oldLen - 1; i >= minLen; i-- {
-		oldChildren.Index(i).Call("remove")
+	for oldParent.Get("childNodes").Length() > index {
+		oldParent.Get("childNodes").Index(index).Call("remove")
 	}
+}
+
+func getDataKey(node js.Value) string {
+	if node.Get("nodeType").Int() != 1 {
+		return ""
+	}
+	key := node.Call("getAttribute", "data-key")
+	if key.Truthy() {
+		return key.String()
+	}
+	return ""
 }
 
 func patchNode(oldNode, newNode js.Value) {
