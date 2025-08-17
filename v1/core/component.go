@@ -2,6 +2,13 @@
 
 package core
 
+// DevMode enables additional runtime checks and warnings for development.
+// It is disabled by default.
+var DevMode bool
+
+// SetDevMode toggles development mode features.
+func SetDevMode(enabled bool) { DevMode = enabled }
+
 type Component interface {
 	Render() string
 	Mount()

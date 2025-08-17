@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"strings"
 
 	"github.com/rfwlab/rfw/v1/dom"
+	"github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -75,10 +77,18 @@ func (c *HTMLComponent) Init(store *state.Store) {
 	}
 }
 
-func (c *HTMLComponent) Render() string {
+func (c *HTMLComponent) Render() (renderedTemplate string) {
+	defer func() {
+		if r := recover(); r != nil {
+			jsStack := js.Stack()
+			goStack := string(debug.Stack())
+			panic(fmt.Sprintf("%v\nGo stack:\n%s\nJS stack:\n%s", r, goStack, jsStack))
+		}
+	}()
+
 	c.unsubscribes.Run()
 
-	renderedTemplate := c.Template
+	renderedTemplate = c.Template
 	renderedTemplate = strings.Replace(renderedTemplate, "<root", fmt.Sprintf("<root data-component-id=\"%s\"", c.ID), 1)
 
 	// Extract slot contents destined for child components
