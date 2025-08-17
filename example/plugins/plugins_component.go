@@ -4,6 +4,7 @@ package plugins
 
 import (
 	_ "embed"
+	"syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
 )
@@ -24,5 +25,7 @@ func NewPluginsComponent() *PluginsComponent {
 	return c
 }
 
-func (c *PluginsComponent) OnMount()   {}
+func (c *PluginsComponent) OnMount() {
+	js.Global().Get("document").Call("getElementById", "hello").Set("innerText", js.Global().Get("t").Invoke("hello").String())
+}
 func (c *PluginsComponent) OnUnmount() {}

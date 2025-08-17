@@ -1,6 +1,14 @@
 <root>
     <div class="p-4">
-        <h2 class="text-xl font-bold mb-2">JS Plugin Demo</h2>
-        <p>Open the browser console to see logs from a plugin registered in JavaScript.</p>
+        <h2 class="text-xl font-bold mb-4">Plugin Demo (logger &amp; i18n)</h2>
+        <p class="mb-4">Check the browser console when interacting below to see logs from the custom logger.</p>
+        <div class="mb-6">
+            <h3 class="font-semibold mb-2">i18n</h3>
+            <p id="hello" class="mb-2"></p>
+            <div class="flex gap-2">
+                <button class="bg-blue-500 text-white px-2 py-1 rounded" onclick="setLang('en'); document.getElementById('hello').innerText = t('hello')">EN</button>
+                <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="setLang('it'); document.getElementById('hello').innerText = t('hello')">IT</button>
+            </div>
+        </div>
     </div>
 </root>
