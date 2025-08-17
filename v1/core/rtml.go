@@ -13,22 +13,82 @@ import (
 	"github.com/rfwlab/rfw/v1/state"
 )
 
-type ConditionContent struct {
-	conditionStr string
-	ifContent    string
-	elseContent  string
+// AST structures for template parsing
+type Node interface {
+	Render(c *HTMLComponent) string
 }
 
-type ConditionalBlock struct {
-	Condition   string
-	IfContent   string
-	ElseContent string
+type TextNode struct {
+	Text string
+}
+
+func (t *TextNode) Render(c *HTMLComponent) string { return t.Text }
+
+type ConditionalBranch struct {
+	Condition string // empty for @else
+	Nodes     []Node
+}
+
+type ConditionalNode struct {
+	Branches []ConditionalBranch
+}
+
+// ConditionContent stores rendered content for each branch of a conditional block
+type ConditionalBranchContent struct {
+	Condition string
+	Content   string
+}
+
+type ConditionContent struct {
+	Branches []ConditionalBranchContent
 }
 
 type ConditionDependency struct {
 	module    string
 	storeName string
 	key       string
+}
+
+// Render evaluates the conditional branches and renders the appropriate content.
+func (cn *ConditionalNode) Render(c *HTMLComponent) string {
+	var conditions []string
+	for _, br := range cn.Branches {
+		conditions = append(conditions, br.Condition)
+	}
+	conditionID := fmt.Sprintf("cond-%x", sha1.Sum([]byte(strings.Join(conditions, "|"))))
+
+	var content ConditionContent
+	var chosen string
+	for _, br := range cn.Branches {
+		var sb strings.Builder
+		for _, n := range br.Nodes {
+			sb.WriteString(n.Render(c))
+		}
+		branchContent := sb.String()
+		content.Branches = append(content.Branches, ConditionalBranchContent{Condition: br.Condition, Content: branchContent})
+
+		if br.Condition != "" {
+			result, dependencies := evaluateCondition(br.Condition, c)
+			for _, dep := range dependencies {
+				module, storeName, key := dep.module, dep.storeName, dep.key
+				store := state.GlobalStoreManager.GetStore(module, storeName)
+				if store != nil {
+					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+						updateConditionBindings(c, conditionID)
+					})
+					c.unsubscribes.Add(unsubscribe)
+				}
+			}
+			if chosen == "" && result {
+				chosen = branchContent
+			}
+		} else if chosen == "" {
+			chosen = branchContent
+		}
+	}
+
+	c.conditionContents[conditionID] = content
+	return fmt.Sprintf(`<div data-condition="%s">%s</div>`, conditionID, chosen)
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
@@ -105,99 +165,84 @@ func replaceEventHandlers(template string) string {
 	})
 }
 
+// parseTemplate parses the template string into an AST of nodes.
+func parseTemplate(template string) ([]Node, error) {
+	lines := strings.Split(template, "\n")
+	idx := 0
+	return parseBlock(lines, &idx)
+}
+
+func parseBlock(lines []string, idx *int) ([]Node, error) {
+	var nodes []Node
+	for *idx < len(lines) {
+		line := lines[*idx]
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(trimmed, "@if:"):
+			cond := trimmed
+			*idx++
+			n, err := parseConditional(lines, idx, cond)
+			if err != nil {
+				return nil, err
+			}
+			nodes = append(nodes, n)
+		case strings.HasPrefix(trimmed, "@else-if:"), trimmed == "@else", trimmed == "@endif":
+			return nodes, nil
+		default:
+			nodes = append(nodes, &TextNode{Text: line + "\n"})
+			*idx++
+		}
+	}
+	return nodes, nil
+}
+
+func parseConditional(lines []string, idx *int, firstCond string) (Node, error) {
+	node := &ConditionalNode{}
+	children, err := parseBlock(lines, idx)
+	if err != nil {
+		return nil, err
+	}
+	node.Branches = append(node.Branches, ConditionalBranch{Condition: firstCond, Nodes: children})
+
+	for *idx < len(lines) {
+		trimmed := strings.TrimSpace(lines[*idx])
+		switch {
+		case strings.HasPrefix(trimmed, "@else-if:"):
+			cond := trimmed
+			*idx++
+			children, err := parseBlock(lines, idx)
+			if err != nil {
+				return nil, err
+			}
+			node.Branches = append(node.Branches, ConditionalBranch{Condition: cond, Nodes: children})
+		case trimmed == "@else":
+			*idx++
+			children, err := parseBlock(lines, idx)
+			if err != nil {
+				return nil, err
+			}
+			node.Branches = append(node.Branches, ConditionalBranch{Condition: "", Nodes: children})
+		case trimmed == "@endif":
+			*idx++
+			return node, nil
+		default:
+			*idx++
+		}
+	}
+	return node, nil
+}
+
+// replaceConditionals parses conditionals using the AST and renders them.
 func replaceConditionals(template string, c *HTMLComponent) string {
-	ifRegex := regexp.MustCompile(`(@if:.+)([\S\s]+)(@else)([\S\s]+)(@endif)`)
-	template = ifRegex.ReplaceAllStringFunc(template, func(match string) string {
-		parts := ifRegex.FindStringSubmatch(match)
-		if len(parts) < 4 {
-			return match
-		}
-
-		conditionStr := strings.TrimSpace(parts[1])
-		ifContent := parts[2]
-		elseContent := parts[4]
-
-		conditionID := fmt.Sprintf("cond-%x", sha1.Sum([]byte(conditionStr)))
-
-		result, dependencies := evaluateCondition(conditionStr, c)
-
-		c.conditionContents[conditionID] = ConditionContent{
-			conditionStr: conditionStr,
-			ifContent:    ifContent,
-			elseContent:  elseContent,
-		}
-
-		for _, dep := range dependencies {
-			module, storeName, key := dep.module, dep.storeName, dep.key
-			store := state.GlobalStoreManager.GetStore(module, storeName)
-			if store != nil {
-				unsubscribe := store.OnChange(key, func(newValue interface{}) {
-					updateConditionBindings(c, conditionID, conditionStr)
-				})
-				c.unsubscribes.Add(unsubscribe)
-				fmt.Printf("Registered listener for %s.%s.%s\n", module, storeName, key)
-			} else {
-				fmt.Printf("Store %s not found in module %s\n", storeName, module)
-			}
-		}
-
-		var content string
-		if result {
-			content = ifContent
-		} else {
-			content = elseContent
-		}
-
-		return fmt.Sprintf(`<div data-condition="%s">%s</div>`, conditionID, content)
-	})
-
-	// Manage @if without @else
-	ifRegexNoElse := regexp.MustCompile(`(@if:.+)([\S\s]+)(@endif)`)
-	template = ifRegexNoElse.ReplaceAllStringFunc(template, func(match string) string {
-		parts := ifRegexNoElse.FindStringSubmatch(match)
-		if len(parts) < 3 {
-			return match
-		}
-
-		conditionStr := strings.TrimSpace(parts[1])
-		ifContent := parts[2]
-
-		conditionID := fmt.Sprintf("cond-%x", sha1.Sum([]byte(conditionStr)))
-
-		result, dependencies := evaluateCondition(conditionStr, c)
-
-		c.conditionContents[conditionID] = ConditionContent{
-			conditionStr: conditionStr,
-			ifContent:    ifContent,
-			elseContent:  "",
-		}
-
-		for _, dep := range dependencies {
-			module, storeName, key := dep.module, dep.storeName, dep.key
-			fmt.Printf("Registering listener for condition '%s' on %s.%s key '%s'\n", conditionStr, module, storeName, key)
-			store := state.GlobalStoreManager.GetStore(module, storeName)
-			if store != nil {
-				unsubscribe := store.OnChange(key, func(newValue interface{}) {
-					fmt.Printf("Listener triggered for %s.%s key '%s', new value: '%v'\n", module, storeName, key, newValue)
-					updateConditionBindings(c, conditionID, conditionStr)
-				})
-				c.unsubscribes.Add(unsubscribe)
-			} else {
-				fmt.Printf("Store '%s' not found in module '%s' when registering listener.\n", storeName, module)
-			}
-		}
-
-		var content string
-		if result {
-			content = ifContent
-		} else {
-			content = ""
-		}
-
-		return fmt.Sprintf(`<div data-condition="%s">%s</div>`, conditionID, content)
-	})
-
-	return template
+	nodes, err := parseTemplate(template)
+	if err != nil {
+		return template
+	}
+	var sb strings.Builder
+	for _, n := range nodes {
+		sb.WriteString(n.Render(c))
+	}
+	return sb.String()
 }
 
 func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDependency) {
@@ -210,6 +255,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 
 	leftSide := strings.TrimSpace(conditionParts[0])
 	leftSide = strings.Replace(leftSide, "@if:", "", 1)
+	leftSide = strings.Replace(leftSide, "@else-if:", "", 1)
 	expectedValue := strings.ReplaceAll(conditionParts[1], `"`, "")
 	expectedValue = strings.TrimSpace(expectedValue)
 
@@ -351,7 +397,7 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
-func updateConditionBindings(c *HTMLComponent, conditionID, conditionStr string) {
+func updateConditionBindings(c *HTMLComponent, conditionID string) {
 	document := js.Global().Get("document")
 	var element js.Value
 	if c.ID == "" {
@@ -369,14 +415,20 @@ func updateConditionBindings(c *HTMLComponent, conditionID, conditionStr string)
 		return
 	}
 
-	result, _ := evaluateCondition(conditionStr, c)
-
 	conditionContent := c.conditionContents[conditionID]
 	var newContent string
-	if result {
-		newContent = conditionContent.ifContent
-	} else {
-		newContent = conditionContent.elseContent
+	for _, br := range conditionContent.Branches {
+		if br.Condition == "" {
+			if newContent == "" {
+				newContent = br.Content
+			}
+			continue
+		}
+		result, _ := evaluateCondition(br.Condition, c)
+		if result {
+			newContent = br.Content
+			break
+		}
 	}
 
 	node.Set("innerHTML", newContent)
@@ -386,11 +438,16 @@ func updateConditionBindings(c *HTMLComponent, conditionID, conditionStr string)
 
 func updateConditionsForStoreVariable(c *HTMLComponent, module, storeName, key string) {
 	for conditionID, content := range c.conditionContents {
-		dependencies, _ := getConditionDependencies(content.conditionStr)
-		for _, dep := range dependencies {
-			if dep.module == module && dep.storeName == storeName && dep.key == key {
-				updateConditionBindings(c, conditionID, content.conditionStr)
-				break
+		for _, br := range content.Branches {
+			if br.Condition == "" {
+				continue
+			}
+			dependencies, _ := getConditionDependencies(br.Condition)
+			for _, dep := range dependencies {
+				if dep.module == module && dep.storeName == storeName && dep.key == key {
+					updateConditionBindings(c, conditionID)
+					break
+				}
 			}
 		}
 	}
@@ -404,6 +461,7 @@ func getConditionDependencies(condition string) ([]ConditionDependency, error) {
 
 	leftSide := strings.TrimSpace(conditionParts[0])
 	leftSide = strings.Replace(leftSide, "@if:", "", 1)
+	leftSide = strings.Replace(leftSide, "@else-if:", "", 1)
 
 	dependencies := []ConditionDependency{}
 
