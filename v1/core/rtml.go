@@ -26,9 +26,9 @@ type ConditionalBlock struct {
 }
 
 type ConditionDependency struct {
-        module    string
-        storeName string
-        key       string
+	module    string
+	storeName string
+	key       string
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
@@ -40,38 +40,38 @@ func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) strin
 }
 
 func replaceStorePlaceholders(template string, c *HTMLComponent) string {
-       storeRegex := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
-       return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
-               parts := storeRegex.FindStringSubmatch(match)
-               if len(parts) < 4 {
-                       return match
-               }
+	storeRegex := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
+	return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := storeRegex.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
 
-               module := parts[1]
-               storeName := parts[2]
-               key := parts[3]
-               isWriteable := len(parts) == 5 && parts[4] == ":w"
+		module := parts[1]
+		storeName := parts[2]
+		key := parts[3]
+		isWriteable := len(parts) == 5 && parts[4] == ":w"
 
-               store := state.GlobalStoreManager.GetStore(module, storeName)
-               if store != nil {
-                       value := store.Get(key)
-                       if value == nil {
-                               value = ""
-                       }
+		store := state.GlobalStoreManager.GetStore(module, storeName)
+		if store != nil {
+			value := store.Get(key)
+			if value == nil {
+				value = ""
+			}
 
-                       unsubscribe := store.OnChange(key, func(newValue interface{}) {
-                               updateStoreBindings(c, module, storeName, key, newValue)
-                       })
-                       c.unsubscribes = append(c.unsubscribes, unsubscribe)
+			unsubscribe := store.OnChange(key, func(newValue interface{}) {
+				updateStoreBindings(c, module, storeName, key, newValue)
+			})
+			c.unsubscribes.Add(unsubscribe)
 
-                       if isWriteable {
-                               return match
-                       } else {
-                               return fmt.Sprintf(`<span data-store="%s.%s.%s">%v</span>`, module, storeName, key, value)
-                       }
-               }
-               return match
-       })
+			if isWriteable {
+				return match
+			} else {
+				return fmt.Sprintf(`<span data-store="%s.%s.%s">%v</span>`, module, storeName, key, value)
+			}
+		}
+		return match
+	})
 }
 
 func replacePropPlaceholders(template string, c *HTMLComponent) string {
@@ -127,19 +127,19 @@ func replaceConditionals(template string, c *HTMLComponent) string {
 			elseContent:  elseContent,
 		}
 
-               for _, dep := range dependencies {
-                       module, storeName, key := dep.module, dep.storeName, dep.key
-                       store := state.GlobalStoreManager.GetStore(module, storeName)
-                       if store != nil {
-                               unsubscribe := store.OnChange(key, func(newValue interface{}) {
-                                       updateConditionBindings(c, conditionID, conditionStr)
-                               })
-                               c.unsubscribes = append(c.unsubscribes, unsubscribe)
-                               fmt.Printf("Registered listener for %s.%s.%s\n", module, storeName, key)
-                       } else {
-                               fmt.Printf("Store %s not found in module %s\n", storeName, module)
-                       }
-               }
+		for _, dep := range dependencies {
+			module, storeName, key := dep.module, dep.storeName, dep.key
+			store := state.GlobalStoreManager.GetStore(module, storeName)
+			if store != nil {
+				unsubscribe := store.OnChange(key, func(newValue interface{}) {
+					updateConditionBindings(c, conditionID, conditionStr)
+				})
+				c.unsubscribes.Add(unsubscribe)
+				fmt.Printf("Registered listener for %s.%s.%s\n", module, storeName, key)
+			} else {
+				fmt.Printf("Store %s not found in module %s\n", storeName, module)
+			}
+		}
 
 		var content string
 		if result {
@@ -172,20 +172,20 @@ func replaceConditionals(template string, c *HTMLComponent) string {
 			elseContent:  "",
 		}
 
-               for _, dep := range dependencies {
-                       module, storeName, key := dep.module, dep.storeName, dep.key
-                       fmt.Printf("Registering listener for condition '%s' on %s.%s key '%s'\n", conditionStr, module, storeName, key)
-                       store := state.GlobalStoreManager.GetStore(module, storeName)
-                       if store != nil {
-                               unsubscribe := store.OnChange(key, func(newValue interface{}) {
-                                       fmt.Printf("Listener triggered for %s.%s key '%s', new value: '%v'\n", module, storeName, key, newValue)
-                                       updateConditionBindings(c, conditionID, conditionStr)
-                               })
-                               c.unsubscribes = append(c.unsubscribes, unsubscribe)
-                       } else {
-                               fmt.Printf("Store '%s' not found in module '%s' when registering listener.\n", storeName, module)
-                       }
-               }
+		for _, dep := range dependencies {
+			module, storeName, key := dep.module, dep.storeName, dep.key
+			fmt.Printf("Registering listener for condition '%s' on %s.%s key '%s'\n", conditionStr, module, storeName, key)
+			store := state.GlobalStoreManager.GetStore(module, storeName)
+			if store != nil {
+				unsubscribe := store.OnChange(key, func(newValue interface{}) {
+					fmt.Printf("Listener triggered for %s.%s key '%s', new value: '%v'\n", module, storeName, key, newValue)
+					updateConditionBindings(c, conditionID, conditionStr)
+				})
+				c.unsubscribes.Add(unsubscribe)
+			} else {
+				fmt.Printf("Store '%s' not found in module '%s' when registering listener.\n", storeName, module)
+			}
+		}
 
 		var content string
 		if result {
@@ -215,26 +215,26 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 
 	fmt.Printf("Left side: '%s', Expected value: '%s'\n", leftSide, expectedValue)
 
-       dependencies := []ConditionDependency{}
+	dependencies := []ConditionDependency{}
 
-       if strings.HasPrefix(leftSide, "store:") {
-               storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
-               if len(storeParts) == 3 {
-                       module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
-                       fmt.Printf("Dependency detected: Module '%s', Store '%s', Key '%s'\n", module, storeName, key)
-                       store := state.GlobalStoreManager.GetStore(module, storeName)
-                       if store != nil {
-                               dependencies = append(dependencies, ConditionDependency{module, storeName, key})
-                               actualValue := fmt.Sprintf("%v", store.Get(key))
-                               fmt.Printf("Actual value from store: '%s'\n", actualValue)
-                               return actualValue == expectedValue, dependencies
-                       } else {
-                               fmt.Printf("Store '%s' in module '%s' not found.\n", storeName, module)
-                       }
-               } else {
-                       fmt.Println("Store parts length is not 3.")
-               }
-       }
+	if strings.HasPrefix(leftSide, "store:") {
+		storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
+		if len(storeParts) == 3 {
+			module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
+			fmt.Printf("Dependency detected: Module '%s', Store '%s', Key '%s'\n", module, storeName, key)
+			store := state.GlobalStoreManager.GetStore(module, storeName)
+			if store != nil {
+				dependencies = append(dependencies, ConditionDependency{module, storeName, key})
+				actualValue := fmt.Sprintf("%v", store.Get(key))
+				fmt.Printf("Actual value from store: '%s'\n", actualValue)
+				return actualValue == expectedValue, dependencies
+			} else {
+				fmt.Printf("Store '%s' in module '%s' not found.\n", storeName, module)
+			}
+		} else {
+			fmt.Println("Store parts length is not 3.")
+		}
+	}
 
 	if strings.HasPrefix(leftSide, "prop:") {
 		propName := strings.TrimPrefix(leftSide, "prop:")
@@ -261,21 +261,21 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 		return
 	}
 
-       selector := fmt.Sprintf(`[data-store="%s.%s.%s"]`, module, storeName, key)
+	selector := fmt.Sprintf(`[data-store="%s.%s.%s"]`, module, storeName, key)
 	nodes := element.Call("querySelectorAll", selector)
 	for i := 0; i < nodes.Length(); i++ {
 		node := nodes.Index(i)
 		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
 	}
 
-       inputSelector := fmt.Sprintf(`input[value="@store:%s.%s.%s:w"], select[value="@store:%s.%s.%s:w"], textarea[value="@store:%s.%s.%s:w"]`, module, storeName, key, module, storeName, key, module, storeName, key)
+	inputSelector := fmt.Sprintf(`input[value="@store:%s.%s.%s:w"], select[value="@store:%s.%s.%s:w"], textarea[value="@store:%s.%s.%s:w"]`, module, storeName, key, module, storeName, key, module, storeName, key)
 	inputs := element.Call("querySelectorAll", inputSelector)
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
 		input.Set("value", fmt.Sprintf("%v", newValue))
 	}
 
-       updateConditionsForStoreVariable(c, module, storeName, key)
+	updateConditionsForStoreVariable(c, module, storeName, key)
 }
 func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 	foreachRegex := regexp.MustCompile(`@foreach:(\S+)\s+as\s+(\w+)([\s\S]*?)@endforeach`)
@@ -291,29 +291,29 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 
 		var collection []interface{}
 
-               if strings.HasPrefix(collectionExpr, "store:") {
-                        storeParts := strings.Split(strings.TrimPrefix(collectionExpr, "store:"), ".")
-                        if len(storeParts) == 3 {
-                                module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
-                                store := state.GlobalStoreManager.GetStore(module, storeName)
-                                if store != nil {
-                                        if col, ok := store.Get(key).([]interface{}); ok {
-                                                collection = col
+		if strings.HasPrefix(collectionExpr, "store:") {
+			storeParts := strings.Split(strings.TrimPrefix(collectionExpr, "store:"), ".")
+			if len(storeParts) == 3 {
+				module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
+				store := state.GlobalStoreManager.GetStore(module, storeName)
+				if store != nil {
+					if col, ok := store.Get(key).([]interface{}); ok {
+						collection = col
 
-                                                unsubscribe := store.OnChange(key, func(newValue interface{}) {
-                                                        dom.UpdateDOM(c.ID, c.Render())
-                                                })
-                                                c.unsubscribes = append(c.unsubscribes, unsubscribe)
-                                        } else {
-                                                return match
-                                        }
-                                } else {
-                                        return match
-                                }
-                        } else {
-                                return match
-                        }
-               } else if value, exists := c.Props[collectionExpr]; exists {
+						unsubscribe := store.OnChange(key, func(newValue interface{}) {
+							dom.UpdateDOM(c.ID, c.Render())
+						})
+						c.unsubscribes.Add(unsubscribe)
+					} else {
+						return match
+					}
+				} else {
+					return match
+				}
+			} else {
+				return match
+			}
+		} else if value, exists := c.Props[collectionExpr]; exists {
 			if col, ok := value.([]interface{}); ok {
 				collection = col
 			} else {
@@ -386,14 +386,14 @@ func updateConditionBindings(c *HTMLComponent, conditionID, conditionStr string)
 
 func updateConditionsForStoreVariable(c *HTMLComponent, module, storeName, key string) {
 	for conditionID, content := range c.conditionContents {
-               dependencies, _ := getConditionDependencies(content.conditionStr)
-               for _, dep := range dependencies {
-                       if dep.module == module && dep.storeName == storeName && dep.key == key {
-                               updateConditionBindings(c, conditionID, content.conditionStr)
-                               break
-                       }
-               }
-       }
+		dependencies, _ := getConditionDependencies(content.conditionStr)
+		for _, dep := range dependencies {
+			if dep.module == module && dep.storeName == storeName && dep.key == key {
+				updateConditionBindings(c, conditionID, content.conditionStr)
+				break
+			}
+		}
+	}
 }
 
 func getConditionDependencies(condition string) ([]ConditionDependency, error) {
@@ -407,13 +407,13 @@ func getConditionDependencies(condition string) ([]ConditionDependency, error) {
 
 	dependencies := []ConditionDependency{}
 
-       if strings.HasPrefix(leftSide, "store:") {
-               storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
-               if len(storeParts) == 3 {
-                       module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
-                       dependencies = append(dependencies, ConditionDependency{module, storeName, key})
-               }
-       }
+	if strings.HasPrefix(leftSide, "store:") {
+		storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
+		if len(storeParts) == 3 {
+			module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
+			dependencies = append(dependencies, ConditionDependency{module, storeName, key})
+		}
+	}
 
 	return dependencies, nil
 }

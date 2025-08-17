@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -14,13 +15,26 @@ import (
 	"github.com/rfwlab/rfw/v1/state"
 )
 
+type unsubscribes struct {
+	funcs []func()
+}
+
+func (u *unsubscribes) Add(fn func()) { u.funcs = append(u.funcs, fn) }
+
+func (u *unsubscribes) Run() {
+	for _, fn := range u.funcs {
+		fn()
+	}
+	u.funcs = nil
+}
+
 type HTMLComponent struct {
 	ID                string
 	Name              string
 	Template          string
 	TemplateFS        []byte
 	Dependencies      map[string]Component
-	unsubscribes      []func()
+	unsubscribes      unsubscribes
 	Store             *state.Store
 	Props             map[string]interface{}
 	conditionContents map[string]ConditionContent
@@ -29,7 +43,7 @@ type HTMLComponent struct {
 
 func NewHTMLComponent(name string, templateFs []byte, props map[string]interface{}) *HTMLComponent {
 	id := generateComponentID(name, props)
-	return &HTMLComponent{
+	c := &HTMLComponent{
 		ID:                id,
 		Name:              name,
 		TemplateFS:        templateFs,
@@ -37,6 +51,9 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]interface
 		Props:             props,
 		conditionContents: make(map[string]ConditionContent),
 	}
+	// Attempt automatic cleanup when component is garbage collected.
+	runtime.SetFinalizer(c, func(hc *HTMLComponent) { hc.Unmount() })
+	return c
 }
 
 func (c *HTMLComponent) Init(store *state.Store) {
@@ -49,7 +66,7 @@ func (c *HTMLComponent) Init(store *state.Store) {
 	if store != nil {
 		c.Store = store
 	} else {
-               c.Store = state.GlobalStoreManager.GetStore("app", "default")
+		c.Store = state.GlobalStoreManager.GetStore("app", "default")
 		if c.Store == nil {
 			panic(fmt.Sprintf("No store provided and no default store found for component %s", c.Name))
 		}
@@ -57,10 +74,7 @@ func (c *HTMLComponent) Init(store *state.Store) {
 }
 
 func (c *HTMLComponent) Render() string {
-	for _, unsubscribe := range c.unsubscribes {
-		unsubscribe()
-	}
-	c.unsubscribes = nil
+	c.unsubscribes.Run()
 
 	renderedTemplate := c.Template
 	renderedTemplate = strings.Replace(renderedTemplate, "<root", fmt.Sprintf("<root data-component-id=\"%s\"", c.ID), 1)
@@ -76,7 +90,7 @@ func (c *HTMLComponent) Render() string {
 	// Handle @foreach:collection as item syntax
 	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
 
-       // Handle @store:module.storeName.varName syntax:
+	// Handle @store:module.storeName.varName syntax:
 	// - :w stands for writeable inputs
 	// - :r stands for read-only inputs (default, not required, actually not even implemented)
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
@@ -105,12 +119,8 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 
 func (c *HTMLComponent) Unmount() {
 	dom.RemoveEventListeners(c.ID)
-
-	for _, unsubscribe := range c.unsubscribes {
-		log.Printf("Unsubscribing %s from all stores", c.Name)
-		unsubscribe()
-	}
-	c.unsubscribes = nil
+	log.Printf("Unsubscribing %s from all stores", c.Name)
+	c.unsubscribes.Run()
 
 	for _, dep := range c.Dependencies {
 		dep.Unmount()
