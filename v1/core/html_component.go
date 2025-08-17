@@ -113,6 +113,12 @@ func (c *HTMLComponent) Render() string {
 	// Handle @on:event="handler" syntax for event binding
 	renderedTemplate = replaceEventHandlers(renderedTemplate)
 
+	// Handle rt-is="ComponentName" for dynamic component loading
+	renderedTemplate = replaceRtIsAttributes(renderedTemplate, c)
+
+	// Render any components introduced via rt-is placeholders
+	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
+
 	return renderedTemplate
 }
 

@@ -32,8 +32,5 @@ func NewMainComponent() *MainComponent {
 	})
 	c.AddDependency("header", headerComponent)
 
-	slotsDemo := NewSlotParentComponent(nil)
-	c.AddDependency("slotDemo", slotsDemo)
-
 	return c
 }

@@ -222,6 +222,31 @@ func replaceEventHandlers(template string) string {
 	})
 }
 
+// replaceRtIsAttributes scans the template for elements decorated with the
+// `rt-is` attribute. The attribute's value identifies a component registered in
+// the ComponentRegistry. Matching elements are replaced with an @include
+// placeholder so standard include processing can render the referenced
+// component and manage its lifecycle.
+func replaceRtIsAttributes(template string, c *HTMLComponent) string {
+	re := regexp.MustCompile(`<([a-zA-Z0-9]+)([^>]*)rt-is="([^"]+)"[^>]*/?>`)
+	idx := 0
+	return re.ReplaceAllStringFunc(template, func(match string) string {
+		parts := re.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+		name := parts[3]
+		comp := LoadComponent(name)
+		if comp == nil {
+			return match
+		}
+		placeholder := fmt.Sprintf("rtis-%s-%d", name, idx)
+		idx++
+		c.AddDependency(placeholder, comp)
+		return fmt.Sprintf("@include:%s", placeholder)
+	})
+}
+
 // parseTemplate parses the template string into an AST of nodes.
 func parseTemplate(template string) ([]Node, error) {
 	lines := strings.Split(template, "\n")
