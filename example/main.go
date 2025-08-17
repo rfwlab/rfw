@@ -74,6 +74,16 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/event",
 		Component: func() core.Component { return components.NewEventComponent() },
+		Children: []router.Route{
+			{
+				Path:      "/event/listener",
+				Component: func() core.Component { return components.NewEventListenerComponent() },
+			},
+			{
+				Path:      "/event/observer",
+				Component: func() core.Component { return components.NewObserverComponent() },
+			},
+		},
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/computed",

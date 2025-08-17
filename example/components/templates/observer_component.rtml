@@ -1,0 +1,12 @@
+<root>
+    @include:header
+    <div class="p-4 pt-0">
+        <h2 class="text-xl font-bold mb-4">Observer Component</h2>
+        <div id="observeMe" class="p-2 border">Observed Node</div>
+        <button id="mutateBtn" class="bg-blue-500 text-white px-2 py-1 rounded mt-2">Mutate node</button>
+        <p>Mutations: @store:app.default.mutations</p>
+        <div class="watched h-16 mt-4 bg-gray-200">Watched Element</div>
+        <button id="toggleBtn" class="bg-blue-500 text-white px-2 py-1 rounded mt-2">Toggle visibility</button>
+        <p>Intersections: @store:app.default.intersections</p>
+    </div>
+</root>

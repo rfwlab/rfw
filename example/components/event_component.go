@@ -36,7 +36,7 @@ func NewEventComponent() *EventComponent {
 	})
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
-		"title": "Event Component",
+		"title": "Events",
 	})
 	c.AddDependency("header", headerComponent)
 
