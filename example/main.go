@@ -27,6 +27,13 @@ func main() {
 	router.ExposeNavigate()
 	state.ExposeUpdateStore()
 
+	// Register a component that will be loaded on-demand using the `rt-is`
+	// attribute inside templates. It renders a red cube with a large 'A'
+	// at the center when referenced.
+	core.RegisterComponent("red-cube", func() core.Component {
+		return components.NewRedCubeComponent()
+	})
+
 	authGuard := func(params map[string]string) bool {
 		allowed, _ := store.Get("allowProtected").(bool)
 		return allowed
@@ -39,6 +46,14 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/test",
 		Component: func() core.Component { return components.NewTestComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/dynamic",
+		Component: func() core.Component { return components.NewDynamicComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/slots",
+		Component: func() core.Component { return components.NewSlotParentComponent(nil) },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/user/:name",

@@ -2,18 +2,18 @@
     @include:header
     <div class="p-4 pt-0 space-y-4">
         <div>
-            <p class="font-semibold">With provided slots:</p>
-            @slot:slotChild.header
-                <h3 class="text-blue-500">Parent Header</h3>
+            <p class="font-semibold">User with custom avatar and details:</p>
+            @slot:userCard.avatar
+                <img src="https://via.placeholder.com/64" class="rounded-full" />
             @endslot
-            @slot:slotChild
-                <p class="text-green-600">Parent default slot content</p>
+            @slot:userCard
+                <p>Jane Doe is a software engineer from Milan.</p>
             @endslot
-            @include:slotChild
+            @include:userCard
         </div>
         <div>
-            <p class="font-semibold">Without slots (fallback shown):</p>
-            @include:slotChildFallback
+            <p class="font-semibold">User with fallback content:</p>
+            @include:userCardFallback
         </div>
     </div>
 </root>

@@ -22,14 +22,14 @@ func NewSlotParentComponent(props map[string]interface{}) *SlotParentComponent {
 	c.SetComponent(c)
 	c.Init(nil)
 
-	header := NewHeaderComponent(map[string]interface{}{"title": "Slots Demo"})
+	header := NewHeaderComponent(map[string]interface{}{"title": "User Card Slots"})
 	c.AddDependency("header", header)
 
-	childWithSlots := NewSlotChildComponent(nil)
-	c.AddDependency("slotChild", childWithSlots)
+	userCardWithSlots := NewSlotChildComponent(nil)
+	c.AddDependency("userCard", userCardWithSlots)
 
-	childWithFallback := NewSlotChildComponent(nil)
-	c.AddDependency("slotChildFallback", childWithFallback)
+	userCardFallback := NewSlotChildComponent(nil)
+	c.AddDependency("userCardFallback", userCardFallback)
 
 	return c
 }
