@@ -92,6 +92,10 @@ func main() {
 		Component: func() core.Component { return components.NewComputedComponent() },
 	})
 	router.RegisterRoute(router.Route{
+		Path:      "/animations",
+		Component: func() core.Component { return components.NewAnimationComponent() },
+	})
+	router.RegisterRoute(router.Route{
 		Path:      "/plugins",
 		Component: func() core.Component { return plugs.NewPluginsComponent() },
 	})
