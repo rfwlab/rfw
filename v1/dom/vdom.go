@@ -8,8 +8,6 @@ import (
 	jst "syscall/js"
 
 	"golang.org/x/net/html"
-
-	"github.com/rfwlab/rfw/v1/js"
 )
 
 type VDOMNode struct {
@@ -113,7 +111,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				handlerName := node.Call("getAttribute", name).String()
 				modsAttr := node.Call("getAttribute", fmt.Sprintf("data-on-%s-modifiers", event)).String()
 				modifiers := parseModifiers(modsAttr)
-				handler := js.Global().Get(handlerName)
+				handler := jst.Global().Get(handlerName)
 				if handler.Truthy() {
 					wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
 						if modifiers["stopPropagation"] && len(args) > 0 {

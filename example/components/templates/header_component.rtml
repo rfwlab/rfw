@@ -16,6 +16,8 @@
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/computed')">Computed</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
+                        onclick="goNavigate('/plugins')">Plugins</a></li>
+                <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/stores')">Stores</a></li>
                 <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
                         onclick="goNavigate('/parent')">Parent</a></li>

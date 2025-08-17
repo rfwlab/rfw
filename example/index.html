@@ -15,6 +15,15 @@
         const go = new Go();
         WebAssembly.instantiateStreaming(fetch("/main.wasm"), go.importObject).then((result) => {
             go.run(result.instance);
+            const jsPlugin = {
+                router: (p) => console.log('js navigate ->', p),
+                store: (m, s, k, v) => console.log(`js store ${m}/${s}: ${k}=${v}`),
+                mount: (n) => console.log('js mount', n),
+                unmount: (n) => console.log('js unmount', n),
+            };
+            if (typeof rfwRegisterPlugin === 'function') {
+                rfwRegisterPlugin(jsPlugin);
+            }
         });
 
         function updateState(newValue) {
