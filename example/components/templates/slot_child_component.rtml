@@ -1,0 +1,12 @@
+<root>
+    <div class="border p-2">
+        @slot:header
+            <h3 class="font-bold">Fallback Header</h3>
+        @endslot
+        <div class="mt-2">
+            @slot
+                <p>Fallback body content</p>
+            @endslot
+        </div>
+    </div>
+</root>

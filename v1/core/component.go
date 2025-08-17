@@ -10,4 +10,5 @@ type Component interface {
 	OnUnmount()
 	GetName() string
 	GetID() string
+	SetSlots(map[string]string)
 }

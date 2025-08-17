@@ -3,5 +3,6 @@
     <div class="p-4 pt-0">
         @include:card
         <p>State is currently: @store:app.default.sharedState</p>
+        @include:slotDemo
     </div>
 </root>
