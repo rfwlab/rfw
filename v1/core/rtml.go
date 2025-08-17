@@ -207,14 +207,18 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceEventHandlers(template string) string {
-	eventRegex := regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)`)
+	// Match event directives ensuring they are terminated by whitespace,
+	// a self-closing slash or the end of the tag. The terminating
+	// character is captured so it can be preserved in the replacement.
+	eventRegex := regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)([\s>/])`)
 	return eventRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := eventRegex.FindStringSubmatch(match)
-		if len(parts) != 4 {
+		if len(parts) != 5 {
 			return match
 		}
 		fullEvent := parts[2]
 		handler := parts[3]
+		suffix := parts[4]
 		eventParts := strings.Split(fullEvent, ".")
 		event := eventParts[0]
 		modifiers := []string{}
@@ -225,7 +229,7 @@ func replaceEventHandlers(template string) string {
 		if len(modifiers) > 0 {
 			attr += fmt.Sprintf(" data-on-%s-modifiers=\"%s\"", event, strings.Join(modifiers, ","))
 		}
-		return attr
+		return attr + suffix
 	})
 }
 

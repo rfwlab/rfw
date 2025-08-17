@@ -81,16 +81,21 @@ func collectBindings(n *html.Node, path []int) []binding {
 	return res
 }
 
-var eventRegex = regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)`)
+// eventRegex matches event directives (e.g. @click:handler) ensuring the
+// handler is terminated by whitespace, a self-closing slash or the end of the
+// tag. The terminating character is captured to preserve it during replacement
+// and avoid matching constructs like store bindings within attribute values.
+var eventRegex = regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)([\s>/])`)
 
 func replaceEventHandlers(template string) string {
 	return eventRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := eventRegex.FindStringSubmatch(match)
-		if len(parts) != 4 {
+		if len(parts) != 5 {
 			return match
 		}
 		fullEvent := parts[2]
 		handler := parts[3]
+		suffix := parts[4]
 		eventParts := strings.Split(fullEvent, ".")
 		event := eventParts[0]
 		modifiers := []string{}
@@ -101,6 +106,6 @@ func replaceEventHandlers(template string) string {
 		if len(modifiers) > 0 {
 			attr += fmt.Sprintf(" data-on-%s-modifiers=\"%s\"", event, strings.Join(modifiers, ","))
 		}
-		return attr
+		return attr + suffix
 	})
 }
