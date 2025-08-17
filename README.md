@@ -122,6 +122,9 @@ RTML code example:
 RTML supports attaching DOM events with the `@on:<event>` syntax. The template token is converted
 into a `data-on-<event>` attribute and listeners are registered automatically.
 
+> **Deprecated:** This `@on` approach relies on exposing Go functions to JavaScript. It is kept for
+> compatibility but will be replaced by channel-based listeners in the `v1/events` package.
+
 ```html
 <button @on:click="toggle">Toggle</button>
 ```
@@ -138,6 +141,46 @@ func init() {
     })
 }
 ```
+
+#### DOM Events and Observers
+
+The `v1/events` package exposes browser events and observers as Go channels. These helpers can
+replace inline `onclick` handlers and other DOM events, letting you handle interactions entirely in Go.
+
+```go
+btn := js.Global().Get("document").Call("getElementById", "clickBtn")
+clicks := events.Listen("click", btn)
+go func() {
+    for range clicks {
+        // handle button clicks
+    }
+}()
+
+mutCh, stopMut := events.ObserveMutations("#node")
+defer stopMut()
+go func() {
+    for m := range mutCh {
+        _ = m // process mutation records
+    }
+}()
+
+intCh, stopInt := events.ObserveIntersections(".watched", js.ValueOf(map[string]any{}))
+defer stopInt()
+go func() {
+    for entry := range intCh {
+        _ = entry // process intersection entries
+    }
+}()
+```
+
+##### Why use channel-based events?
+
+- Keep event logic in Go without embedding inline JavaScript or exposing global handlers.
+- Stream events through Go channels, making it simple to fan-out work across goroutines.
+- Each helper returns a cleanup function so listeners and observers can be released, preventing memory leaks.
+- Serves as a path toward deprecating template `@on` attributes and ad‑hoc JS helpers.
+
+See the `example/components` directory for usage demonstrations.
 
 #### Lifecycle Hooks
 

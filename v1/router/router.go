@@ -9,6 +9,7 @@ import (
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
+	events "github.com/rfwlab/rfw/v1/events"
 	"github.com/rfwlab/rfw/v1/js"
 )
 
@@ -143,11 +144,13 @@ func ExposeNavigate() {
 }
 
 func InitRouter() {
-	js.Global().Get("window").Call("addEventListener", "popstate", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
-		path := js.Global().Get("location").Get("pathname").String()
-		Navigate(path)
-		return nil
-	}))
+	ch := events.Listen("popstate", js.Global().Get("window"))
+	go func() {
+		for range ch {
+			path := js.Global().Get("location").Get("pathname").String()
+			Navigate(path)
+		}
+	}()
 
 	currentPath := js.Global().Get("location").Get("pathname").String()
 	Navigate(currentPath)

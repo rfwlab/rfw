@@ -7,6 +7,7 @@ import (
 	"regexp"
 	jst "syscall/js"
 
+	events "github.com/rfwlab/rfw/v1/events"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -58,11 +59,13 @@ func BindStoreInputs(element jst.Value) {
 				}
 
 				input.Set("value", fmt.Sprintf("%v", storeValue))
-				input.Call("addEventListener", "input", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
-					newValue := this.Get("value").String()
-					store.Set(key, newValue)
-					return nil
-				}))
+				ch := events.Listen("input", input)
+				go func(in jst.Value, st *state.Store, k string) {
+					for range ch {
+						newValue := in.Get("value").String()
+						st.Set(k, newValue)
+					}
+				}(input, store, key)
 			}
 		}
 	}
