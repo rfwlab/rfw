@@ -10,10 +10,10 @@ The command line utility handles project creation and the WebAssembly
 build pipeline. Install the latest version:
 
 ```bash
-go install github.com/rfwlab/rfw-cli@latest
+go install github.com/rfwlab/rfw/cmd/rfw@latest
 ```
 
-Verify the binary is available by running `rfw-cli -h`.
+Verify the binary is available by running `rfw -h`.
 
 ## Creating a project
 
@@ -21,7 +21,7 @@ Use the CLI to bootstrap a new module. The command below creates a new
 Go module and pulls in the framework dependencies:
 
 ```bash
-rfw-cli init github.com/username/hello-rfw
+rfw init github.com/username/hello-rfw
 cd hello-rfw
 ```
 
@@ -31,7 +31,7 @@ point. You can now start the development server.
 ## Running the development server
 
 ```bash
-rfw-cli dev
+rfw dev
 ```
 
 The `dev` command compiles your Go code to WebAssembly and launches a

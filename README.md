@@ -11,13 +11,13 @@ rfw (Reactive Framework) is a Go-based reactive framework for building web appli
 
 ```bash
 # install the CLI
-go install github.com/rfwlab/rfw-cli@latest
+go install github.com/rfwlab/rfw/cmd/rfw@latest
 
 # bootstrap a project
-rfw-cli init github.com/username/project-name
+rfw init github.com/username/project-name
 
 # run the development server
-rfw-cli dev
+rfw dev
 ```
 
 Read the [documentation](./docs/index.md) for a complete guide to the framework.
