@@ -1,10 +1,11 @@
 module github.com/rfwlab/rfw
 
-go 1.22
+go 1.24.3
 
 require (
 	github.com/fatih/color v1.17.0
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/mirkobrombin/go-cli-builder v1.0.0
 	golang.org/x/net v0.33.0
 )
 

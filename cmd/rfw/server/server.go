@@ -11,8 +11,8 @@ import (
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/rfwlab/rfw/internal/build"
-	"github.com/rfwlab/rfw/internal/utils"
+	"github.com/rfwlab/rfw/cmd/rfw/build"
+	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 
 type Server struct {

@@ -14,7 +14,7 @@ func Build() error {
 	if err != nil {
 		return fmt.Errorf("failed to get GOROOT: %w", err)
 	}
-	wasmExec := filepath.Join(strings.TrimSpace(string(goroot)), "misc", "wasm", "wasm_exec.js")
+	wasmExec := filepath.Join(strings.TrimSpace(string(goroot)), "lib", "wasm", "wasm_exec.js")
 	if err := copyFile(wasmExec, "wasm_exec.js"); err != nil {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}

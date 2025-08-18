@@ -17,9 +17,6 @@ func InitProject(projectName string) error {
 	projectName = strings.Split(projectName, "/")[len(strings.Split(projectName, "/"))-1]
 
 	projectPath := projectName
-	if len(os.Args) > 3 {
-		projectPath = os.Args[3]
-	}
 
 	if _, err := os.Stat(projectPath); !os.IsNotExist(err) {
 		return fmt.Errorf("project directory already exists")
@@ -40,6 +37,9 @@ func InitProject(projectName string) error {
 
 		relPath := strings.TrimPrefix(path, "./")
 		targetPath := filepath.Join(projectPath, relPath)
+		if strings.HasSuffix(targetPath, ".tmpl") {
+			targetPath = strings.TrimSuffix(targetPath, ".tmpl")
+		}
 
 		if d.IsDir() {
 			return os.MkdirAll(targetPath, 0755)
@@ -58,8 +58,12 @@ func InitProject(projectName string) error {
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
 
-	if err := copyWasmExec(projectName); err != nil {
+	if err := copyWasmExec(projectPath); err != nil {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
+	}
+
+	if err := initGoModule(projectPath, projectName); err != nil {
+		return fmt.Errorf("failed to initialize go module: %w", err)
 	}
 
 	fmt.Printf("Project '%s' initialized successfully.\n", projectName)
@@ -87,4 +91,16 @@ func copyWasmExec(projectDir string) error {
 	}
 
 	return nil
+}
+
+func initGoModule(projectPath, moduleName string) error {
+	cmd := exec.Command("go", "mod", "init", moduleName)
+	cmd.Dir = projectPath
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("go", "mod", "tidy")
+	cmd.Dir = projectPath
+	return cmd.Run()
 }
