@@ -2,11 +2,8 @@ package tailwind
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-	"os"
+	"log"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
@@ -21,85 +18,38 @@ func init() {
 func (p *plugin) Name() string { return "tailwind" }
 
 func (p *plugin) Build() error {
+	log.Printf("tailwind: starting build")
 	bin, err := exec.LookPath("tailwindcss")
 	if err != nil {
-		if err := downloadTailwindCLI(); err != nil {
-			return err
-		}
-		bin = "./tailwindcss"
+		log.Printf("tailwind: tailwindcss not found, please install it manually")
+		return err
 	}
 
+	// FIXME: in future an rfw project should have a root manifest file with plugins configurations and so on,
+	// for the moment we will look for an input.css file in the project root
 	args := []string{
 		"-i", "input.css",
 		"-o", "tailwind.css",
 		"--minify",
 	}
-	if _, err := os.Stat("tailwind.config.js"); err == nil {
-		args = append(args, "-c", "tailwind.config.js")
-	} else {
-		args = append(args,
-			"--content", "./**/*.rtml",
-			"--content", "./**/*.go",
-			"--content", "./*.html",
-		)
-	}
 
+	log.Printf("tailwind: running %s %s", bin, strings.Join(args, " "))
 	cmd := exec.Command(bin, args...)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("tailwind build failed: %s: %w", strings.TrimSpace(string(output)), err)
 	}
+	log.Printf("tailwind: build complete")
 	return nil
 }
 
 func (p *plugin) ShouldRebuild(path string) bool {
-	if strings.HasSuffix(path, "tailwind.config.js") {
+	if strings.HasSuffix(path, ".css") && !strings.HasSuffix(path, "tailwind.css") {
+		log.Printf("tailwind: rebuild triggered by %s", path)
 		return true
 	}
-	if strings.HasSuffix(path, ".css") && !strings.HasSuffix(path, "tailwind.css") {
+	if strings.HasSuffix(path, ".rtml") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".go") {
+		log.Printf("tailwind: rebuild triggered by %s", path)
 		return true
 	}
 	return false
-}
-
-func downloadTailwindCLI() error {
-	var url string
-	osys := runtime.GOOS
-	arch := runtime.GOARCH
-	switch osys {
-	case "linux":
-		if arch == "amd64" {
-			url = "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64"
-		} else if arch == "arm64" {
-			url = "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-arm64"
-		}
-	case "darwin":
-		if arch == "amd64" {
-			url = "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-x64"
-		} else if arch == "arm64" {
-			url = "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-arm64"
-		}
-	}
-	if url == "" {
-		return fmt.Errorf("unsupported platform %s/%s for tailwindcss", osys, arch)
-	}
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("download tailwindcss: %w", err)
-	}
-	defer resp.Body.Close()
-
-	f, err := os.Create("tailwindcss")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, resp.Body); err != nil {
-		return err
-	}
-	if err := f.Chmod(0o755); err != nil {
-		return err
-	}
-	return nil
 }
