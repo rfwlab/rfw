@@ -5,3 +5,5 @@ wasm_exec.js
 *.txt
 gen.sh
 testing/
+tailwindcss
+tailwind.css
