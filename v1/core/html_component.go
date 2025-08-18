@@ -11,9 +11,9 @@ import (
 	"runtime/debug"
 	"sort"
 	"strings"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/dom"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -81,7 +81,7 @@ func (c *HTMLComponent) Init(store *state.Store) {
 func (c *HTMLComponent) Render() (renderedTemplate string) {
 	defer func() {
 		if r := recover(); r != nil {
-			jsStack := jst.Global().Get("Error").New().Get("stack").String()
+			jsStack := js.Error().New().Get("stack").String()
 			goStack := string(debug.Stack())
 			panic(fmt.Sprintf("%v\nGo stack:\n%s\nJS stack:\n%s", r, goStack, jsStack))
 		}

@@ -4,9 +4,9 @@ package plugins
 
 import (
 	_ "embed"
-	"syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 //go:embed templates/plugins_component.rtml
@@ -26,6 +26,6 @@ func NewPluginsComponent() *PluginsComponent {
 }
 
 func (c *PluginsComponent) OnMount() {
-	js.Global().Get("document").Call("getElementById", "hello").Set("innerText", js.Global().Get("t").Invoke("hello").String())
+	js.Document().Call("getElementById", "hello").Set("innerText", js.Get("t").Invoke("hello").String())
 }
 func (c *PluginsComponent) OnUnmount() {}

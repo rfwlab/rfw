@@ -4,9 +4,10 @@
 package i18n
 
 import (
-	"syscall/js"
+	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // Plugin installs basic internationalisation helpers. It exposes two
@@ -28,13 +29,13 @@ func New(trans map[string]map[string]string) core.Plugin {
 
 // Install exposes translation helpers to the JavaScript environment.
 func (p *Plugin) Install(a *core.App) {
-	js.Global().Set("setLang", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Set("setLang", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) > 0 {
 			p.lang = args[0].String()
 		}
 		return nil
 	}))
-	js.Global().Set("t", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Set("t", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) == 0 {
 			return ""
 		}

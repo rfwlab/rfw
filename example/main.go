@@ -9,6 +9,7 @@ import (
 	"github.com/rfwlab/rfw/example/plugins/logger"
 	mon "github.com/rfwlab/rfw/example/plugins/monitor"
 	"github.com/rfwlab/rfw/v1/core"
+	_ "github.com/rfwlab/rfw/v1/js/plugin"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 )

@@ -132,7 +132,7 @@ func Navigate(path string) {
 	r.component.Mount()
 	core.TriggerMount(r.component)
 	core.TriggerRouter(path)
-	js.Global().Get("history").Call("pushState", nil, "", path)
+	js.History().Call("pushState", nil, "", path)
 }
 
 func ExposeNavigate() {
@@ -144,14 +144,14 @@ func ExposeNavigate() {
 }
 
 func InitRouter() {
-	ch := events.Listen("popstate", js.Global().Get("window"))
+	ch := events.Listen("popstate", js.Window())
 	go func() {
 		for range ch {
-			path := js.Global().Get("location").Get("pathname").String()
+			path := js.Location().Get("pathname").String()
 			Navigate(path)
 		}
 	}()
 
-	currentPath := js.Global().Get("location").Get("pathname").String()
+	currentPath := js.Location().Get("pathname").String()
 	Navigate(currentPath)
 }

@@ -4,6 +4,8 @@ package events
 
 import (
 	jst "syscall/js"
+
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // Listen attaches an event listener to target and returns a channel
@@ -27,7 +29,7 @@ func Listen(event string, target jst.Value) <-chan jst.Value {
 // that disconnects the observer and releases resources.
 func ObserveMutations(sel string) (<-chan jst.Value, func()) {
 	ch := make(chan jst.Value)
-	document := jst.Global().Get("document")
+	document := js.Document()
 	node := document.Call("querySelector", sel)
 	fn := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		mutations := args[0]
@@ -36,7 +38,7 @@ func ObserveMutations(sel string) (<-chan jst.Value, func()) {
 		}
 		return nil
 	})
-	observer := jst.Global().Get("MutationObserver").New(fn)
+	observer := js.MutationObserver().New(fn)
 	observer.Call("observe", node, jst.ValueOf(map[string]any{"childList": true, "subtree": true}))
 	stop := func() {
 		observer.Call("disconnect")
@@ -58,8 +60,8 @@ func ObserveIntersections(sel string, opts jst.Value) (<-chan jst.Value, func())
 		}
 		return nil
 	})
-	observer := jst.Global().Get("IntersectionObserver").New(fn, opts)
-	document := jst.Global().Get("document")
+	observer := js.IntersectionObserver().New(fn, opts)
+	document := js.Document()
 	nodes := document.Call("querySelectorAll", sel)
 	for i := 0; i < nodes.Length(); i++ {
 		observer.Call("observe", nodes.Index(i))

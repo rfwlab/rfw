@@ -7,7 +7,7 @@ import (
 
 	core "github.com/rfwlab/rfw/v1/core"
 	events "github.com/rfwlab/rfw/v1/events"
-	jsa "github.com/rfwlab/rfw/v1/js"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 //go:embed templates/event_listener_component.rtml
@@ -37,7 +37,7 @@ func NewEventListenerComponent() *EventListenerComponent {
 
 func (c *EventListenerComponent) Mount() {
 	c.HTMLComponent.Mount()
-	btn := jsa.Global().Get("document").Call("getElementById", "clickBtn")
+	btn := js.Document().Call("getElementById", "clickBtn")
 	ch := events.Listen("click", btn)
 	go func() {
 		for range ch {
