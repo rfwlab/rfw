@@ -16,7 +16,7 @@ reason about.
 
 Both application logic and templates live in Go modules. You can reuse
 existing packages, benefit from static types and leverage the standard
-toolchain. The `rfw-cli` command wraps common tasks like project
+toolchain. The `rfw` command wraps common tasks like project
 scaffolding and building WebAssembly binaries.
 
 ## Reactive stores

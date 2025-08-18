@@ -22,7 +22,7 @@ minimal runtime that wires things together.
 - **Reactive stores** – computed values and watchers keep application
   state consistent with very little boilerplate.
 - **Go‑first tooling** – projects use the standard Go toolchain and the
-  `rfw-cli` utility for compilation and development tasks.
+  `rfw` utility for compilation and development tasks.
 
 ## Next steps
 
