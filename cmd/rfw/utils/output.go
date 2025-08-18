@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/rfwlab/rfw/v1/core"
 )
 
 var (
@@ -27,7 +28,7 @@ func ClearScreen() {
 }
 
 func PrintStartupInfo(port, localIP string, host bool) {
-	fmt.Println(indent, boldRed("rfw"), faint("v0.0.0"))
+	fmt.Println(indent, boldRed("rfw"), faint(core.Version))
 	fmt.Println()
 	fmt.Println(indent, red("➜ "), bold("Local:"), red(fmt.Sprintf("http://localhost:%s/", port)))
 
