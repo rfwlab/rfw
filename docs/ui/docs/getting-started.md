@@ -45,7 +45,7 @@ reactive bindings. Create `counter.rtml`:
 
 ```rtml
 <root>
-  <button on:click="count++">Count: {count}</button>
+  <button @click:increment>Count: {count}</button>
 </root>
 ```
 
@@ -54,7 +54,10 @@ And the accompanying component:
 ```go
 package counter
 
-import "github.com/rfwlab/rfw/v1/core"
+import (
+    "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v1/dom"
+)
 
 //go:embed counter.rtml
 var tpl []byte
@@ -68,6 +71,10 @@ func New() *Counter {
     c := &Counter{HTMLComponent: core.NewHTMLComponent("Counter", tpl, nil)}
     c.SetComponent(c)
     c.Init(nil)
+
+    dom.RegisterHandlerFunc("increment", func() {
+        c.Count++
+    })
     return c
 }
 ```
