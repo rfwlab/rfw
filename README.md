@@ -24,3 +24,17 @@ rfw dev
 ```
 
 Read the [documentation](./docs/index.md) for a complete guide to the framework.
+
+## Plugins
+
+`rfw` exposes a simple plugin system for build-time tasks. Plugins can register
+build steps and file-watcher triggers to extend the CLI without relying on
+external tooling.
+
+## Tailwind CSS
+
+`rfw` includes a build step for [Tailwind CSS](https://tailwindcss.com/) using the official standalone CLI.
+Place an `input.css` file containing the `@tailwind` directives and optionally a
+`tailwind.config.js` in your project root. During development the server watches
+template, stylesheet and configuration files and emits a trimmed `tailwind.css`
+containing only the classes you use, without requiring Node or a CDN.

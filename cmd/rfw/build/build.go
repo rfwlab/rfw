@@ -7,6 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
 )
 
 func Build() error {
@@ -24,6 +27,10 @@ func Build() error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
+	}
+
+	if err := plugins.BuildAll(); err != nil {
+		return fmt.Errorf("failed to run plugins: %w", err)
 	}
 
 	return nil

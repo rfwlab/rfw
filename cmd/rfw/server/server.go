@@ -12,6 +12,8 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rfwlab/rfw/cmd/rfw/build"
+	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 
@@ -135,7 +137,10 @@ func (s *Server) watchFiles() {
 				return
 			}
 			if event.Op&(fsnotify.Write|fsnotify.Create) != 0 &&
-				(strings.HasSuffix(event.Name, ".go") || strings.HasSuffix(event.Name, ".rtml")) {
+				(strings.HasSuffix(event.Name, ".go") ||
+					strings.HasSuffix(event.Name, ".rtml") ||
+					strings.HasSuffix(event.Name, ".md") ||
+					plugins.NeedsRebuild(event.Name)) {
 				utils.Info("Changes detected, rebuilding...")
 				if err := build.Build(); err != nil {
 					utils.Fatal("Failed to rebuild project: ", err)
