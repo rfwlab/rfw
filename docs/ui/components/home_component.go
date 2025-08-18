@@ -7,7 +7,7 @@ import (
 
 	"github.com/rfwlab/rfw/v1/core"
 	events "github.com/rfwlab/rfw/v1/events"
-	jsa "github.com/rfwlab/rfw/v1/js"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/router"
 )
 
@@ -26,7 +26,7 @@ func NewHomeComponent() *HomeComponent {
 }
 
 func (c *HomeComponent) OnMount() {
-	doc := jsa.Global().Get("document")
+	doc := js.Document()
 	add := func(sel, path string) {
 		if el := doc.Call("querySelector", sel); el.Truthy() {
 			ch := events.Listen("click", el)

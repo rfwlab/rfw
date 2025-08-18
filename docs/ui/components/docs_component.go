@@ -9,7 +9,7 @@ import (
 
 	"github.com/rfwlab/rfw/v1/core"
 	events "github.com/rfwlab/rfw/v1/events"
-	jsa "github.com/rfwlab/rfw/v1/js"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/router"
 	jst "syscall/js"
 )
@@ -35,7 +35,7 @@ func NewDocsComponent() *DocsComponent {
 
 func (c *DocsComponent) OnMount() {
 	c.mounted = true
-	doc := jsa.Global().Get("document")
+	doc := js.Document()
 
 	// intercept top nav links to use the router
 	if home := doc.Call("querySelector", "nav a[href='/']"); home.Truthy() {
@@ -60,9 +60,9 @@ func (c *DocsComponent) OnMount() {
 	// Sidebar data loads asynchronously; listen for the custom event
 	// dispatched by the docs plugin and render when available.
 	loadSidebar := func() {
-		sidebarJSON := jsa.Global().Get("__rfwDocsSidebar")
+		sidebarJSON := js.Get("__rfwDocsSidebar")
 		if sidebarJSON.Truthy() {
-			c.nav = jsa.Global().Get("JSON").Call("parse", sidebarJSON)
+			c.nav = js.JSON().Call("parse", sidebarJSON)
 			c.order = c.order[:0]
 			c.titles = map[string]string{}
 			sidebar := doc.Call("getElementById", "sidebar")
@@ -90,8 +90,8 @@ func (c *DocsComponent) OnMount() {
 			detail := evt.Get("detail")
 			path := detail.Get("path").String()
 			content := detail.Get("content").String()
-			doc.Call("getElementById", "doc-content").Set("innerHTML", jsa.Global().Get("marked").Call("parse", content))
-			if hljs := jsa.Global().Get("hljs"); hljs.Truthy() {
+			doc.Call("getElementById", "doc-content").Set("innerHTML", js.Get("marked").Call("parse", content))
+			if hljs := js.Get("hljs"); hljs.Truthy() {
 				hljs.Call("highlightAll")
 			}
 
@@ -141,7 +141,7 @@ func (c *DocsComponent) OnMount() {
 	if c.page == "" {
 		c.page = "index"
 	}
-	jsa.Global().Call("rfwLoadDoc", "/docs/"+c.page+".md")
+	js.Call("rfwLoadDoc", "/docs/"+c.page+".md")
 }
 
 func (c *DocsComponent) SetRouteParams(params map[string]string) {
@@ -156,7 +156,7 @@ func (c *DocsComponent) SetRouteParams(params map[string]string) {
 		c.page = "index"
 	}
 	if c.mounted {
-		jsa.Global().Call("rfwLoadDoc", "/docs/"+c.page+".md")
+		js.Call("rfwLoadDoc", "/docs/"+c.page+".md")
 	}
 }
 
@@ -165,7 +165,7 @@ func (c *DocsComponent) OnUnmount() {
 }
 
 func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level int) {
-	doc := jsa.Global().Get("document")
+	doc := js.Document()
 	length := items.Length()
 	for i := 0; i < length; i++ {
 		item := items.Index(i)

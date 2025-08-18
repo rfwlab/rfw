@@ -6,34 +6,36 @@ import (
 	"fmt"
 	jst "syscall/js"
 	"time"
+
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // query returns the first element matching sel.
 func query(sel string) jst.Value {
-	return jst.Global().Get("document").Call("querySelector", sel)
+	return js.Document().Call("querySelector", sel)
 }
 
 // animate drives a requestAnimationFrame loop for the given duration and
 // invokes step with the current progress (0..1).
 func animate(el jst.Value, duration time.Duration, step func(p float64)) {
-	start := jst.Global().Get("performance").Call("now").Float()
+	start := js.Performance().Call("now").Float()
 	total := float64(duration.Milliseconds())
 	var cb jst.Func
 	cb = jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-		now := jst.Global().Get("performance").Call("now").Float()
+		now := js.Performance().Call("now").Float()
 		p := (now - start) / total
 		if p > 1 {
 			p = 1
 		}
 		step(p)
 		if p < 1 {
-			jst.Global().Call("requestAnimationFrame", cb)
+			js.RequestAnimationFrame(cb)
 		} else {
 			cb.Release()
 		}
 		return nil
 	})
-	jst.Global().Call("requestAnimationFrame", cb)
+	js.RequestAnimationFrame(cb)
 }
 
 // Translate moves the element selected by sel from the starting coordinates

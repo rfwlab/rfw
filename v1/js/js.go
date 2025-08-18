@@ -4,13 +4,126 @@ package js
 
 import (
 	jst "syscall/js"
-
-	"github.com/rfwlab/rfw/v1/core"
 )
 
 // Global returns the JavaScript global object.
 func Global() jst.Value {
 	return jst.Global()
+}
+
+// Get returns a property from the global object.
+func Get(name string) jst.Value {
+	return Global().Get(name)
+}
+
+// Set assigns a value on the global object.
+func Set(name string, v interface{}) {
+	Global().Set(name, v)
+}
+
+// Call invokes a function on the global object.
+func Call(name string, args ...interface{}) jst.Value {
+	return Global().Call(name, args...)
+}
+
+// Window returns the window object.
+func Window() jst.Value {
+	return Get("window")
+}
+
+// Win is an alias for Window.
+func Win() jst.Value {
+	return Window()
+}
+
+// Document returns the document object.
+func Document() jst.Value {
+	return Get("document")
+}
+
+// Doc is an alias for Document.
+func Doc() jst.Value {
+	return Document()
+}
+
+// Console returns the console object.
+func Console() jst.Value {
+	return Get("console")
+}
+
+// History returns the history object.
+func History() jst.Value {
+	return Window().Get("history")
+}
+
+// Location returns the location object.
+func Location() jst.Value {
+	return Window().Get("location")
+}
+
+// Loc is an alias for Location.
+func Loc() jst.Value {
+	return Location()
+}
+
+// JSON returns the JSON object.
+func JSON() jst.Value {
+	return Get("JSON")
+}
+
+// Error returns the Error constructor.
+func Error() jst.Value {
+	return Get("Error")
+}
+
+// Performance returns the performance object.
+func Performance() jst.Value {
+	return Get("performance")
+}
+
+// Perf is an alias for Performance.
+func Perf() jst.Value {
+	return Performance()
+}
+
+// MutationObserver returns the MutationObserver constructor.
+func MutationObserver() jst.Value {
+	return Get("MutationObserver")
+}
+
+// IntersectionObserver returns the IntersectionObserver constructor.
+func IntersectionObserver() jst.Value {
+	return Get("IntersectionObserver")
+}
+
+// CustomEvent returns the CustomEvent constructor.
+func CustomEvent() jst.Value {
+	return Get("CustomEvent")
+}
+
+// LocalStorage returns the localStorage object.
+func LocalStorage() jst.Value {
+	return Get("localStorage")
+}
+
+// LS is an alias for LocalStorage.
+func LS() jst.Value {
+	return LocalStorage()
+}
+
+// RequestAnimationFrame wraps the requestAnimationFrame global function.
+func RequestAnimationFrame(cb jst.Func) {
+	Call("requestAnimationFrame", cb)
+}
+
+// RAF is an alias for RequestAnimationFrame.
+func RAF(cb jst.Func) {
+	RequestAnimationFrame(cb)
+}
+
+// Fetch wraps the global fetch function.
+func Fetch(args ...interface{}) jst.Value {
+	return Call("fetch", args...)
 }
 
 // Expose registers a no-argument Go function under the given name
@@ -44,54 +157,4 @@ func ExposeFunc(name string, fn func(this jst.Value, args []jst.Value) interface
 // Stack returns the current JavaScript stack trace using Error().stack.
 func Stack() string {
 	return Global().Get("Error").New().Get("stack").String()
-}
-
-// jsPlugin wraps a JavaScript object and adapts it to the core.Plugin interface.
-type jsPlugin struct{ v jst.Value }
-
-// Install wires JavaScript callbacks to the application hooks.
-func (p jsPlugin) Install(a *core.App) {
-	if fn := p.v.Get("router"); fn.Type() == jst.TypeFunction {
-		a.RegisterRouter(func(path string) { fn.Invoke(path) })
-	}
-	if fn := p.v.Get("store"); fn.Type() == jst.TypeFunction {
-		a.RegisterStore(func(module, store, key string, value interface{}) {
-			fn.Invoke(module, store, key, jst.ValueOf(value))
-		})
-	}
-	if fn := p.v.Get("template"); fn.Type() == jst.TypeFunction {
-		a.RegisterTemplate(func(id, html string) { fn.Invoke(id, html) })
-	}
-	mount := p.v.Get("mount")
-	unmount := p.v.Get("unmount")
-	if mount.Type() == jst.TypeFunction || unmount.Type() == jst.TypeFunction {
-		a.RegisterLifecycle(
-			func(c core.Component) {
-				if mount.Type() == jst.TypeFunction {
-					mount.Invoke(c.GetName())
-				}
-			},
-			func(c core.Component) {
-				if unmount.Type() == jst.TypeFunction {
-					unmount.Invoke(c.GetName())
-				}
-			},
-		)
-	}
-}
-
-// RegisterPlugin converts a JavaScript plugin definition into a core.Plugin
-// and installs it into the application.
-func RegisterPlugin(v jst.Value) {
-	core.RegisterPlugin(jsPlugin{v: v})
-}
-
-func init() {
-	// Expose plugin registration for JavaScript callers.
-	Global().Set("rfwRegisterPlugin", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
-		if len(args) > 0 {
-			RegisterPlugin(args[0])
-		}
-		return nil
-	}))
 }

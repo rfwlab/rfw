@@ -8,13 +8,14 @@ import (
 	jst "syscall/js"
 
 	events "github.com/rfwlab/rfw/v1/events"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
 var TemplateHook func(componentID, html string)
 
 func UpdateDOM(componentID string, html string) {
-	document := jst.Global().Get("document")
+	document := js.Document()
 	var element jst.Value
 	if componentID == "" {
 		element = document.Call("getElementById", "app")
@@ -72,7 +73,7 @@ func BindStoreInputs(element jst.Value) {
 }
 
 func patchInnerHTML(element jst.Value, html string) {
-	document := jst.Global().Get("document")
+	document := js.Document()
 	template := document.Call("createElement", "template")
 	template.Set("innerHTML", html)
 	newContent := template.Get("content")

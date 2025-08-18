@@ -6,9 +6,10 @@ package logger
 
 import (
 	"fmt"
-	"syscall/js"
+	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // Plugin installs a custom logger that forwards framework logs to the
@@ -20,11 +21,11 @@ func New() core.Plugin { return &Plugin{} }
 
 // Install sets the core logger implementation to use the browser console.
 func (p *Plugin) Install(a *core.App) {
-	core.SetLogger(consoleLogger{console: js.Global().Get("console")})
+	core.SetLogger(consoleLogger{console: js.Console()})
 	core.Log().Info("rfw console logger active")
 }
 
-type consoleLogger struct{ console js.Value }
+type consoleLogger struct{ console jst.Value }
 
 func (cl consoleLogger) Debug(format string, v ...interface{}) {
 	cl.console.Call("debug", fmt.Sprintf(format, v...))

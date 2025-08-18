@@ -5,11 +5,13 @@ package state
 import (
 	"encoding/json"
 	jst "syscall/js"
+
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // loadPersistedState retrieves persisted state from localStorage.
 func loadPersistedState(key string) map[string]interface{} {
-	ls := jst.Global().Get("localStorage")
+	ls := js.LocalStorage()
 	if !ls.Truthy() {
 		return nil
 	}
@@ -26,7 +28,7 @@ func loadPersistedState(key string) map[string]interface{} {
 
 // saveState persists the store state in localStorage.
 func saveState(key string, state map[string]interface{}) {
-	ls := jst.Global().Get("localStorage")
+	ls := js.LocalStorage()
 	if !ls.Truthy() {
 		return
 	}

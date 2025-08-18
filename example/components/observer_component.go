@@ -7,7 +7,7 @@ import (
 
 	core "github.com/rfwlab/rfw/v1/core"
 	events "github.com/rfwlab/rfw/v1/events"
-	jsa "github.com/rfwlab/rfw/v1/js"
+	js "github.com/rfwlab/rfw/v1/js"
 	jst "syscall/js"
 )
 
@@ -54,12 +54,12 @@ func (c *ObserverComponent) Mount() {
 	}()
 
 	// Button to mutate the observed node and trigger MutationObserver.
-	mutateBtn := jsa.Global().Get("document").Call("getElementById", "mutateBtn")
+	mutateBtn := js.Document().Call("getElementById", "mutateBtn")
 	mutateCh := events.Listen("click", mutateBtn)
 	go func() {
 		for range mutateCh {
-			node := jsa.Global().Get("document").Call("getElementById", "observeMe")
-			child := jsa.Global().Get("document").Call("createElement", "span")
+			node := js.Document().Call("getElementById", "observeMe")
+			child := js.Document().Call("createElement", "span")
 			node.Call("appendChild", child)
 		}
 	}()
@@ -79,11 +79,11 @@ func (c *ObserverComponent) Mount() {
 	}()
 
 	// Button to toggle visibility and trigger IntersectionObserver.
-	toggleBtn := jsa.Global().Get("document").Call("getElementById", "toggleBtn")
+	toggleBtn := js.Document().Call("getElementById", "toggleBtn")
 	toggleCh := events.Listen("click", toggleBtn)
 	go func() {
 		for range toggleCh {
-			el := jsa.Global().Get("document").Call("querySelector", ".watched")
+			el := js.Document().Call("querySelector", ".watched")
 			style := el.Get("style")
 			if style.Get("display").String() == "none" {
 				style.Set("display", "block")
