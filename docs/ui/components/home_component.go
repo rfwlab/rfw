@@ -4,9 +4,11 @@ package components
 
 import (
 	_ "embed"
+
 	"github.com/rfwlab/rfw/v1/core"
+	events "github.com/rfwlab/rfw/v1/events"
+	jsa "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/router"
-	jst "syscall/js"
 )
 
 //go:embed templates/home_component.rtml
@@ -14,7 +16,6 @@ var homeTpl []byte
 
 type HomeComponent struct {
 	*core.HTMLComponent
-	links []jst.Func
 }
 
 func NewHomeComponent() *HomeComponent {
@@ -25,16 +26,16 @@ func NewHomeComponent() *HomeComponent {
 }
 
 func (c *HomeComponent) OnMount() {
-	doc := jst.Global().Get("document")
+	doc := jsa.Global().Get("document")
 	add := func(sel, path string) {
 		if el := doc.Call("querySelector", sel); el.Truthy() {
-			h := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-				args[0].Call("preventDefault")
-				router.Navigate(path)
-				return nil
-			})
-			el.Call("addEventListener", "click", h)
-			c.links = append(c.links, h)
+			ch := events.Listen("click", el)
+			go func(p string) {
+				for evt := range ch {
+					evt.Call("preventDefault")
+					router.Navigate(p)
+				}
+			}(path)
 		}
 	}
 	add("a[href='/']", "/")
@@ -42,9 +43,4 @@ func (c *HomeComponent) OnMount() {
 	add("a[href='/docs/getting-started']", "/docs/getting-started")
 }
 
-func (c *HomeComponent) OnUnmount() {
-	for _, h := range c.links {
-		h.Release()
-	}
-	c.links = nil
-}
+func (c *HomeComponent) OnUnmount() {}
