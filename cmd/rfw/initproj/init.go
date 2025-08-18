@@ -78,7 +78,7 @@ func copyWasmExec(projectDir string) error {
 	}
 	goRoot := strings.TrimSpace(string(output))
 
-	srcPath := filepath.Join(goRoot, "misc", "wasm", "wasm_exec.js")
+	srcPath := filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js")
 	destPath := filepath.Join(projectDir, "wasm_exec.js")
 
 	input, err := os.ReadFile(srcPath)
