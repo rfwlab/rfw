@@ -1,0 +1,14 @@
+<root>
+    <div class="bg-gray-200 p-4 mb-4 flex flex-col gap-4 items-start">
+        <h1 class="text-2xl font-bold">@prop:title</h1>
+        <nav>
+            <ul class="flex space-x-4">
+                <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
+                        onclick="goNavigate('/')">Main</a>
+                </li>
+                <li><a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer"
+                        onclick="goNavigate('/test')">Test</a></li>
+            </ul>
+        </nav>
+    </div>
+</root>

@@ -1,0 +1,4 @@
+github.com/rfwlab/rfw v0.1.1 h1:QJyvG8ggHuGFHVMRjq0z7kJwWUzMudL/22wIGOyXz+o=
+github.com/rfwlab/rfw v0.1.1/go.mod h1:t0T0dzg8s7XNngMkSVDSySZwrUdbGjF2MXfoyyDAR3E=
+golang.org/x/net v0.29.0 h1:5ORfpBpCs4HzDYoodCDBbwHzdR5UrLBZ3sOnUJmFoHo=
+golang.org/x/net v0.29.0/go.mod h1:gLkgy8jTGERgjzMic6DS9+SP0ajcu6Xu3Orq/SpETg0=

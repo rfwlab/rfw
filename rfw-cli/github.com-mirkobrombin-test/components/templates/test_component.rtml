@@ -1,0 +1,6 @@
+<root>
+    @include:header
+    <div class="p-4 pt-0">
+        <h1>Hello again, @store:default.username</h1>
+    </div>
+</root>

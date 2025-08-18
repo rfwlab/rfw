@@ -1,0 +1,7 @@
+<root>
+    @include:header
+    <div class="p-4 pt-0">
+        <h1>Hello, @store:default.username</h1>
+        <input type="text" value="@store:default.username:w" class="p-2 border border-gray-300 rounded-md">
+    </div>
+</root>
