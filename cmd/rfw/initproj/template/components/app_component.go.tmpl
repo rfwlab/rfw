@@ -1,0 +1,26 @@
+//go:build js && wasm
+
+package components
+
+import (
+    _ "embed"
+
+    "github.com/rfwlab/rfw/v1/core"
+)
+
+//go:embed templates/app_component.rtml
+var appComponentTpl []byte
+
+type AppComponent struct {
+    *core.HTMLComponent
+}
+
+func NewAppComponent() *AppComponent {
+    c := &AppComponent{
+        HTMLComponent: core.NewHTMLComponent("AppComponent", appComponentTpl, nil),
+    }
+    c.SetComponent(c)
+    c.Init(nil)
+    return c
+}
+

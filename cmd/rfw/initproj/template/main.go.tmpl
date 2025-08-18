@@ -1,0 +1,19 @@
+//go:build js && wasm
+
+package main
+
+import (
+    "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v1/router"
+    "{{packageName}}/components"
+)
+
+func main() {
+    core.SetDevMode(true)
+    router.RegisterRoute(router.Route{
+        Path: "/",
+        Component: func() core.Component { return components.NewAppComponent() },
+    })
+    router.InitRouter()
+    select {}
+}
