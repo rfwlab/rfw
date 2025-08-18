@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -14,7 +15,8 @@ func InitProject(projectName string) error {
 		return fmt.Errorf("project name cannot be empty")
 	}
 
-	projectName = strings.Split(projectName, "/")[len(strings.Split(projectName, "/"))-1]
+	moduleName := projectName
+	projectName = path.Base(moduleName)
 
 	projectPath := projectName
 
@@ -26,16 +28,16 @@ func InitProject(projectName string) error {
 		return fmt.Errorf("failed to create project directory: %w", err)
 	}
 
-	err := fs.WalkDir(TemplatesFS, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(TemplatesFS, "template", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if path == "." {
+		if path == "template" {
 			return nil
 		}
 
-		relPath := strings.TrimPrefix(path, "./")
+		relPath := strings.TrimPrefix(path, "template/")
 		targetPath := filepath.Join(projectPath, relPath)
 		if strings.HasSuffix(targetPath, ".tmpl") {
 			targetPath = strings.TrimSuffix(targetPath, ".tmpl")
@@ -50,7 +52,9 @@ func InitProject(projectName string) error {
 			return err
 		}
 
-		contentStr := strings.ReplaceAll(string(content), "{{packageName}}", projectName)
+		contentStr := string(content)
+		contentStr = strings.ReplaceAll(contentStr, "{{moduleName}}", moduleName)
+		contentStr = strings.ReplaceAll(contentStr, "{{projectName}}", projectName)
 
 		return os.WriteFile(targetPath, []byte(contentStr), 0644)
 	})
@@ -62,7 +66,7 @@ func InitProject(projectName string) error {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	if err := initGoModule(projectPath, projectName); err != nil {
+	if err := initGoModule(projectPath, moduleName); err != nil {
 		return fmt.Errorf("failed to initialize go module: %w", err)
 	}
 
@@ -96,11 +100,15 @@ func copyWasmExec(projectDir string) error {
 func initGoModule(projectPath, moduleName string) error {
 	cmd := exec.Command("go", "mod", "init", moduleName)
 	cmd.Dir = projectPath
-	if err := cmd.Run(); err != nil {
-		return err
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("go mod init failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 
 	cmd = exec.Command("go", "mod", "tidy")
 	cmd.Dir = projectPath
-	return cmd.Run()
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("go mod tidy failed: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+
+	return nil
 }
