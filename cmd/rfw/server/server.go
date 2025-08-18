@@ -13,7 +13,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/rfwlab/rfw/cmd/rfw/build"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 

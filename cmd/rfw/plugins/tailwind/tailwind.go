@@ -1,6 +1,7 @@
 package tailwind
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os/exec"
@@ -9,7 +10,9 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 )
 
-type plugin struct{}
+type plugin struct {
+	output string
+}
 
 func init() {
 	plugins.Register(&plugin{})
@@ -17,7 +20,7 @@ func init() {
 
 func (p *plugin) Name() string { return "tailwind" }
 
-func (p *plugin) Build() error {
+func (p *plugin) Build(raw json.RawMessage) error {
 	log.Printf("tailwind: starting build")
 	bin, err := exec.LookPath("tailwindcss")
 	if err != nil {
@@ -25,12 +28,27 @@ func (p *plugin) Build() error {
 		return err
 	}
 
-	// FIXME: in future an rfw project should have a root manifest file with plugins configurations and so on,
-	// for the moment we will look for an input.css file in the project root
-	args := []string{
-		"-i", "input.css",
-		"-o", "tailwind.css",
-		"--minify",
+	cfg := struct {
+		Input  string   `json:"input"`
+		Output string   `json:"output"`
+		Minify bool     `json:"minify"`
+		Args   []string `json:"args"`
+	}{
+		Input:  "index.css",
+		Output: "tailwind.css",
+		Minify: true,
+	}
+	if len(raw) > 0 {
+		_ = json.Unmarshal(raw, &cfg)
+	}
+	p.output = cfg.Output
+
+	args := []string{"-i", cfg.Input, "-o", cfg.Output}
+	if cfg.Minify {
+		args = append(args, "--minify")
+	}
+	if len(cfg.Args) > 0 {
+		args = append(args, cfg.Args...)
 	}
 
 	log.Printf("tailwind: running %s %s", bin, strings.Join(args, " "))
@@ -43,7 +61,7 @@ func (p *plugin) Build() error {
 }
 
 func (p *plugin) ShouldRebuild(path string) bool {
-	if strings.HasSuffix(path, ".css") && !strings.HasSuffix(path, "tailwind.css") {
+	if strings.HasSuffix(path, ".css") && !strings.HasSuffix(path, p.output) {
 		log.Printf("tailwind: rebuild triggered by %s", path)
 		return true
 	}

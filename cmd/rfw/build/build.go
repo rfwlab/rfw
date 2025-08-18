@@ -1,6 +1,7 @@
 package build
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -29,7 +30,13 @@ func Build() error {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
 	}
 
-	if err := plugins.BuildAll(); err != nil {
+	var manifest struct {
+		Plugins map[string]json.RawMessage `json:"plugins"`
+	}
+	if data, err := os.ReadFile("rfw.json"); err == nil {
+		_ = json.Unmarshal(data, &manifest)
+	}
+	if err := plugins.BuildFromConfig(manifest.Plugins); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
 	}
 
