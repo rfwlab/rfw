@@ -95,7 +95,7 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
-	includeRegex := regexp.MustCompile(`@include:(\w+)`)
+	includeRegex := regexp.MustCompile(`@include:([\w-]+)`)
 	return includeRegex.ReplaceAllStringFunc(renderedTemplate, func(match string) string {
 		name := includeRegex.FindStringSubmatch(match)[1]
 		if dep, ok := c.Dependencies[name]; ok {
@@ -122,7 +122,7 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 		}
 		content := parts[3]
 		if dep, ok := c.Dependencies[depName]; ok {
-			dep.SetSlots(map[string]string{slotName: content})
+			dep.SetSlots(map[string]interface{}{slotName: content})
 			return ""
 		}
 		if DevMode {
@@ -134,6 +134,7 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 
 func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
 	slotRegex := regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
+	idx := 0
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := slotRegex.FindStringSubmatch(match)
 		if len(parts) < 3 {
@@ -145,7 +146,17 @@ func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
 		}
 		fallback := parts[2]
 		if content, ok := c.Slots[slotName]; ok {
-			return content
+			switch v := content.(type) {
+			case string:
+				return v
+			case Component:
+				placeholder := fmt.Sprintf("slot-%s-%d", slotName, idx)
+				idx++
+				c.AddDependency(placeholder, v)
+				return fmt.Sprintf("@include:%s", placeholder)
+			default:
+				return fallback
+			}
 		}
 		return fallback
 	})
@@ -191,6 +202,7 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 
 func replacePropPlaceholders(template string, c *HTMLComponent) string {
 	propRegex := regexp.MustCompile(`@prop:(\w+)`)
+	idx := 0
 	return propRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := propRegex.FindStringSubmatch(match)
 		if len(parts) != 2 {
@@ -198,7 +210,15 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 		}
 		propName := parts[1]
 		if value, exists := c.Props[propName]; exists {
-			return fmt.Sprintf("%v", value)
+			switch v := value.(type) {
+			case Component:
+				placeholder := fmt.Sprintf("prop-%s-%d", propName, idx)
+				idx++
+				c.AddDependency(placeholder, v)
+				return fmt.Sprintf("@include:%s", placeholder)
+			default:
+				return fmt.Sprintf("%v", v)
+			}
 		}
 		if DevMode {
 			Log().Warn("component %s missing prop '%s'", c.Name, propName)
@@ -470,7 +490,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 	return 0, fmt.Errorf("invalid number")
 }
 
-func replaceForPlaceholders(template string, c *HTMLComponent) string {
+func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 	forRegex := regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
 	return forRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := forRegex.FindStringSubmatch(match)

@@ -39,7 +39,7 @@ type HTMLComponent struct {
 	unsubscribes      unsubscribes
 	Store             *state.Store
 	Props             map[string]interface{}
-	Slots             map[string]string
+	Slots             map[string]interface{}
 	conditionContents map[string]ConditionContent
 	component         Component
 }
@@ -52,7 +52,7 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]interface
 		TemplateFS:        templateFs,
 		Dependencies:      make(map[string]Component),
 		Props:             props,
-		Slots:             make(map[string]string),
+		Slots:             make(map[string]interface{}),
 		conditionContents: make(map[string]ConditionContent),
 	}
 	// Attempt automatic cleanup when component is garbage collected.
@@ -182,9 +182,9 @@ func (c *HTMLComponent) SetComponent(component Component) {
 	c.component = component
 }
 
-func (c *HTMLComponent) SetSlots(slots map[string]string) {
+func (c *HTMLComponent) SetSlots(slots map[string]interface{}) {
 	if c.Slots == nil {
-		c.Slots = make(map[string]string)
+		c.Slots = make(map[string]interface{})
 	}
 	for k, v := range slots {
 		c.Slots[k] = v

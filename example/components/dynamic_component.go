@@ -17,5 +17,11 @@ func NewDynamicComponent() *core.HTMLComponent {
 	header := NewHeaderComponent(map[string]interface{}{"title": "Dynamic Component"})
 	c.AddDependency("header", header)
 
+	list := NewListComponent([]core.Component{
+		NewHeaderComponent(map[string]interface{}{"title": "First"}),
+		NewHeaderComponent(map[string]interface{}{"title": "Second"}),
+	})
+	c.AddDependency("list", list)
+
 	return c
 }

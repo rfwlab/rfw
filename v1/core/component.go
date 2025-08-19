@@ -17,7 +17,7 @@ type Component interface {
 	OnUnmount()
 	GetName() string
 	GetID() string
-	SetSlots(map[string]string)
+	SetSlots(map[string]interface{})
 }
 
 // ComponentRegistry holds constructors for components that can be loaded on-demand.
