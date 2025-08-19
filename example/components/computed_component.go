@@ -15,16 +15,8 @@ import (
 //go:embed templates/computed_component.rtml
 var computedComponentTpl []byte
 
-type ComputedComponent struct {
-	*core.HTMLComponent
-}
-
-func NewComputedComponent() *ComputedComponent {
-	c := &ComputedComponent{
-		HTMLComponent: core.NewHTMLComponent("ComputedComponent", computedComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewComputedComponent() *core.HTMLComponent {
+	c := core.NewComponent("ComputedComponent", computedComponentTpl, nil)
 
 	store := state.GlobalStoreManager.GetStore("app", "default")
 	if store.Get("lastChange") == nil {

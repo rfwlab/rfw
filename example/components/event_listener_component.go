@@ -18,11 +18,8 @@ type EventListenerComponent struct {
 }
 
 func NewEventListenerComponent() *EventListenerComponent {
-	c := &EventListenerComponent{
-		HTMLComponent: core.NewHTMLComponent("EventListenerComponent", eventListenerComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+	c := &EventListenerComponent{}
+	c.HTMLComponent = core.NewComponentWith("EventListenerComponent", eventListenerComponentTpl, nil, c)
 
 	// Always start from zero to avoid residual persisted values.
 	c.Store.Set("clicks", float64(0))

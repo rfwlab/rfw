@@ -41,3 +41,27 @@ func LoadComponent(name string) Component {
 	}
 	return nil
 }
+
+// NewComponent creates an HTMLComponent initialized with the provided
+// template and props. It sets itself as the underlying component and
+// performs initialization with the default store.
+func NewComponent(name string, templateFS []byte, props map[string]interface{}) *HTMLComponent {
+	c := NewHTMLComponent(name, templateFS, props)
+	c.SetComponent(c)
+	c.Init(nil)
+	return c
+}
+
+// NewComponentWith creates an HTMLComponent and binds it to the given
+// component implementation. This is useful when embedding HTMLComponent
+// inside another struct to override lifecycle hooks.
+func NewComponentWith[T Component](name string, templateFS []byte, props map[string]interface{}, self T) *HTMLComponent {
+	c := NewHTMLComponent(name, templateFS, props)
+	if any(self) != nil {
+		c.SetComponent(self)
+	} else {
+		c.SetComponent(c)
+	}
+	c.Init(nil)
+	return c
+}

@@ -21,11 +21,8 @@ type ObserverComponent struct {
 }
 
 func NewObserverComponent() *ObserverComponent {
-	c := &ObserverComponent{
-		HTMLComponent: core.NewHTMLComponent("ObserverComponent", observerComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+	c := &ObserverComponent{}
+	c.HTMLComponent = core.NewComponentWith("ObserverComponent", observerComponentTpl, nil, c)
 
 	// Reset counts to zero to provide a predictable demo state.
 	c.Store.Set("mutations", float64(0))

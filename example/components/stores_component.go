@@ -12,16 +12,8 @@ import (
 //go:embed templates/stores_component.rtml
 var storesComponentTpl []byte
 
-type StoresComponent struct {
-	*core.HTMLComponent
-}
-
-func NewStoresComponent() *StoresComponent {
-	c := &StoresComponent{
-		HTMLComponent: core.NewHTMLComponent("StoresComponent", storesComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewStoresComponent() *core.HTMLComponent {
+	c := core.NewComponent("StoresComponent", storesComponentTpl, nil)
 
 	tempStore := state.NewStore("temp")
 	if tempStore.Get("value") == nil {

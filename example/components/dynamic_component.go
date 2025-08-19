@@ -11,16 +11,8 @@ import (
 //go:embed templates/dynamic_component.rtml
 var dynamicComponentTpl []byte
 
-type DynamicComponent struct {
-	*core.HTMLComponent
-}
-
-func NewDynamicComponent() *DynamicComponent {
-	c := &DynamicComponent{
-		HTMLComponent: core.NewHTMLComponent("DynamicComponent", dynamicComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewDynamicComponent() *core.HTMLComponent {
+	c := core.NewComponent("DynamicComponent", dynamicComponentTpl, nil)
 
 	header := NewHeaderComponent(map[string]interface{}{"title": "Dynamic Component"})
 	c.AddDependency("header", header)

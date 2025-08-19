@@ -12,32 +12,24 @@ import (
 //go:embed templates/test_component.rtml
 var testComponentTpl []byte
 
-type MyComponent struct {
-	*core.HTMLComponent
-}
-
-func NewTestComponent() *MyComponent {
-	c := &MyComponent{
-		HTMLComponent: core.NewHTMLComponent("MyComponent", testComponentTpl, map[string]interface{}{
-			"items": []interface{}{
-				map[string]interface{}{
-					"name": "Mario",
-					"age":  30,
-				},
-				map[string]interface{}{
-					"name": "Luigi",
-					"age":  25,
-				},
+func NewTestComponent() *core.HTMLComponent {
+	c := core.NewComponent("MyComponent", testComponentTpl, map[string]interface{}{
+		"items": []interface{}{
+			map[string]interface{}{
+				"name": "Mario",
+				"age":  30,
 			},
-			"obj": map[string]interface{}{
-				"first":  "Mario",
-				"second": "Luigi",
+			map[string]interface{}{
+				"name": "Luigi",
+				"age":  25,
 			},
-			"n": 3,
-		}),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+		},
+		"obj": map[string]interface{}{
+			"first":  "Mario",
+			"second": "Luigi",
+		},
+		"n": 3,
+	})
 
 	store := state.GlobalStoreManager.GetStore("app", "default")
 	if store.Get("testLoop") == nil {

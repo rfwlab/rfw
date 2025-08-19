@@ -13,16 +13,9 @@ import (
 var eventComponentTpl []byte
 
 // EventComponent demonstrates both basic event handling and event modifiers.
-type EventComponent struct {
-	*core.HTMLComponent
-}
-
-func NewEventComponent() *EventComponent {
-	c := &EventComponent{
-		HTMLComponent: core.NewHTMLComponent("EventComponent", eventComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+// EventComponent demonstrates both basic event handling and event modifiers.
+func NewEventComponent() *core.HTMLComponent {
+	c := core.NewComponent("EventComponent", eventComponentTpl, nil)
 
 	if c.Store.Get("count") == nil {
 		c.Store.Set("count", 0)
