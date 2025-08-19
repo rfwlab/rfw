@@ -19,6 +19,7 @@ func main() {
 	store := state.NewStore("default", state.WithModule("app"), state.WithPersistence(), state.WithDevTools())
 	store.Set("count", 0)
 	store.Set("allowProtected", false)
+	store.Set("apiData", "")
 	if store.Get("sharedState") == nil {
 		store.Set("sharedState", "Initial State")
 	}
@@ -118,6 +119,18 @@ func main() {
 		Path:      "/protected",
 		Component: func() core.Component { return components.NewProtectedComponent() },
 		Guards:    []router.Guard{authGuard},
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/complex/:user/:section",
+		Component: func() core.Component { return components.NewComplexRoutingComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/state",
+		Component: func() core.Component { return components.NewStateManagementComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/api",
+		Component: func() core.Component { return components.NewAPIIntegrationComponent() },
 	})
 
 	router.InitRouter()
