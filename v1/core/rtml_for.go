@@ -113,7 +113,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 					c.AddDependency(placeholder, comp)
 					iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("@include:%s", placeholder))
 				} else if itemMap, ok := item.(map[string]interface{}); ok {
-					fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
+					fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+)", alias))
 					iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 						fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
 						if len(fieldParts) == 2 {
@@ -147,7 +147,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 				iterContent := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", keyAlias), k)
 				if len(aliases) > 1 {
 					if vMap, ok := v.(map[string]interface{}); ok {
-						fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, valAlias))
+						fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+)", valAlias))
 						iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 							fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
 							if len(fieldParts) == 2 {

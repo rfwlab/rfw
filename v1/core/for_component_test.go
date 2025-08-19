@@ -25,3 +25,23 @@ func TestForRendersComponentList(t *testing.T) {
 		t.Fatalf("expected child components rendered: %s", html)
 	}
 }
+
+func TestForRendersMapFields(t *testing.T) {
+	state.NewStore("default", state.WithModule("app"))
+
+	items := []interface{}{
+		map[string]interface{}{"name": "Mario", "age": 30},
+		map[string]interface{}{"name": "Luigi", "age": 25},
+	}
+
+	parentTpl := []byte("<root>@for:item in items <p><b>Name:</b> @prop:item.name <b>Age:</b> @prop:item.age</p> @endfor</root>")
+	parent := NewComponent("Parent", parentTpl, map[string]interface{}{"items": items})
+
+	html := parent.Render()
+	if !strings.Contains(html, "Mario") || !strings.Contains(html, "Luigi") {
+		t.Fatalf("expected names rendered: %s", html)
+	}
+	if strings.Contains(html, "@prop:item.name") || strings.Contains(html, "@prop:item.age") {
+		t.Fatalf("placeholders not replaced: %s", html)
+	}
+}
