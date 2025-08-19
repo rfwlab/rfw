@@ -77,6 +77,15 @@ Iterate over collections or ranges with `@for`.
 @endfor
 ```
 
+Lists can also contain component instances. When the loop variable is a
+component, `@prop:var` renders it:
+
+```rtml
+@for:item in items
+  @prop:item
+@endfor
+```
+
 ## Components, props and slots
 
 Include other templates with `@include` and read properties using
@@ -97,6 +106,10 @@ Slots allow passing markup to child components:
 @endslot
 @include:userCard
 ```
+
+Props and slots may carry components created in Go. These components share the
+parent's store and the entire list re-renders when it changes; individual
+items are not diffed.
 
 ## Stores
 
