@@ -3,6 +3,7 @@
 package monitor
 
 import (
+	"encoding/json"
 	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
@@ -29,6 +30,8 @@ func New(mSel, iSel string, opts jst.Value) *Plugin {
 		Intersections:        make(chan jst.Value),
 	}
 }
+
+func (p *Plugin) Build(json.RawMessage) error { return nil }
 
 // Install hooks into the application and start observers.
 func (p *Plugin) Install(a *core.App) {

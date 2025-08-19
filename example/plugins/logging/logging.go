@@ -3,6 +3,7 @@
 package logging
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/rfwlab/rfw/v1/core"
@@ -27,3 +28,5 @@ func (p *Plugin) Install(a *core.App) {
 		func(c core.Component) { log.Printf("unmount %s", c.GetName()) },
 	)
 }
+
+func (p *Plugin) Build(json.RawMessage) error { return nil }
