@@ -3,6 +3,7 @@
 package docs
 
 import (
+	"encoding/json"
 	"github.com/rfwlab/rfw/v1/core"
 	jst "syscall/js"
 
@@ -49,3 +50,5 @@ func (p *Plugin) Install(a *core.App) {
 	})
 	js.Set("rfwLoadDoc", p.loader)
 }
+
+func (p *Plugin) Build(json.RawMessage) error { return nil }

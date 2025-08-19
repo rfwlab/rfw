@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
 )
 
 func Build() error {
@@ -36,7 +38,7 @@ func Build() error {
 	if data, err := os.ReadFile("rfw.json"); err == nil {
 		_ = json.Unmarshal(data, &manifest)
 	}
-	if err := plugins.BuildFromConfig(manifest.Plugins); err != nil {
+	if err := plugins.Configure(manifest.Plugins); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
 	}
 

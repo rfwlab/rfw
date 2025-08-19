@@ -4,6 +4,7 @@
 package i18n
 
 import (
+	"encoding/json"
 	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
@@ -46,3 +47,5 @@ func (p *Plugin) Install(a *core.App) {
 		return key
 	}))
 }
+
+func (p *Plugin) Build(json.RawMessage) error { return nil }

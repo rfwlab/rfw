@@ -2,8 +2,13 @@
 
 package core
 
+import "encoding/json"
+
 // Plugin is a no-op stub for non-WASM builds.
-type Plugin interface{ Install(*App) }
+type Plugin interface {
+	Build(json.RawMessage) error
+	Install(*App)
+}
 
 // App is a stub holder for callbacks.
 type App struct{}

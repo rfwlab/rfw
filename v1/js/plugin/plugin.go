@@ -3,6 +3,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
@@ -11,6 +12,8 @@ import (
 
 // jsPlugin wraps a JavaScript object and adapts it to the core.Plugin interface.
 type jsPlugin struct{ v jst.Value }
+
+func (p jsPlugin) Build(json.RawMessage) error { return nil }
 
 // Install wires JavaScript callbacks to the application hooks.
 func (p jsPlugin) Install(a *core.App) {

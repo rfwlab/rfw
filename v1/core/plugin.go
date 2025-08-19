@@ -3,12 +3,17 @@
 package core
 
 import (
+	"encoding/json"
+
 	"github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
-// Plugin defines interface for plugins to register hooks on the App.
+// Plugin defines interface for plugins to register hooks on the App. Plugins can
+// provide a build step which is executed by the CLI before the application is
+// run and may also attach runtime hooks through Install.
 type Plugin interface {
+	Build(json.RawMessage) error
 	Install(*App)
 }
 

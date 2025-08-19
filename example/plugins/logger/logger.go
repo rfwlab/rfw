@@ -5,6 +5,7 @@
 package logger
 
 import (
+	"encoding/json"
 	"fmt"
 	jst "syscall/js"
 
@@ -24,6 +25,8 @@ func (p *Plugin) Install(a *core.App) {
 	core.SetLogger(consoleLogger{console: js.Console()})
 	core.Log().Info("rfw console logger active")
 }
+
+func (p *Plugin) Build(json.RawMessage) error { return nil }
 
 type consoleLogger struct{ console jst.Value }
 
