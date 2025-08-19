@@ -43,19 +43,21 @@ func (s *Server) Start() error {
 		return err
 	}
 
+	mux := http.NewServeMux()
+
 	fs := http.FileServer(http.Dir("."))
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		utils.LogServeRequest(r)
 		s.handleFileRequest(w, r, fs)
 	})
 
 	if s.Debug {
-		http.Handle("/debug/vars", expvar.Handler())
-		http.HandleFunc("/debug/pprof/", pprof.Index)
-		http.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		http.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		http.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		http.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		mux.Handle("/debug/vars", expvar.Handler())
+		mux.HandleFunc("GET /debug/pprof/", pprof.Index)
+		mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
 	}
 
 	watcher, err := fsnotify.NewWatcher()
@@ -82,7 +84,7 @@ func (s *Server) Start() error {
 	utils.PrintStartupInfo(s.Port, localIP, s.Host)
 
 	go func() {
-		if err := http.ListenAndServe(":"+s.Port, nil); err != nil {
+		if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
 			utils.Fatal("Server failed: ", err)
 		}
 	}()
