@@ -14,12 +14,12 @@ var dynamicComponentTpl []byte
 func NewDynamicComponent() *core.HTMLComponent {
 	c := core.NewComponent("DynamicComponent", dynamicComponentTpl, nil)
 
-	header := NewHeaderComponent(map[string]interface{}{"title": "Dynamic Component"})
+	header := NewHeaderComponent(map[string]any{"title": "Dynamic Component"})
 	c.AddDependency("header", header)
 
 	list := NewListComponent([]core.Component{
-		NewHeaderComponent(map[string]interface{}{"title": "First"}),
-		NewHeaderComponent(map[string]interface{}{"title": "Second"}),
+		NewHeaderComponent(map[string]any{"title": "First"}),
+		NewHeaderComponent(map[string]any{"title": "Second"}),
 	})
 	c.AddDependency("list", list)
 

@@ -38,13 +38,15 @@ type HTMLComponent struct {
 	Dependencies      map[string]Component
 	unsubscribes      unsubscribes
 	Store             *state.Store
-	Props             map[string]interface{}
-	Slots             map[string]interface{}
+	Props             map[string]any
+	Slots             map[string]any
 	conditionContents map[string]ConditionContent
 	component         Component
+	onMount           func(*HTMLComponent)
+	onUnmount         func(*HTMLComponent)
 }
 
-func NewHTMLComponent(name string, templateFs []byte, props map[string]interface{}) *HTMLComponent {
+func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTMLComponent {
 	id := generateComponentID(name, props)
 	c := &HTMLComponent{
 		ID:                id,
@@ -52,7 +54,7 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]interface
 		TemplateFS:        templateFs,
 		Dependencies:      make(map[string]Component),
 		Props:             props,
-		Slots:             make(map[string]interface{}),
+		Slots:             make(map[string]any),
 		conditionContents: make(map[string]ConditionContent),
 	}
 	// Attempt automatic cleanup when component is garbage collected.
@@ -174,17 +176,39 @@ func (c *HTMLComponent) GetID() string {
 	return c.ID
 }
 
-func (c *HTMLComponent) OnMount() {}
+func (c *HTMLComponent) OnMount() {
+	if c.onMount != nil {
+		c.onMount(c)
+	}
+}
 
-func (c *HTMLComponent) OnUnmount() {}
+func (c *HTMLComponent) OnUnmount() {
+	if c.onUnmount != nil {
+		c.onUnmount(c)
+	}
+}
+
+func (c *HTMLComponent) SetOnMount(fn func(*HTMLComponent)) {
+	c.onMount = fn
+}
+
+func (c *HTMLComponent) SetOnUnmount(fn func(*HTMLComponent)) {
+	c.onUnmount = fn
+}
+
+func (c *HTMLComponent) WithLifecycle(onMount, onUnmount func(*HTMLComponent)) *HTMLComponent {
+	c.onMount = onMount
+	c.onUnmount = onUnmount
+	return c
+}
 
 func (c *HTMLComponent) SetComponent(component Component) {
 	c.component = component
 }
 
-func (c *HTMLComponent) SetSlots(slots map[string]interface{}) {
+func (c *HTMLComponent) SetSlots(slots map[string]any) {
 	if c.Slots == nil {
-		c.Slots = make(map[string]interface{})
+		c.Slots = make(map[string]any)
 	}
 	for k, v := range slots {
 		c.Slots[k] = v
@@ -193,14 +217,14 @@ func (c *HTMLComponent) SetSlots(slots map[string]interface{}) {
 
 func (c *HTMLComponent) SetRouteParams(params map[string]string) {
 	if c.Props == nil {
-		c.Props = make(map[string]interface{})
+		c.Props = make(map[string]any)
 	}
 	for k, v := range params {
 		c.Props[k] = v
 	}
 }
 
-func generateComponentID(name string, props map[string]interface{}) string {
+func generateComponentID(name string, props map[string]any) string {
 	hasher := sha1.New()
 	hasher.Write([]byte(name))
 	propsString := serializeProps(props)
@@ -209,7 +233,7 @@ func generateComponentID(name string, props map[string]interface{}) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func serializeProps(props map[string]interface{}) string {
+func serializeProps(props map[string]any) string {
 	if props == nil {
 		return ""
 	}

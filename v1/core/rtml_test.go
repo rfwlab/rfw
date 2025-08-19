@@ -9,7 +9,7 @@ import (
 
 // Tests complex conditional scenarios including @else-if and nested blocks.
 func TestElseIfRendering(t *testing.T) {
-	c := &HTMLComponent{Props: map[string]interface{}{"val": "2"}, conditionContents: make(map[string]ConditionContent)}
+	c := &HTMLComponent{Props: map[string]any{"val": "2"}, conditionContents: make(map[string]ConditionContent)}
 	template := `
 @if:prop:val=="1"
 One
@@ -29,7 +29,7 @@ Other
 }
 
 func TestNestedConditionals(t *testing.T) {
-	props := map[string]interface{}{"outer": "yes", "inner": "maybe"}
+	props := map[string]any{"outer": "yes", "inner": "maybe"}
 	c := &HTMLComponent{Props: props, conditionContents: make(map[string]ConditionContent)}
 	template := `
 @if:prop:outer=="yes"

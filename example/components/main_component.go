@@ -14,12 +14,12 @@ var mainComponentTpl []byte
 func NewMainComponent() *core.HTMLComponent {
 	c := core.NewComponent("MainComponent", mainComponentTpl, nil)
 
-	cardComponent := NewCardComponent(map[string]interface{}{
+	cardComponent := NewCardComponent(map[string]any{
 		"title": "just a card",
 	})
 	c.AddDependency("card", cardComponent)
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Main Component",
 	})
 	c.AddDependency("header", headerComponent)

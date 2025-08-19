@@ -14,7 +14,7 @@ var protectedComponentTpl []byte
 func NewProtectedComponent() *core.HTMLComponent {
 	c := core.NewComponent("ProtectedComponent", protectedComponentTpl, nil)
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Protected Component",
 	})
 	c.AddDependency("header", headerComponent)

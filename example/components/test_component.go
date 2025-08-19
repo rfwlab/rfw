@@ -13,18 +13,18 @@ import (
 var testComponentTpl []byte
 
 func NewTestComponent() *core.HTMLComponent {
-	c := core.NewComponent("MyComponent", testComponentTpl, map[string]interface{}{
-		"items": []interface{}{
-			map[string]interface{}{
+	c := core.NewComponent("MyComponent", testComponentTpl, map[string]any{
+		"items": []any{
+			map[string]any{
 				"name": "Mario",
 				"age":  30,
 			},
-			map[string]interface{}{
+			map[string]any{
 				"name": "Luigi",
 				"age":  25,
 			},
 		},
-		"obj": map[string]interface{}{
+		"obj": map[string]any{
 			"first":  "Mario",
 			"second": "Luigi",
 		},
@@ -33,17 +33,17 @@ func NewTestComponent() *core.HTMLComponent {
 
 	store := state.GlobalStoreManager.GetStore("app", "default")
 	if store.Get("testLoop") == nil {
-		store.Set("testLoop", []interface{}{
-			map[string]interface{}{
+		store.Set("testLoop", []any{
+			map[string]any{
 				"name": "test1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"name": "test2",
 			},
 		})
 	}
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Test Component",
 	})
 	c.AddDependency("header", headerComponent)

@@ -21,7 +21,7 @@ func (p jsPlugin) Install(a *core.App) {
 		a.RegisterRouter(func(path string) { fn.Invoke(path) })
 	}
 	if fn := p.v.Get("store"); fn.Type() == jst.TypeFunction {
-		a.RegisterStore(func(module, store, key string, value interface{}) {
+		a.RegisterStore(func(module, store, key string, value any) {
 			fn.Invoke(module, store, key, jst.ValueOf(value))
 		})
 	}
@@ -54,7 +54,7 @@ func Register(v jst.Value) {
 
 func init() {
 	// Expose plugin registration for JavaScript callers.
-	js.Global().Set("rfwRegisterPlugin", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+	js.Global().Set("rfwRegisterPlugin", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) > 0 {
 			Register(args[0])
 		}

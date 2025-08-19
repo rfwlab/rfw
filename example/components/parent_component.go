@@ -14,7 +14,7 @@ var parentComponentTpl []byte
 func NewParentComponent() *core.HTMLComponent {
 	c := core.NewComponent("ParentComponent", parentComponentTpl, nil)
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Parent Component",
 	})
 	c.AddDependency("header", headerComponent)

@@ -25,7 +25,7 @@ func NewStoresComponent() *core.HTMLComponent {
 		permStore.Set("value", "Persistent Initial State")
 	}
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Stores",
 	})
 	c.AddDependency("header", headerComponent)

@@ -10,7 +10,7 @@ import (
 )
 
 // loadPersistedState retrieves persisted state from localStorage.
-func loadPersistedState(key string) map[string]interface{} {
+func loadPersistedState(key string) map[string]any {
 	ls := js.LocalStorage()
 	if !ls.Truthy() {
 		return nil
@@ -19,7 +19,7 @@ func loadPersistedState(key string) map[string]interface{} {
 	if item.Type() != jst.TypeString {
 		return nil
 	}
-	var state map[string]interface{}
+	var state map[string]any
 	if err := json.Unmarshal([]byte(item.String()), &state); err != nil {
 		return nil
 	}
@@ -27,7 +27,7 @@ func loadPersistedState(key string) map[string]interface{} {
 }
 
 // saveState persists the store state in localStorage.
-func saveState(key string, state map[string]interface{}) {
+func saveState(key string, state map[string]any) {
 	ls := js.LocalStorage()
 	if !ls.Truthy() {
 		return

@@ -11,33 +11,23 @@ import (
 //go:embed templates/header_component.rtml
 var headerComponentTpl []byte
 
-type HeaderComponent struct {
-	*core.HTMLComponent
-}
-
-func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
-	c := &HeaderComponent{}
-	c.HTMLComponent = core.NewComponentWith("HeaderComponent", headerComponentTpl, props, c)
-
+func NewHeaderComponent(props map[string]any) *core.HTMLComponent {
+	c := core.NewComponent("HeaderComponent", headerComponentTpl, props)
+	c.WithLifecycle(func(cmp *core.HTMLComponent) {
+		if count, ok := cmp.Store.Get("headerMounts").(int); ok {
+			cmp.Store.Set("headerMounts", count+1)
+		} else {
+			cmp.Store.Set("headerMounts", 1)
+		}
+		if _, ok := cmp.Store.Get("headerUnmounts").(int); !ok {
+			cmp.Store.Set("headerUnmounts", 0)
+		}
+	}, func(cmp *core.HTMLComponent) {
+		if count, ok := cmp.Store.Get("headerUnmounts").(int); ok {
+			cmp.Store.Set("headerUnmounts", count+1)
+		} else {
+			cmp.Store.Set("headerUnmounts", 1)
+		}
+	})
 	return c
-}
-
-func (c *HeaderComponent) OnMount() {
-	if count, ok := c.Store.Get("headerMounts").(int); ok {
-		c.Store.Set("headerMounts", count+1)
-	} else {
-		c.Store.Set("headerMounts", 1)
-	}
-
-	if _, ok := c.Store.Get("headerUnmounts").(int); !ok {
-		c.Store.Set("headerUnmounts", 0)
-	}
-}
-
-func (c *HeaderComponent) OnUnmount() {
-	if count, ok := c.Store.Get("headerUnmounts").(int); ok {
-		c.Store.Set("headerUnmounts", count+1)
-	} else {
-		c.Store.Set("headerUnmounts", 1)
-	}
 }

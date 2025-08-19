@@ -18,7 +18,7 @@ func TestForRendersComponentList(t *testing.T) {
 	child2 := NewComponent("Child2", childTpl2, nil)
 
 	parentTpl := []byte("<root>@for:item in items @prop:item @endfor</root>")
-	parent := NewComponent("Parent", parentTpl, map[string]interface{}{"items": []Component{child1, child2}})
+	parent := NewComponent("Parent", parentTpl, map[string]any{"items": []Component{child1, child2}})
 
 	html := parent.Render()
 	if !strings.Contains(html, "first") || !strings.Contains(html, "second") {
@@ -29,13 +29,13 @@ func TestForRendersComponentList(t *testing.T) {
 func TestForRendersMapFields(t *testing.T) {
 	state.NewStore("default", state.WithModule("app"))
 
-	items := []interface{}{
-		map[string]interface{}{"name": "Mario", "age": 30},
-		map[string]interface{}{"name": "Luigi", "age": 25},
+	items := []any{
+		map[string]any{"name": "Mario", "age": 30},
+		map[string]any{"name": "Luigi", "age": 25},
 	}
 
 	parentTpl := []byte("<root>@for:item in items <p><b>Name:</b> @prop:item.name <b>Age:</b> @prop:item.age</p> @endfor</root>")
-	parent := NewComponent("Parent", parentTpl, map[string]interface{}{"items": items})
+	parent := NewComponent("Parent", parentTpl, map[string]any{"items": items})
 
 	html := parent.Render()
 	if !strings.Contains(html, "Mario") || !strings.Contains(html, "Luigi") {

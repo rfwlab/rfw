@@ -32,12 +32,12 @@ func (rv *ReactiveVar) OnChange(listener func(string)) {
 type Computed struct {
 	key      string
 	deps     []string
-	compute  func(map[string]interface{}) interface{}
-	lastDeps map[string]interface{}
+	compute  func(map[string]any) any
+	lastDeps map[string]any
 }
 
 // NewComputed creates a new Computed value.
-func NewComputed(key string, deps []string, compute func(map[string]interface{}) interface{}) *Computed {
+func NewComputed(key string, deps []string, compute func(map[string]any) any) *Computed {
 	return &Computed{key: key, deps: deps, compute: compute}
 }
 
@@ -49,7 +49,7 @@ func (c *Computed) Deps() []string { return c.deps }
 
 // Evaluate executes the compute function using the provided state and returns
 // the result.
-func (c *Computed) Evaluate(state map[string]interface{}) interface{} {
+func (c *Computed) Evaluate(state map[string]any) any {
 	return c.compute(state)
 }
 
@@ -57,7 +57,7 @@ func (c *Computed) Evaluate(state map[string]interface{}) interface{} {
 // When any of the dependencies change, the associated function is triggered.
 type Watcher struct {
 	deps      []string
-	run       func(map[string]interface{})
+	run       func(map[string]any)
 	deep      bool
 	immediate bool
 }
@@ -72,7 +72,7 @@ func WatcherDeep() WatcherOption { return func(w *Watcher) { w.deep = true } }
 func WatcherImmediate() WatcherOption { return func(w *Watcher) { w.immediate = true } }
 
 // NewWatcher creates a new Watcher.
-func NewWatcher(deps []string, run func(map[string]interface{}), opts ...WatcherOption) *Watcher {
+func NewWatcher(deps []string, run func(map[string]any), opts ...WatcherOption) *Watcher {
 	w := &Watcher{deps: deps, run: run}
 	for _, opt := range opts {
 		opt(w)
@@ -84,4 +84,4 @@ func NewWatcher(deps []string, run func(map[string]interface{}), opts ...Watcher
 func (w *Watcher) Deps() []string { return w.deps }
 
 // Run triggers the watcher with the provided state.
-func (w *Watcher) Run(state map[string]interface{}) { w.run(state) }
+func (w *Watcher) Run(state map[string]any) { w.run(state) }

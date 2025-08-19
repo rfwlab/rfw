@@ -10,7 +10,7 @@ import (
 
 // ExposeUpdateStore exposes a JS function to update store values.
 func ExposeUpdateStore() {
-	js.Set("goUpdateStore", jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+	js.Set("goUpdateStore", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) < 4 {
 			return nil
 		}
@@ -18,7 +18,7 @@ func ExposeUpdateStore() {
 		storeName := args[1].String()
 		key := args[2].String()
 
-		var newValue interface{}
+		var newValue any
 		switch args[3].Type() {
 		case jst.TypeString:
 			newValue = args[3].String()

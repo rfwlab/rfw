@@ -23,14 +23,14 @@ func NewComputedComponent() *core.HTMLComponent {
 		store.Set("lastChange", "")
 	}
 	// register computed full name
-	store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]interface{}) interface{} {
+	store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]any) any {
 		first, _ := s["first"].(string)
 		last, _ := s["last"].(string)
 		return strings.TrimSpace(first + " " + last)
 	}))
 
 	// show watcher side effects
-	store.RegisterWatcher(state.NewWatcher([]string{"fullName"}, func(s map[string]interface{}) {
+	store.RegisterWatcher(state.NewWatcher([]string{"fullName"}, func(s map[string]any) {
 		msg := fmt.Sprintf("name changed to %s", s["fullName"])
 		fmt.Println(msg)
 		store.Set("lastChange", msg)
@@ -45,7 +45,7 @@ func NewComputedComponent() *core.HTMLComponent {
 		store.Set("last", "Hopper")
 	})
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Computed Component",
 	})
 	c.AddDependency("header", headerComponent)

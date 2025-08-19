@@ -76,7 +76,7 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 				module, storeName, key := dep.module, dep.storeName, dep.key
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
-					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+					unsubscribe := store.OnChange(key, func(newValue any) {
 						updateConditionBindings(c, conditionID)
 					})
 					c.unsubscribes.Add(unsubscribe)
@@ -122,7 +122,7 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 		}
 		content := parts[3]
 		if dep, ok := c.Dependencies[depName]; ok {
-			dep.SetSlots(map[string]interface{}{slotName: content})
+			dep.SetSlots(map[string]any{slotName: content})
 			return ""
 		}
 		if DevMode {
@@ -182,7 +182,7 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 				value = ""
 			}
 
-			unsubscribe := store.OnChange(key, func(newValue interface{}) {
+			unsubscribe := store.OnChange(key, func(newValue any) {
 				updateStoreBindings(c, module, storeName, key, newValue)
 			})
 			c.unsubscribes.Add(unsubscribe)
@@ -412,7 +412,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 	return false, dependencies
 }
 
-func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue interface{}) {
+func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue any) {
 	document := js.Document()
 	var element jst.Value
 	if c.ID == "" {
@@ -441,7 +441,7 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 	updateConditionsForStoreVariable(c, module, storeName, key)
 }
 
-func insertDataKey(content string, key interface{}) string {
+func insertDataKey(content string, key any) string {
 	tagRegex := regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
 	loc := tagRegex.FindStringSubmatchIndex(content)
 	if loc == nil {
@@ -461,7 +461,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 			store := state.GlobalStoreManager.GetStore(module, storeName)
 			if store != nil {
 				if val := store.Get(key); val != nil {
-					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+					unsubscribe := store.OnChange(key, func(newValue any) {
 						dom.UpdateDOM(c.ID, c.Render())
 					})
 					c.unsubscribes.Add(unsubscribe)
@@ -529,7 +529,7 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 			return result.String()
 		}
 
-		var collection interface{}
+		var collection any
 		if strings.HasPrefix(expr, "store:") {
 			storeParts := strings.Split(strings.TrimPrefix(expr, "store:"), ".")
 			if len(storeParts) == 3 {
@@ -537,7 +537,7 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
 					collection = store.Get(key)
-					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+					unsubscribe := store.OnChange(key, func(newValue any) {
 						dom.UpdateDOM(c.ID, c.Render())
 					})
 					c.unsubscribes.Add(unsubscribe)
@@ -554,12 +554,12 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 		}
 
 		switch col := collection.(type) {
-		case []interface{}:
+		case []any:
 			var result strings.Builder
 			alias := aliases[0]
 			for idx, item := range col {
 				iterContent := loopContent
-				if itemMap, ok := item.(map[string]interface{}); ok {
+				if itemMap, ok := item.(map[string]any); ok {
 					fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, alias))
 					iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 						fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
@@ -577,7 +577,7 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 				result.WriteString(iterContent)
 			}
 			return result.String()
-		case map[string]interface{}:
+		case map[string]any:
 			keyAlias := aliases[0]
 			valAlias := keyAlias
 			if len(aliases) > 1 {
@@ -593,7 +593,7 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 				v := col[k]
 				iterContent := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", keyAlias), k)
 				if len(aliases) > 1 {
-					if vMap, ok := v.(map[string]interface{}); ok {
+					if vMap, ok := v.(map[string]any); ok {
 						fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, valAlias))
 						iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 							fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
@@ -629,7 +629,7 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 		itemAlias := parts[2]
 		loopContent := parts[3]
 
-		var collection []interface{}
+		var collection []any
 
 		if strings.HasPrefix(collectionExpr, "store:") {
 			storeParts := strings.Split(strings.TrimPrefix(collectionExpr, "store:"), ".")
@@ -637,10 +637,10 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 				module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
-					if col, ok := store.Get(key).([]interface{}); ok {
+					if col, ok := store.Get(key).([]any); ok {
 						collection = col
 
-						unsubscribe := store.OnChange(key, func(newValue interface{}) {
+						unsubscribe := store.OnChange(key, func(newValue any) {
 							dom.UpdateDOM(c.ID, c.Render())
 						})
 						c.unsubscribes.Add(unsubscribe)
@@ -654,7 +654,7 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 				return match
 			}
 		} else if value, exists := c.Props[collectionExpr]; exists {
-			if col, ok := value.([]interface{}); ok {
+			if col, ok := value.([]any); ok {
 				collection = col
 			} else {
 				return match
@@ -668,7 +668,7 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 		for _, item := range collection {
 			iterContent := loopContent
 
-			if itemMap, ok := item.(map[string]interface{}); ok {
+			if itemMap, ok := item.(map[string]any); ok {
 				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, itemAlias))
 				iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)

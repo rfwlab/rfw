@@ -11,18 +11,11 @@ import (
 //go:embed templates/complex_routing_component.rtml
 var complexRoutingComponentTpl []byte
 
-type ComplexRoutingComponent struct {
-	*core.HTMLComponent
-}
-
-func NewComplexRoutingComponent() *ComplexRoutingComponent {
-	c := &ComplexRoutingComponent{}
-	c.HTMLComponent = core.NewComponentWith("ComplexRoutingComponent", complexRoutingComponentTpl, nil, c)
-
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+func NewComplexRoutingComponent() *core.HTMLComponent {
+	c := core.NewComponent("ComplexRoutingComponent", complexRoutingComponentTpl, nil)
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Complex Routing",
 	})
 	c.AddDependency("header", headerComponent)
-
 	return c
 }

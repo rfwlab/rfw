@@ -7,7 +7,9 @@ through three predictable phases which mirror the DOM element they wrap.
 
 `Render()` runs and the generated DOM is inserted into the page. The
 optional `OnMount` hook is called after insertion; start timers or fetch
-remote data here.
+remote data here. Hooks can be registered without defining a custom struct by
+calling `WithLifecycle`, `SetOnMount`, or `SetOnUnmount` on the returned
+`HTMLComponent`.
 
 ## Update
 

@@ -25,7 +25,7 @@ type App struct {
 
 type hooks struct {
 	routerHooks   []func(string)
-	storeHooks    []func(module, store, key string, value interface{})
+	storeHooks    []func(module, store, key string, value any)
 	templateHooks []func(componentID, html string)
 	mountHooks    []func(Component)
 	unmountHooks  []func(Component)
@@ -42,7 +42,7 @@ func (a *App) RegisterRouter(fn func(string)) {
 }
 
 // RegisterStore adds a store mutation hook.
-func (a *App) RegisterStore(fn func(module, store, key string, value interface{})) {
+func (a *App) RegisterStore(fn func(module, store, key string, value any)) {
 	a.storeHooks = append(a.storeHooks, fn)
 }
 
@@ -74,7 +74,7 @@ func TriggerRouter(path string) {
 }
 
 // TriggerStore invokes store hooks for a mutation.
-func TriggerStore(module, store, key string, value interface{}) {
+func TriggerStore(module, store, key string, value any) {
 	for _, h := range app.storeHooks {
 		h(module, store, key, value)
 	}

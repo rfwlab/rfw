@@ -11,6 +11,6 @@ import (
 //go:embed templates/slot_child_component.rtml
 var slotChildComponentTpl []byte
 
-func NewSlotChildComponent(props map[string]interface{}) *core.HTMLComponent {
+func NewSlotChildComponent(props map[string]any) *core.HTMLComponent {
 	return core.NewComponent("SlotChildComponent", slotChildComponentTpl, props)
 }

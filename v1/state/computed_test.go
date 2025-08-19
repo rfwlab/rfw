@@ -7,7 +7,7 @@ func TestComputedStability(t *testing.T) {
 	s.Set("a", 1)
 
 	evalCount := 0
-	c := NewComputed("double", []string{"a"}, func(m map[string]interface{}) interface{} {
+	c := NewComputed("double", []string{"a"}, func(m map[string]any) any {
 		evalCount++
 		return m["a"].(int) * 2
 	})
