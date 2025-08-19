@@ -2,8 +2,10 @@ package server
 
 import (
 	"bufio"
+	"expvar"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -16,17 +18,22 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 
+var rebuilds = expvar.NewInt("rebuilds")
+
 type Server struct {
 	Port    string
 	Host    bool
+	Debug   bool
 	stopCh  chan os.Signal
 	watcher *fsnotify.Watcher
 }
 
-func NewServer(port string, host bool) *Server {
+func NewServer(port string, host, debug bool) *Server {
+	utils.EnableDebug(debug)
 	return &Server{
 		Port:   port,
 		Host:   host,
+		Debug:  debug,
 		stopCh: make(chan os.Signal, 1),
 	}
 }
@@ -41,6 +48,15 @@ func (s *Server) Start() error {
 		utils.LogServeRequest(r)
 		s.handleFileRequest(w, r, fs)
 	})
+
+	if s.Debug {
+		http.Handle("/debug/vars", expvar.Handler())
+		http.HandleFunc("/debug/pprof/", pprof.Index)
+		http.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		http.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		http.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		http.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -135,11 +151,20 @@ func (s *Server) watchFiles() {
 			if !ok {
 				return
 			}
-			if event.Op&(fsnotify.Write|fsnotify.Create) != 0 &&
+			utils.Debug(fmt.Sprintf("event: %s", event))
+			if event.Op&fsnotify.Create != 0 {
+				if fi, err := os.Stat(event.Name); err == nil && fi.IsDir() {
+					utils.Debug(fmt.Sprintf("watching new directory: %s", event.Name))
+					_ = s.watcher.Add(event.Name)
+					continue
+				}
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Rename) != 0 &&
 				(strings.HasSuffix(event.Name, ".go") ||
 					strings.HasSuffix(event.Name, ".rtml") ||
 					strings.HasSuffix(event.Name, ".md") ||
 					plugins.NeedsRebuild(event.Name)) {
+				rebuilds.Add(1)
 				utils.Info("Changes detected, rebuilding...")
 				if err := build.Build(); err != nil {
 					utils.Fatal("Failed to rebuild project: ", err)
