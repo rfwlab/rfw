@@ -21,7 +21,7 @@ func NewStateManagementComponent() *StateManagementComponent {
 	c := &StateManagementComponent{}
 	c.HTMLComponent = core.NewComponentWith("StateManagementComponent", stateManagementComponentTpl, nil, c)
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "State Management",
 	})
 	c.AddDependency("header", headerComponent)
@@ -34,7 +34,7 @@ func NewStateManagementComponent() *StateManagementComponent {
 func (c *StateManagementComponent) Init(store *state.Store) {
 	c.HTMLComponent.Init(store)
 	if store.Get("double") == nil {
-		store.RegisterComputed(state.NewComputed("double", []string{"count"}, func(m map[string]interface{}) interface{} {
+		store.RegisterComputed(state.NewComputed("double", []string{"count"}, func(m map[string]any) any {
 			if v, ok := m["count"].(int); ok {
 				return v * 2
 			}

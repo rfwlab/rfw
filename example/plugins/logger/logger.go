@@ -30,18 +30,18 @@ func (p *Plugin) Build(json.RawMessage) error { return nil }
 
 type consoleLogger struct{ console jst.Value }
 
-func (cl consoleLogger) Debug(format string, v ...interface{}) {
+func (cl consoleLogger) Debug(format string, v ...any) {
 	cl.console.Call("debug", fmt.Sprintf(format, v...))
 }
 
-func (cl consoleLogger) Info(format string, v ...interface{}) {
+func (cl consoleLogger) Info(format string, v ...any) {
 	cl.console.Call("info", fmt.Sprintf(format, v...))
 }
 
-func (cl consoleLogger) Warn(format string, v ...interface{}) {
+func (cl consoleLogger) Warn(format string, v ...any) {
 	cl.console.Call("warn", fmt.Sprintf(format, v...))
 }
 
-func (cl consoleLogger) Error(format string, v ...interface{}) {
+func (cl consoleLogger) Error(format string, v ...any) {
 	cl.console.Call("error", fmt.Sprintf(format, v...))
 }

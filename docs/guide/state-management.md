@@ -25,7 +25,7 @@ Computed values derive new data from existing keys. They are lazily
 re‑evaluated when any dependency changes:
 
 ```go
-s.RegisterComputed(state.NewComputed("fullName", []string{"first","last"}, func(m map[string]interface{}) interface{} {
+s.RegisterComputed(state.NewComputed("fullName", []string{"first","last"}, func(m map[string]any) any {
     return m["first"].(string) + " " + m["last"].(string)
 }))
 ```
@@ -40,7 +40,7 @@ them for side effects such as logging or synchronising with external
 systems:
 
 ```go
-s.Watch("age", func(v interface{}) {
+s.Watch("age", func(v any) {
     log.Println("age updated", v)
 })
 ```

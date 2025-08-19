@@ -9,7 +9,7 @@ import (
 func TestComputedDouble(t *testing.T) {
 	s := state.NewStore("test")
 	s.Set("count", 2)
-	s.RegisterComputed(state.NewComputed("double", []string{"count"}, func(m map[string]interface{}) interface{} {
+	s.RegisterComputed(state.NewComputed("double", []string{"count"}, func(m map[string]any) any {
 		return m["count"].(int) * 2
 	}))
 	if v := s.Get("double"); v != 4 {

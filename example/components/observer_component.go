@@ -5,10 +5,11 @@ package components
 import (
 	_ "embed"
 
+	jst "syscall/js"
+
 	core "github.com/rfwlab/rfw/v1/core"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
-	jst "syscall/js"
 )
 
 //go:embed templates/observer_component.rtml
@@ -27,7 +28,7 @@ func NewObserverComponent() *ObserverComponent {
 	// Reset counts to zero to provide a predictable demo state.
 	c.Store.Set("mutations", float64(0))
 	c.Store.Set("intersections", float64(0))
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Observer Component",
 	})
 	c.AddDependency("header", headerComponent)

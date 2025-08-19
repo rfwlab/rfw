@@ -9,13 +9,13 @@ import (
 var handlerRegistry = make(map[string]jst.Value)
 
 // RegisterHandler registers a Go function with custom arguments in the handler registry.
-func RegisterHandler(name string, fn func(this jst.Value, args []jst.Value) interface{}) {
+func RegisterHandler(name string, fn func(this jst.Value, args []jst.Value) any) {
 	handlerRegistry[name] = jst.FuncOf(fn).Value
 }
 
 // RegisterHandlerFunc registers a no-argument Go function in the handler registry.
 func RegisterHandlerFunc(name string, fn func()) {
-	RegisterHandler(name, func(this jst.Value, args []jst.Value) interface{} {
+	RegisterHandler(name, func(this jst.Value, args []jst.Value) any {
 		fn()
 		return nil
 	})
@@ -23,7 +23,7 @@ func RegisterHandlerFunc(name string, fn func()) {
 
 // RegisterHandlerEvent registers a Go function that receives the first argument as an event object.
 func RegisterHandlerEvent(name string, fn func(jst.Value)) {
-	RegisterHandler(name, func(this jst.Value, args []jst.Value) interface{} {
+	RegisterHandler(name, func(this jst.Value, args []jst.Value) any {
 		var evt jst.Value
 		if len(args) > 0 {
 			evt = args[0]

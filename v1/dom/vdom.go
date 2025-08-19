@@ -123,7 +123,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 			for _, m := range b.Modifiers {
 				mods[m] = true
 			}
-			wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+			wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 				if mods["stopPropagation"] && len(args) > 0 {
 					args[0].Call("stopPropagation")
 				}
@@ -138,7 +138,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				return nil
 			})
 			if mods["once"] {
-				node.Call("addEventListener", b.Event, wrapped, jst.ValueOf(map[string]interface{}{"once": true}))
+				node.Call("addEventListener", b.Event, wrapped, jst.ValueOf(map[string]any{"once": true}))
 			} else {
 				node.Call("addEventListener", b.Event, wrapped)
 			}
@@ -160,7 +160,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				modifiers := parseModifiers(modsAttr)
 				handler := GetHandler(handlerName)
 				if handler.Truthy() {
-					wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+					wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 						if modifiers["stopPropagation"] && len(args) > 0 {
 							args[0].Call("stopPropagation")
 						}
@@ -175,7 +175,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 						return nil
 					})
 					if modifiers["once"] {
-						node.Call("addEventListener", event, wrapped, jst.ValueOf(map[string]interface{}{"once": true}))
+						node.Call("addEventListener", event, wrapped, jst.ValueOf(map[string]any{"once": true}))
 					} else {
 						node.Call("addEventListener", event, wrapped)
 					}

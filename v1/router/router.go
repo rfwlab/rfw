@@ -136,7 +136,7 @@ func Navigate(path string) {
 }
 
 func ExposeNavigate() {
-	js.ExposeFunc("goNavigate", func(this jst.Value, args []jst.Value) interface{} {
+	js.ExposeFunc("goNavigate", func(this jst.Value, args []jst.Value) any {
 		path := args[0].String()
 		Navigate(path)
 		return nil

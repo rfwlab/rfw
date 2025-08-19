@@ -13,37 +13,29 @@ import (
 //go:embed templates/event_listener_component.rtml
 var eventListenerComponentTpl []byte
 
-type EventListenerComponent struct {
-	*core.HTMLComponent
-}
-
-func NewEventListenerComponent() *EventListenerComponent {
-	c := &EventListenerComponent{}
-	c.HTMLComponent = core.NewComponentWith("EventListenerComponent", eventListenerComponentTpl, nil, c)
-
+func NewEventListenerComponent() *core.HTMLComponent {
+	c := core.NewComponent("EventListenerComponent", eventListenerComponentTpl, nil)
 	// Always start from zero to avoid residual persisted values.
 	c.Store.Set("clicks", float64(0))
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Event Listener Component",
 	})
 	c.AddDependency("header", headerComponent)
 
-	return c
-}
-
-func (c *EventListenerComponent) Mount() {
-	c.HTMLComponent.Mount()
-	btn := js.Document().Call("getElementById", "clickBtn")
-	ch := events.Listen("click", btn)
-	go func() {
-		for range ch {
-			switch v := c.Store.Get("clicks").(type) {
-			case float64:
-				c.Store.Set("clicks", v+1)
-			case int:
-				c.Store.Set("clicks", float64(v)+1)
+	c.SetOnMount(func(cmp *core.HTMLComponent) {
+		btn := js.Document().Call("getElementById", "clickBtn")
+		ch := events.Listen("click", btn)
+		go func() {
+			for range ch {
+				switch v := cmp.Store.Get("clicks").(type) {
+				case float64:
+					cmp.Store.Set("clicks", v+1)
+				case int:
+					cmp.Store.Set("clicks", float64(v)+1)
+				}
 			}
-		}
-	}()
+		}()
+	})
+	return c
 }

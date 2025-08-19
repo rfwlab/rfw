@@ -17,7 +17,7 @@ var animationComponentTpl []byte
 func NewAnimationComponent() *core.HTMLComponent {
 	c := core.NewComponent("AnimationComponent", animationComponentTpl, nil)
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Animations",
 	})
 	c.AddDependency("header", headerComponent)

@@ -51,7 +51,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 			return result.String()
 		}
 
-		var collection interface{}
+		var collection any
 		if strings.HasPrefix(expr, "store:") {
 			storeParts := strings.Split(strings.TrimPrefix(expr, "store:"), ".")
 			if len(storeParts) == 3 {
@@ -59,7 +59,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
 					collection = store.Get(key)
-					unsubscribe := store.OnChange(key, func(newValue interface{}) {
+					unsubscribe := store.OnChange(key, func(newValue any) {
 						dom.UpdateDOM(c.ID, c.Render())
 					})
 					c.unsubscribes.Add(unsubscribe)
@@ -77,25 +77,25 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 
 		switch col := collection.(type) {
 		case []Component:
-			tmp := make([]interface{}, len(col))
+			tmp := make([]any, len(col))
 			for i, v := range col {
 				tmp[i] = v
 			}
 			collection = tmp
 		case []*HTMLComponent:
-			tmp := make([]interface{}, len(col))
+			tmp := make([]any, len(col))
 			for i, v := range col {
 				tmp[i] = v
 			}
 			collection = tmp
 		case map[string]Component:
-			tmp := make(map[string]interface{}, len(col))
+			tmp := make(map[string]any, len(col))
 			for k, v := range col {
 				tmp[k] = v
 			}
 			collection = tmp
 		case map[string]*HTMLComponent:
-			tmp := make(map[string]interface{}, len(col))
+			tmp := make(map[string]any, len(col))
 			for k, v := range col {
 				tmp[k] = v
 			}
@@ -103,7 +103,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 		}
 
 		switch col := collection.(type) {
-		case []interface{}:
+		case []any:
 			var result strings.Builder
 			alias := aliases[0]
 			for idx, item := range col {
@@ -112,7 +112,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 					placeholder := fmt.Sprintf("for-%s-%d", alias, idx)
 					c.AddDependency(placeholder, comp)
 					iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("@include:%s", placeholder))
-				} else if itemMap, ok := item.(map[string]interface{}); ok {
+				} else if itemMap, ok := item.(map[string]any); ok {
 					fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+)", alias))
 					iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 						fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
@@ -130,7 +130,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 				result.WriteString(iterContent)
 			}
 			return result.String()
-		case map[string]interface{}:
+		case map[string]any:
 			keyAlias := aliases[0]
 			valAlias := keyAlias
 			if len(aliases) > 1 {
@@ -146,7 +146,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 				v := col[k]
 				iterContent := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", keyAlias), k)
 				if len(aliases) > 1 {
-					if vMap, ok := v.(map[string]interface{}); ok {
+					if vMap, ok := v.(map[string]any); ok {
 						fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+)", valAlias))
 						iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 							fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)

@@ -28,7 +28,7 @@ func NewEventComponent() *core.HTMLComponent {
 		}
 	})
 
-	headerComponent := NewHeaderComponent(map[string]interface{}{
+	headerComponent := NewHeaderComponent(map[string]any{
 		"title": "Events",
 	})
 	c.AddDependency("header", headerComponent)

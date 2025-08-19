@@ -12,17 +12,10 @@ import (
 //go:embed templates/plugins_component.rtml
 var pluginsComponentTpl []byte
 
-type PluginsComponent struct {
-	*core.HTMLComponent
-}
-
-func NewPluginsComponent() *PluginsComponent {
-	c := &PluginsComponent{}
-	c.HTMLComponent = core.NewComponentWith("PluginsComponent", pluginsComponentTpl, nil, c)
+func NewPluginsComponent() *core.HTMLComponent {
+	c := core.NewComponent("PluginsComponent", pluginsComponentTpl, nil)
+	c.SetOnMount(func(cmp *core.HTMLComponent) {
+		js.Document().Call("getElementById", "hello").Set("innerText", js.Get("t").Invoke("hello").String())
+	})
 	return c
 }
-
-func (c *PluginsComponent) OnMount() {
-	js.Document().Call("getElementById", "hello").Set("innerText", js.Get("t").Invoke("hello").String())
-}
-func (c *PluginsComponent) OnUnmount() {}

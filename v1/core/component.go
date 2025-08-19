@@ -17,7 +17,7 @@ type Component interface {
 	OnUnmount()
 	GetName() string
 	GetID() string
-	SetSlots(map[string]interface{})
+	SetSlots(map[string]any)
 }
 
 // ComponentRegistry holds constructors for components that can be loaded on-demand.
@@ -45,7 +45,7 @@ func LoadComponent(name string) Component {
 // NewComponent creates an HTMLComponent initialized with the provided
 // template and props. It sets itself as the underlying component and
 // performs initialization with the default store.
-func NewComponent(name string, templateFS []byte, props map[string]interface{}) *HTMLComponent {
+func NewComponent(name string, templateFS []byte, props map[string]any) *HTMLComponent {
 	c := NewHTMLComponent(name, templateFS, props)
 	c.SetComponent(c)
 	c.Init(nil)
@@ -55,7 +55,7 @@ func NewComponent(name string, templateFS []byte, props map[string]interface{}) 
 // NewComponentWith creates an HTMLComponent and binds it to the given
 // component implementation. This is useful when embedding HTMLComponent
 // inside another struct to override lifecycle hooks.
-func NewComponentWith[T Component](name string, templateFS []byte, props map[string]interface{}, self T) *HTMLComponent {
+func NewComponentWith[T Component](name string, templateFS []byte, props map[string]any, self T) *HTMLComponent {
 	c := NewHTMLComponent(name, templateFS, props)
 	if any(self) != nil {
 		c.SetComponent(self)

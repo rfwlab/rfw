@@ -28,11 +28,11 @@ type DocsComponent struct {
 
 func NewDocsComponent() *DocsComponent {
 	c := &DocsComponent{titles: make(map[string]string)}
-	c.HTMLComponent = core.NewComponentWith("DocsComponent", docsTpl, nil, c)
+	c.HTMLComponent = core.NewComponent("DocsComponent", docsTpl, nil).WithLifecycle(c.mount, c.unmount)
 	return c
 }
 
-func (c *DocsComponent) OnMount() {
+func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 	c.mounted = true
 	doc := js.Document()
 
@@ -159,7 +159,7 @@ func (c *DocsComponent) SetRouteParams(params map[string]string) {
 	}
 }
 
-func (c *DocsComponent) OnUnmount() {
+func (c *DocsComponent) unmount(hc *core.HTMLComponent) {
 	c.mounted = false
 }
 

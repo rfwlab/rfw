@@ -20,7 +20,7 @@ func (p *Plugin) Install(a *core.App) {
 	a.RegisterRouter(func(path string) {
 		log.Printf("navigate -> %s", path)
 	})
-	a.RegisterStore(func(module, store, key string, value interface{}) {
+	a.RegisterStore(func(module, store, key string, value any) {
 		log.Printf("store %s/%s: %s=%v", module, store, key, value)
 	})
 	a.RegisterLifecycle(

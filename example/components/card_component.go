@@ -11,6 +11,6 @@ import (
 //go:embed templates/card_component.rtml
 var cardComponentTpl []byte
 
-func NewCardComponent(props map[string]interface{}) *core.HTMLComponent {
+func NewCardComponent(props map[string]any) *core.HTMLComponent {
 	return core.NewComponent("CardComponent", cardComponentTpl, props)
 }

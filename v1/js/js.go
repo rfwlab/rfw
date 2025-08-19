@@ -17,12 +17,12 @@ func Get(name string) jst.Value {
 }
 
 // Set assigns a value on the global object.
-func Set(name string, v interface{}) {
+func Set(name string, v any) {
 	Global().Set(name, v)
 }
 
 // Call invokes a function on the global object.
-func Call(name string, args ...interface{}) jst.Value {
+func Call(name string, args ...any) jst.Value {
 	return Global().Call(name, args...)
 }
 
@@ -122,14 +122,14 @@ func RAF(cb jst.Func) {
 }
 
 // Fetch wraps the global fetch function.
-func Fetch(args ...interface{}) jst.Value {
+func Fetch(args ...any) jst.Value {
 	return Call("fetch", args...)
 }
 
 // Expose registers a no-argument Go function under the given name
 // on the JavaScript global object.
 func Expose(name string, fn func()) {
-	Global().Set(name, jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+	Global().Set(name, jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		fn()
 		return nil
 	}))
@@ -138,7 +138,7 @@ func Expose(name string, fn func()) {
 // ExposeEvent registers a Go function that receives the first argument
 // from the JavaScript call as the event object.
 func ExposeEvent(name string, fn func(jst.Value)) {
-	Global().Set(name, jst.FuncOf(func(this jst.Value, args []jst.Value) interface{} {
+	Global().Set(name, jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		var evt jst.Value
 		if len(args) > 0 {
 			evt = args[0]
@@ -150,7 +150,7 @@ func ExposeEvent(name string, fn func(jst.Value)) {
 
 // ExposeFunc registers a Go function with custom arguments on the
 // JavaScript global object.
-func ExposeFunc(name string, fn func(this jst.Value, args []jst.Value) interface{}) {
+func ExposeFunc(name string, fn func(this jst.Value, args []jst.Value) any) {
 	Global().Set(name, jst.FuncOf(fn))
 }
 

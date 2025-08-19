@@ -11,10 +11,10 @@ import (
 //go:embed templates/slot_parent_component.rtml
 var slotParentComponentTpl []byte
 
-func NewSlotParentComponent(props map[string]interface{}) *core.HTMLComponent {
+func NewSlotParentComponent(props map[string]any) *core.HTMLComponent {
 	c := core.NewComponent("SlotParentComponent", slotParentComponentTpl, props)
 
-	header := NewHeaderComponent(map[string]interface{}{"title": "User Card Slots"})
+	header := NewHeaderComponent(map[string]any{"title": "User Card Slots"})
 	c.AddDependency("header", header)
 
 	userCardWithSlots := NewSlotChildComponent(nil)

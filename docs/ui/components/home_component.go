@@ -14,32 +14,24 @@ import (
 //go:embed templates/home_component.rtml
 var homeTpl []byte
 
-type HomeComponent struct {
-	*core.HTMLComponent
-}
-
-func NewHomeComponent() *HomeComponent {
-	c := &HomeComponent{}
-	c.HTMLComponent = core.NewComponentWith("HomeComponent", homeTpl, nil, c)
+func NewHomeComponent() *core.HTMLComponent {
+	c := core.NewComponent("HomeComponent", homeTpl, nil)
+	c.SetOnMount(func(cmp *core.HTMLComponent) {
+		doc := js.Document()
+		add := func(sel, path string) {
+			if el := doc.Call("querySelector", sel); el.Truthy() {
+				ch := events.Listen("click", el)
+				go func(p string) {
+					for evt := range ch {
+						evt.Call("preventDefault")
+						router.Navigate(p)
+					}
+				}(path)
+			}
+		}
+		add("a[href='/']", "/")
+		add("a[href='/docs/index']", "/docs/index")
+		add("a[href='/docs/getting-started']", "/docs/getting-started")
+	})
 	return c
 }
-
-func (c *HomeComponent) OnMount() {
-	doc := js.Document()
-	add := func(sel, path string) {
-		if el := doc.Call("querySelector", sel); el.Truthy() {
-			ch := events.Listen("click", el)
-			go func(p string) {
-				for evt := range ch {
-					evt.Call("preventDefault")
-					router.Navigate(p)
-				}
-			}(path)
-		}
-	}
-	add("a[href='/']", "/")
-	add("a[href='/docs/index']", "/docs/index")
-	add("a[href='/docs/getting-started']", "/docs/getting-started")
-}
-
-func (c *HomeComponent) OnUnmount() {}

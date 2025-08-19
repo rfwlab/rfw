@@ -11,13 +11,7 @@ import (
 //go:embed templates/list_component.rtml
 var listComponentTpl []byte
 
-type ListComponent struct {
-	*core.HTMLComponent
-}
-
-func NewListComponent(items []core.Component) *ListComponent {
-	props := map[string]interface{}{"items": items}
-	c := &ListComponent{}
-	c.HTMLComponent = core.NewComponentWith("ListComponent", listComponentTpl, props, c)
-	return c
+func NewListComponent(items []core.Component) *core.HTMLComponent {
+	props := map[string]any{"items": items}
+	return core.NewComponent("ListComponent", listComponentTpl, props)
 }
