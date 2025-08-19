@@ -16,11 +16,8 @@ type HeaderComponent struct {
 }
 
 func NewHeaderComponent(props map[string]interface{}) *HeaderComponent {
-	c := &HeaderComponent{
-		HTMLComponent: core.NewHTMLComponent("HeaderComponent", headerComponentTpl, props),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+	c := &HeaderComponent{}
+	c.HTMLComponent = core.NewComponentWith("HeaderComponent", headerComponentTpl, props, c)
 
 	return c
 }

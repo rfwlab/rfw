@@ -11,16 +11,8 @@ import (
 //go:embed templates/main_component.rtml
 var mainComponentTpl []byte
 
-type MainComponent struct {
-	*core.HTMLComponent
-}
-
-func NewMainComponent() *MainComponent {
-	c := &MainComponent{
-		HTMLComponent: core.NewHTMLComponent("MainComponent", mainComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewMainComponent() *core.HTMLComponent {
+	c := core.NewComponent("MainComponent", mainComponentTpl, nil)
 
 	cardComponent := NewCardComponent(map[string]interface{}{
 		"title": "just a card",

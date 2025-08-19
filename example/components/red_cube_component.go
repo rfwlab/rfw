@@ -11,15 +11,6 @@ import (
 //go:embed templates/red_cube_component.rtml
 var redCubeComponentTpl []byte
 
-type RedCubeComponent struct {
-	*core.HTMLComponent
-}
-
-func NewRedCubeComponent() *RedCubeComponent {
-	c := &RedCubeComponent{
-		HTMLComponent: core.NewHTMLComponent("RedCubeComponent", redCubeComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
-	return c
+func NewRedCubeComponent() *core.HTMLComponent {
+	return core.NewComponent("RedCubeComponent", redCubeComponentTpl, nil)
 }

@@ -14,16 +14,8 @@ import (
 //go:embed templates/animation_component.rtml
 var animationComponentTpl []byte
 
-type AnimationComponent struct {
-	*core.HTMLComponent
-}
-
-func NewAnimationComponent() *AnimationComponent {
-	c := &AnimationComponent{
-		HTMLComponent: core.NewHTMLComponent("AnimationComponent", animationComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewAnimationComponent() *core.HTMLComponent {
+	c := core.NewComponent("AnimationComponent", animationComponentTpl, nil)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Animations",

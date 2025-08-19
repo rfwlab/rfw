@@ -27,9 +27,8 @@ type DocsComponent struct {
 }
 
 func NewDocsComponent() *DocsComponent {
-	c := &DocsComponent{HTMLComponent: core.NewHTMLComponent("DocsComponent", docsTpl, nil), titles: make(map[string]string)}
-	c.SetComponent(c)
-	c.Init(nil)
+	c := &DocsComponent{titles: make(map[string]string)}
+	c.HTMLComponent = core.NewComponentWith("DocsComponent", docsTpl, nil, c)
 	return c
 }
 

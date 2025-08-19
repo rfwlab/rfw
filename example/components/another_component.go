@@ -11,16 +11,8 @@ import (
 //go:embed templates/another_component.rtml
 var anotherComponentTpl []byte
 
-type AnotherComponent struct {
-	*core.HTMLComponent
-}
-
-func NewAnotherComponent() *AnotherComponent {
-	c := &AnotherComponent{
-		HTMLComponent: core.NewHTMLComponent("AnotherComponent", anotherComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewAnotherComponent() *core.HTMLComponent {
+	c := core.NewComponent("AnotherComponent", anotherComponentTpl, nil)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Another Component",
@@ -28,8 +20,4 @@ func NewAnotherComponent() *AnotherComponent {
 	c.AddDependency("header", headerComponent)
 
 	return c
-}
-
-func (c *AnotherComponent) SetRouteParams(params map[string]string) {
-	c.HTMLComponent.SetRouteParams(params)
 }

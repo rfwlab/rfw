@@ -68,9 +68,8 @@ type Counter struct {
 }
 
 func New() *Counter {
-    c := &Counter{HTMLComponent: core.NewHTMLComponent("Counter", tpl, nil)}
-    c.SetComponent(c)
-    c.Init(nil)
+    c := &Counter{}
+    c.HTMLComponent = core.NewComponentWith("Counter", tpl, nil, c)
 
     dom.RegisterHandlerFunc("increment", func() {
         c.Count++

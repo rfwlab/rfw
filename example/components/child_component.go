@@ -11,16 +11,8 @@ import (
 //go:embed templates/child_component.rtml
 var childComponentTpl []byte
 
-type ChildComponent struct {
-	*core.HTMLComponent
-}
-
-func NewChildComponent() *ChildComponent {
-	c := &ChildComponent{
-		HTMLComponent: core.NewHTMLComponent("ChildComponent", childComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+func NewChildComponent() *core.HTMLComponent {
+	c := core.NewComponent("ChildComponent", childComponentTpl, nil)
 
 	headerComponent := NewHeaderComponent(map[string]interface{}{
 		"title": "Child Component",

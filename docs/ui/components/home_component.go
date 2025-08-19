@@ -19,9 +19,8 @@ type HomeComponent struct {
 }
 
 func NewHomeComponent() *HomeComponent {
-	c := &HomeComponent{HTMLComponent: core.NewHTMLComponent("HomeComponent", homeTpl, nil)}
-	c.SetComponent(c)
-	c.Init(nil)
+	c := &HomeComponent{}
+	c.HTMLComponent = core.NewComponentWith("HomeComponent", homeTpl, nil, c)
 	return c
 }
 

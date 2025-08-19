@@ -18,3 +18,8 @@ output.
 
 `core.NewApp(rootID string)` creates an application. Components are
 mounted with `app.Mount(component)`.
+
+## Component helpers
+
+`core.NewComponent(name, tpl, props)` returns an initialized `*core.HTMLComponent` with the provided template and props.
+For structs embedding `*core.HTMLComponent`, use `core.NewComponentWith(name, tpl, props, self)` to bind lifecycle hooks without manual setup.

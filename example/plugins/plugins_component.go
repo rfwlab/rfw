@@ -17,11 +17,8 @@ type PluginsComponent struct {
 }
 
 func NewPluginsComponent() *PluginsComponent {
-	c := &PluginsComponent{
-		HTMLComponent: core.NewHTMLComponent("PluginsComponent", pluginsComponentTpl, nil),
-	}
-	c.SetComponent(c)
-	c.Init(nil)
+	c := &PluginsComponent{}
+	c.HTMLComponent = core.NewComponentWith("PluginsComponent", pluginsComponentTpl, nil, c)
 	return c
 }
 
