@@ -20,6 +20,7 @@ var (
 	boldYellow = color.New(color.FgYellow, color.Bold).SprintFunc()
 	boldRed    = color.New(color.FgRed, color.Bold).SprintFunc()
 	indent     = "  "
+	dbg        = false
 )
 
 func ClearScreen() {
@@ -52,6 +53,14 @@ func Info(message string) {
 
 func Fatal(message string, err error) {
 	log.Fatalf(boldRed("[rfw] "), message, err)
+}
+
+func EnableDebug(d bool) { dbg = d }
+
+func Debug(message string) {
+	if dbg {
+		fmt.Println(boldRed("[rfw][debug]"), faint(message))
+	}
 }
 
 func PrintHelp() {

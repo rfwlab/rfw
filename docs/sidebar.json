@@ -31,5 +31,6 @@
             { "title": "plugins", "path": "api/plugins.md" }
         ]
     },
-    { "title": "Legacy Notes", "path": "legacy.md" }
+    { "title": "Legacy Notes", "path": "legacy.md" },
+    { "title": "Devtools", "path": "devtools.md" }
 ]

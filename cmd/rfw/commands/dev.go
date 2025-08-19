@@ -15,12 +15,14 @@ func NewDevCommand() *command.Command {
 	}
 	cmd.AddFlag("port", "p", "Port to serve on", "8080", true)
 	cmd.AddBoolFlag("host", "", "Expose the server to the network", false, false)
+	cmd.AddBoolFlag("debug", "", "Enable debug logs and profiling", false, false)
 	return cmd
 }
 
 func runDev(cmd *command.Command, _ *command.RootFlags, _ []string) error {
 	port := cmd.GetFlagString("port")
 	host := cmd.GetFlagBool("host")
-	srv := server.NewServer(port, host)
+	debug := cmd.GetFlagBool("debug")
+	srv := server.NewServer(port, host, debug)
 	return srv.Start()
 }
