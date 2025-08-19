@@ -88,7 +88,7 @@ by referencing them in its template. When a store value changes, the
 framework updates every bound node automatically – no manual DOM
 manipulation is required. Stores can expose computed values derived from
 other keys and watchers that run arbitrary functions on change. See the
-[state guide](./guide/state.md) for a deeper tour of these features.
+[state guide](./guide/state-management.md) for a deeper tour of these features.
 
 ## Next steps
 

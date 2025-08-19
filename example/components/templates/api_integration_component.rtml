@@ -1,0 +1,7 @@
+<root>
+    @include:header
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <button class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" @click:load>Load Data</button>
+        <p>Data: @store:app.default.apiData</p>
+    </div>
+</root>

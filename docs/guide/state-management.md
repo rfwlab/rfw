@@ -66,3 +66,5 @@ is available for interoperability with existing libraries.
 Enable `WithDevTools` when creating a store to log every mutation during
 development. Persistence can be toggled with `WithPersistence` to store
 state in the browser between sessions.
+
+See the example component for a practical demonstration of computed values and reactive updates.
