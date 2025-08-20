@@ -140,7 +140,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 	if c.page == "" {
 		c.page = "index"
 	}
-	js.Call("rfwLoadDoc", "/docs/"+c.page+".md")
+	js.Call("rfwLoadDoc", "/articles/"+c.page+".md")
 }
 
 func (c *DocsComponent) SetRouteParams(params map[string]string) {
@@ -155,7 +155,7 @@ func (c *DocsComponent) SetRouteParams(params map[string]string) {
 		c.page = "index"
 	}
 	if c.mounted {
-		js.Call("rfwLoadDoc", "/docs/"+c.page+".md")
+		js.Call("rfwLoadDoc", "/articles/"+c.page+".md")
 	}
 }
 
