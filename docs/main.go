@@ -62,7 +62,7 @@ func main() {
 	})
 	// Example routes mounted under /examples
 	router.RegisterRoute(router.Route{
-		Path:      "/examples",
+		Path:      "/examples/main",
 		Component: func() core.Component { return excomponents.NewMainComponent() },
 	})
 	router.RegisterRoute(router.Route{
