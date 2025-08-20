@@ -47,4 +47,4 @@ project is experimental, it demonstrates how a simple reactive model can
 produce interactive interfaces without a large JavaScript framework.
 The main component highlights several core features.
 
-@include:ExampleFrame:{code:"/examples/components/main_component.go", uri:"/examples/"}
+@include:ExampleFrame:{code:"/examples/components/main_component.go", uri:"/examples/main"}
