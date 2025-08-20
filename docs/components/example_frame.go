@@ -45,13 +45,18 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 	codeTab := wrapper.Call("querySelector", "#tab-code")
 	previewTab := wrapper.Call("querySelector", "#tab-preview")
 	codeDiv := wrapper.Call("querySelector", "#code")
+	codeEl := codeDiv.Call("querySelector", "code")
 	previewDiv := wrapper.Call("querySelector", "#preview")
 	codeURL := wrapper.Get("dataset").Get("code").String()
 	if codeURL != "" {
 		js.Fetch(codeURL).Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 			resp := args[0]
 			return resp.Call("text").Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-				codeDiv.Set("textContent", args[0].String())
+				codeEl.Set("textContent", args[0].String())
+				hljs := js.Get("hljs")
+				if hljs.Truthy() {
+					hljs.Call("highlightElement", codeEl)
+				}
 				return nil
 			}))
 		}))

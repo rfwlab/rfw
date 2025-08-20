@@ -5,6 +5,7 @@ package core
 import (
 	"crypto/sha1"
 	"fmt"
+	"html"
 	"regexp"
 	"sort"
 	"strconv"
@@ -130,7 +131,7 @@ func replaceComponentIncludes(template string, c *HTMLComponent) string {
 				return match
 			}
 			name := parts[1]
-			propStr := parts[2]
+			propStr := html.UnescapeString(parts[2])
 			comp := LoadComponent(name)
 			if comp == nil {
 				if DevMode {

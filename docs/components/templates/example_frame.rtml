@@ -1,12 +1,13 @@
 <root>
-  <div class="border rounded mb-4" data-code="@prop:code">
-    <div class="flex border-b">
+  <div class="border border-gray-200 rounded mb-4 overflow-hidden" data-code="@prop:code">
+    <div class="flex border-b border-gray-200">
       <button id="tab-code" class="px-4 py-2 border-b-2 border-blue-500">Code</button>
       <button id="tab-preview" class="px-4 py-2">Preview</button>
     </div>
-    <div id="code" class="p-4 font-mono text-sm overflow-auto"></div>
+    <pre id="code" class="p-4 font-mono text-sm overflow-auto" style=" background-color: #22272e; margin: 0; border-radius: 0; ">
+        <code class="language-go"></code></pre>
     <div id="preview" class="hidden">
-      <iframe class="w-full h-64" src="@prop:uri"></iframe>
+      <iframe class="w-full h-128" src="@prop:uri"></iframe>
     </div>
   </div>
 </root>
