@@ -13,6 +13,37 @@ few conveniences for reactive Go applications.
 Because RTML compiles to Go, complex components still benefit from the
 compiler's type checking and tooling support.
 
+## Identifiers, variables and commands
+
+RTML distinguishes three categories that should never overlap:
+
+- **Identifiers (`id` attributes)** mark elements so that CSS or
+  JavaScript can target them. They are part of plain HTML and RTML never
+  substitutes or evaluates their values.
+- **Variables (`{expr}` placeholders)** inject dynamic data. They render
+  the value of the expression as text and cannot perform logic or alter
+  attributes.
+- **Commands (`@command` directives)** invoke RTML instructions. They
+  add behaviour like loops, conditions or event handlers and may emit
+  markup, but they do not expose data directly.
+
+Each construct has a dedicated role and must not take the others' job:
+
+```rtml
+<div id="user-card">
+  <h2>{user.Name}</h2>
+  <button @click:save>Save</button>
+</div>
+```
+
+- `id="user-card"` is static and only identifies the element.
+- `{user.Name}` outputs data but cannot trigger logic.
+- `@click:save` registers an event handler but does not display text or
+  provide an identifier.
+
+Keeping these responsibilities separate ensures predictable templates
+and avoids accidental coupling between style, data and behaviour.
+
 ## Basic structure
 
 ```rtml
@@ -114,14 +145,31 @@ not diffed.
 
 ## Stores
 
-Access global state using the `@store` directive:
+Access global state using the `@store` directive. This command binds an
+element to a value stored in the global state manager and optionally
+writes changes back.
 
-```rtml
-<p>Count: @store:app.counter</p>
-<input value="@store:app.counter:w">
+The full syntax is:
+
+```
+@store:MODULE.STORE.KEY[:w]
 ```
 
-The `:w` suffix writes back to the store when the value changes.
+- `MODULE` selects the module namespace (commonly `app` or `default`).
+- `STORE` chooses the store within that module.
+- `KEY` is the field to read.
+- `:w` is optional and enables two‑way bindings for form controls,
+  writing user input back to the store when it changes.
+
+Example:
+
+```rtml
+<p>Shared: @store:app.default.sharedState</p>
+<input value="@store:app.default.sharedState:w">
+```
+
+Outside of form elements the `:w` suffix has no effect and the value is
+read‑only.
 
 ---
 
