@@ -10,6 +10,8 @@ import (
 	"golang.org/x/net/html"
 )
 
+// VDOMNode represents a node in a virtual DOM tree derived from an HTML
+// template.
 type VDOMNode struct {
 	Tag        string
 	Attributes map[string]string
@@ -17,6 +19,7 @@ type VDOMNode struct {
 	Text       string
 }
 
+// NewVDOM parses an HTML template into a virtual DOM tree.
 func NewVDOM(htmlTemplate string) (*VDOMNode, error) {
 	reader := strings.NewReader(htmlTemplate)
 	doc, err := html.Parse(reader)
@@ -111,6 +114,8 @@ func nodeByPath(root jst.Value, path []int) jst.Value {
 	return node
 }
 
+// BindEventListeners attaches registered handlers to nodes within the component
+// identified by componentID.
 func BindEventListeners(componentID string, root jst.Value) {
 	if bs, ok := compiledBindings[componentID]; ok {
 		for _, b := range bs {
@@ -186,6 +191,8 @@ func BindEventListeners(componentID string, root jst.Value) {
 	}
 }
 
+// RemoveEventListeners detaches all event listeners associated with the
+// specified component.
 func RemoveEventListeners(componentID string) {
 	if ls, ok := listeners[componentID]; ok {
 		for _, l := range ls {

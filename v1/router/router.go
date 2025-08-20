@@ -1,5 +1,7 @@
 //go:build js && wasm
 
+// Package router implements a simple client-side router for WebAssembly
+// applications built with RFW.
 package router
 
 import (
@@ -13,8 +15,12 @@ import (
 	"github.com/rfwlab/rfw/v1/js"
 )
 
+// Guard is a function that determines whether navigation to a route is
+// permitted based on the provided parameters.
 type Guard func(map[string]string) bool
 
+// Route describes a routing rule that maps a path to a component and optional
+// guards or child routes.
 type Route struct {
 	Path      string
 	Component func() core.Component
@@ -35,6 +41,7 @@ type route struct {
 var routes []route
 var currentComponent core.Component
 
+// RegisterRoute adds a new Route to the router's configuration.
 func RegisterRoute(r Route) {
 	routes = append(routes, buildRoute(r))
 }
@@ -100,6 +107,8 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 	return nil, nil, nil
 }
 
+// Navigate renders the component associated with the specified path if all
+// route guards allow it.
 func Navigate(path string) {
 	r, guards, params := matchRoute(routes, path)
 	if r == nil {
@@ -135,6 +144,7 @@ func Navigate(path string) {
 	js.History().Call("pushState", nil, "", path)
 }
 
+// ExposeNavigate makes the Navigate function accessible from JavaScript.
 func ExposeNavigate() {
 	js.ExposeFunc("goNavigate", func(this jst.Value, args []jst.Value) any {
 		path := args[0].String()
@@ -143,6 +153,8 @@ func ExposeNavigate() {
 	})
 }
 
+// InitRouter initializes the router and begins listening for navigation
+// events.
 func InitRouter() {
 	ch := events.Listen("popstate", js.Window())
 	go func() {
