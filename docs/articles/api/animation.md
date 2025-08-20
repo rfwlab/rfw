@@ -16,25 +16,6 @@ and a duration. They can be invoked from event handlers registered in the DOM.
 `Keyframes` accepts arrays of frame definitions and option maps that are
 passed directly to the browser's `Element.animate` API.
 
-## Example
+The following example animates elements using these helpers.
 
-```go
-dom.RegisterHandlerFunc("animateFade", func() {
-        anim.Fade("#fadeBox", 1, 0, 500*time.Millisecond)
-})
-
-dom.RegisterHandlerFunc("animateSpin", func() {
-        frames := []map[string]any{
-                {"transform": "rotate(0deg)"},
-                {"transform": "rotate(360deg)"},
-        }
-        opts := map[string]any{"duration": 500, "iterations": 1}
-        anim.Keyframes("#spinBox", frames, opts)
-})
-```
-
-1. `dom.RegisterHandlerFunc` links the `animateFade` ID to a Go function.
-2. When triggered, `anim.Fade` fades `#fadeBox` from opaque to transparent
-   over half a second.
-3. `anim.Keyframes` delegates to the Web Animations API to spin `#spinBox`
-   once around its center.
+@include:ExampleFrame:{code:"/examples/components/animation_component.go", uri:"/examples/animations"}

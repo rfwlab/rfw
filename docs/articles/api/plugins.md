@@ -20,17 +20,6 @@ Plugins must be registered before the application starts using
 `core.RegisterPlugin` or `app.Use`. During `Setup` they can modify the app or
 add features.
 
-## Example
+Plugins can hook into the app lifecycle as illustrated here.
 
-```go
-core.RegisterPlugin(logger.New())
-core.RegisterPlugin(i18n.New(map[string]map[string]string{
-        "en": {"hello": "Hello"},
-        "it": {"hello": "Ciao"},
-}))
-core.RegisterPlugin(mon.New())
-```
-
-1. Multiple plugins are registered before the app starts.
-2. The `logger` plugin intercepts logs while `i18n` provides translations.
-3. `mon.New()` installs an additional monitoring plugin.
+@include:ExampleFrame:{code:"/examples/plugins/plugins_component.go", uri:"/examples/plugins"}

@@ -108,6 +108,55 @@ func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) strin
 	})
 }
 
+// replaceComponentIncludes scans for @include directives that supply inline
+// props using the syntax @include:Component:{key:"value"}. Matching includes
+// are replaced with standard @include placeholders after instantiating the
+// component and registering it as a dependency.
+func replaceComponentIncludes(template string, c *HTMLComponent) string {
+	idx := 0
+
+	// Handle includes that may be wrapped in <p> tags produced by Markdown
+	// renderers as well as bare @include directives.
+	patterns := []string{
+		`<p>@include:([\w-]+):\{([^}]*)\}</p>`,
+		`@include:([\w-]+):\{([^}]*)\}`,
+	}
+
+	for _, pat := range patterns {
+		re := regexp.MustCompile(pat)
+		template = re.ReplaceAllStringFunc(template, func(match string) string {
+			parts := re.FindStringSubmatch(match)
+			if len(parts) < 3 {
+				return match
+			}
+			name := parts[1]
+			propStr := parts[2]
+			comp := LoadComponent(name)
+			if comp == nil {
+				if DevMode {
+					Log().Warn("include referenced unknown component '%s'", name)
+				}
+				return match
+			}
+			props := map[string]any{}
+			propRe := regexp.MustCompile(`(\w+):"([^"]*)"`)
+			for _, m := range propRe.FindAllStringSubmatch(propStr, -1) {
+				props[m[1]] = m[2]
+			}
+			if hc, ok := comp.(*HTMLComponent); ok {
+				hc.Props = props
+				hc.ID = generateComponentID(hc.Name, hc.Props)
+			}
+			placeholder := fmt.Sprintf("inc-%s-%d", name, idx)
+			idx++
+			c.AddDependency(placeholder, comp)
+			return "@include:" + placeholder
+		})
+	}
+
+	return template
+}
+
 func extractSlotContents(template string, c *HTMLComponent) string {
 	slotRegex := regexp.MustCompile(`@slot:(\w+)(?:\.(\w+))?([\s\S]*?)@endslot`)
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {

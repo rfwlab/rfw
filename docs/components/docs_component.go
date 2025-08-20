@@ -24,6 +24,7 @@ type DocsComponent struct {
 	titles  map[string]string
 	page    string
 	mounted bool
+	docComp *core.HTMLComponent
 }
 
 func NewDocsComponent() *DocsComponent {
@@ -89,7 +90,13 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			detail := evt.Get("detail")
 			path := detail.Get("path").String()
 			content := detail.Get("content").String()
-			doc.Call("getElementById", "doc-content").Set("innerHTML", js.Get("marked").Call("parse", content))
+			html := js.Get("marked").Call("parse", content).String()
+			if c.docComp != nil {
+				c.docComp.Unmount()
+			}
+			c.docComp = core.NewComponent("DocContent", []byte(html), nil)
+			doc.Call("getElementById", "doc-content").Set("innerHTML", c.docComp.Render())
+			c.docComp.Mount()
 			if hljs := js.Get("hljs"); hljs.Truthy() {
 				hljs.Call("highlightAll")
 			}

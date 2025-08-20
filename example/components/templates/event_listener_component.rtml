@@ -1,8 +1,0 @@
-<root>
-    @include:header
-    <div class="p-4 pt-0">
-        <h2 class="text-xl font-bold mb-4">Event Listener Component</h2>
-        <button id="clickBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Click me</button>
-        <p class="mt-4">Clicks: @store:app.default.clicks</p>
-    </div>
-</root>

@@ -1,0 +1,8 @@
+<root>
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <p>State is currently: @store:app.default.sharedState</p>
+        <p>User: @prop:name</p>
+        <input type="text" value="@store:default.testing.testingState:w" class="p-2 border border-gray-300 rounded-md">
+        <p>Testing State is currently: @store:default.testing.testingState</p>
+    </div>
+</root>

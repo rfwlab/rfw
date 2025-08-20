@@ -1,0 +1,5 @@
+<root>
+    <div class="p-4 pt-0">
+        <p>Child component content.</p>
+    </div>
+</root>

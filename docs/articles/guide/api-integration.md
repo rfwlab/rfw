@@ -14,3 +14,6 @@ go func() {
 The accompanying example component triggers a fetch to a public API when a button is
 clicked, performing the request in a goroutine so the event loop stays responsive,
 and displays the received data once available.
+It fetches data from an API and renders the result.
+
+@include:ExampleFrame:{code:"/examples/components/api_integration_component.go", uri:"/examples/api"}

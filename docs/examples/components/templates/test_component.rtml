@@ -1,0 +1,57 @@
+<root>
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <button onclick="goNavigate('/user/Luigi')"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Go to another page</button>
+        <p>State is currently: @store:app.default.sharedState</p>
+        <input type="text" value="@store:app.default.sharedState:w" class="p-2 border border-gray-300 rounded-md">
+        <p>Testing State is currently: @store:default.testing.testingState</p>
+        <input type="text" value="@store:default.testing.testingState:w" class="p-2 border border-gray-300 rounded-md">
+
+        @if:store:app.default.sharedState == "123"
+        <div class="bg-green-200 p-4 mb-4 flex flex-col gap-4 items-start">
+            <h2 class="text-2xl font-bold">Shared State is 123</h2>
+            <p>Try setting it to something else.</p>
+        </div>
+        @else-if:store:app.default.sharedState == "456"
+        <div class="bg-yellow-200 p-4 mb-4 flex flex-col gap-4 items-start">
+            <h2 class="text-2xl font-bold">Shared State is 456</h2>
+            <p>Try setting it to something else.</p>
+        </div>
+        @else
+        <div class="bg-red-200 p-4 mb-4 flex flex-col gap-4 items-start">
+            <h2 class="text-2xl font-bold">Shared State is not 123</h2>
+            <p>Try setting it to 123.</p>
+        </div>
+        @endif
+
+        <ul class="list-disc ml-4">
+            @for:item in items
+                <li>
+                    <p><b>Name:</b> @prop:item.name</p>
+                    <p><b>Age:</b> @prop:item.age</p>
+                </li>
+            @endfor
+        </ul>
+
+        <ul class="list-disc ml-4">
+            @for:item in store:app.default.testLoop
+                <li>
+                    <p><b>Name:</b> @prop:item.name</p>
+                </li>
+            @endfor
+        </ul>
+
+        <ul class="list-disc ml-4">
+            @for:key,val in obj
+                <li>@prop:key: @prop:val</li>
+            @endfor
+        </ul>
+
+        <ul class="list-disc ml-4">
+            @for:i in 0..n
+                <li>Number: @prop:i</li>
+            @endfor
+        </ul>
+
+    </div>
+</root>

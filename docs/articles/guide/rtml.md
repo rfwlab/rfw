@@ -127,3 +127,6 @@ The `:w` suffix writes back to the store when the value changes.
 
 These building blocks cover most RTML syntax. Combine them with Go
 logic to create dynamic components.
+RTML templates bind data reactively.
+
+@include:ExampleFrame:{code:"/examples/components/computed_component.go", uri:"/examples/computed"}
