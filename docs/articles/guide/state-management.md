@@ -25,13 +25,37 @@ Computed values derive new data from existing keys. They are lazily
 re‑evaluated when any dependency changes:
 
 ```go
-s.RegisterComputed(state.NewComputed("fullName", []string{"first","last"}, func(m map[string]any) any {
-    return m["first"].(string) + " " + m["last"].(string)
-}))
+state.Map2(s, "fullName", "first", "last", func(first, last string) string {
+    return first + " " + last
+})
 ```
 
 Components can bind to `fullName` like any other key and the value stays
 up to date as `first` or `last` changes.
+
+For more control, `RegisterComputed` lets you derive values from any number
+of dependencies. It receives a map of the watched keys and can return any
+type:
+
+```go
+import "fmt"
+
+if s.Get("profile") == nil {
+    s.RegisterComputed(state.NewComputed(
+        "profile",
+        []string{"first", "last", "age"},
+        func(m map[string]any) any {
+            first, _ := m["first"].(string)
+            last, _ := m["last"].(string)
+            age, _ := m["age"].(int)
+            return fmt.Sprintf("%s %s (%d)", first, last, age)
+        },
+    ))
+}
+```
+
+This approach is useful for advanced cases such as combining many fields or
+transforming data before exposing it to components.
 
 ## Watchers
 

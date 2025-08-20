@@ -23,11 +23,9 @@ func NewComputedComponent() *core.HTMLComponent {
 		store.Set("lastChange", "")
 	}
 	// register computed full name
-	store.RegisterComputed(state.NewComputed("fullName", []string{"first", "last"}, func(s map[string]any) any {
-		first, _ := s["first"].(string)
-		last, _ := s["last"].(string)
+	state.Map2(store, "fullName", "first", "last", func(first, last string) string {
 		return strings.TrimSpace(first + " " + last)
-	}))
+	})
 
 	// show watcher side effects
 	store.RegisterWatcher(state.NewWatcher([]string{"fullName"}, func(s map[string]any) {

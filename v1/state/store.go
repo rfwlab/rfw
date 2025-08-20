@@ -171,6 +171,39 @@ func (s *Store) RegisterComputed(c *Computed) {
 	c.lastDeps = snapshotDeps(s.state, c.Deps())
 }
 
+// Map registers a computed value derived from a single dependency using a
+// strongly typed mapping function. The mapping function receives the current
+// value of the dependency and its result is stored under the provided key. If
+// the dependency cannot be asserted to the expected type, the zero value of the
+// return type is used instead.
+func Map[T, R any](s *Store, key, dep string, compute func(T) R) {
+	c := NewComputed(key, []string{dep}, func(m map[string]any) any {
+		if v, ok := m[dep].(T); ok {
+			return compute(v)
+		}
+		var zero R
+		return zero
+	})
+	s.RegisterComputed(c)
+}
+
+// Map2 registers a computed value derived from two dependencies. The mapping
+// function receives the current values of both dependencies and its result is
+// stored under the provided key. If any dependency fails type assertion the
+// zero value of the return type is used.
+func Map2[A, B, R any](s *Store, key, depA, depB string, compute func(A, B) R) {
+	c := NewComputed(key, []string{depA, depB}, func(m map[string]any) any {
+		a, okA := m[depA].(A)
+		b, okB := m[depB].(B)
+		if okA && okB {
+			return compute(a, b)
+		}
+		var zero R
+		return zero
+	})
+	s.RegisterComputed(c)
+}
+
 // RegisterWatcher registers a watcher that triggers when any of its
 // dependencies change. If the dependency list is empty the watcher is triggered
 // on every state update. It returns a function that removes the watcher.
