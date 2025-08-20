@@ -1,5 +1,7 @@
 //go:build js && wasm
 
+// Package dom provides utilities for updating the browser DOM and binding
+// event listeners for WebAssembly components.
 package dom
 
 import (
@@ -12,8 +14,12 @@ import (
 	"github.com/rfwlab/rfw/v1/state"
 )
 
+// TemplateHook is an optional callback invoked after a DOM update to allow
+// custom processing of the rendered HTML.
 var TemplateHook func(componentID, html string)
 
+// UpdateDOM patches the DOM of the specified component with the provided
+// HTML string.
 func UpdateDOM(componentID string, html string) {
 	document := js.Document()
 	var element jst.Value
