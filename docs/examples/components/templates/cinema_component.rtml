@@ -13,7 +13,7 @@
             <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioCinema>Add audio</button>
         </div>
         <div id="sceneBox" class="w-16 h-16 bg-blue-500"></div>
-        <video id="sceneVideo" class="mt-2" width="160" src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+        <video id="sceneVideo" class="mt-2" width="320" src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
         <input id="progressBar" type="range" min="0" max="100" value="0" class="w-full h-2 mt-2 accent-blue-500" />
     </div>
 </root>
