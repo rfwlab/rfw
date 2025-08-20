@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/rfwlab/rfw/docs/ui/components"
+	"github.com/rfwlab/rfw/docs/components"
 	"github.com/rfwlab/rfw/v1/core"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
 	"github.com/rfwlab/rfw/v1/router"
@@ -15,7 +15,7 @@ func main() {
 	// without explicitly providing one.
 	state.NewStore("default", state.WithModule("app"))
 
-	core.RegisterPlugin(docplug.New("/docs/sidebar.json"))
+	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
 	router.RegisterRoute(router.Route{
 		Path:      "/",
 		Component: func() core.Component { return components.NewHomeComponent() },
