@@ -1,7 +1,19 @@
 <root>
     <div id="cinemaRoot" class="p-4 pt-0 space-y-4">
-        <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:runCinema>Run</button>
+        <div class="flex flex-wrap gap-2">
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:playCinema>Play</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:pauseCinema>Pause</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:stopCinema>Stop</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:seekCinema>Seek 5s</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:speedCinema>1.5x</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:volumeCinema>Vol 50%</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:muteCinema>Mute</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:unmuteCinema>Unmute</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:subtitleCinema>Subtitle</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioCinema>Add audio</button>
+        </div>
         <div id="sceneBox" class="w-16 h-16 bg-blue-500"></div>
         <video id="sceneVideo" class="mt-2" width="160" src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+        <input id="progressBar" type="range" min="0" max="100" value="0" class="w-full h-2 mt-2 accent-blue-500" />
     </div>
 </root>
