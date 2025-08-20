@@ -34,12 +34,9 @@ func NewStateManagementComponent() *StateManagementComponent {
 func (c *StateManagementComponent) Init(store *state.Store) {
 	c.HTMLComponent.Init(store)
 	if store.Get("double") == nil {
-		store.RegisterComputed(state.NewComputed("double", []string{"count"}, func(m map[string]any) any {
-			if v, ok := m["count"].(int); ok {
-				return v * 2
-			}
-			return 0
-		}))
+		state.Map(store, "double", "count", func(v int) int {
+			return v * 2
+		})
 	}
 }
 

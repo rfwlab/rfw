@@ -1,6 +1,9 @@
 package state
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestComputedStability(t *testing.T) {
 	s := NewStore("test")
@@ -39,5 +42,37 @@ func TestComputedStability(t *testing.T) {
 	}
 	if v := s.Get("double"); v != 6 {
 		t.Fatalf("expected computed value 6, got %v", v)
+	}
+}
+
+func TestMapHelpers(t *testing.T) {
+	s := NewStore("test")
+	s.Set("count", 2)
+
+	Map(s, "double", "count", func(v int) int { return v * 2 })
+
+	if v := s.Get("double"); v != 4 {
+		t.Fatalf("expected 4, got %v", v)
+	}
+
+	s.Set("count", 3)
+	if v := s.Get("double"); v != 6 {
+		t.Fatalf("expected 6 after update, got %v", v)
+	}
+
+	s.Set("first", "Ada")
+	s.Set("last", "Lovelace")
+
+	Map2(s, "fullName", "first", "last", func(f, l string) string {
+		return strings.TrimSpace(f + " " + l)
+	})
+
+	if v := s.Get("fullName"); v != "Ada Lovelace" {
+		t.Fatalf("expected full name Ada Lovelace, got %v", v)
+	}
+
+	s.Set("last", "Hopper")
+	if v := s.Get("fullName"); v != "Ada Hopper" {
+		t.Fatalf("expected full name Ada Hopper, got %v", v)
 	}
 }
