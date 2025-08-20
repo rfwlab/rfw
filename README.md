@@ -23,7 +23,7 @@ rfw init github.com/username/project-name
 rfw dev
 ```
 
-Read the [documentation](./docs/index.md) for a complete guide to the framework.
+Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
 ## Build-level Plugins
 
