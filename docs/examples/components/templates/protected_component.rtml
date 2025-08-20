@@ -1,0 +1,5 @@
+<root>
+    <div class="p-4 pt-0">
+        <p>This route is protected by a navigation guard.</p>
+    </div>
+</root>

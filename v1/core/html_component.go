@@ -105,6 +105,9 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, fmt.Sprintf("%v", value))
 	}
 
+	// Register @include directives that supply inline props
+	renderedTemplate = replaceComponentIncludes(renderedTemplate, c)
+
 	// Handle @include:componentName syntax for dependencies
 	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
 

@@ -11,15 +11,6 @@ Client-side router with lazy loaded components and guards.
 Routes are defined with `router.RegisterRoute` by specifying the path and the
 component to mount. `router.InitRouter` starts the router.
 
-## Example
+Routing parameters are handled as in the following component.
 
-```go
-router.RegisterRoute(router.Route{
-        Path: "/",
-        Component: func() core.Component { return components.NewMainComponent() },
-})
-router.InitRouter()
-```
-
-1. `RegisterRoute` associates the root path with the main component.
-2. `InitRouter` listens for URL changes and renders the current route.
+@include:ExampleFrame:{code:"/examples/components/another_component.go", uri:"/examples/user/jane"}

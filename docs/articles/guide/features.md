@@ -45,3 +45,6 @@ rfw shines when you want tight control over the generated output, prefer
 writing in Go or need to share code between client and server. While the
 project is experimental, it demonstrates how a simple reactive model can
 produce interactive interfaces without a large JavaScript framework.
+The main component highlights several core features.
+
+@include:ExampleFrame:{code:"/examples/components/main_component.go", uri:"/examples/"}

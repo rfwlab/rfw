@@ -36,3 +36,6 @@ app.Use(analytics.Plugin{})
 
 Plugins are ideal for analytics, custom elements or build-time
 transformations.
+Plugins extend the framework at runtime.
+
+@include:ExampleFrame:{code:"/examples/plugins/plugins_component.go", uri:"/examples/plugins"}

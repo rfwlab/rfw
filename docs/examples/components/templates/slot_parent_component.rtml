@@ -1,0 +1,18 @@
+<root>
+    <div class="p-4 pt-0 space-y-4">
+        <div>
+            <p class="font-semibold">User with custom avatar and details:</p>
+            @slot:userCard.avatar
+                <img src="https://placehold.co/64x64" class="rounded-full" />
+            @endslot
+            @slot:userCard
+                <p>Jane Doe is a software engineer from Milan.</p>
+            @endslot
+            @include:userCard
+        </div>
+        <div>
+            <p class="font-semibold">User with fallback content:</p>
+            @include:userCardFallback
+        </div>
+    </div>
+</root>

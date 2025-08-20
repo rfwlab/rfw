@@ -1,0 +1,8 @@
+<root>
+    <div class="p-4 pt-0 space-y-4">
+        <p class="mb-2">Below is a component loaded at runtime:</p>
+        <div rt-is="red-cube"></div>
+        <p class="mt-4 mb-2">Example of rendering a list of dynamic components:</p>
+        @include:list
+    </div>
+</root>

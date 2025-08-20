@@ -92,3 +92,6 @@ development. Persistence can be toggled with `WithPersistence` to store
 state in the browser between sessions.
 
 See the example component for a practical demonstration of computed values and reactive updates.
+Stores provide reactive state management.
+
+@include:ExampleFrame:{code:"/examples/components/state_management_component.go", uri:"/examples/state"}

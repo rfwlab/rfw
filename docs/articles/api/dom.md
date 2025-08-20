@@ -15,17 +15,6 @@ are available for advanced use:
 Besides the methods shown, the package exposes `RegisterHandlerFunc` to bind
 Go functions to named DOM events.
 
-## Example
+The snippet demonstrates direct DOM interactions.
 
-```go
-dom.RegisterHandlerFunc("increment", func() {
-        if val, ok := c.Store.Get("count").(int); ok {
-                c.Store.Set("count", val+1)
-        }
-})
-```
-
-1. `dom.RegisterHandlerFunc` associates the `increment` identifier with a
-   function.
-2. When called from the DOM, the function reads `count` from the store and
-   increments it.
+@include:ExampleFrame:{code:"/examples/components/event_component.go", uri:"/examples/event"}

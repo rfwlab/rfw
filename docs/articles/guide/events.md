@@ -10,3 +10,6 @@ rfw offers two layers of events:
 DOM events are ideal for user interactions while store events model
 application state. Both approaches keep the amount of handwritten
 JavaScript to a minimum.
+The example reacts to user interactions.
+
+@include:ExampleFrame:{code:"/examples/components/event_component.go", uri:"/examples/event"}

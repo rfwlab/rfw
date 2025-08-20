@@ -13,3 +13,6 @@ router.RegisterRoute(router.Route{
 
 Navigating to `/complex/alice/settings` renders the component with the
 route parameters injected as props, enabling deep links and hierarchies.
+It shows routing with multiple parameters.
+
+@include:ExampleFrame:{code:"/examples/components/complex_routing_component.go", uri:"/examples/complex/jane/profile"}
