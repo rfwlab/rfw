@@ -35,6 +35,17 @@ func NewAnimationComponent() *core.HTMLComponent {
 		colors := []string{"red", "orange", "yellow", "green", "blue", "indigo", "violet"}
 		anim.ColorCycle("#rainbowBox", colors, 700*time.Millisecond)
 	})
+	dom.RegisterHandlerFunc("animateKeyframes", func() {
+		frames := []map[string]any{
+			{"transform": "rotate(0deg)"},
+			{"transform": "rotate(360deg)"},
+		}
+		opts := map[string]any{
+			"duration":   700,
+			"iterations": 1,
+		}
+		anim.Keyframes("#keyframesBox", frames, opts)
+	})
 
 	return c
 }

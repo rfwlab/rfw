@@ -38,6 +38,34 @@ func animate(el jst.Value, duration time.Duration, step func(p float64)) {
 	js.RequestAnimationFrame(cb)
 }
 
+// Keyframes leverages the Web Animations API to animate the selected element
+// using the provided keyframes and options. The returned value is the
+// underlying Animation object, allowing further control if needed.
+func Keyframes(sel string, keyframes []map[string]any, options map[string]any) jst.Value {
+        el := query(sel)
+
+        frames := make([]any, len(keyframes))
+        for i, f := range keyframes {
+                frames[i] = f
+        }
+
+        opts := make(map[string]any, len(options))
+        for k, v := range options {
+                switch n := v.(type) {
+                case int:
+                        opts[k] = float64(n)
+                case int32:
+                        opts[k] = float64(n)
+                case int64:
+                        opts[k] = float64(n)
+                default:
+                        opts[k] = v
+                }
+        }
+
+        return el.Call("animate", frames, opts)
+}
+
 // Translate moves the element selected by sel from the starting coordinates
 // to the destination using a translate transform.
 func Translate(sel string, fromX, fromY, toX, toY float64, duration time.Duration) {

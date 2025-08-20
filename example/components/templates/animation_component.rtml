@@ -21,5 +21,10 @@
             <div id="rainbowBox" class="w-16 h-16 bg-purple-500"></div>
             <button class="mt-2 bg-purple-500 text-white px-3 py-1 rounded" @click:animateRainbow>Color Cycle</button>
         </div>
+        <div>
+            <h2 class="text-lg font-semibold mb-2">Web Animations API</h2>
+            <div id="keyframesBox" class="w-16 h-16 bg-yellow-500"></div>
+            <button class="mt-2 bg-yellow-500 text-white px-3 py-1 rounded" @click:animateKeyframes>Spin</button>
+        </div>
     </div>
 </root>
