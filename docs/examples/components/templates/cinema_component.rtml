@@ -1,0 +1,7 @@
+<root>
+    <div id="cinemaRoot" class="p-4 pt-0 space-y-4">
+        <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:runCinema>Run</button>
+        <div id="sceneBox" class="w-16 h-16 bg-blue-500"></div>
+        <video id="sceneVideo" class="mt-2" width="160" src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+    </div>
+</root>

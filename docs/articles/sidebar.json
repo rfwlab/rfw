@@ -28,6 +28,7 @@
             { "title": "state", "path": "api/state.md" },
             { "title": "router", "path": "api/router.md" },
             { "title": "animation", "path": "api/animation.md" },
+           { "title": "cinema", "path": "api/cinema.md" },
             { "title": "plugins", "path": "api/plugins.md" }
         ]
     },
