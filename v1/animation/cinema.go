@@ -3,6 +3,7 @@
 package animation
 
 import (
+	"strconv"
 	jst "syscall/js"
 	"time"
 
@@ -164,7 +165,41 @@ func (c *CinemaBuilder) AddSubtitle(kind, label, srcLang, src string) *CinemaBui
 func (c *CinemaBuilder) AddAudio(src string) *CinemaBuilder {
 	audio := js.Document().Call("createElement", "audio")
 	audio.Set("src", src)
+	audio.Set("controls", true)
 	c.root.Call("appendChild", audio)
+	audio.Call("play")
+	return c
+}
+
+func (c *CinemaBuilder) BindProgress(sel string) *CinemaBuilder {
+	if c.video.Truthy() {
+		bar := query(sel)
+		if bar.Truthy() {
+			bar.Set("max", 100)
+
+			update := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+				dur := c.video.Get("duration").Float()
+				if dur > 0 {
+					cur := c.video.Get("currentTime").Float()
+					bar.Set("value", cur/dur*100)
+				}
+				return nil
+			})
+			input := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+				dur := c.video.Get("duration").Float()
+				if dur > 0 {
+					valStr := bar.Get("value").String()
+					if val, err := strconv.ParseFloat(valStr, 64); err == nil {
+						c.video.Set("currentTime", val/100*dur)
+					}
+				}
+				return nil
+			})
+
+			c.video.Call("addEventListener", "timeupdate", update)
+			bar.Call("addEventListener", "input", input)
+		}
+	}
 	return c
 }
 
@@ -203,7 +238,26 @@ func (c *CinemaBuilder) Play() {
 }
 
 func KeyframesForScene(s *Scene) jst.Value {
-	frames := make([]map[string]any, len(s.keyframes))
-	copy(frames, s.keyframes)
-	return s.el.Call("animate", frames, s.options)
+	// convert frames to []any to ensure proper conversion to JS values
+	frames := make([]any, len(s.keyframes))
+	for i, f := range s.keyframes {
+		frames[i] = f
+	}
+
+	// convert option numeric types to float64 for syscall/js compatibility
+	opts := make(map[string]any, len(s.options))
+	for k, v := range s.options {
+		switch n := v.(type) {
+		case int:
+			opts[k] = float64(n)
+		case int32:
+			opts[k] = float64(n)
+		case int64:
+			opts[k] = float64(n)
+		default:
+			opts[k] = v
+		}
+	}
+
+	return s.el.Call("animate", frames, opts)
 }
