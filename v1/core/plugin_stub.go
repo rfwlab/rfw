@@ -18,8 +18,6 @@ func (a *App) RegisterStore(fn func(module, store, key string, value any)) {}
 func (a *App) RegisterLifecycle(mount, unmount func(Component))            {}
 func (a *App) RegisterTemplate(fn func(componentID, html string))          {}
 
-type Component any
-
 func RegisterPlugin(p Plugin)                           {}
 func TriggerRouter(path string)                         {}
 func TriggerStore(module, store, key string, value any) {}

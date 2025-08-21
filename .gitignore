@@ -7,3 +7,5 @@ gen.sh
 testing/
 tailwindcss
 tailwind.css
+
+examples/ssr_example/index.html
