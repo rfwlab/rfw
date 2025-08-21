@@ -27,7 +27,7 @@
                 },
             });
             WebAssembly.instantiateStreaming(
-                fetch("/main.wasm"),
+                fetch("/app.wasm"),
                 go.importObject,
             ).then((result) => {
                 go.run(result.instance);

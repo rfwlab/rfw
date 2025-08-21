@@ -1,17 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>{{projectName}}</title>
-</head>
-<body>
-  <div id="app"></div>
-  <script src="/wasm_exec.js"></script>
-  <script>
-    const go = new Go();
-    WebAssembly.instantiateStreaming(fetch("/main.wasm"), go.importObject).then((result) => {
-      go.run(result.instance);
-    });
-  </script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <title>{{projectName}}</title>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script src="/wasm_exec.js"></script>
+        <script>
+            const go = new Go();
+            WebAssembly.instantiateStreaming(
+                fetch("/app.wasm"),
+                go.importObject,
+            ).then((result) => {
+                go.run(result.instance);
+            });
+        </script>
+    </body>
 </html>

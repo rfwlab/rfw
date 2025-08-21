@@ -1,35 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>rfw - Welcome</title>
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>rfw - Welcome</title>
-</head>
+    <body>
+        <div id="app"></div>
+        <link rel="stylesheet" href="/tailwind.css" />
+        <script src="/wasm_exec.js"></script>
+        <script>
+            const go = new Go();
+            WebAssembly.instantiateStreaming(
+                fetch("/app.wasm"),
+                go.importObject,
+            ).then((result) => {
+                go.run(result.instance);
+                const jsPlugin = {
+                    router: (p) => console.log("js navigate ->", p),
+                    store: (m, s, k, v) =>
+                        console.log(`js store ${m}/${s}: ${k}=${v}`),
+                    mount: (n) => console.log("js mount", n),
+                    unmount: (n) => console.log("js unmount", n),
+                };
+                if (typeof rfwRegisterPlugin === "function") {
+                    rfwRegisterPlugin(jsPlugin);
+                }
+            });
 
-<body>
-    <div id="app"></div>
-    <link rel="stylesheet" href="/tailwind.css">
-    <script src="/wasm_exec.js"></script>
-    <script>
-        const go = new Go();
-        WebAssembly.instantiateStreaming(fetch("/main.wasm"), go.importObject).then((result) => {
-            go.run(result.instance);
-            const jsPlugin = {
-                router: (p) => console.log('js navigate ->', p),
-                store: (m, s, k, v) => console.log(`js store ${m}/${s}: ${k}=${v}`),
-                mount: (n) => console.log('js mount', n),
-                unmount: (n) => console.log('js unmount', n),
-            };
-            if (typeof rfwRegisterPlugin === 'function') {
-                rfwRegisterPlugin(jsPlugin);
+            function updateState(newValue) {
+                goUpdateState(newValue);
             }
-        });
-
-        function updateState(newValue) {
-            goUpdateState(newValue);
-        }
-    </script>
-</body>
-
+        </script>
+    </body>
 </html>
