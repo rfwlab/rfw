@@ -15,48 +15,29 @@ import (
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
 )
 
-func Build(_ map[string]any) error {
-	var manifest struct {
-		Build struct {
-			Type   string `json:"type"`
-			OutDir string `json:"outDir"`
-		} `json:"build"`
-		Plugins map[string]json.RawMessage `json:"plugins"`
-	}
-	if data, err := os.ReadFile("rfw.json"); err == nil {
-		_ = json.Unmarshal(data, &manifest)
-	}
-
-	outDir := "."
-	clientDir := filepath.Join(outDir, "")
-	if manifest.Build.Type == "ssr" {
-		outDir = manifest.Build.OutDir
-		if outDir == "" {
-			outDir = "dist"
-		}
-		clientDir = filepath.Join(outDir, "client")
-		if err := os.MkdirAll(clientDir, 0o755); err != nil {
-			return err
-		}
-	}
-
+func Build() error {
 	goroot, err := exec.Command("go", "env", "GOROOT").Output()
 	if err != nil {
 		return fmt.Errorf("failed to get GOROOT: %w", err)
 	}
 	wasmExec := filepath.Join(strings.TrimSpace(string(goroot)), "lib", "wasm", "wasm_exec.js")
-	if err := copyFile(wasmExec, filepath.Join(clientDir, "wasm_exec.js")); err != nil {
+	if err := copyFile(wasmExec, "wasm_exec.js"); err != nil {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	outputWasm := filepath.Join(clientDir, "app.wasm")
-	cmd := exec.Command("go", "build", "-o", outputWasm, "main.go")
+	cmd := exec.Command("go", "build", "-o", "main.wasm", "main.go")
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
 	}
 
+	var manifest struct {
+		Plugins map[string]json.RawMessage `json:"plugins"`
+	}
+	if data, err := os.ReadFile("rfw.json"); err == nil {
+		_ = json.Unmarshal(data, &manifest)
+	}
 	if err := plugins.Configure(manifest.Plugins); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
 	}
