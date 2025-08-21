@@ -37,7 +37,7 @@ func main() {
 			http.Error(w, "render failed", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprintf(w, "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title>SSR Example</title>\n</head>\n<body>\n<div id=\"app\" data-hydrate>%s</div>\n<script src=\"/dist/client/wasm_exec.js\"></script>\n<script>\nconst go = new Go();\nWebAssembly.instantiateStreaming(fetch(\"/dist/client/app.wasm\"), go.importObject).then((result) => { go.run(result.instance); });\n</script>\n</body>\n</html>", rendered)
+		fmt.Fprintf(w, "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title>SSR Example</title>\n</head>\n<body>\n<div id=\"app\" data-hydrate>%s</div>\n<script src=\"/dist/client/wasm_exec.js\"></script>\n<script>\nconst go = new Go();\nWebAssembly.instantiateStreaming(fetch(\"/dist/client/app.wasm?\" + Date.now()), go.importObject).then((result) => { go.run(result.instance); });\n</script>\n</body>\n</html>", rendered)
 	})
 
 	log.Println("listening on :8080")

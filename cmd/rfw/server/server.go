@@ -87,7 +87,7 @@ func (s *Server) Start() error {
 <script src="/dist/client/wasm_exec.js"></script>
 <script>
 const go = new Go();
-WebAssembly.instantiateStreaming(fetch("/dist/client/app.wasm"), go.importObject).then((result) => { go.run(result.instance); });
+WebAssembly.instantiateStreaming( fetch("/dist/client/app.wasm?" + Date.now()), go.importObject, ).then((result) => { go.run(result.instance); });
 </script>
 </body>
 </html>`, rendered)
