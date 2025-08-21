@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/v1/dom"
+	hostclient "github.com/rfwlab/rfw/v1/hostclient"
 	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
@@ -40,7 +41,10 @@ type HTMLComponent struct {
 	Store             *state.Store
 	Props             map[string]any
 	Slots             map[string]any
+	HostComponent     string
 	conditionContents map[string]ConditionContent
+	hostVars          []string
+	hostCmds          []string
 	component         Component
 	onMount           func(*HTMLComponent)
 	onUnmount         func(*HTMLComponent)
@@ -123,6 +127,11 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle @prop:propName syntax for props
 	renderedTemplate = replacePropPlaceholders(renderedTemplate, c)
 
+	// Handle host variable and command placeholders
+	if c.HostComponent != "" {
+		renderedTemplate = replaceHostPlaceholders(renderedTemplate, c)
+	}
+
 	// Handle @if:condition syntax for conditional rendering
 	renderedTemplate = replaceConditionals(renderedTemplate, c)
 
@@ -134,6 +143,10 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 
 	// Render any components introduced via rt-is placeholders
 	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
+
+	if c.HostComponent != "" {
+		hostclient.RegisterComponent(c.ID, c.HostComponent, c.hostVars)
+	}
 
 	return renderedTemplate
 }
@@ -225,6 +238,13 @@ func (c *HTMLComponent) SetRouteParams(params map[string]string) {
 	for k, v := range params {
 		c.Props[k] = v
 	}
+}
+
+// AddHostComponent links this HTML component to a server-side HostComponent
+// by name. When running in SSC mode, messages from the wasm runtime will be
+// routed to the corresponding host component on the server.
+func (c *HTMLComponent) AddHostComponent(name string) {
+	c.HostComponent = name
 }
 
 func generateComponentID(name string, props map[string]any) string {

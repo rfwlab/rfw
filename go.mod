@@ -7,6 +7,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/mirkobrombin/go-cli-builder v1.0.0
 	golang.org/x/net v0.33.0
+	nhooyr.io/websocket v1.8.10
 )
 
 require (

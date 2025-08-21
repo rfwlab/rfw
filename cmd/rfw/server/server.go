@@ -2,11 +2,13 @@ package server
 
 import (
 	"bufio"
+	"encoding/json"
 	"expvar"
 	"fmt"
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -21,11 +23,13 @@ import (
 var rebuilds = expvar.NewInt("rebuilds")
 
 type Server struct {
-	Port    string
-	Host    bool
-	Debug   bool
-	stopCh  chan os.Signal
-	watcher *fsnotify.Watcher
+	Port      string
+	Host      bool
+	Debug     bool
+	stopCh    chan os.Signal
+	watcher   *fsnotify.Watcher
+	hostCmd   *exec.Cmd
+	buildType string
 }
 
 func NewServer(port string, host, debug bool) *Server {
@@ -41,6 +45,14 @@ func NewServer(port string, host, debug bool) *Server {
 func (s *Server) Start() error {
 	if err := build.Build(); err != nil {
 		return err
+	}
+
+	// Detect build type from manifest to know if host components are enabled.
+	s.buildType = readBuildType()
+	if s.buildType == "ssc" {
+		if err := s.startHost(); err != nil {
+			return err
+		}
 	}
 
 	mux := http.NewServeMux()
@@ -93,6 +105,7 @@ func (s *Server) Start() error {
 
 	<-s.stopCh
 	utils.Info("Server stopped.")
+	s.stopHost()
 	return nil
 }
 
@@ -171,6 +184,12 @@ func (s *Server) watchFiles() {
 				if err := build.Build(); err != nil {
 					utils.Fatal("Failed to rebuild project: ", err)
 				}
+				if s.buildType == "ssc" {
+					s.stopHost()
+					if err := s.startHost(); err != nil {
+						utils.Fatal("Failed to restart host server: ", err)
+					}
+				}
 			}
 		case err, ok := <-s.watcher.Errors:
 			if !ok {
@@ -179,7 +198,38 @@ func (s *Server) watchFiles() {
 			utils.Info(fmt.Sprintf("Watcher error: %v", err))
 		case <-s.stopCh:
 			s.watcher.Close()
+			s.stopHost()
 			return
 		}
 	}
+}
+
+// readBuildType reads the build type from rfw.json if present.
+func readBuildType() string {
+	var manifest struct {
+		Build struct {
+			Type string `json:"type"`
+		} `json:"build"`
+	}
+	data, err := os.ReadFile("rfw.json")
+	if err != nil {
+		return ""
+	}
+	_ = json.Unmarshal(data, &manifest)
+	return strings.ToLower(manifest.Build.Type)
+}
+
+func (s *Server) startHost() error {
+	s.hostCmd = exec.Command("./host/host")
+	s.hostCmd.Stdout = os.Stdout
+	s.hostCmd.Stderr = os.Stderr
+	return s.hostCmd.Start()
+}
+
+func (s *Server) stopHost() {
+	if s.hostCmd != nil && s.hostCmd.Process != nil {
+		_ = s.hostCmd.Process.Kill()
+		_, _ = s.hostCmd.Process.Wait()
+	}
+	s.hostCmd = nil
 }

@@ -25,7 +25,7 @@ func Build() error {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	cmd := exec.Command("go", "build", "-o", "main.wasm", "main.go")
+	cmd := exec.Command("go", "build", "-o", "app.wasm", "main.go")
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -33,10 +33,19 @@ func Build() error {
 	}
 
 	var manifest struct {
+		Build struct {
+			Type string `json:"type"`
+		} `json:"build"`
 		Plugins map[string]json.RawMessage `json:"plugins"`
 	}
 	if data, err := os.ReadFile("rfw.json"); err == nil {
 		_ = json.Unmarshal(data, &manifest)
+	}
+	if strings.EqualFold(manifest.Build.Type, "ssc") {
+		hostCmd := exec.Command("go", "build", "-o", "host/host", "./host")
+		if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
+		}
 	}
 	if err := plugins.Configure(manifest.Plugins); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)

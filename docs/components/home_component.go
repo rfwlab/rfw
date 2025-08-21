@@ -16,6 +16,7 @@ var homeTpl []byte
 
 func NewHomeComponent() *core.HTMLComponent {
 	c := core.NewComponent("HomeComponent", homeTpl, nil)
+	c.AddHostComponent("HomeHost")
 	c.SetOnMount(func(cmp *core.HTMLComponent) {
 		doc := js.Document()
 		add := func(sel, path string) {
