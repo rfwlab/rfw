@@ -4,11 +4,13 @@ package components
 
 import (
 	_ "embed"
+	"fmt"
+
+	jst "syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
-	jst "syscall/js"
 )
 
 //go:embed templates/example_frame.rtml
@@ -40,6 +42,7 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 	}
 	iframe := wrapper.Call("querySelector", "iframe")
 	if uri, ok := hc.Props["uri"].(string); ok {
+		uri = fmt.Sprintf(`%s?%s`, uri, hc.GetID())
 		iframe.Set("src", uri)
 	}
 	codeTab := wrapper.Call("querySelector", "#tab-code")
