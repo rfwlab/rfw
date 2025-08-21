@@ -10,6 +10,7 @@
     <section class="text-center py-20 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
       <h1 class="text-5xl font-extrabold mb-4">Build reactive apps in Go</h1>
       <p class="text-lg mb-8">rfw lets you write modern web UIs with Go and WebAssembly.</p>
+      <p class="mt-4">{h:welcome}</p>
       <a href="/docs/getting-started" class="px-6 py-3 bg-white text-blue-600 font-semibold rounded shadow">Get Started</a>
     </section>
     <section class="py-20 bg-gray-50">

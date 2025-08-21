@@ -1,4 +1,7 @@
 {
+    "build": {
+        "type": "ssc"
+    },
     "plugins": {
         "tailwind": {
             "input": "input.css",

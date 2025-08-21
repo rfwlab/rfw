@@ -277,6 +277,22 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+func replaceHostPlaceholders(template string, c *HTMLComponent) string {
+	varRegex := regexp.MustCompile(`\{h:(\w+)\}`)
+	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
+		name := varRegex.FindStringSubmatch(match)[1]
+		c.hostVars = append(c.hostVars, name)
+		return fmt.Sprintf(`<span data-host-var="%s"></span>`, name)
+	})
+	cmdRegex := regexp.MustCompile(`@h:(\w+)`)
+	template = cmdRegex.ReplaceAllStringFunc(template, func(match string) string {
+		name := cmdRegex.FindStringSubmatch(match)[1]
+		c.hostCmds = append(c.hostCmds, name)
+		return fmt.Sprintf(`data-host-cmd="%s"`, name)
+	})
+	return template
+}
+
 func replaceEventHandlers(template string) string {
 	// Match event directives ensuring they are terminated by whitespace,
 	// a self-closing slash or the end of the tag. The terminating
