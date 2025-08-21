@@ -1,0 +1,5 @@
+<root>
+  <p>Hello {{name}}</p>
+  <button data-on-click="increment">Increment</button>
+  <p>Count: <span data-store="app.default.count">{{count}}</span></p>
+</root>
