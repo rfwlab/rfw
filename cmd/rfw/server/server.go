@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"encoding/json"
 	"expvar"
 	"fmt"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/build"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
-	"github.com/rfwlab/rfw/v1/ssr"
 )
 
 var rebuilds = expvar.NewInt("rebuilds")
@@ -41,66 +39,17 @@ func NewServer(port string, host, debug bool) *Server {
 }
 
 func (s *Server) Start() error {
-	if err := build.Build(nil); err != nil {
+	if err := build.Build(); err != nil {
 		return err
 	}
-	var manifest struct {
-		Build struct {
-			Type   string `json:"type"`
-			OutDir string `json:"outDir"`
-		} `json:"build"`
-	}
-	if data, err := os.ReadFile("rfw.json"); err == nil {
-		_ = json.Unmarshal(data, &manifest)
-	}
+
 	mux := http.NewServeMux()
-	if manifest.Build.Type == "ssr" {
-		outDir := manifest.Build.OutDir
-		if outDir == "" {
-			outDir = "dist"
-		}
-		clientDir := filepath.Join(outDir, "client")
-		mux.Handle("/dist/client/", http.StripPrefix("/dist/client/", http.FileServer(http.Dir(clientDir))))
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			utils.LogServeRequest(r)
-			if r.URL.Path != "/" {
-				http.NotFound(w, r)
-				return
-			}
-			name := r.URL.Query().Get("name")
-			if name == "" {
-				name = "World"
-			}
-			rendered, err := ssr.RenderFile("index.rtml", map[string]any{"name": name, "count": 0})
-			if err != nil {
-				http.Error(w, "failed to render", http.StatusInternalServerError)
-				return
-			}
-			html := fmt.Sprintf(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>RFW</title>
-</head>
-<body>
-<div id="app" data-hydrate>%s</div>
-<script src="/dist/client/wasm_exec.js"></script>
-<script>
-const go = new Go();
-WebAssembly.instantiateStreaming( fetch("/dist/client/app.wasm?" + Date.now()), go.importObject, ).then((result) => { go.run(result.instance); });
-</script>
-</body>
-</html>`, rendered)
-			w.Header().Set("Content-Type", "text/html")
-			fmt.Fprint(w, html)
-		})
-	} else {
-		fs := http.FileServer(http.Dir("."))
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			utils.LogServeRequest(r)
-			s.handleFileRequest(w, r, fs)
-		})
-	}
+
+	fs := http.FileServer(http.Dir("."))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		utils.LogServeRequest(r)
+		s.handleFileRequest(w, r, fs)
+	})
 
 	if s.Debug {
 		mux.Handle("/debug/vars", expvar.Handler())
@@ -219,7 +168,7 @@ func (s *Server) watchFiles() {
 					plugins.NeedsRebuild(event.Name)) {
 				rebuilds.Add(1)
 				utils.Info("Changes detected, rebuilding...")
-				if err := build.Build(nil); err != nil {
+				if err := build.Build(); err != nil {
 					utils.Fatal("Failed to rebuild project: ", err)
 				}
 			}

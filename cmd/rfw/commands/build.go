@@ -17,9 +17,9 @@ func NewBuildCommand() *command.Command {
 }
 
 func runBuild(cmd *command.Command, _ *command.RootFlags, _ []string) error {
-	if err := build.Build(nil); err != nil {
-		return err
-	}
-	cmd.Logger.Success("Build completed")
-	return nil
+        if err := build.Build(); err != nil {
+                return err
+        }
+        cmd.Logger.Success("Build completed")
+        return nil
 }
