@@ -16,7 +16,8 @@
             { "title": "Complex Routing", "path": "guide/complex-routing.md" },
             { "title": "API Integration", "path": "guide/api-integration.md" },
             { "title": "Animations", "path": "guide/animation.md" },
-            { "title": "Plugins", "path": "guide/plugins.md" }
+            { "title": "Plugins", "path": "guide/plugins.md" },
+            { "title": "Server-Side Rendering", "path": "guide/ssr.md" }
         ]
     },
     {
