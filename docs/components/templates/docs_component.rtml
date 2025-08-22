@@ -1,6 +1,6 @@
 <root>
   <div class="flex flex-col min-h-screen">
-      <nav class="flex items-center gap-4 py-6 px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
+      <nav class="flex flex-wrap items-center gap-4 py-6 px-6 sm:px-10 md:px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
         <a href="/" class="text-2xl font-bold">
           <picture>
               <source srcset="https://cdn.gxbs.dev/HeRO2/TuPuWImA49.png/raw" media="(prefers-color-scheme: dark)">
@@ -8,21 +8,21 @@
                       alt="rfw logo" class="inline-block h-6 w-11 mr-2">
           </picture>
         </a>
-        <div class="text-xl text-black/50 dark:text-white/30">/</div>
-        <div class="flex gap-5">
+        <div class="text-xl text-black/50 dark:text-white/30 hidden sm:block">/</div>
+        <div class="flex gap-3 sm:gap-5">
           <a href="/docs/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
           <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
         </div>
       </nav>
-    <div class="flex flex-1">
-      <aside id="sidebar" class="w-64 p-6 border-r border-zinc-200 dark:border-zinc-700 overflow-y-auto"></aside>
-      <main class="flex-1 p-8">
+    <div class="flex flex-1 flex-col md:flex-row">
+      <aside id="sidebar" class="w-full md:w-64 p-6 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-700 overflow-y-auto"></aside>
+      <main class="flex-1 p-6 sm:p-8">
         <div id="doc-content" class="prose max-w-none dark:prose-invert"></div>
-        <div id="doc-nav" class="mt-8 flex justify-between text-sm text-gray-700 dark:text-gray-300"></div>
+        <div id="doc-nav" class="mt-8 flex flex-wrap justify-between text-sm text-gray-700 dark:text-gray-300"></div>
       </main>
     </div>
     <footer class="p-6 text-center text-gray-500 dark:text-gray-400">
-      <div class="flex items-center justify-center space-x-2">
+      <div class="flex flex-wrap items-center justify-center space-x-2">
         <span>&copy; 2025 rfw</span>
         <a href="https://github.com/rfwlab" aria-label="GitHub" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
