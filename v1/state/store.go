@@ -4,7 +4,6 @@ import (
 	"log"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 type Logger interface {
@@ -37,7 +36,6 @@ func WithPersistence() StoreOption { return func(s *Store) { s.persist = true } 
 func WithDevTools() StoreOption { return func(s *Store) { s.devTools = true } }
 
 type Store struct {
-	mu         sync.RWMutex
 	module     string
 	name       string
 	state      map[string]any
@@ -50,7 +48,6 @@ type Store struct {
 }
 
 type StoreManager struct {
-	mu      sync.RWMutex
 	modules map[string]map[string]*Store
 }
 
@@ -84,8 +81,6 @@ func NewStore(name string, opts ...StoreOption) *Store {
 }
 
 func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
 
 	if sm.modules[module] == nil {
 		sm.modules[module] = make(map[string]*Store)
@@ -94,8 +89,6 @@ func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
 }
 
 func (sm *StoreManager) GetStore(module, name string) *Store {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
 
 	if stores, ok := sm.modules[module]; ok {
 		return stores[name]
@@ -107,18 +100,13 @@ func (sm *StoreManager) GetStore(module, name string) *Store {
 func (sm *StoreManager) Snapshot() map[string]map[string]map[string]any {
 	snap := make(map[string]map[string]map[string]any)
 
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-
 	for module, stores := range sm.modules {
 		snap[module] = make(map[string]map[string]any)
 		for name, store := range stores {
-			store.mu.RLock()
 			stateCopy := make(map[string]any)
 			for k, v := range store.state {
 				stateCopy[k] = v
 			}
-			store.mu.RUnlock()
 			snap[module][name] = stateCopy
 		}
 	}
@@ -128,7 +116,6 @@ func (sm *StoreManager) Snapshot() map[string]map[string]map[string]any {
 func (s *Store) storageKey() string { return s.module + ":" + s.name }
 
 func (s *Store) Set(key string, value any) {
-	s.mu.Lock()
 	s.state[key] = value
 	if s.devTools {
 		logger.Debug("%s/%s -> %s: %v", s.module, s.name, key, value)
@@ -145,62 +132,48 @@ func (s *Store) Set(key string, value any) {
 	if s.persist {
 		saveState(s.storageKey(), s.state)
 	}
-	s.mu.Unlock()
 }
 
 func (s *Store) Get(key string) any {
-	s.mu.RLock()
 	if s.devTools {
 		logger.Debug("Getting %s from %s/%s", key, s.module, s.name)
 	}
-	val := s.state[key]
-	s.mu.RUnlock()
-	return val
+	return s.state[key]
 }
 
 func (s *Store) OnChange(key string, listener func(any)) func() {
-	s.mu.Lock()
 	if s.listeners[key] == nil {
 		s.listeners[key] = make(map[int]func(any))
 	}
 	s.listenerID++
 	id := s.listenerID
 	s.listeners[key][id] = listener
-	s.mu.Unlock()
 
 	if s.devTools {
 		logger.Debug("------")
-		GlobalStoreManager.mu.RLock()
 		for moduleName, stores := range GlobalStoreManager.modules {
 			for storeName, store := range stores {
-				store.mu.RLock()
 				logger.Debug("Store: %s/%s", moduleName, storeName)
 				for key, value := range store.state {
 					logger.Debug("  %s: %v", key, value)
 				}
-				store.mu.RUnlock()
 			}
 		}
-		GlobalStoreManager.mu.RUnlock()
 		logger.Debug("------")
 	}
 
 	return func() {
-		s.mu.Lock()
 		delete(s.listeners[key], id)
-		s.mu.Unlock()
 	}
 }
 
 // RegisterComputed registers a computed value on the store. The computed value
 // is evaluated immediately and whenever one of its dependencies changes.
 func (s *Store) RegisterComputed(c *Computed) {
-	s.mu.Lock()
 	s.computeds[c.Key()] = c
 	val := c.Evaluate(s.state)
 	s.state[c.Key()] = val
 	c.lastDeps = snapshotDeps(s.state, c.Deps())
-	s.mu.Unlock()
 }
 
 // Map registers a computed value derived from a single dependency using a
@@ -240,22 +213,18 @@ func Map2[A, B, R any](s *Store, key, depA, depB string, compute func(A, B) R) {
 // dependencies change. If the dependency list is empty the watcher is triggered
 // on every state update. It returns a function that removes the watcher.
 func (s *Store) RegisterWatcher(w *Watcher) func() {
-	s.mu.Lock()
 	s.watchers = append(s.watchers, w)
 	if w.immediate {
 		w.Run(s.state)
 	}
-	s.mu.Unlock()
 
 	return func() {
-		s.mu.Lock()
 		for i, watcher := range s.watchers {
 			if watcher == w {
 				s.watchers = append(s.watchers[:i], s.watchers[i+1:]...)
 				break
 			}
 		}
-		s.mu.Unlock()
 	}
 }
 
