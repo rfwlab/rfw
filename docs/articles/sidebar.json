@@ -6,6 +6,7 @@
         "children": [
             { "title": "Why rfw?", "path": "guide/features.md" },
             { "title": "RTML Templates", "path": "guide/rtml.md" },
+            { "title": "Selective DOM Patching", "path": "guide/dom-patching.md" },
             { "title": "Component Lifecycle", "path": "guide/lifecycle.md" },
             {
                 "title": "State Management",

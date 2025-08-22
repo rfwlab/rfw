@@ -2,15 +2,16 @@
 
 rfw focuses on delivering a productive Go‑first workflow for the web.
 Instead of layering a virtual DOM over browser APIs, the framework maps
-state changes directly to the real DOM. Below are some of the ideas that
-make it stand out.
+state changes directly to the real DOM. A lightweight routine named
+**Selective DOM Patching** compares new markup with existing nodes and
+mutates them in place. Below are some of the ideas that make it stand out.
 
 ## Direct DOM binding
 
 Every component renders straight into real DOM nodes. When a piece of
-state changes rfw updates only the affected elements – no diffing pass or
-virtual tree is required. This keeps the runtime small and easy to
-reason about.
+state changes rfw applies Selective DOM Patching to update only the
+affected elements. No separate virtual tree is created, keeping the
+runtime small, predictable and easy to reason about.
 
 ## Go‑centric development
 

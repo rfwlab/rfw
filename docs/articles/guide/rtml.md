@@ -140,8 +140,9 @@ Slots allow passing markup to child components:
 
 Props and slots may also carry components created in Go. Rendering uses
 `@prop:name` or slot placeholders. These components share the parent's store
-and the list is re-rendered when the collection changes; individual items are
-not diffed.
+and, when lists change, **Selective DOM Patching** uses `data-key`
+attributes to reuse or reorder items. Without a key the element is
+recreated.
 
 ## Stores
 
