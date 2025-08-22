@@ -62,6 +62,10 @@ func main() {
 		Path:      "/docs/:section/:page",
 		Component: func() core.Component { return components.NewDocsComponent() },
 	})
+	router.RegisterRoute(router.Route{
+		Path:      "/ssc",
+		Component: func() core.Component { return components.NewSSCComponent() },
+	})
 	// Example routes mounted under /examples
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/main",

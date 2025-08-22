@@ -13,6 +13,5 @@ var homeTpl []byte
 
 func NewHomeComponent() *core.HTMLComponent {
 	c := core.NewComponent("HomeComponent", homeTpl, nil)
-	c.AddHostComponent("HomeHost")
 	return c
 }
