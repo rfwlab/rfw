@@ -1,6 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+@theme {
+    --color-darkbg: #0A0A0A;
+    --color-lightbg: #F9F9F9;
+}
+
 html {
     font-family: 'Geist', sans-serif;
 }
