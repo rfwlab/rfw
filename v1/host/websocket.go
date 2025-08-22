@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"net/http"
 
 	"golang.org/x/net/websocket"
 )
@@ -45,9 +44,4 @@ func wsHandler(ws *websocket.Conn) {
 			}
 		}
 	}
-}
-
-func ListenAndServe(addr string) error {
-	http.Handle("/ws", websocket.Handler(wsHandler))
-	return http.ListenAndServe(addr, nil)
 }
