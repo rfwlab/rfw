@@ -38,7 +38,20 @@ func (c *CinemaBuilder) AddScene(sel string, opts map[string]any) *CinemaBuilder
 	return c
 }
 
-func (c *CinemaBuilder) AddKeyFrame(frame map[string]any, offset float64) *CinemaBuilder {
+// AddKeyFrame appends a keyframe built with KeyFrameMap to the current scene.
+// For more advanced scenarios a raw map can be supplied using AddKeyFrameMap.
+func (c *CinemaBuilder) AddKeyFrame(frame KeyFrameMap, offset float64) *CinemaBuilder {
+	if c.current == nil {
+		c.AddScene("", nil)
+	}
+	frame["offset"] = offset
+	c.current.keyframes = append(c.current.keyframes, map[string]any(frame))
+	return c
+}
+
+// AddKeyFrameMap appends a raw map as keyframe to the current scene and is kept
+// for backwards compatibility and advanced use cases.
+func (c *CinemaBuilder) AddKeyFrameMap(frame map[string]any, offset float64) *CinemaBuilder {
 	if c.current == nil {
 		c.AddScene("", nil)
 	}
