@@ -1,17 +1,17 @@
 <root>
   <div>
     <nav class="flex items-center justify-between p-6 bg-white shadow">
-      <a href="/" class="text-2xl font-bold">rfw</a>
-      <div>
-        <a href="/docs/index" class="text-gray-700 hover:text-blue-600 mr-4">Docs</a>
-        <a href="https://github.com/rfwlab/rfw" class="text-gray-700 hover:text-blue-600">GitHub</a>
-      </div>
+        <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">rfw</a>
+        <div>
+          <a href="/docs/index" onclick="goNavigate('/docs/index'); return false" class="text-gray-700 hover:text-blue-600 mr-4">Docs</a>
+          <a href="https://github.com/rfwlab/rfw" class="text-gray-700 hover:text-blue-600">GitHub</a>
+        </div>
     </nav>
     <section class="text-center py-20 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
       <h1 class="text-5xl font-extrabold mb-4">Build reactive apps in Go</h1>
       <p class="text-lg mb-8">rfw lets you write modern web UIs with Go and WebAssembly.</p>
       <p class="mt-4">{h:welcome}</p>
-      <a href="/docs/getting-started" class="px-6 py-3 bg-white text-blue-600 font-semibold rounded shadow">Get Started</a>
+        <a href="/docs/getting-started" onclick="goNavigate('/docs/getting-started'); return false" class="px-6 py-3 bg-white text-blue-600 font-semibold rounded shadow">Get Started</a>
     </section>
     <section class="py-20 bg-gray-50">
       <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 px-6">
@@ -46,7 +46,7 @@
         <span>&copy; 2025 rfw</span>
         <a href="https://github.com/rfwlab" aria-label="GitHub" class="text-gray-500 hover:text-gray-700">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.167 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.621.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.528 2.341 1.087 2.91.832.091-.647.35-1.087.636-1.338-2.22-.252-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.681-.103-.253-.446-1.271.098-2.65 0 0 .84-.269 2.75 1.025A9.563 9.563 0 0 1 12 6.844c.851.004 1.705.115 2.503.337 1.909-1.294 2.748-1.025 2.748-1.025.546 1.379.203 2.397.1 2.65.64.697 1.028 1.59 1.028 2.681 0 3.842-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .268.18.58.688.481A10.013 10.013 0 0 0 22 12c0-5.523-4.477-10-10-10Z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.167 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.621.069-.608.069-.608 1.004.071 1.532 1.032 1.532 1.032.892 1.528 2.341 1.087 2.91.832.091-.647.35-1.087.636-1.338-2.22-.252-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.681-.103-.253-.446-1.271.098-2.65 0 0 .84-.269 2.75 1.025A9.563 9.563 0 0 1 12 6.844c.851.004 1.705.115 2.503.337 1.909-1.294 2.748-1.025 2.748-1.025.546 1.379.203 2.397.1 2.65.64.697 1.028 1.59 1.028 2.681 0 3.842-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .268.18.58.688.481A10.013 10.013 0 0 0 22 12c0-5.523-4.477-10-10-10Z" clip-rule="evenodd" />
           </svg>
         </a>
       </div>
