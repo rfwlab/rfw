@@ -1,30 +1,33 @@
 package state
 
-type ReactiveVar struct {
-	value     string
-	listeners []func(string)
+type ReactiveVar[T any] struct {
+	value     T
+	listeners []func(T)
 }
 
-func NewReactiveVar(initial string) *ReactiveVar {
-	return &ReactiveVar{
+func NewReactiveVar[T any](initial T) *ReactiveVar[T] {
+	return &ReactiveVar[T]{
 		value: initial,
 	}
 }
 
-func (rv *ReactiveVar) Set(newValue string) {
+func (rv *ReactiveVar[T]) Set(newValue T) {
 	rv.value = newValue
 	for _, listener := range rv.listeners {
 		listener(newValue)
 	}
 }
 
-func (rv *ReactiveVar) Get() string {
+func (rv *ReactiveVar[T]) Get() T {
 	return rv.value
 }
 
-func (rv *ReactiveVar) OnChange(listener func(string)) {
+func (rv *ReactiveVar[T]) OnChange(listener func(T)) {
 	rv.listeners = append(rv.listeners, listener)
 }
+
+// ReactiveString is a convenience alias for ReactiveVar[string].
+type ReactiveString = ReactiveVar[string]
 
 // Computed represents a derived state value based on other store keys.
 // It holds the target key for the computed value, the list of dependencies
