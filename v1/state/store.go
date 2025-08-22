@@ -146,16 +146,18 @@ func (s *Store) OnChange(key string, listener func(any)) func() {
 	id := s.listenerID
 	s.listeners[key][id] = listener
 
-	logger.Debug("------")
-	for moduleName, stores := range GlobalStoreManager.modules {
-		for storeName, store := range stores {
-			logger.Debug("Store: %s/%s", moduleName, storeName)
-			for key, value := range store.state {
-				logger.Debug("  %s: %v", key, value)
+	if s.devTools {
+		logger.Debug("------")
+		for moduleName, stores := range GlobalStoreManager.modules {
+			for storeName, store := range stores {
+				logger.Debug("Store: %s/%s", moduleName, storeName)
+				for key, value := range store.state {
+					logger.Debug("  %s: %v", key, value)
+				}
 			}
 		}
+		logger.Debug("------")
 	}
-	logger.Debug("------")
 
 	return func() {
 		delete(s.listeners[key], id)
