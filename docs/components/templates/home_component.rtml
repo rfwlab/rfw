@@ -1,43 +1,57 @@
 <root>
   <div>
-    <nav class="flex items-center justify-between p-6 bg-white shadow">
-        <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">rfw</a>
-        <div>
-          <a href="/docs/index" onclick="goNavigate('/docs/index'); return false" class="text-gray-700 hover:text-blue-600 mr-4">Docs</a>
-          <a href="https://github.com/rfwlab/rfw" class="text-gray-700 hover:text-blue-600">GitHub</a>
-        </div>
+    <nav class="flex items-center gap-4 py-6 px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
+      <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">
+        <picture>
+            <source srcset="https://cdn.gxbs.dev/HeRO2/xObElogI46.png/raw" media="(prefers-color-scheme: dark)">
+            <img src="https://cdn.gxbs.dev/HeRO2/JAHeGUfA17.png/raw"
+                alt="rfw logo" class="inline-block h-6 w-11 mr-2">
+        </picture>
+      </a>
+      <div class="text-xl text-black/50 dark:text-white/30">/</div>
+      <div class="flex gap-5">
+        <a href="/docs/index" onclick="goNavigate('/docs/index'); return false" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
+        <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
+      </div>
     </nav>
-    <section class="text-center py-20 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-      <h1 class="text-5xl font-extrabold mb-4">Build reactive apps in Go</h1>
-      <p class="text-lg mb-8">rfw lets you write modern web UIs with Go and WebAssembly.</p>
-      <p class="mt-4">{h:welcome}</p>
-        <a href="/docs/getting-started" onclick="goNavigate('/docs/getting-started'); return false" class="px-6 py-3 bg-white text-blue-600 font-semibold rounded shadow">Get Started</a>
+    <section class="flex flex-row justify-between items-center py-20 px-32 bg-[url(https://cdn.gxbs.dev/HeRO2/JUTiBejA45.png/raw)] dark:bg-[url(https://cdn.gxbs.dev/HeRO2/DUmaViCU01.png/raw)] bg-cover bg-center text-white">
+        <div class="flex flex-col gap-8">
+            <h1 class="text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with Go, <br>effortlessly</h1>
+            <p class="text-lg text-black dark:text-white max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
+            <div class="flex flex-row gap-2 items-center justify-center w-max">
+            <a href="/docs/getting-started" onclick="goNavigate('/docs/getting-started'); return false" class="px-10 py-3 bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
+            <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-blue-600 transition">Contribute</a>
+            </div>
+        </div>
+        <img src="https://cdn.gxbs.dev/HeRO2/DErAGuGU46.png/raw" alt="rfw decoration" class="w-1/3 rounded-lg shadow-lg hidden md:block">
     </section>
-    <section class="py-20 bg-gray-50">
+    <section class="py-12 bg-lightbg dark:bg-darkbg">
+        <h1 class="text-2xl text-center font-semibold bg-gradient-to-r from-30% from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent mb-12">Why choose rfw?</h1>
+
       <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 px-6">
         <div>
           <h3 class="text-xl font-semibold mb-2">Reactive Components</h3>
-          <p class="text-gray-600">Compose your UI with idiomatic Go.</p>
+          <p class="text-zinc-700 dark:text-zinc-400">Compose your UI with idiomatic Go.</p>
         </div>
         <div>
           <h3 class="text-xl font-semibold mb-2">Built-in Router</h3>
-          <p class="text-gray-600">Navigate client-side with ease.</p>
+          <p class="text-zinc-700 dark:text-zinc-400">Navigate client-side with ease.</p>
         </div>
         <div>
           <h3 class="text-xl font-semibold mb-2">State Management</h3>
-          <p class="text-gray-600">Share state across components.</p>
+          <p class="text-zinc-700 dark:text-zinc-400">Share state across components.</p>
         </div>
         <div>
           <h3 class="text-xl font-semibold mb-2">Minimal JavaScript</h3>
-          <p class="text-gray-600">Most apps are written entirely in Go.</p>
+          <p class="text-zinc-700 dark:text-zinc-400">Most apps are written entirely in Go.</p>
         </div>
         <div>
           <h3 class="text-xl font-semibold mb-2">Plugin System</h3>
-          <p class="text-gray-600">Extend the framework to fit your needs.</p>
+          <p class="text-zinc-700 dark:text-zinc-400">Extend the framework to fit your needs.</p>
         </div>
         <div>
           <h3 class="text-xl font-semibold mb-2">WASM Powered</h3>
-          <p class="text-gray-600">Ship small binaries without a JS toolchain.</p>
+          <p class="text-zinc-700 dark:text-zinc-400">Ship small binaries without a JS toolchain.</p>
         </div>
       </div>
     </section>
