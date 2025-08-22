@@ -14,17 +14,17 @@
         <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
       </div>
     </nav>
-    <section class="flex flex-row justify-between items-center py-20 px-32 bg-[url(https://cdn.gxbs.dev/HeRO2/JUTiBejA45.png/raw)] dark:bg-[url(https://cdn.gxbs.dev/HeRO2/DUmaViCU01.png/raw)] bg-cover bg-center text-white border-b border-gray-200 dark:border-zinc-700">
+    <section class="flex flex-col gap-12 md:gap-0 justify-between items-center py-10 px-8 md:py-20 md:px-32 bg-[url(https://cdn.gxbs.dev/HeRO2/JUTiBejA45.png/raw)] dark:bg-[url(https://cdn.gxbs.dev/HeRO2/DUmaViCU01.png/raw)] bg-cover bg-center text-white border-b border-gray-200 dark:border-zinc-700">
         <div class="flex flex-col gap-8">
-            <h1 class="text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with Go, <br>effortlessly</h1>
-            <p class="text-lg text-black dark:text-white max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
+            <h1 class="text-3xl text-center md:text-left md:text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with Go, <br>effortlessly</h1>
+            <p class="text-base md:text-lg text-center md:text-left text-black dark:text-white md:max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
             <div class="flex flex-row gap-2 items-center justify-center w-max">
             <a href="/docs/getting-started" onclick="goNavigate('/docs/getting-started'); return false" class="px-10 py-3 bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
             <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-blue-600 transition">Contribute</a>
             </div>
         </div>
 
-        <img src="https://cdn.gxbs.dev/HeRO2/DErAGuGU46.png/raw" alt="rfw example" class="w-1/4 rounded-lg shadow-lg hidden lg:block">
+        <img src="https://cdn.gxbs.dev/HeRO2/DErAGuGU46.png/raw" alt="rfw example" class="w-3/4 md:w-1/4 rounded-lg shadow-lg block">
 
     </section>
     <section class="py-12 bg-lightbg dark:bg-darkbg">
