@@ -1,10 +1,11 @@
 # Introduction
 
 rfw is a reactive framework written in Go and compiled to WebAssembly.
-It focuses on a direct binding model between state and the DOM, avoiding
-virtual DOM diffing and embracing an event‑driven architecture. The
-project is experimental and aims to provide a pleasant way to build web
-interfaces with Go.
+It focuses on a direct binding model between state and the DOM. A tiny
+routine called **Selective DOM Patching** avoids building a virtual
+tree and reconciles updates in place, while an event‑driven architecture
+keeps components responsive. The project is experimental and aims to
+provide a pleasant way to build web interfaces with Go.
 
 ## What is rfw?
 
@@ -17,8 +18,9 @@ minimal runtime that wires things together.
 
 ## Core ideas
 
-- **Direct DOM bindings** – state updates are written straight to the
-  affected nodes without virtual DOM diffing.
+- **Direct DOM bindings** – state updates are applied by Selective DOM
+  Patching, mutating the affected nodes without constructing a virtual
+  DOM.
 - **Reactive stores** – computed values and watchers keep application
   state consistent with very little boilerplate.
 - **Go‑first tooling** – projects use the standard Go toolchain and the
