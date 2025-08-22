@@ -2,13 +2,22 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/rfwlab/rfw/v1/host"
 )
 
 func main() {
-	host.Register(host.NewHostComponent("HomeHost", func(_ map[string]any) any {
-		return map[string]any{"welcome": "hello from host"}
+	var counter int
+	host.Register(host.NewHostComponent("SSCHost", func(_ map[string]any) any {
+		return map[string]any{"value": counter}
 	}))
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		for range ticker.C {
+			counter++
+			host.Broadcast("SSCHost", map[string]any{"value": counter})
+		}
+	}()
 	log.Fatal(host.ListenAndServe(":8090"))
 }
