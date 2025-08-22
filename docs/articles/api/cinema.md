@@ -4,7 +4,9 @@ An advanced animation builder for orchestrating scenes, keyframes, and media pla
 
 - `NewCinemaBuilder(sel)` creates a builder rooted at a DOM element.
 - `AddScene(sel, opts)` sets up a new scene with keyframes and timing.
-- `AddKeyFrame(frame, offset)` appends a keyframe to the current scene.
+- `AddKeyFrame(frame, offset)` appends a keyframe to the current scene using a `KeyFrameMap`.
+- `AddKeyFrameMap(frame, offset)` appends a raw map for advanced cases.
+- `NewKeyFrame()` creates an empty `KeyFrameMap` with chainable `Add` and `Delete` helpers.
 - `AddTransition(props, duration)` generates keyframes for property transitions.
 - `AddSequence(fn)` runs a sequence of builder operations.
 - `AddParallel(fn)` executes builder operations in a goroutine.

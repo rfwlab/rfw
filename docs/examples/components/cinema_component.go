@@ -22,8 +22,8 @@ func NewCinemaComponent() *core.HTMLComponent {
 		if cinema == nil {
 			cinema = anim.NewCinemaBuilder("#cinemaRoot").
 				AddScene("#sceneBox", map[string]any{"duration": 1000}).
-				AddKeyFrame(map[string]any{"transform": "translateX(0px)"}, 0).
-				AddKeyFrame(map[string]any{"transform": "translateX(100px)"}, 1).
+				AddKeyFrame(anim.NewKeyFrame().Add("transform", "translateX(0px)"), 0).
+				AddKeyFrame(anim.NewKeyFrame().Add("transform", "translateX(100px)"), 1).
 				AddVideo("#sceneVideo").
 				BindProgress("#progressBar")
 		}
