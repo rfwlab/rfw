@@ -183,7 +183,7 @@ func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level i
 			a := doc.Call("createElement", "a")
 			a.Set("href", "/docs/"+link)
 			a.Set("textContent", title)
-			a.Set("className", "block py-1 pl-"+strconv.Itoa(4*level)+" text-gray-700 hover:text-blue-600")
+			a.Set("className", "block py-1 pl-"+strconv.Itoa(4*level)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
 			ch := events.Listen("click", a)
 			go func(l string) {
 				for evt := range ch {
@@ -200,7 +200,7 @@ func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level i
 			if !item.Get("path").Truthy() && title != "" {
 				h := doc.Call("createElement", "div")
 				h.Set("textContent", title)
-				h.Set("className", "mt-4 mb-1 font-semibold text-gray-900 pl-"+strconv.Itoa(4*level))
+				h.Set("className", "mt-4 mb-1 font-semibold text-gray-900 dark:text-white pl-"+strconv.Itoa(4*level))
 				parent.Call("appendChild", h)
 			}
 			c.renderSidebar(children, parent, level+1)
