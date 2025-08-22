@@ -11,3 +11,4 @@ tailwind.css
 examples/ssr_example/index.html
 
 dist/
+docs/host/host
