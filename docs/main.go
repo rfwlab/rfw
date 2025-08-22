@@ -44,6 +44,8 @@ func main() {
 	core.RegisterPlugin(mon.New())
 	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
 
+	router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
+
 	router.RegisterRoute(router.Route{
 		Path:      "/",
 		Component: func() core.Component { return components.NewHomeComponent() },

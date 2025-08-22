@@ -7,6 +7,7 @@ router.RegisterRoute(router.Route{
     Path: "/",
     Component: func() core.Component { return components.NewHome() },
 })
+router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
 ```
 
 Guards can block navigation by returning `false`.
