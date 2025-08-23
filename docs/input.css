@@ -10,3 +10,8 @@
 html {
     font-family: 'Geist', sans-serif;
 }
+
+@keyframes story-progress {
+	from { width: 0%; }
+	to { width: 100%; }
+}
