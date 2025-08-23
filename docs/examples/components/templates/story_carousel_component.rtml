@@ -1,0 +1,15 @@
+<root>
+    <div class="relative w-full h-full flex items-center justify-center bg-gray-900 text-white">
+        @for:index,snippet in snippets
+            <div class="absolute inset-0 transition-opacity duration-500"
+                 style="opacity: @if:store:app.default.current == index 1 @else 0 @endif">
+                <div class="p-6 bg-gray-800 rounded-lg shadow-lg max-w-3xl mx-auto">
+                    <h2 class="text-xl font-bold mb-4">@prop:snippet.title</h2>
+                    <pre class="bg-gray-700 p-4 rounded-md text-sm overflow-auto">
+                        <code>@prop:snippet.code</code>
+                    </pre>
+                </div>
+            </div>
+        @endfor
+    </div>
+</root>
