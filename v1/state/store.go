@@ -35,6 +35,16 @@ func WithPersistence() StoreOption { return func(s *Store) { s.persist = true } 
 // WithDevTools enables logging of state mutations for development.
 func WithDevTools() StoreOption { return func(s *Store) { s.devTools = true } }
 
+// WithHistory enables mutation history with the provided limit.
+// The limit controls how many past mutations are retained for undo/redo.
+func WithHistory(limit int) StoreOption {
+	return func(s *Store) {
+		if limit > 0 {
+			s.historyLimit = limit
+		}
+	}
+}
+
 type Store struct {
 	module     string
 	name       string
@@ -45,6 +55,17 @@ type Store struct {
 	watchers   []*Watcher
 	persist    bool
 	devTools   bool
+
+	history         []*mutation
+	future          []*mutation
+	historyLimit    int
+	suppressHistory bool
+}
+
+type mutation struct {
+	key      string
+	previous any
+	next     any
 }
 
 type StoreManager struct {
@@ -116,7 +137,15 @@ func (sm *StoreManager) Snapshot() map[string]map[string]map[string]any {
 func (s *Store) storageKey() string { return s.module + ":" + s.name }
 
 func (s *Store) Set(key string, value any) {
+	old := s.state[key]
 	s.state[key] = value
+	if s.historyLimit > 0 && !s.suppressHistory {
+		s.history = append(s.history, &mutation{key: key, previous: old, next: value})
+		if len(s.history) > s.historyLimit {
+			s.history = s.history[len(s.history)-s.historyLimit:]
+		}
+		s.future = nil
+	}
 	if s.devTools {
 		logger.Debug("%s/%s -> %s: %v", s.module, s.name, key, value)
 	}
@@ -139,6 +168,35 @@ func (s *Store) Get(key string) any {
 		logger.Debug("Getting %s from %s/%s", key, s.module, s.name)
 	}
 	return s.state[key]
+}
+
+// Undo reverts the last mutation recorded in the store's history.
+func (s *Store) Undo() {
+	if len(s.history) == 0 {
+		return
+	}
+	m := s.history[len(s.history)-1]
+	s.history = s.history[:len(s.history)-1]
+	s.suppressHistory = true
+	s.Set(m.key, m.previous)
+	s.suppressHistory = false
+	s.future = append(s.future, m)
+}
+
+// Redo reapplies the last mutation that was undone.
+func (s *Store) Redo() {
+	if len(s.future) == 0 {
+		return
+	}
+	m := s.future[len(s.future)-1]
+	s.future = s.future[:len(s.future)-1]
+	s.suppressHistory = true
+	s.Set(m.key, m.next)
+	s.suppressHistory = false
+	s.history = append(s.history, m)
+	if s.historyLimit > 0 && len(s.history) > s.historyLimit {
+		s.history = s.history[len(s.history)-s.historyLimit:]
+	}
 }
 
 func (s *Store) OnChange(key string, listener func(any)) func() {
