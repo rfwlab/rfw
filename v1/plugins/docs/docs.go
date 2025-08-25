@@ -4,8 +4,11 @@ package docs
 
 import (
 	"encoding/json"
-	"github.com/rfwlab/rfw/v1/core"
+	"fmt"
 	jst "syscall/js"
+	"time"
+
+	"github.com/rfwlab/rfw/v1/core"
 
 	js "github.com/rfwlab/rfw/v1/js"
 )
@@ -16,6 +19,7 @@ type Plugin struct {
 }
 
 func New(sidebar string) *Plugin {
+	sidebar = fmt.Sprintf("%s?%s", sidebar, time.Now().Unix())
 	return &Plugin{Sidebar: sidebar}
 }
 
