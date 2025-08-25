@@ -152,6 +152,10 @@
             {
                 "title": "plugins",
                 "path": "api/plugins.md"
+            },
+            {
+                "title": "webgl",
+                "path": "api/webgl.md"
             }
         ]
     },

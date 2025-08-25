@@ -106,6 +106,10 @@ func main() {
 		Component: func() core.Component { return excomponents.NewComputedComponent() },
 	})
 	router.RegisterRoute(router.Route{
+		Path:      "/examples/webgl",
+		Component: func() core.Component { return excomponents.NewWebGLComponent() },
+	})
+	router.RegisterRoute(router.Route{
 		Path:      "/examples/animations",
 		Component: func() core.Component { return excomponents.NewAnimationComponent() },
 	})
