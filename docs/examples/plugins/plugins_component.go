@@ -6,6 +6,7 @@ import (
 	_ "embed"
 
 	core "github.com/rfwlab/rfw/v1/core"
+	dom "github.com/rfwlab/rfw/v1/dom"
 	js "github.com/rfwlab/rfw/v1/js"
 )
 
@@ -15,7 +16,7 @@ var pluginsComponentTpl []byte
 func NewPluginsComponent() *core.HTMLComponent {
 	c := core.NewComponent("PluginsComponent", pluginsComponentTpl, nil)
 	c.SetOnMount(func(cmp *core.HTMLComponent) {
-		js.Document().Call("getElementById", "hello").Set("innerText", js.Get("t").Invoke("hello").String())
+		dom.SetText(dom.ByID("hello"), js.Get("t").Invoke("hello").String())
 	})
 	return c
 }

@@ -8,8 +8,8 @@ import (
 	jst "syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
+	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
-	js "github.com/rfwlab/rfw/v1/js"
 )
 
 //go:embed templates/observer_component.rtml
@@ -47,12 +47,12 @@ func (c *ObserverComponent) Mount() {
 	}()
 
 	// Button to mutate the observed node and trigger MutationObserver.
-	mutateBtn := js.Document().Call("getElementById", "mutateBtn")
+	mutateBtn := dom.ByID("mutateBtn")
 	mutateCh := events.Listen("click", mutateBtn)
 	go func() {
 		for range mutateCh {
-			node := js.Document().Call("getElementById", "observeMe")
-			child := js.Document().Call("createElement", "span")
+			node := dom.ByID("observeMe")
+			child := dom.CreateElement("span")
 			node.Call("appendChild", child)
 		}
 	}()
@@ -72,11 +72,11 @@ func (c *ObserverComponent) Mount() {
 	}()
 
 	// Button to toggle visibility and trigger IntersectionObserver.
-	toggleBtn := js.Document().Call("getElementById", "toggleBtn")
+	toggleBtn := dom.ByID("toggleBtn")
 	toggleCh := events.Listen("click", toggleBtn)
 	go func() {
 		for range toggleCh {
-			el := js.Document().Call("querySelector", ".watched")
+			el := dom.Query(".watched")
 			style := el.Get("style")
 			if style.Get("display").String() == "none" {
 				style.Set("display", "block")

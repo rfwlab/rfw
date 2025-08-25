@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	js "github.com/rfwlab/rfw/v1/js"
+	dom "github.com/rfwlab/rfw/v1/dom"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -45,7 +45,7 @@ func readLoop(ctx context.Context) {
 			return
 		}
 		if b, ok := bindings[msg.Component]; ok {
-			root := js.Document().Call("querySelector", fmt.Sprintf("[data-component-id='%s']", b.id))
+			root := dom.Query(fmt.Sprintf("[data-component-id='%s']", b.id))
 			if root.Truthy() {
 				for k, v := range msg.Payload {
 					el := root.Call("querySelector", fmt.Sprintf(`[data-host-var="%s"]`, k))

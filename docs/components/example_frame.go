@@ -9,6 +9,7 @@ import (
 	jst "syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
+	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
 )
@@ -31,8 +32,7 @@ func init() {
 }
 
 func (e *exampleFrame) mount(hc *core.HTMLComponent) {
-	doc := js.Document()
-	root := doc.Call("querySelector", "[data-component-id='"+hc.GetID()+"']")
+	root := dom.Query("[data-component-id='" + hc.GetID() + "']")
 	if !root.Truthy() {
 		return
 	}

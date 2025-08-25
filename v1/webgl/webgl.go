@@ -12,6 +12,7 @@ package webgl
 import (
 	jst "syscall/js"
 
+	dom "github.com/rfwlab/rfw/v1/dom"
 	js "github.com/rfwlab/rfw/v1/js"
 )
 
@@ -22,7 +23,7 @@ type Context struct{ v jst.Value }
 // provided id. It returns an empty Context if the canvas or context is not
 // available.
 func NewContext(canvasID string) Context {
-	canvas := js.Document().Call("getElementById", canvasID)
+	canvas := dom.ByID(canvasID)
 	if canvas.IsNull() || canvas.IsUndefined() {
 		return Context{}
 	}
@@ -77,6 +78,22 @@ func (c Context) LinkProgram(program jst.Value) { c.v.Call("linkProgram", progra
 // UseProgram sets the active program.
 func (c Context) UseProgram(program jst.Value) { c.v.Call("useProgram", program) }
 
+// CreateProgramFromSource compiles the provided vertex and fragment shader
+// sources, links them into a program and returns it.
+func (c Context) CreateProgramFromSource(vertexSrc, fragmentSrc string) jst.Value {
+	vs := c.CreateShader(VERTEX_SHADER)
+	c.ShaderSource(vs, vertexSrc)
+	c.CompileShader(vs)
+	fs := c.CreateShader(FRAGMENT_SHADER)
+	c.ShaderSource(fs, fragmentSrc)
+	c.CompileShader(fs)
+	prog := c.CreateProgram()
+	c.AttachShader(prog, vs)
+	c.AttachShader(prog, fs)
+	c.LinkProgram(prog)
+	return prog
+}
+
 // BufferData uploads data to a buffer object.
 func (c Context) BufferData(target int, data jst.Value, usage int) {
 	c.v.Call("bufferData", target, data, usage)
@@ -98,6 +115,43 @@ func (c Context) CreateBuffer() jst.Value { return c.v.Call("createBuffer") }
 // BindBuffer binds a buffer to a target.
 func (c Context) BindBuffer(target int, buffer jst.Value) {
 	c.v.Call("bindBuffer", target, buffer)
+}
+
+// CreateTexture creates a new texture object.
+func (c Context) CreateTexture() jst.Value { return c.v.Call("createTexture") }
+
+// BindTexture binds a texture to a target.
+func (c Context) BindTexture(target int, texture jst.Value) {
+	c.v.Call("bindTexture", target, texture)
+}
+
+// ActiveTexture selects the active texture unit.
+func (c Context) ActiveTexture(texture int) { c.v.Call("activeTexture", texture) }
+
+// TexParameteri sets texture parameters.
+func (c Context) TexParameteri(target, pname, param int) {
+	c.v.Call("texParameteri", target, pname, param)
+}
+
+// TexImage2D uploads pixel data to a 2D texture.
+func (c Context) TexImage2D(target, level, internalformat, width, height, border, format, typ int, pixels jst.Value) {
+	c.v.Call("texImage2D", target, level, internalformat, width, height, border, format, typ, pixels)
+}
+
+// TexImage2DFromImage uploads an image, video or canvas source to a texture.
+func (c Context) TexImage2DFromImage(target, level, internalformat, format, typ int, img jst.Value) {
+	c.v.Call("texImage2D", target, level, internalformat, format, typ, img)
+}
+
+// LoadTexture2D creates a texture and initializes it from an image source using
+// linear filtering. The created texture is returned.
+func (c Context) LoadTexture2D(img jst.Value) jst.Value {
+	tex := c.CreateTexture()
+	c.BindTexture(TEXTURE_2D, tex)
+	c.TexImage2DFromImage(TEXTURE_2D, 0, RGBA, RGBA, UNSIGNED_BYTE, img)
+	c.TexParameteri(TEXTURE_2D, TEXTURE_MIN_FILTER, LINEAR)
+	c.TexParameteri(TEXTURE_2D, TEXTURE_MAG_FILTER, LINEAR)
+	return tex
 }
 
 // EnableVertexAttribArray enables a vertex attribute array at the given index.
@@ -158,4 +212,12 @@ const (
 	BLEND     = 0x0BE2
 	SRC_ALPHA = 0x0302
 	ONE       = 1
+
+	TEXTURE_2D         = 0x0DE1
+	TEXTURE0           = 0x84C0
+	RGBA               = 0x1908
+	UNSIGNED_BYTE      = 0x1401
+	TEXTURE_MIN_FILTER = 0x2801
+	TEXTURE_MAG_FILTER = 0x2800
+	LINEAR             = 0x2601
 )
