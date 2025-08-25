@@ -150,6 +150,14 @@
                 "path": "api/router.md"
             },
             {
+                "title": "host",
+                "path": "api/host.md"
+            },
+            {
+                "title": "hostclient",
+                "path": "api/hostclient.md"
+            },
+            {
                 "title": "animation",
                 "path": "api/animation.md"
             },
