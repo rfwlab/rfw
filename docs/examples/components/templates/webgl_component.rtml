@@ -1,0 +1,4 @@
+<root>
+    <canvas id="glcanvas" width="100" height="100"></canvas>
+    <button @click:webglDraw>Draw</button>
+</root>
