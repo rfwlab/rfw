@@ -25,7 +25,20 @@
         </div>
 
         <!-- Story Carousel -->
-        <div id="examples" class="relative max-w-[400px] h-max flex items-center justify-center"></div>
+        <div id="examples" class="relative max-w-[400px] h-max flex items-center justify-center">
+          <div class="relative w-full p-3 pt-11 rounded-2xl shadow-2xl text-white overflow-hidden"
+               style="background-image: url('/slide-bg.png'); background-size: cover; background-position: center; min-height: 400px; min-width: 400px;">
+            <!-- Image block -->
+            <img id="story-image" src="/slide-1.png" alt="GO component 1" class="w-full h-auto rounded-md shadow-lg" style="opacity: 0; min-height: 200px; min-width: 300px;">
+            <!-- Progress bar (like stories) -->
+            <div id="progress-bars" class="absolute top-5 left-0 w-4/5 flex mx-auto right-0 h-1">
+              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
+              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
+              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
+              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
+            </div>
+          </div>
+        </div>
 
     </section>
     <section class="py-12 bg-lightbg dark:bg-darkbg">

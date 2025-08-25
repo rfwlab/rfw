@@ -16,6 +16,11 @@ and a duration. They can be invoked from event handlers registered in the DOM.
 `Keyframes` accepts arrays of frame definitions and option maps that are
 passed directly to the browser's `Element.animate` API.
 
+> **Note**
+> Prefer RFW APIs like `animation`, `cinema`, and `dom` over direct browser
+> globals. These abstractions improve portability and testability. If an API is
+> missing, fall back to a `js` alias but avoid `js.Global`.
+
 The following example animates elements using these helpers.
 
 @include:ExampleFrame:{code:"/examples/components/animation_component.go", uri:"/examples/animations"}
