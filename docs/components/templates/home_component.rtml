@@ -3,8 +3,8 @@
     <nav class="flex items-center gap-4 py-6 px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
       <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">
         <picture>
-            <source srcset="https://cdn.gxbs.dev/HeRO2/xObElogI46.png/raw" media="(prefers-color-scheme: dark)">
-            <img src="https://cdn.gxbs.dev/HeRO2/JAHeGUfA17.png/raw"
+            <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
+            <img src="/rfw-logo-black.png"
                 alt="rfw logo" class="inline-block h-6 w-11 mr-2">
         </picture>
       </a>
