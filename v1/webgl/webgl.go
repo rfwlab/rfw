@@ -85,7 +85,7 @@ func (c Context) BufferData(target int, data jst.Value, usage int) {
 // BufferDataFloat32 uploads a float32 slice to a buffer object by creating a
 // JavaScript Float32Array and passing it to BufferData.
 func (c Context) BufferDataFloat32(target int, data []float32, usage int) {
-	arr := jst.Global().Get("Float32Array").New(len(data))
+	arr := js.Get("Float32Array").New(len(data))
 	for i, v := range data {
 		arr.SetIndex(i, v)
 	}
