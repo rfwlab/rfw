@@ -26,6 +26,50 @@
             {
                 "title": "Template Syntax",
                 "path": "essentials/template-syntax.md"
+            },
+            {
+                "title": "Components Basics",
+                "path": "essentials/components-basics.md"
+            },
+            {
+                "title": "Reactivity Fundamentals",
+                "path": "essentials/reactivity-fundamentals.md"
+            },
+            {
+                "title": "Computed Properties",
+                "path": "essentials/computed-properties.md"
+            },
+            {
+                "title": "Class and Style Bindings",
+                "path": "essentials/class-and-style-bindings.md"
+            },
+            {
+                "title": "Conditional Rendering",
+                "path": "essentials/conditional-rendering.md"
+            },
+            {
+                "title": "List Rendering",
+                "path": "essentials/list-rendering.md"
+            },
+            {
+                "title": "Event Handling",
+                "path": "essentials/event-handling.md"
+            },
+            {
+                "title": "Form Input Bindings",
+                "path": "essentials/form-input-bindings.md"
+            },
+            {
+                "title": "Watchers",
+                "path": "essentials/watchers.md"
+            },
+            {
+                "title": "Template Refs",
+                "path": "essentials/template-refs.md"
+            },
+            {
+                "title": "Lifecycle Hooks",
+                "path": "essentials/lifecycle-hooks.md"
             }
         ]
     },
@@ -45,16 +89,8 @@
                 "path": "guide/dom-patching.md"
             },
             {
-                "title": "Component Lifecycle",
-                "path": "guide/lifecycle.md"
-            },
-            {
                 "title": "State Management",
                 "path": "guide/state-management.md"
-            },
-            {
-                "title": "Events",
-                "path": "guide/events.md"
             },
             {
                 "title": "Routing",
