@@ -82,6 +82,64 @@ func (c Context) BufferData(target int, data jst.Value, usage int) {
 	c.v.Call("bufferData", target, data, usage)
 }
 
+// BufferDataFloat32 uploads a float32 slice to a buffer object by creating a
+// JavaScript Float32Array and passing it to BufferData.
+func (c Context) BufferDataFloat32(target int, data []float32, usage int) {
+	arr := jst.Global().Get("Float32Array").New(len(data))
+	for i, v := range data {
+		arr.SetIndex(i, v)
+	}
+	c.BufferData(target, arr, usage)
+}
+
+// CreateBuffer creates a new buffer object.
+func (c Context) CreateBuffer() jst.Value { return c.v.Call("createBuffer") }
+
+// BindBuffer binds a buffer to a target.
+func (c Context) BindBuffer(target int, buffer jst.Value) {
+	c.v.Call("bindBuffer", target, buffer)
+}
+
+// EnableVertexAttribArray enables a vertex attribute array at the given index.
+func (c Context) EnableVertexAttribArray(index int) {
+	c.v.Call("enableVertexAttribArray", index)
+}
+
+// VertexAttribPointer defines an array of generic vertex attribute data.
+func (c Context) VertexAttribPointer(index, size, typ int, normalized bool, stride, offset int) {
+	c.v.Call("vertexAttribPointer", index, size, typ, normalized, stride, offset)
+}
+
+// GetAttribLocation returns the location of an attribute variable in a program.
+func (c Context) GetAttribLocation(program jst.Value, name string) int {
+	return c.v.Call("getAttribLocation", program, name).Int()
+}
+
+// GetUniformLocation returns the location of a uniform variable.
+func (c Context) GetUniformLocation(program jst.Value, name string) jst.Value {
+	return c.v.Call("getUniformLocation", program, name)
+}
+
+// Uniform2f sets a vec2 uniform value.
+func (c Context) Uniform2f(loc jst.Value, x, y float32) { c.v.Call("uniform2f", loc, x, y) }
+
+// Uniform4f sets a vec4 uniform value.
+func (c Context) Uniform4f(loc jst.Value, v0, v1, v2, v3 float32) {
+	c.v.Call("uniform4f", loc, v0, v1, v2, v3)
+}
+
+// Uniform1f sets a float uniform value.
+func (c Context) Uniform1f(loc jst.Value, x float32) { c.v.Call("uniform1f", loc, x) }
+
+// Enable enables a specific WebGL capability.
+func (c Context) Enable(cap int) { c.v.Call("enable", cap) }
+
+// BlendFunc defines the pixel blending factors.
+func (c Context) BlendFunc(sfactor, dfactor int) { c.v.Call("blendFunc", sfactor, dfactor) }
+
+// DrawArrays renders primitives from array data.
+func (c Context) DrawArrays(mode, first, count int) { c.v.Call("drawArrays", mode, first, count) }
+
 // Constants related to WebGL operations.
 const (
 	COLOR_BUFFER_BIT   = 0x4000
@@ -92,6 +150,12 @@ const (
 	ARRAY_BUFFER = 0x8892
 	STATIC_DRAW  = 0x88E4
 
+	FLOAT = 0x1406
+
 	VERTEX_SHADER   = 0x8B31
 	FRAGMENT_SHADER = 0x8B30
+
+	BLEND     = 0x0BE2
+	SRC_ALPHA = 0x0302
+	ONE       = 1
 )
