@@ -54,10 +54,10 @@ func Register(v jst.Value) {
 
 func init() {
 	// Expose plugin registration for JavaScript callers.
-	js.Global().Set("rfwRegisterPlugin", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.ExposeFunc("rfwRegisterPlugin", func(this jst.Value, args []jst.Value) any {
 		if len(args) > 0 {
 			Register(args[0])
 		}
 		return nil
-	}))
+	})
 }
