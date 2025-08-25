@@ -113,6 +113,10 @@
                 "path": "guide/plugins.md"
             },
             {
+                "title": "Manifest",
+                "path": "guide/manifest.md"
+            },
+            {
                 "title": "Server Side Computed",
                 "path": "guide/ssc.md"
             }
