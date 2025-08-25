@@ -4,12 +4,11 @@ package components
 
 import (
 	_ "embed"
-	"fmt"
 	"time"
 
-	"syscall/js"
-
+	anim "github.com/rfwlab/rfw/v1/animation"
 	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v1/dom"
 )
 
 //go:embed templates/home_component.rtml
@@ -28,56 +27,38 @@ func NewHomeComponent() *core.HTMLComponent {
 	// Track viewed snippets
 	viewed := make([]bool, len(snippets))
 
-	// Render the snippet into a story-style card
+	// Update the story card using the template markup
 	renderSnippet := func(index int) {
 		if index < 0 || index >= len(snippets) {
 			return
 		}
+
 		snippet := snippets[index]
-		progressBars := ""
-		for i := range len(snippets) {
-			progressBars += fmt.Sprintf(
-				`<div class="h-1 rounded-full flex-1 mx-1 bg-white/20">
-					<div class="h-1 rounded-full %s %s"></div>
-				</div>`,
-				func() string {
-					if viewed[i] {
-						return "bg-white/80"
-					}
-					return "bg-white/20"
-				}(),
-				func() string {
-					if i == index && !viewed[i] {
-						return "bg-white/80 rounded-full animate-[story-progress_5s_linear]"
-					}
-					return ""
-				}(),
-			)
+		image := dom.ByID("story-image")
+		bars := dom.QueryAll("#progress-bars > div > div")
+		if !image.Truthy() || bars.Length() != len(snippets) {
+			return
 		}
-		html := fmt.Sprintf(`
-				<div class="relative w-full p-3 pt-11 rounded-2xl shadow-2xl text-white overflow-hidden"
-						style="background-image: url('/slide-bg.png'); background-size: cover; background-position: center; min-height: 400px; min-width: 400px;">
 
-					<!-- Image block -->
-					<img src="%s" alt="%s" class="w-full h-auto rounded-md shadow-lg opacity-0 transition-opacity duration-500" id="story-image" style="min-height: 200px; min-width: 300px;">
+		image.Set("src", snippet["image"])
+		image.Set("alt", snippet["title"])
 
-					<!-- Progress bar (like stories) -->
-					<div class="absolute top-5 left-0 w-4/5 flex mx-auto right-0 h-1">
-						%s
-					</div>
-				</div>
-		`, snippet["image"], snippet["title"], progressBars)
-
-		container := js.Global().Get("document").Call("getElementById", "examples")
-		container.Set("innerHTML", html)
-
-		js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) any {
-			img := js.Global().Get("document").Call("getElementById", "story-image")
-			if !img.IsNull() {
-				img.Get("classList").Call("remove", "opacity-0")
+		for i := 0; i < bars.Length(); i++ {
+			bar := bars.Index(i)
+			classList := bar.Get("classList")
+			classList.Call("remove", "bg-white/20", "bg-white/80", "animate-[story-progress_5s_linear]")
+			if viewed[i] {
+				classList.Call("add", "bg-white/80")
+			} else {
+				classList.Call("add", "bg-white/20")
 			}
-			return nil
-		}), 50)
+			if i == index {
+				classList.Call("remove", "bg-white/20")
+				classList.Call("add", "bg-white/80", "animate-[story-progress_5s_linear]")
+			}
+		}
+
+		anim.Fade("#story-image", 0, 1, 500*time.Millisecond)
 	}
 
 	// Start the carousel
