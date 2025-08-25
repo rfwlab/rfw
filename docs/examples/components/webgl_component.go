@@ -68,7 +68,7 @@ func fullscreen() {
 	if !fs.IsUndefined() && !fs.IsNull() {
 		doc.Call("exitFullscreen")
 	} else {
-		doc.Call("getElementById", "game-container").Call("requestFullscreen")
+		dom.ByID("game-container").Call("requestFullscreen")
 	}
 }
 
@@ -139,7 +139,7 @@ void main(){
 	lastMove = 0
 	updateScore()
 	newFood()
-	js.Document().Call("getElementById", "menu").Get("classList").Call("add", "hidden")
+	dom.AddClass(dom.ByID("menu"), "hidden")
 }
 
 func renderLoop(this jst.Value, args []jst.Value) any {
@@ -192,7 +192,7 @@ func moveSnake() {
 	for _, s := range snake {
 		if s == head {
 			running = false
-			js.Document().Call("getElementById", "menu").Get("classList").Call("remove", "hidden")
+			dom.RemoveClass(dom.ByID("menu"), "hidden")
 			return
 		}
 	}
@@ -240,5 +240,5 @@ func newFood() {
 }
 
 func updateScore() {
-	js.Document().Call("getElementById", "score").Set("textContent", fmt.Sprintf("Score: %d", score))
+	dom.SetText(dom.ByID("score"), fmt.Sprintf("Score: %d", score))
 }

@@ -7,11 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	jst "syscall/js"
+
 	"github.com/rfwlab/rfw/v1/core"
+	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/router"
-	jst "syscall/js"
 )
 
 //go:embed templates/docs_component.rtml
@@ -38,7 +40,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 	doc := js.Document()
 
 	// intercept top nav links to use the router
-	if home := doc.Call("querySelector", "nav a[href='/']"); home.Truthy() {
+	if home := dom.Query("nav a[href='/']"); home.Truthy() {
 		ch := events.Listen("click", home)
 		go func() {
 			for evt := range ch {
@@ -47,7 +49,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			}
 		}()
 	}
-	if docs := doc.Call("querySelector", "nav a[href='/docs/index']"); docs.Truthy() {
+	if docs := dom.Query("nav a[href='/docs/index']"); docs.Truthy() {
 		ch := events.Listen("click", docs)
 		go func() {
 			for evt := range ch {
@@ -65,7 +67,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			c.nav = js.JSON().Call("parse", sidebarJSON)
 			c.order = c.order[:0]
 			c.titles = map[string]string{}
-			sidebar := doc.Call("getElementById", "sidebar")
+			sidebar := dom.ByID("sidebar")
 			sidebar.Set("innerHTML", "")
 			c.renderSidebar(c.nav, sidebar, 0)
 		}
@@ -95,7 +97,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 				c.docComp.Unmount()
 			}
 			c.docComp = core.NewComponent("DocContent", []byte(html), nil)
-			doc.Call("getElementById", "doc-content").Set("innerHTML", c.docComp.Render())
+			dom.ByID("doc-content").Set("innerHTML", c.docComp.Render())
 			c.docComp.Mount()
 			if hljs := js.Get("hljs"); hljs.Truthy() {
 				hljs.Call("highlightAll")
@@ -109,11 +111,11 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 					break
 				}
 			}
-			nav := doc.Call("getElementById", "doc-nav")
+			nav := dom.ByID("doc-nav")
 			nav.Set("innerHTML", "")
 			if idx > 0 {
 				prev := c.order[idx-1]
-				a := doc.Call("createElement", "a")
+				a := dom.CreateElement("a")
 				a.Set("className", "text-blue-600")
 				a.Set("href", "/docs/"+prev)
 				a.Set("textContent", "\u2190 "+c.titleFor(prev))
@@ -128,7 +130,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			}
 			if idx >= 0 && idx < len(c.order)-1 {
 				next := c.order[idx+1]
-				a := doc.Call("createElement", "a")
+				a := dom.CreateElement("a")
 				a.Set("className", "ml-auto text-blue-600")
 				a.Set("href", "/docs/"+next)
 				a.Set("textContent", c.titleFor(next)+" \u2192")
@@ -171,7 +173,6 @@ func (c *DocsComponent) unmount(hc *core.HTMLComponent) {
 }
 
 func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level int) {
-	doc := js.Document()
 	length := items.Length()
 	for i := 0; i < length; i++ {
 		item := items.Index(i)
@@ -180,7 +181,7 @@ func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level i
 			link := strings.TrimSuffix(path.String(), ".md")
 			c.titles[link] = title
 			c.order = append(c.order, link)
-			a := doc.Call("createElement", "a")
+			a := dom.CreateElement("a")
 			a.Set("href", "/docs/"+link)
 			a.Set("textContent", title)
 			a.Set("className", "block py-1 pl-"+strconv.Itoa(4*level)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
@@ -198,7 +199,7 @@ func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level i
 		}
 		if children := item.Get("children"); children.Truthy() {
 			if !item.Get("path").Truthy() && title != "" {
-				h := doc.Call("createElement", "div")
+				h := dom.CreateElement("div")
 				h.Set("textContent", title)
 				h.Set("className", "mt-4 mb-1 font-semibold text-gray-900 dark:text-white pl-"+strconv.Itoa(4*level))
 				parent.Call("appendChild", h)

@@ -29,8 +29,7 @@ func Listen(event string, target jst.Value) <-chan jst.Value {
 // that disconnects the observer and releases resources.
 func ObserveMutations(sel string) (<-chan jst.Value, func()) {
 	ch := make(chan jst.Value)
-	document := js.Document()
-	node := document.Call("querySelector", sel)
+	node := js.Document().Call("querySelector", sel)
 	fn := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		mutations := args[0]
 		for i := 0; i < mutations.Length(); i++ {
@@ -61,8 +60,7 @@ func ObserveIntersections(sel string, opts jst.Value) (<-chan jst.Value, func())
 		return nil
 	})
 	observer := js.IntersectionObserver().New(fn, opts)
-	document := js.Document()
-	nodes := document.Call("querySelectorAll", sel)
+	nodes := js.Document().Call("querySelectorAll", sel)
 	for i := 0; i < nodes.Length(); i++ {
 		observer.Call("observe", nodes.Index(i))
 	}

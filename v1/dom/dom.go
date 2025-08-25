@@ -10,7 +10,6 @@ import (
 	jst "syscall/js"
 
 	events "github.com/rfwlab/rfw/v1/events"
-	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -21,12 +20,11 @@ var TemplateHook func(componentID, html string)
 // UpdateDOM patches the DOM of the specified component with the provided
 // HTML string.
 func UpdateDOM(componentID string, html string) {
-	document := js.Document()
 	var element jst.Value
 	if componentID == "" {
-		element = document.Call("getElementById", "app")
+		element = ByID("app")
 	} else {
-		element = document.Call("querySelector", fmt.Sprintf("[data-component-id='%s']", componentID))
+		element = Query(fmt.Sprintf("[data-component-id='%s']", componentID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -79,8 +77,7 @@ func BindStoreInputs(element jst.Value) {
 }
 
 func patchInnerHTML(element jst.Value, html string) {
-	document := js.Document()
-	template := document.Call("createElement", "template")
+	template := CreateElement("template")
 	template.Set("innerHTML", html)
 	newContent := template.Get("content")
 	patchChildren(element, newContent)

@@ -13,7 +13,6 @@ import (
 	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/dom"
-	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -479,12 +478,11 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 }
 
 func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue any) {
-	document := js.Document()
 	var element jst.Value
 	if c.ID == "" {
-		element = document.Call("getElementById", "app")
+		element = dom.ByID("app")
 	} else {
-		element = document.Call("querySelector", fmt.Sprintf("[data-component-id='%s']", c.ID))
+		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -758,12 +756,11 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
-	document := js.Document()
 	var element jst.Value
 	if c.ID == "" {
-		element = document.Call("getElementById", "app")
+		element = dom.ByID("app")
 	} else {
-		element = document.Call("querySelector", fmt.Sprintf("[data-component-id='%s']", c.ID))
+		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
