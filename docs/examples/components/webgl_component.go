@@ -50,12 +50,12 @@ func NewWebGLComponent() *core.HTMLComponent {
 }
 
 func init() {
-	jst.Global().Call("addEventListener", "keydown", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Window().Call("addEventListener", "keydown", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		key := strings.ToLower(args[0].Get("key").String())
 		keyState[key] = true
 		return nil
 	}))
-	jst.Global().Call("addEventListener", "keyup", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Window().Call("addEventListener", "keyup", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
 		key := strings.ToLower(args[0].Get("key").String())
 		keyState[key] = false
 		return nil
