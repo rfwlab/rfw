@@ -1,17 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme {
-    --color-darkbg: #0A0A0A;
-    --color-lightbg: #F9F9F9;
+    --color-darkbg: #0a0a0a;
+    --color-lightbg: #f9f9f9;
 }
 
 html {
-    font-family: 'Geist', sans-serif;
+    font-family: "Geist", sans-serif;
 }
 
 @keyframes story-progress {
-	from { width: 0%; }
-	to { width: 100%; }
+    from {
+        width: 0%;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+.prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    background-color: #22272e;
 }
