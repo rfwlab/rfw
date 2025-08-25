@@ -81,6 +81,10 @@
         "title": "Guide",
         "children": [
             {
+                "title": "CLI",
+                "path": "guide/cli.md"
+            },
+            {
                 "title": "Why rfw?",
                 "path": "guide/features.md"
             },
