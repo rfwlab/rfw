@@ -41,10 +41,6 @@
                 "path": "guide/features.md"
             },
             {
-                "title": "RTML Templates",
-                "path": "guide/rtml.md"
-            },
-            {
                 "title": "Selective DOM Patching",
                 "path": "guide/dom-patching.md"
             },
