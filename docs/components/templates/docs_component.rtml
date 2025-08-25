@@ -1,10 +1,10 @@
 <root>
   <div class="flex flex-col min-h-screen">
       <nav class="flex flex-wrap items-center gap-4 py-6 px-6 sm:px-10 md:px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
-        <a href="/" class="text-2xl font-bold">
+        <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">
           <picture>
-              <source srcset="https://cdn.gxbs.dev/HeRO2/TuPuWImA49.png/raw" media="(prefers-color-scheme: dark)">
-                  <img src="https://cdn.gxbs.dev/HeRO2/XaJUmObo70.png/raw"
+              <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
+                  <img src="/rfw-logo-black.png"
                       alt="rfw logo" class="inline-block h-6 w-11 mr-2">
           </picture>
         </a>
