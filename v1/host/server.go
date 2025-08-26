@@ -1,9 +1,16 @@
 package host
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -29,4 +36,41 @@ func NewMux(root string) *http.ServeMux {
 // WebSocket endpoint.
 func ListenAndServe(addr, root string) error {
 	return http.ListenAndServe(addr, NewMux(root))
+}
+
+// ListenAndServeTLS starts an HTTPS server using a self-signed certificate
+// and NewMux to serve files and the WebSocket endpoint.
+func ListenAndServeTLS(addr, root string) error {
+	cert, err := generateSelfSignedCert()
+	if err != nil {
+		return err
+	}
+	srv := &http.Server{
+		Addr:      addr,
+		Handler:   NewMux(root),
+		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
+	}
+	return srv.ListenAndServeTLS("", "")
+}
+
+func generateSelfSignedCert() (tls.Certificate, error) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	tmpl := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		DNSNames:     []string{"localhost"},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &priv.PublicKey, priv)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+	return tls.X509KeyPair(certPEM, keyPEM)
 }

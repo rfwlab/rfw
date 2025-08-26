@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -51,6 +52,7 @@ func (s *Server) Start() error {
 	// Detect build type from manifest to know if host components are enabled.
 	s.buildType = readBuildType()
 	var mux *http.ServeMux
+	httpsPort := incrementPort(s.Port)
 	if s.buildType == "ssc" {
 		if err := s.startHost(); err != nil {
 			return err
@@ -68,6 +70,11 @@ func (s *Server) Start() error {
 		go func() {
 			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
 				utils.Fatal("Server failed: ", err)
+			}
+		}()
+		go func() {
+			if err := hostpkg.ListenAndServeTLS(":"+httpsPort, "."); err != nil {
+				utils.Fatal("HTTPS server failed: ", err)
 			}
 		}()
 	}
@@ -92,7 +99,7 @@ func (s *Server) Start() error {
 	}
 
 	utils.ClearScreen()
-	utils.PrintStartupInfo(s.Port, localIP, s.Host)
+	utils.PrintStartupInfo(s.Port, httpsPort, localIP, s.Host)
 
 	go s.listenForCommands()
 
@@ -117,7 +124,8 @@ func (s *Server) listenForCommands() {
 			if err != nil {
 				utils.Fatal("Failed to get local IP address: ", err)
 			}
-			utils.PrintStartupInfo(s.Port, localIP, s.Host)
+			httpsPort := incrementPort(s.Port)
+			utils.PrintStartupInfo(s.Port, httpsPort, localIP, s.Host)
 		case "c", "q":
 			utils.Info("Closing the server...")
 			s.stopCh <- syscall.SIGINT
@@ -202,6 +210,11 @@ func readBuildType() string {
 	}
 	_ = json.Unmarshal(data, &manifest)
 	return strings.ToLower(manifest.Build.Type)
+}
+
+func incrementPort(port string) string {
+	p, _ := strconv.Atoi(port)
+	return strconv.Itoa(p + 1)
 }
 
 func (s *Server) startHost() error {
