@@ -24,7 +24,13 @@ var (
 	bindings = map[string]componentBinding{}
 	once     sync.Once
 	mu       sync.RWMutex
+	pending  []message
 )
+
+type message struct {
+	name    string
+	payload any
+}
 
 func connect() {
 	once.Do(func() {
@@ -40,7 +46,7 @@ func connectionLoop() {
 	backoff := time.Second
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
-		c, _, err := websocket.Dial(ctx, fmt.Sprintf("ws://%s/ws", host), nil)
+		c, _, err := websocket.Dial(ctx, fmt.Sprintf("wss://%s/ws", host), nil)
 		if err != nil {
 			cancel()
 			time.Sleep(backoff)
@@ -52,12 +58,17 @@ func connectionLoop() {
 
 		mu.Lock()
 		conn = c
+		pend := pending
+		pending = nil
 		mu.Unlock()
 
 		backoff = time.Second
 
+		for _, msg := range pend {
+			sendMessage(c, msg)
+		}
 		for name := range bindings {
-			Send(name, map[string]any{"init": true})
+			sendMessage(c, message{name: name, payload: map[string]any{"init": true}})
 		}
 
 		errCh := make(chan error, 1)
@@ -126,12 +137,19 @@ func Send(name string, payload any) {
 	c := conn
 	mu.RUnlock()
 	if c == nil {
+		mu.Lock()
+		pending = append(pending, message{name: name, payload: payload})
+		mu.Unlock()
 		return
 	}
-	msg := struct {
+	sendMessage(c, message{name: name, payload: payload})
+}
+
+func sendMessage(c *websocket.Conn, msg message) {
+	m := struct {
 		Component string `json:"component"`
 		Payload   any    `json:"payload"`
-	}{Component: name, Payload: payload}
+	}{Component: msg.name, Payload: msg.payload}
 	ctx := context.Background()
-	_ = wsjson.Write(ctx, c, msg)
+	_ = wsjson.Write(ctx, c, m)
 }
