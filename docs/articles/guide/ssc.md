@@ -38,7 +38,7 @@ func NewGreetingComponent() *core.HTMLComponent {
 }
 ```
 
-The server registers the corresponding host component and exposes it over a WebSocket:
+The server registers the corresponding host component, serves the built bundle, and exposes it over a WebSocket at `/ws`:
 
 ```go
 package main
@@ -49,7 +49,7 @@ func main() {
     host.Register(host.NewHostComponent("GreetingHost", func(_ map[string]any) any {
         return map[string]any{"hostMsg": "hello from server"}
     }))
-    host.ListenAndServe(":8090")
+    host.ListenAndServe(":8080", ".")
 }
 ```
 
