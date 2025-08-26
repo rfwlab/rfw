@@ -65,7 +65,6 @@ func main() {
 		for range ticker.C {
 			counter++
 			host.Broadcast("SSCHost", map[string]any{"value": counter})
-			fmt.Println("Counter:", counter)
 		}
 	}()
 	go func() {
