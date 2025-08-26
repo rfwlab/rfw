@@ -23,6 +23,8 @@ func (p *plugin) Name() string { return "tailwind" }
 
 func (p *plugin) Install(a *core.App) {}
 
+func (p *plugin) Priority() int { return 0 }
+
 func (p *plugin) Build(raw json.RawMessage) error {
 	log.Printf("tailwind: starting build")
 	bin, err := exec.LookPath("tailwindcss")
