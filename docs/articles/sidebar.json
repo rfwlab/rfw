@@ -123,6 +123,10 @@
             {
                 "title": "Server Side Computed",
                 "path": "guide/ssc.md"
+            },
+            {
+                "title": "Twitch OAuth",
+                "path": "guide/twitch-oauth.md"
             }
         ]
     },

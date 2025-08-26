@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	helix "github.com/nicklaw5/helix/v2"
 	"github.com/rfwlab/rfw/v1/host"
 )
 
@@ -33,6 +34,27 @@ func main() {
 	var counter int
 	host.Register(host.NewHostComponent("SSCHost", func(_ map[string]any) any {
 		return map[string]any{"value": counter}
+	}))
+	host.Register(host.NewHostComponent("TwitchOAuthHost", func(payload map[string]any) any {
+		fmt.Println("Payload:", payload)
+		code, _ := payload["code"].(string)
+		if code == "" {
+			return map[string]any{"status": "missing code"}
+		}
+		client, err := helix.NewClient(&helix.Options{
+			ClientID:     os.Getenv("TWITCH_CLIENT_ID"),
+			ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"),
+			RedirectURI:  "https://localhost:8081/examples/twitch/callback",
+		})
+		fmt.Printf("Client created with id: %s and secret: %s\n", os.Getenv("TWITCH_CLIENT_ID"), os.Getenv("TWITCH_CLIENT_SECRET"))
+		if err != nil {
+			return map[string]any{"status": err.Error()}
+		}
+		resp, err := client.RequestUserAccessToken(code)
+		if err != nil {
+			return map[string]any{"status": err.Error()}
+		}
+		return map[string]any{"status": "token received", "accessToken": resp.Data.AccessToken}
 	}))
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
