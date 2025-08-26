@@ -157,6 +157,14 @@ func main() {
 		Path:      "/examples/api",
 		Component: func() core.Component { return excomponents.NewAPIIntegrationComponent() },
 	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/twitch/login",
+		Component: func() core.Component { return excomponents.NewTwitchLoginComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/twitch/callback",
+		Component: func() core.Component { return excomponents.NewTwitchCallbackComponent() },
+	})
 
 	router.InitRouter()
 	select {}

@@ -1,0 +1,7 @@
+<root>
+    <div class="p-4">
+        <h2 class="text-xl mb-2">Twitch OAuth Callback</h2>
+        <p>Status: {h:status}</p>
+        <p>Access Token: {h:accessToken}</p>
+    </div>
+</root>

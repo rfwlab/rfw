@@ -1,18 +1,19 @@
 package build
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
+        "encoding/json"
+        "fmt"
+        "io"
+        "os"
+        "os/exec"
+        "path/filepath"
+        "strings"
 
-	"github.com/rfwlab/rfw/cmd/rfw/plugins"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
+        "github.com/rfwlab/rfw/cmd/rfw/plugins"
+        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
+        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
+        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
+        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
 )
 
 func Build() error {
