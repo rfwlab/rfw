@@ -39,6 +39,28 @@ Generates a stylesheet using the Tailwind CLI.
 - `minify`: disable minification when set to `false`.
 - `args`: additional CLI arguments passed to `tailwindcss`.
 
+### Environment variables
+
+Collects environment variables prefixed with `RFW_` and exposes them through a
+generated `rfwenv` package:
+
+```go
+import rfwenv "github.com/rfwlab/rfw/docs/rfwenv"
+
+clientID := rfwenv.Get("TWITCH_CLIENT_ID")
+```
+
+Provide the variables when invoking `rfw` commands, e.g.
+`RFW_TWITCH_CLIENT_ID=abc rfw dev`.
+
+```json
+{
+  "plugins": {
+    "env": {}
+  }
+}
+```
+
 ### Static assets
 
 Copies files from a directory into the build output.
