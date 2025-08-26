@@ -28,13 +28,13 @@ func ClearScreen() {
 	fmt.Println()
 }
 
-func PrintStartupInfo(port, localIP string, host bool) {
+func PrintStartupInfo(port, httpsPort, localIP string, host bool) {
 	fmt.Println(indent, boldRed("rfw"), faint(core.Version))
 	fmt.Println()
-	fmt.Println(indent, red("➜ "), bold("Local:"), red(fmt.Sprintf("http://localhost:%s/", port)))
+	fmt.Println(indent, red("➜ "), bold("Local:"), red(fmt.Sprintf("http://localhost:%s/ - https://localhost:%s/", port, httpsPort)))
 
 	if host {
-		fmt.Println(indent, red("➜ "), faint(bold("Network:")), white(fmt.Sprintf("http://%s:%s/", localIP, port)))
+		fmt.Println(indent, red("➜ "), faint(bold("Network:")), white(fmt.Sprintf("http://%s:%s/ (https://%s:%s/)", localIP, port, localIP, httpsPort)))
 	} else {
 		fmt.Println(indent, red("➜ "), faint(bold("Network:")), white("--host"), faint("to expose"))
 	}
