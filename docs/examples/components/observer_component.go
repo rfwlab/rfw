@@ -5,11 +5,10 @@ package components
 import (
 	_ "embed"
 
-	jst "syscall/js"
-
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 //go:embed templates/observer_component.rtml
@@ -57,7 +56,7 @@ func (c *ObserverComponent) Mount() {
 		}
 	}()
 
-	opts := jst.ValueOf(map[string]any{})
+	opts := js.ValueOf(map[string]any{})
 	intCh, stopInt := events.ObserveIntersections(".watched", opts)
 	c.stopInt = stopInt
 	go func() {

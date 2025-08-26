@@ -5,6 +5,7 @@ import (
 	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/dom"
+	"github.com/rfwlab/rfw/v1/events"
 )
 
 // VirtualList renders only the portion of a list that is visible within its container.
@@ -13,7 +14,7 @@ type VirtualList struct {
 	Total      int
 	ItemHeight int
 	Render     func(i int) string
-	scrollFunc jst.Func
+	stopScroll func()
 }
 
 // NewVirtualList attaches a virtualized list to the element with the given id.
@@ -24,11 +25,9 @@ func NewVirtualList(containerID string, total, itemHeight int, render func(i int
 		ItemHeight: itemHeight,
 		Render:     render,
 	}
-	v.scrollFunc = jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	v.stopScroll = events.OnScroll(v.Container, func(jst.Value) {
 		v.update()
-		return nil
 	})
-	v.Container.Call("addEventListener", "scroll", v.scrollFunc)
 	v.update()
 	return v
 }
@@ -58,6 +57,7 @@ func (v *VirtualList) update() {
 
 // Destroy removes scroll listeners and cleans up resources.
 func (v *VirtualList) Destroy() {
-	v.Container.Call("removeEventListener", "scroll", v.scrollFunc)
-	v.scrollFunc.Release()
+	if v.stopScroll != nil {
+		v.stopScroll()
+	}
 }

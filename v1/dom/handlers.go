@@ -3,6 +3,7 @@
 package dom
 
 import (
+	js "github.com/rfwlab/rfw/v1/js"
 	jst "syscall/js"
 )
 
@@ -10,7 +11,7 @@ var handlerRegistry = make(map[string]jst.Value)
 
 // RegisterHandler registers a Go function with custom arguments in the handler registry.
 func RegisterHandler(name string, fn func(this jst.Value, args []jst.Value) any) {
-	handlerRegistry[name] = jst.FuncOf(fn).Value
+	handlerRegistry[name] = js.FuncOf(fn).Value
 }
 
 // RegisterHandlerFunc registers a no-argument Go function in the handler registry.
@@ -38,5 +39,5 @@ func GetHandler(name string) jst.Value {
 	if v, ok := handlerRegistry[name]; ok {
 		return v
 	}
-	return jst.Undefined()
+	return js.Undefined()
 }

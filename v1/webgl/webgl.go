@@ -10,10 +10,9 @@
 package webgl
 
 import (
-	jst "syscall/js"
-
 	dom "github.com/rfwlab/rfw/v1/dom"
 	js "github.com/rfwlab/rfw/v1/js"
+	jst "syscall/js"
 )
 
 // Context wraps a JavaScript WebGL rendering context.

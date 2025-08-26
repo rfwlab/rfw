@@ -6,10 +6,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"syscall/js"
 	"time"
 
 	dom "github.com/rfwlab/rfw/v1/dom"
+	js "github.com/rfwlab/rfw/v1/js"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )

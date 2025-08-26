@@ -26,9 +26,9 @@ func New(sidebar string) *Plugin {
 func (p *Plugin) Install(a *core.App) {
 	doc := js.Document()
 
-	js.Fetch(p.Sidebar).Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Fetch(p.Sidebar).Call("then", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 		res := args[0]
-		res.Call("text").Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+		res.Call("text").Call("then", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 			js.Set("__rfwDocsSidebar", args[0].String())
 			doc.Call("dispatchEvent", js.CustomEvent().New("rfwSidebar"))
 			return nil
@@ -36,15 +36,15 @@ func (p *Plugin) Install(a *core.App) {
 		return nil
 	}))
 
-	p.loader = jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	p.loader = js.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) < 1 {
 			return nil
 		}
 		path := args[0].String()
-		js.Fetch(path).Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+		js.Fetch(path).Call("then", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 			res := args[0]
-			res.Call("text").Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-				detail := jst.ValueOf(map[string]any{"detail": map[string]any{"path": path, "content": args[0].String()}})
+			res.Call("text").Call("then", js.FuncOf(func(this jst.Value, args []jst.Value) any {
+				detail := js.ValueOf(map[string]any{"detail": map[string]any{"path": path, "content": args[0].String()}})
 				doc.Call("dispatchEvent", js.CustomEvent().New("rfwDoc", detail))
 				return nil
 			}))

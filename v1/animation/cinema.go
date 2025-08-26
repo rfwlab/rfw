@@ -7,6 +7,7 @@ import (
 	jst "syscall/js"
 	"time"
 
+	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
 )
 
@@ -190,15 +191,14 @@ func (c *CinemaBuilder) BindProgress(sel string) *CinemaBuilder {
 		if bar.Truthy() {
 			bar.Set("max", 100)
 
-			update := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+			update := func(jst.Value) {
 				dur := c.video.Get("duration").Float()
 				if dur > 0 {
 					cur := c.video.Get("currentTime").Float()
 					bar.Set("value", cur/dur*100)
 				}
-				return nil
-			})
-			input := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+			}
+			input := func(jst.Value) {
 				dur := c.video.Get("duration").Float()
 				if dur > 0 {
 					valStr := bar.Get("value").String()
@@ -206,11 +206,10 @@ func (c *CinemaBuilder) BindProgress(sel string) *CinemaBuilder {
 						c.video.Set("currentTime", val/100*dur)
 					}
 				}
-				return nil
-			})
+			}
 
-			c.video.Call("addEventListener", "timeupdate", update)
-			bar.Call("addEventListener", "input", input)
+			events.OnTimeUpdate(c.video, update)
+			events.OnInput(bar, input)
 		}
 	}
 	return c

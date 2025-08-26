@@ -4,7 +4,6 @@ package state
 
 import (
 	"encoding/json"
-	jst "syscall/js"
 
 	js "github.com/rfwlab/rfw/v1/js"
 )
@@ -16,7 +15,7 @@ func loadPersistedState(key string) map[string]any {
 		return nil
 	}
 	item := ls.Call("getItem", key)
-	if item.Type() != jst.TypeString {
+	if item.Type() != js.TypeString {
 		return nil
 	}
 	var state map[string]any

@@ -8,6 +8,8 @@ import (
 	jst "syscall/js"
 
 	"golang.org/x/net/html"
+
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // VDOMNode represents a node in a virtual DOM tree derived from an HTML
@@ -107,7 +109,7 @@ func nodeByPath(root jst.Value, path []int) jst.Value {
 	for _, idx := range path {
 		children := node.Get("children")
 		if idx >= children.Length() {
-			return jst.Null()
+			return js.Null()
 		}
 		node = children.Index(idx)
 	}
@@ -128,7 +130,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 			for _, m := range b.Modifiers {
 				mods[m] = true
 			}
-			wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+			wrapped := js.FuncOf(func(this jst.Value, args []jst.Value) any {
 				if mods["stopPropagation"] && len(args) > 0 {
 					args[0].Call("stopPropagation")
 				}
@@ -143,7 +145,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				return nil
 			})
 			if mods["once"] {
-				node.Call("addEventListener", b.Event, wrapped, jst.ValueOf(map[string]any{"once": true}))
+				node.Call("addEventListener", b.Event, wrapped, js.ValueOf(map[string]any{"once": true}))
 			} else {
 				node.Call("addEventListener", b.Event, wrapped)
 			}
@@ -165,7 +167,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				modifiers := parseModifiers(modsAttr)
 				handler := GetHandler(handlerName)
 				if handler.Truthy() {
-					wrapped := jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+					wrapped := js.FuncOf(func(this jst.Value, args []jst.Value) any {
 						if modifiers["stopPropagation"] && len(args) > 0 {
 							args[0].Call("stopPropagation")
 						}
@@ -180,7 +182,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 						return nil
 					})
 					if modifiers["once"] {
-						node.Call("addEventListener", event, wrapped, jst.ValueOf(map[string]any{"once": true}))
+						node.Call("addEventListener", event, wrapped, js.ValueOf(map[string]any{"once": true}))
 					} else {
 						node.Call("addEventListener", event, wrapped)
 					}

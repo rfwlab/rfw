@@ -4,15 +4,15 @@ package monitor
 
 import (
 	"log"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
+	js "github.com/rfwlab/rfw/v1/js"
 	m "github.com/rfwlab/rfw/v1/plugins/monitor"
 )
 
 // New creates a monitoring plugin that logs observed events.
 func New() core.Plugin {
-	p := m.New("body", "img", jst.Null())
+	p := m.New("body", "img", js.Null())
 	go func() {
 		for v := range p.Mutations {
 			log.Printf("mutation: %v", v)
