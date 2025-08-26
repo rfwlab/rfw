@@ -18,6 +18,7 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/build"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
+	hostpkg "github.com/rfwlab/rfw/v1/host"
 )
 
 var rebuilds = expvar.NewInt("rebuilds")
@@ -49,29 +50,27 @@ func (s *Server) Start() error {
 
 	// Detect build type from manifest to know if host components are enabled.
 	s.buildType = readBuildType()
+	var mux *http.ServeMux
 	if s.buildType == "ssc" {
 		if err := s.startHost(); err != nil {
 			return err
 		}
+	} else {
+		mux = hostpkg.NewMux(".")
+		if s.Debug {
+			mux.Handle("/debug/vars", expvar.Handler())
+			mux.HandleFunc("GET /debug/pprof/", pprof.Index)
+			mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
+			mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
+			mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
+			mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
+		}
+		go func() {
+			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
+				utils.Fatal("Server failed: ", err)
+			}
+		}()
 	}
-
-	mux := http.NewServeMux()
-
-	fs := http.FileServer(http.Dir("."))
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		utils.LogServeRequest(r)
-		s.handleFileRequest(w, r, fs)
-	})
-
-	if s.Debug {
-		mux.Handle("/debug/vars", expvar.Handler())
-		mux.HandleFunc("GET /debug/pprof/", pprof.Index)
-		mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
-		mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
-		mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
-		mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
-	}
-
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -95,26 +94,12 @@ func (s *Server) Start() error {
 	utils.ClearScreen()
 	utils.PrintStartupInfo(s.Port, localIP, s.Host)
 
-	go func() {
-		if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
-			utils.Fatal("Server failed: ", err)
-		}
-	}()
-
 	go s.listenForCommands()
 
 	<-s.stopCh
 	utils.Info("Server stopped.")
 	s.stopHost()
 	return nil
-}
-
-func (s *Server) handleFileRequest(w http.ResponseWriter, r *http.Request, fs http.Handler) {
-	if _, err := os.Stat("." + r.URL.Path); os.IsNotExist(err) {
-		http.ServeFile(w, r, "./index.html")
-	} else {
-		fs.ServeHTTP(w, r)
-	}
 }
 
 func (s *Server) listenForCommands() {

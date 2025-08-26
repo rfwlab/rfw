@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -17,7 +18,8 @@ func main() {
 		for range ticker.C {
 			counter++
 			host.Broadcast("SSCHost", map[string]any{"value": counter})
+			fmt.Println("Counter:", counter)
 		}
 	}()
-	log.Fatal(host.ListenAndServe(":8090"))
+	log.Fatal(host.ListenAndServe(":8080", "."))
 }

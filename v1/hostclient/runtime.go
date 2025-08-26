@@ -33,7 +33,7 @@ func connect() {
 }
 
 func connectionLoop() {
-	host := "localhost:8090"
+	host := js.Global().Get("location").Get("host").String()
 	if h := js.Global().Get("RFW_HOST"); h.Truthy() {
 		host = h.String()
 	}
