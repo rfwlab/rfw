@@ -38,14 +38,8 @@ func NewVirtualList(containerID string, total, itemHeight int, render func(i int
 func (v *VirtualList) update() {
 	height := v.Container.Get("clientHeight").Int()
 	scrollTop := v.Container.Get("scrollTop").Int()
-	start := scrollTop / v.ItemHeight
-	if start < 0 {
-		start = 0
-	}
-	end := start + height/v.ItemHeight + 1
-	if end > v.Total {
-		end = v.Total
-	}
+	start := max(0, scrollTop/v.ItemHeight)
+	end := min(v.Total, start+height/v.ItemHeight+1)
 
 	offsetTop := start * v.ItemHeight
 	html := fmt.Sprintf("<div style='height:%dpx'></div>", offsetTop)
