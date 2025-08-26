@@ -36,17 +36,16 @@ func main() {
 		return map[string]any{"value": counter}
 	}))
 	host.Register(host.NewHostComponent("TwitchOAuthHost", func(payload map[string]any) any {
-		fmt.Println("Payload:", payload)
 		code, _ := payload["code"].(string)
 		if code == "" {
-			return map[string]any{"status": "missing code"}
+			return nil
 		}
+		fmt.Println("Payload:", payload)
 		client, err := helix.NewClient(&helix.Options{
 			ClientID:     os.Getenv("TWITCH_CLIENT_ID"),
 			ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"),
 			RedirectURI:  "https://localhost:8081/examples/twitch/callback",
 		})
-		fmt.Printf("Client created with id: %s and secret: %s\n", os.Getenv("TWITCH_CLIENT_ID"), os.Getenv("TWITCH_CLIENT_SECRET"))
 		if err != nil {
 			return map[string]any{"status": err.Error()}
 		}
@@ -54,7 +53,12 @@ func main() {
 		if err != nil {
 			return map[string]any{"status": err.Error()}
 		}
-		return map[string]any{"status": "token received", "accessToken": resp.Data.AccessToken}
+		token := resp.Data.AccessToken
+		fmt.Println("Access token:", token)
+		if token == "" {
+			return map[string]any{"status": "missing token"}
+		}
+		return map[string]any{"status": "token received", "accessToken": token}
 	}))
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)

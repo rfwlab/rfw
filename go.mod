@@ -11,7 +11,9 @@ require (
 )
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/nicklaw5/helix/v2 v2.31.1 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 )
