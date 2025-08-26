@@ -26,8 +26,10 @@ Read the [documentation](./docs/articles/index.md) for a complete guide to the f
 ## Build-level Plugins
 
 `rfw` exposes a simple plugin system for build-time tasks. Plugins can register
-build steps and file-watcher triggers to extend the CLI without relying on
-external tooling.
+`PreBuild`, `Build` and `PostBuild` steps and file-watcher triggers to extend
+the CLI without relying on external tooling. Each plugin reports a numeric
+`Priority` to determine execution order and may clean up using an optional
+`Uninstall` hook.
 
 ### Tailwind CSS
 

@@ -1,16 +1,42 @@
 # Plugins
 
-Plugins let you hook into the rfw build and runtime pipeline. A plugin
-implements the `Plugin` interface and is registered before compilation.
+Plugins extend the rfw toolchain. They can contribute work before, during or after the CLI build and modify the runtime application.
+
+## Lifecycle hooks
+
+The core `Plugin` interface requires `Build` and `Install` methods. Additional optional hooks let a plugin participate in more stages:
 
 ```go
 type Plugin interface {
-    Build(json.RawMessage) error
-    Install(*core.App)
+    Build(json.RawMessage) error    // run during CLI build
+    Install(*core.App)              // configure the app at runtime
 }
+
+type PreBuilder interface { PreBuild(json.RawMessage) error }
+type PostBuilder interface { PostBuild(json.RawMessage) error }
+type Uninstaller interface { Uninstall(*core.App) }
 ```
 
-To create one, define a type and register it:
+### PreBuild
+`PreBuild` executes before the CLI starts compiling. Use it to prepare input files or read configuration. For example, a plugin could download an external schema or generate source code that the subsequent build step consumes.
+
+### Build
+`Build` runs while the CLI is producing the wasm bundle. Typical implementations compile assets, copy files or emit additional artifacts. It receives any plugin specific configuration as raw JSON.
+
+### PostBuild
+`PostBuild` fires after the bundle is ready. It is a good place to minify output, verify hashes or remove temporary files created earlier.
+
+### Install
+`Install` runs when the application bootstraps. The plugin receives a `*core.App` and can register routes, components or inject scripts. This is where runtime behaviour is extended.
+
+### Uninstall
+`Uninstall` is invoked when tearing down the app or removing the plugin. Use it to detach watchers, delete generated files or undo registrations made in `Install`.
+
+## Priority and ordering
+Plugins may implement `Priority() int` to control execution order. Lower numbers run first, so a plugin returning `0` will precede one returning `10`. This matters when one plugin depends on the output of another.
+
+## Writing a plugin
+A minimal plugin defines a type, implements the desired hooks and registers itself:
 
 ```go
 package analytics
@@ -25,17 +51,33 @@ type Plugin struct{}
 
 func New() core.Plugin { return &Plugin{} }
 
+func (p *Plugin) Priority() int { return 0 }
+
+func (p *Plugin) PreBuild(cfg json.RawMessage) error {
+    // e.g. generate tracking configuration
+    return nil
+}
+
 func (p *Plugin) Build(cfg json.RawMessage) error {
-    // optional build-time work using cfg
+    // compile assets or copy files
+    return nil
+}
+
+func (p *Plugin) PostBuild(cfg json.RawMessage) error {
+    // cleanup temporary files
     return nil
 }
 
 func (p *Plugin) Install(a *core.App) {
-    // attach global scripts or modify the app
+    // inject analytics script into pages
+}
+
+func (p *Plugin) Uninstall(a *core.App) {
+    // remove analytics script
 }
 ```
 
-In `main.go`:
+Register the plugin in `main.go`:
 
 ```go
 func main() {
@@ -43,9 +85,7 @@ func main() {
 }
 ```
 
-Plugins are ideal for analytics, custom elements or build-time
-transformations. During `Install` plugins can register hooks on
-`*core.App` such as `RegisterRouter`, `RegisterStore`, `RegisterTemplate`
-or `RegisterLifecycle` to extend the framework at runtime.
+## Use cases
+Plugins excel at tasks such as analytics integration, asset processing, internationalization or feature flagging. By choosing which hooks to implement, a plugin can focus on build-time concerns, runtime behaviour or both.
 
 @include:ExampleFrame:{code:"/examples/plugins/plugins_component.go", uri:"/examples/plugins"}

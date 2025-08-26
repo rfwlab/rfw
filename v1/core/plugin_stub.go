@@ -10,6 +10,10 @@ type Plugin interface {
 	Install(*App)
 }
 
+type PreBuilder interface{ PreBuild(json.RawMessage) error }
+type PostBuilder interface{ PostBuild(json.RawMessage) error }
+type Uninstaller interface{ Uninstall(*App) }
+
 // App is a stub holder for callbacks.
 type App struct{}
 

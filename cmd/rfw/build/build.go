@@ -16,6 +16,22 @@ import (
 )
 
 func Build() error {
+	var manifest struct {
+		Build struct {
+			Type string `json:"type"`
+		} `json:"build"`
+		Plugins map[string]json.RawMessage `json:"plugins"`
+	}
+	if data, err := os.ReadFile("rfw.json"); err == nil {
+		_ = json.Unmarshal(data, &manifest)
+	}
+	if err := plugins.Configure(manifest.Plugins); err != nil {
+		return fmt.Errorf("failed to configure plugins: %w", err)
+	}
+	if err := plugins.PreBuild(); err != nil {
+		return fmt.Errorf("pre build failed: %w", err)
+	}
+
 	goroot, err := exec.Command("go", "env", "GOROOT").Output()
 	if err != nil {
 		return fmt.Errorf("failed to get GOROOT: %w", err)
@@ -32,23 +48,17 @@ func Build() error {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
 	}
 
-	var manifest struct {
-		Build struct {
-			Type string `json:"type"`
-		} `json:"build"`
-		Plugins map[string]json.RawMessage `json:"plugins"`
-	}
-	if data, err := os.ReadFile("rfw.json"); err == nil {
-		_ = json.Unmarshal(data, &manifest)
-	}
 	if strings.EqualFold(manifest.Build.Type, "ssc") {
 		hostCmd := exec.Command("go", "build", "-o", "host/host", "./host")
 		if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
 		}
 	}
-	if err := plugins.Configure(manifest.Plugins); err != nil {
+	if err := plugins.Build(); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
+	}
+	if err := plugins.PostBuild(); err != nil {
+		return fmt.Errorf("post build failed: %w", err)
 	}
 
 	return nil

@@ -18,6 +18,8 @@ func (p *plugin) Name() string { return "test" }
 
 func (p *plugin) Install(a *core.App) {}
 
+func (p *plugin) Priority() int { return 0 }
+
 func (p *plugin) Build(raw json.RawMessage) error {
 	cfg := struct {
 		Packages []string `json:"packages"`

@@ -17,6 +17,24 @@ type Plugin interface {
 	Install(*App)
 }
 
+// PreBuilder allows plugins to execute logic before the CLI build step.
+// Implementing this interface is optional.
+type PreBuilder interface {
+	PreBuild(json.RawMessage) error
+}
+
+// PostBuilder allows plugins to execute logic after the CLI build step.
+// Implementing this interface is optional.
+type PostBuilder interface {
+	PostBuild(json.RawMessage) error
+}
+
+// Uninstaller allows plugins to clean up previously registered hooks.
+// Implementing this interface is optional.
+type Uninstaller interface {
+	Uninstall(*App)
+}
+
 // App maintains registered hooks and exposes helper methods for plugins
 // to attach to framework events.
 type App struct {
