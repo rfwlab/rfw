@@ -3,9 +3,8 @@
 package dom
 
 import (
-	jst "syscall/js"
-
 	js "github.com/rfwlab/rfw/v1/js"
+	jst "syscall/js"
 )
 
 // Element represents a DOM element returned by selector helpers.

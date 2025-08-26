@@ -24,6 +24,17 @@ Modifiers such as `.prevent`, `.stop`, or `.once` may be appended after the even
 <form @on:submit.prevent.once:onSubmit>
 ```
 
+Handlers can also be registered from Go code using the `events` package:
+
+```go
+stop := events.OnClick(dom.ByID("save"), func(evt js.Value) {
+        // handle click
+})
+defer stop()
+```
+
+This approach is useful when listeners need to be attached dynamically.
+
 ## Store Events
 
 Reactive stores emit change events whenever their values update. Components can listen by registering a watcher or computed property; see the Watchers section for details. This allows components to react to global state changes without manual DOM listeners.

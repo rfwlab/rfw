@@ -142,6 +142,10 @@
                 "path": "api/events.md"
             },
             {
+                "title": "js",
+                "path": "api/js.md"
+            },
+            {
                 "title": "state",
                 "path": "api/state.md"
             },

@@ -6,130 +6,113 @@ import (
 	jst "syscall/js"
 )
 
+// Type aliases to re-export syscall/js types.
+type (
+	Value = jst.Value
+	Func  = jst.Func
+	Type  = jst.Type
+)
+
+// Re-exported Value type constants.
+const (
+	TypeUndefined = jst.TypeUndefined
+	TypeNull      = jst.TypeNull
+	TypeBoolean   = jst.TypeBoolean
+	TypeNumber    = jst.TypeNumber
+	TypeString    = jst.TypeString
+	TypeSymbol    = jst.TypeSymbol
+	TypeObject    = jst.TypeObject
+	TypeFunction  = jst.TypeFunction
+)
+
 // Global returns the JavaScript global object.
-func Global() jst.Value {
-	return jst.Global()
-}
+func Global() Value { return jst.Global() }
 
 // Get returns a property from the global object.
-func Get(name string) jst.Value {
-	return Global().Get(name)
-}
+func Get(name string) Value { return Global().Get(name) }
 
 // Set assigns a value on the global object.
-func Set(name string, v any) {
-	Global().Set(name, v)
-}
+func Set(name string, v any) { Global().Set(name, v) }
 
 // Call invokes a function on the global object.
-func Call(name string, args ...any) jst.Value {
-	return Global().Call(name, args...)
-}
+func Call(name string, args ...any) Value { return Global().Call(name, args...) }
+
+// Null returns the JavaScript null value.
+func Null() Value { return jst.Null() }
+
+// Undefined returns the JavaScript undefined value.
+func Undefined() Value { return jst.Undefined() }
+
+// ValueOf converts a Go value to a JavaScript value.
+func ValueOf(v any) Value { return jst.ValueOf(v) }
+
+// FuncOf wraps a Go function for use in JavaScript.
+func FuncOf(fn func(this Value, args []Value) any) Func { return jst.FuncOf(fn) }
 
 // Window returns the window object.
-func Window() jst.Value {
-	return Get("window")
-}
+func Window() Value { return Get("window") }
 
 // Win is an alias for Window.
-func Win() jst.Value {
-	return Window()
-}
+func Win() Value { return Window() }
 
 // Document returns the document object.
-func Document() jst.Value {
-	return Get("document")
-}
+func Document() Value { return Get("document") }
 
 // Doc is an alias for Document.
-func Doc() jst.Value {
-	return Document()
-}
+func Doc() Value { return Document() }
 
 // Console returns the console object.
-func Console() jst.Value {
-	return Get("console")
-}
+func Console() Value { return Get("console") }
 
 // History returns the history object.
-func History() jst.Value {
-	return Window().Get("history")
-}
+func History() Value { return Window().Get("history") }
 
 // Location returns the location object.
-func Location() jst.Value {
-	return Window().Get("location")
-}
+func Location() Value { return Window().Get("location") }
 
 // Loc is an alias for Location.
-func Loc() jst.Value {
-	return Location()
-}
+func Loc() Value { return Location() }
 
 // JSON returns the JSON object.
-func JSON() jst.Value {
-	return Get("JSON")
-}
+func JSON() Value { return Get("JSON") }
 
 // Error returns the Error constructor.
-func Error() jst.Value {
-	return Get("Error")
-}
+func Error() Value { return Get("Error") }
 
 // Performance returns the performance object.
-func Performance() jst.Value {
-	return Get("performance")
-}
+func Performance() Value { return Get("performance") }
 
 // Perf is an alias for Performance.
-func Perf() jst.Value {
-	return Performance()
-}
+func Perf() Value { return Performance() }
 
 // MutationObserver returns the MutationObserver constructor.
-func MutationObserver() jst.Value {
-	return Get("MutationObserver")
-}
+func MutationObserver() Value { return Get("MutationObserver") }
 
 // IntersectionObserver returns the IntersectionObserver constructor.
-func IntersectionObserver() jst.Value {
-	return Get("IntersectionObserver")
-}
+func IntersectionObserver() Value { return Get("IntersectionObserver") }
 
 // CustomEvent returns the CustomEvent constructor.
-func CustomEvent() jst.Value {
-	return Get("CustomEvent")
-}
+func CustomEvent() Value { return Get("CustomEvent") }
 
 // LocalStorage returns the localStorage object.
-func LocalStorage() jst.Value {
-	return Get("localStorage")
-}
+func LocalStorage() Value { return Get("localStorage") }
 
 // LS is an alias for LocalStorage.
-func LS() jst.Value {
-	return LocalStorage()
-}
+func LS() Value { return LocalStorage() }
 
 // RequestAnimationFrame wraps the requestAnimationFrame global function.
-func RequestAnimationFrame(cb jst.Func) {
-	Call("requestAnimationFrame", cb)
-}
+func RequestAnimationFrame(cb Func) { Call("requestAnimationFrame", cb) }
 
 // RAF is an alias for RequestAnimationFrame.
-func RAF(cb jst.Func) {
-	RequestAnimationFrame(cb)
-}
+func RAF(cb Func) { RequestAnimationFrame(cb) }
 
 // Fetch wraps the global fetch function.
-func Fetch(args ...any) jst.Value {
-	return Call("fetch", args...)
-}
+func Fetch(args ...any) Value { return Call("fetch", args...) }
 
 // Expose registers a no-argument Go function under the given name
 // on the JavaScript global object.
 func Expose(name string, fn func()) {
-	Global().Set(name, jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	Global().Set(name, FuncOf(func(this Value, args []Value) any {
 		fn()
 		return nil
 	}))
@@ -137,9 +120,9 @@ func Expose(name string, fn func()) {
 
 // ExposeEvent registers a Go function that receives the first argument
 // from the JavaScript call as the event object.
-func ExposeEvent(name string, fn func(jst.Value)) {
-	Global().Set(name, jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-		var evt jst.Value
+func ExposeEvent(name string, fn func(Value)) {
+	Global().Set(name, FuncOf(func(this Value, args []Value) any {
+		var evt Value
 		if len(args) > 0 {
 			evt = args[0]
 		}
@@ -150,11 +133,9 @@ func ExposeEvent(name string, fn func(jst.Value)) {
 
 // ExposeFunc registers a Go function with custom arguments on the
 // JavaScript global object.
-func ExposeFunc(name string, fn func(this jst.Value, args []jst.Value) any) {
-	Global().Set(name, jst.FuncOf(fn))
+func ExposeFunc(name string, fn func(this Value, args []Value) any) {
+	Global().Set(name, FuncOf(fn))
 }
 
 // Stack returns the current JavaScript stack trace using Error().stack.
-func Stack() string {
-	return Global().Get("Error").New().Get("stack").String()
-}
+func Stack() string { return Global().Get("Error").New().Get("stack").String() }

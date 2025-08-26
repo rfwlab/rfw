@@ -30,13 +30,13 @@ func New(trans map[string]map[string]string) core.Plugin {
 
 // Install exposes translation helpers to the JavaScript environment.
 func (p *Plugin) Install(a *core.App) {
-	js.Set("setLang", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Set("setLang", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) > 0 {
 			p.lang = args[0].String()
 		}
 		return nil
 	}))
-	js.Set("t", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Set("t", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 		if len(args) == 0 {
 			return ""
 		}

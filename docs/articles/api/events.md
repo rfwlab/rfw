@@ -1,21 +1,39 @@
 # events
 
-Utilities for observing browser events and DOM mutations.
+Utilities for handling browser events and observing DOM changes.
 
 | Function | Description |
 | --- | --- |
+| `On(event, target, handler, opts...)` | Attaches a listener and returns a cleanup function. |
+| `OnClick(target, handler)` | Convenience wrapper for `click` events. |
+| `OnScroll(target, handler)` | Convenience wrapper for `scroll` events. |
+| `OnInput(target, handler)` | Convenience wrapper for `input` events. |
+| `OnTimeUpdate(target, handler)` | Convenience wrapper for `timeupdate` events. |
+| `OnKeyDown(handler)` | Registers a `keydown` handler on `window`. |
+| `OnKeyUp(handler)` | Registers a `keyup` handler on `window`. |
 | `Listen(event, target)` | Returns a channel that receives the event's first argument. |
 | `ObserveMutations(selector)` | Watches DOM mutations. |
 | `ObserveIntersections(selector, opts)` | Streams `IntersectionObserverEntry` values. |
 
-`Listen` converts native DOM events into Go channels. For application
-state changes use reactive stores which emit their own notifications – a
-separate mechanism from DOM events.
+`On` registers callbacks directly and returns a function to remove the
+listener when no longer needed. `Listen` converts native DOM events into
+Go channels. For application state changes use reactive stores which
+emit their own notifications – a separate mechanism from DOM events.
 
 ## Usage
 
-`Listen` turns browser events into Go channels. You can range over the
-channel to react to events concurrently.
+`On` attaches a handler and provides a cleanup function:
+
+```go
+stop := events.OnClick(dom.ByID("btn"), func(evt js.Value) {
+        js.Console().Call("log", "clicked")
+})
+// ...
+stop()
+```
+
+`Listen` turns browser events into Go channels when you prefer to range
+over events concurrently.
 
 This example listens for browser events and reacts in Go.
 

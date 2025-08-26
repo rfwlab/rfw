@@ -22,7 +22,7 @@ func animate(el jst.Value, duration time.Duration, step func(p float64)) {
 	start := js.Performance().Call("now").Float()
 	total := float64(duration.Milliseconds())
 	var cb jst.Func
-	cb = jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+	cb = js.FuncOf(func(this jst.Value, args []jst.Value) any {
 		now := js.Performance().Call("now").Float()
 		p := (now - start) / total
 		if p > 1 {

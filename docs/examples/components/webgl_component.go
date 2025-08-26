@@ -6,13 +6,13 @@ import (
 	_ "embed"
 	"fmt"
 	"strings"
+	jst "syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
+	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
 	webgl "github.com/rfwlab/rfw/v1/webgl"
-
-	jst "syscall/js"
 )
 
 //go:embed templates/webgl_component.rtml
@@ -50,16 +50,14 @@ func NewWebGLComponent() *core.HTMLComponent {
 }
 
 func init() {
-	js.Window().Call("addEventListener", "keydown", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-		key := strings.ToLower(args[0].Get("key").String())
+	events.OnKeyDown(func(v jst.Value) {
+		key := strings.ToLower(v.Get("key").String())
 		keyState[key] = true
-		return nil
-	}))
-	js.Window().Call("addEventListener", "keyup", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
-		key := strings.ToLower(args[0].Get("key").String())
+	})
+	events.OnKeyUp(func(v jst.Value) {
+		key := strings.ToLower(v.Get("key").String())
 		keyState[key] = false
-		return nil
-	}))
+	})
 }
 
 func fullscreen() {
@@ -128,7 +126,7 @@ void main(){
 		scaleLoc = ctx.GetUniformLocation(prog, "u_scale")
 		timeLoc = ctx.GetUniformLocation(prog, "u_time")
 
-		render = jst.FuncOf(renderLoop)
+		render = js.FuncOf(renderLoop)
 		js.RequestAnimationFrame(render)
 	}
 

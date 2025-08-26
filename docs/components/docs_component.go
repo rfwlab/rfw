@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"strconv"
 	"strings"
-
 	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"

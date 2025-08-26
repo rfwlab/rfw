@@ -5,7 +5,6 @@ package components
 import (
 	_ "embed"
 	"fmt"
-
 	jst "syscall/js"
 
 	core "github.com/rfwlab/rfw/v1/core"
@@ -52,9 +51,9 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 	previewDiv := wrapper.Call("querySelector", "#preview")
 	codeURL := wrapper.Get("dataset").Get("code").String()
 	if codeURL != "" {
-		js.Fetch(codeURL).Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+		js.Fetch(codeURL).Call("then", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 			resp := args[0]
-			return resp.Call("text").Call("then", jst.FuncOf(func(this jst.Value, args []jst.Value) any {
+			return resp.Call("text").Call("then", js.FuncOf(func(this jst.Value, args []jst.Value) any {
 				codeEl.Set("textContent", args[0].String())
 				hljs := js.Get("hljs")
 				if hljs.Truthy() {
