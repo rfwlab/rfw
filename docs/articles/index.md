@@ -110,5 +110,5 @@ Read the [architecture overview](./architecture) or open an issue on GitHub if s
 ## Pick Your Learning Path
 
 - [Try the Quick Start](./getting-started/quick-start) for a hands-on introduction.
-- [Read the Guide](./guide/cli) to explore the framework in depth.
+- [Read the Guide](./guide/features) to explore the framework in depth.
 - [Browse the API](../api/core) to see how rfw works under the hood.
