@@ -16,6 +16,8 @@ Stores are the primary mechanism for application state. They emit
 notifications to any component that reads their values, keeping most apps
 free of handwritten JavaScript.
 
+For a comparison between store and signals, see [Stores vs signals](../guide/store-vs-signals).
+
 ## Usage
 
 Stores are created with `state.NewStore` and read or updated via `Get` and

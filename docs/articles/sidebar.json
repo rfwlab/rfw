@@ -105,6 +105,10 @@
         "path": "guide/store-vs-signals.md"
       },
       {
+        "title": "Provide & Inject",
+        "path": "guide/provide-inject.md"
+      },
+      {
         "title": "Routing",
         "path": "guide/router.md"
       },
