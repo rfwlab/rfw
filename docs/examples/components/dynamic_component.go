@@ -11,6 +11,10 @@ import (
 //go:embed templates/dynamic_component.rtml
 var dynamicComponentTpl []byte
 
+func init() {
+	core.RegisterComponent("red-cube", func() core.Component { return NewRedCubeComponent() })
+}
+
 func NewDynamicComponent() *core.HTMLComponent {
 	c := core.NewComponent("DynamicComponent", dynamicComponentTpl, nil)
 	list := NewListComponent([]core.Component{
