@@ -1,6 +1,6 @@
 # Manifest
 
-The project manifest (`rfw.json`) defines build options and plugin configuration.
+The project manifest (`rfw.json`) defines build options and plugin configuration. `rfw init` creates this file with `build.type` set to `ssc` by default.
 
 ## build.type
 
@@ -26,15 +26,15 @@ Generates a stylesheet using the Tailwind CLI.
 {
   "plugins": {
     "tailwind": {
-      "input": "input.css",
-      "output": "tailwind.css",
+      "input": "static/input.css",
+      "output": "static/tailwind.css",
       "minify": true
     }
   }
 }
 ```
 
-- `input`: source file containing `@tailwind` directives.
+- `input`: source file containing `@tailwind` directives (paths may include directories).
 - `output`: compiled CSS file (defaults to `tailwind.css`).
 - `minify`: disable minification when set to `false`.
 - `args`: additional CLI arguments passed to `tailwindcss`.
@@ -80,4 +80,19 @@ Copies files from a directory into the build output.
 - `dest`: destination folder inside the build output (`dist` by default).
 
 Plugins run during `rfw build` and may watch relevant files for changes while developing.
+
+### Documentation content
+
+Bundles markdown articles and the sidebar into the static build output.
+
+```json
+{
+  "plugins": {
+    "docs": {}
+  }
+}
+```
+
+- `dir`: source directory containing documentation (defaults to `articles`).
+- `dest`: destination folder for static assets (`build/static` by default).
 

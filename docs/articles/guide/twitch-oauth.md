@@ -10,4 +10,4 @@ After Twitch redirects back to the application, the callback component extracts 
 
 @include:ExampleFrame:{code:"/examples/components/twitch_callback_component.go", uri:"/examples/twitch/callback"}
 
-The host component can be found in `docs/host/main.go` and expects the environment variables `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` to be set.
+The host component can be found in `docs/host/components/twitch_oauth_host.go` and expects the environment variables `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` to be set.
