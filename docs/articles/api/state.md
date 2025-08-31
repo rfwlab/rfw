@@ -9,7 +9,7 @@ Centralized reactive data stores.
 | `RegisterComputed(comp)` | Define derived values. |
 | `Map(store, key, dep, fn)` | Helper to map one key to another. |
 | `Map2(store, key, depA, depB, fn)` | Map two keys into a derived value. |
-| `RegisterWatcher(w)` | Run a callback after changes. |
+| `RegisterWatcher(w)` | Run a callback after changes and return a cleanup function. |
 | `ExposeUpdateStore()` | Expose `goUpdateStore` to JavaScript. |
 
 Stores are the primary mechanism for application state. They emit
