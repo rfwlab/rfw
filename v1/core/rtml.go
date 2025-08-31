@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"html"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -50,6 +51,13 @@ type ConditionDependency struct {
 	module    string
 	storeName string
 	key       string
+	signal    string
+}
+
+type ForeachConfig struct {
+	Expr      string
+	ItemAlias string
+	Content   string
 }
 
 // Render evaluates the conditional branches and renders the appropriate content.
@@ -73,6 +81,20 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 		if br.Condition != "" {
 			result, dependencies := evaluateCondition(br.Condition, c)
 			for _, dep := range dependencies {
+				if dep.signal != "" {
+					if prop, ok := c.Props[dep.signal]; ok {
+						if sig, ok := prop.(interface{ Read() any }); ok {
+							dom.RegisterSignal(c.ID, dep.signal, sig)
+							unsub := state.Effect(func() func() {
+								sig.Read()
+								updateConditionBindings(c, conditionID)
+								return nil
+							})
+							c.unsubscribes.Add(unsub)
+						}
+					}
+					continue
+				}
 				module, storeName, key := dep.module, dep.storeName, dep.key
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
@@ -250,15 +272,17 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
-	sigRegex := regexp.MustCompile(`@signal:(\w+)`)
+	sigRegex := regexp.MustCompile(`@signal:(\w+)(:w)?`)
 	return sigRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := sigRegex.FindStringSubmatch(match)
-		if len(parts) != 2 {
+		if len(parts) < 2 {
 			return match
 		}
 		name := parts[1]
+		isWriteable := len(parts) == 3 && parts[2] == ":w"
 		if prop, ok := c.Props[name]; ok {
 			if sig, ok := prop.(interface{ Read() any }); ok {
+				dom.RegisterSignal(c.ID, name, sig)
 				val := sig.Read()
 				unsub := state.Effect(func() func() {
 					v := sig.Read()
@@ -266,6 +290,9 @@ func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
 					return nil
 				})
 				c.unsubscribes.Add(unsub)
+				if isWriteable {
+					return match
+				}
 				return fmt.Sprintf(`<span data-signal="%s">%v</span>`, name, val)
 			}
 		}
@@ -479,7 +506,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 			Log().Debug("Dependency detected: Module '%s', Store '%s', Key '%s'", module, storeName, key)
 			store := state.GlobalStoreManager.GetStore(module, storeName)
 			if store != nil {
-				dependencies = append(dependencies, ConditionDependency{module, storeName, key})
+				dependencies = append(dependencies, ConditionDependency{module: module, storeName: storeName, key: key})
 				actualValue := fmt.Sprintf("%v", store.Get(key))
 				Log().Debug("Actual value from store: '%s'", actualValue)
 				return actualValue == expectedValue, dependencies
@@ -488,6 +515,17 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 			}
 		} else {
 			Log().Debug("Store parts length is not 3.")
+		}
+	}
+
+	if strings.HasPrefix(leftSide, "signal:") {
+		sigName := strings.TrimPrefix(leftSide, "signal:")
+		if prop, ok := c.Props[sigName]; ok {
+			if sig, ok := prop.(interface{ Read() any }); ok {
+				dependencies = append(dependencies, ConditionDependency{signal: sigName})
+				actualValue := fmt.Sprintf("%v", sig.Read())
+				return actualValue == expectedValue, dependencies
+			}
 		}
 	}
 
@@ -548,6 +586,13 @@ func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
 	for i := 0; i < nodes.Length(); i++ {
 		node := nodes.Index(i)
 		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
+	}
+
+	inputSelector := fmt.Sprintf(`input[value="@signal:%s:w"], select[value="@signal:%s:w"], textarea[value="@signal:%s:w"]`, name, name, name)
+	inputs := element.Call("querySelectorAll", inputSelector)
+	for i := 0; i < inputs.Length(); i++ {
+		input := inputs.Index(i)
+		input.Set("value", fmt.Sprintf("%v", newValue))
 	}
 }
 
@@ -735,70 +780,167 @@ func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
 			return match
 		}
 
-		collectionExpr := parts[1]
-		itemAlias := parts[2]
-		loopContent := parts[3]
+		expr := parts[1]
+		alias := parts[2]
+		content := parts[3]
+		foreachID := fmt.Sprintf("foreach-%x", sha1.Sum([]byte(match)))
+		c.foreachContents[foreachID] = ForeachConfig{Expr: expr, ItemAlias: alias, Content: content}
 
-		var collection []any
-
-		if strings.HasPrefix(collectionExpr, "store:") {
-			storeParts := strings.Split(strings.TrimPrefix(collectionExpr, "store:"), ".")
+		if strings.HasPrefix(expr, "store:") {
+			storeParts := strings.Split(strings.TrimPrefix(expr, "store:"), ".")
 			if len(storeParts) == 3 {
 				module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
-					if col, ok := store.Get(key).([]any); ok {
-						collection = col
-
-						unsubscribe := store.OnChange(key, func(newValue any) {
-							dom.UpdateDOM(c.ID, c.Render())
-						})
-						c.unsubscribes.Add(unsubscribe)
-					} else {
-						return match
-					}
-				} else {
-					return match
+					unsubscribe := store.OnChange(key, func(newValue any) {
+						updateForeachBindings(c, foreachID)
+					})
+					c.unsubscribes.Add(unsubscribe)
 				}
-			} else {
-				return match
-			}
-		} else if value, exists := c.Props[collectionExpr]; exists {
-			if col, ok := value.([]any); ok {
-				collection = col
-			} else {
-				return match
 			}
 		} else {
-			return match
-		}
-
-		var result strings.Builder
-
-		for _, item := range collection {
-			iterContent := loopContent
-
-			if itemMap, ok := item.(map[string]any); ok {
-				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+)`, itemAlias))
-				iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
-					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
-					if len(fieldParts) == 2 {
-						fieldName := fieldParts[1]
-						if fieldValue, exists := itemMap[fieldName]; exists {
-							return fmt.Sprintf("%v", fieldValue)
-						}
-					}
-					return fieldMatch
-				})
-			} else {
-				iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", itemAlias), fmt.Sprintf("%v", item))
+			name := strings.TrimPrefix(expr, "signal:")
+			if prop, ok := c.Props[name]; ok {
+				if sig, ok := prop.(interface{ Read() any }); ok {
+					dom.RegisterSignal(c.ID, name, sig)
+					unsub := state.Effect(func() func() {
+						sig.Read()
+						updateForeachBindings(c, foreachID)
+						return nil
+					})
+					c.unsubscribes.Add(unsub)
+				}
 			}
-
-			result.WriteString(iterContent)
 		}
 
-		return result.String()
+		rendered := renderForeachLoop(c, expr, alias, content)
+		return fmt.Sprintf(`<div data-foreach="%s">%s</div>`, foreachID, rendered)
 	})
+}
+
+func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
+	var collection any
+	if strings.HasPrefix(expr, "store:") {
+		parts := strings.Split(strings.TrimPrefix(expr, "store:"), ".")
+		if len(parts) == 3 {
+			module, storeName, key := parts[0], parts[1], parts[2]
+			store := state.GlobalStoreManager.GetStore(module, storeName)
+			if store != nil {
+				collection = store.Get(key)
+			}
+		}
+	} else {
+		name := strings.TrimPrefix(expr, "signal:")
+		if val, ok := c.Props[name]; ok {
+			if sig, ok := val.(interface{ Read() any }); ok {
+				collection = sig.Read()
+			} else {
+				collection = val
+			}
+		}
+	}
+
+	val := reflect.ValueOf(collection)
+	if !val.IsValid() {
+		return ""
+	}
+       switch val.Kind() {
+       case reflect.Slice, reflect.Array:
+               var result strings.Builder
+               for i := 0; i < val.Len(); i++ {
+                       item := val.Index(i).Interface()
+                       iter := content
+                       if itemMap, ok := item.(map[string]any); ok {
+                               fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+)`, alias))
+                               iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+                                       fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+                                       if len(fieldParts) == 2 {
+                                               if fieldValue, exists := itemMap[fieldParts[1]]; exists {
+                                                       return fmt.Sprintf("%v", fieldValue)
+                                               }
+                                       }
+                                       return fieldMatch
+                               })
+                               propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
+                               iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+                                       fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
+                                       if len(fieldParts) == 2 {
+                                               if fieldValue, exists := itemMap[fieldParts[1]]; exists {
+                                                       return fmt.Sprintf("%v", fieldValue)
+                                               }
+                                       }
+                                       return fieldMatch
+                               })
+                       }
+                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", item))
+                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", item))
+                       result.WriteString(iter)
+               }
+               return result.String()
+       case reflect.Map:
+               if val.Type().Key().Kind() != reflect.String {
+                       return ""
+               }
+               var result strings.Builder
+               keys := val.MapKeys()
+               sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
+               for _, k := range keys {
+                       v := val.MapIndex(k).Interface()
+                       iter := content
+                       if vMap, ok := v.(map[string]any); ok {
+                               fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+)`, alias))
+                               iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+                                       fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+                                       if len(fieldParts) == 2 {
+                                               if fieldValue, exists := vMap[fieldParts[1]]; exists {
+                                                       return fmt.Sprintf("%v", fieldValue)
+                                               }
+                                       }
+                                       return fieldMatch
+                               })
+                               propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
+                               iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+                                       fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
+                                       if len(fieldParts) == 2 {
+                                               if fieldValue, exists := vMap[fieldParts[1]]; exists {
+                                                       return fmt.Sprintf("%v", fieldValue)
+                                               }
+                                       }
+                                       return fieldMatch
+                               })
+                       }
+                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", v))
+                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", v))
+                       result.WriteString(iter)
+               }
+               return result.String()
+       default:
+               return ""
+       }
+}
+
+func updateForeachBindings(c *HTMLComponent, foreachID string) {
+	var element jst.Value
+	if c.ID == "" {
+		element = dom.ByID("app")
+	} else {
+		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+	}
+	if element.IsNull() || element.IsUndefined() {
+		return
+	}
+
+	selector := fmt.Sprintf(`[data-foreach="%s"]`, foreachID)
+	node := element.Call("querySelector", selector)
+	if node.IsNull() || node.IsUndefined() {
+		return
+	}
+
+	cfg := c.foreachContents[foreachID]
+	newContent := renderForeachLoop(c, cfg.Expr, cfg.ItemAlias, cfg.Content)
+	node.Set("innerHTML", newContent)
+	dom.BindStoreInputs(node)
+	dom.BindSignalInputs(c.ID, node)
 }
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
@@ -837,6 +979,7 @@ func updateConditionBindings(c *HTMLComponent, conditionID string) {
 	node.Set("innerHTML", newContent)
 
 	dom.BindStoreInputs(node)
+	dom.BindSignalInputs(c.ID, node)
 }
 
 func updateConditionsForStoreVariable(c *HTMLComponent, module, storeName, key string) {
@@ -872,7 +1015,7 @@ func getConditionDependencies(condition string) ([]ConditionDependency, error) {
 		storeParts := strings.Split(strings.TrimPrefix(leftSide, "store:"), ".")
 		if len(storeParts) == 3 {
 			module, storeName, key := storeParts[0], storeParts[1], storeParts[2]
-			dependencies = append(dependencies, ConditionDependency{module, storeName, key})
+			dependencies = append(dependencies, ConditionDependency{module: module, storeName: storeName, key: key})
 		}
 	}
 

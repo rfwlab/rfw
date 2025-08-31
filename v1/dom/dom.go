@@ -7,11 +7,33 @@ package dom
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	jst "syscall/js"
 
 	events "github.com/rfwlab/rfw/v1/events"
 	"github.com/rfwlab/rfw/v1/state"
 )
+
+// componentSignals tracks signals associated with each component instance.
+var componentSignals = make(map[string]map[string]any)
+
+// RegisterSignal associates a signal with a component so inputs can bind to it.
+func RegisterSignal(componentID, name string, sig any) {
+	if componentSignals[componentID] == nil {
+		componentSignals[componentID] = make(map[string]any)
+	}
+	componentSignals[componentID][name] = sig
+}
+
+// RemoveComponentSignals cleans up signals for a component on unmount.
+func RemoveComponentSignals(componentID string) { delete(componentSignals, componentID) }
+
+func getSignal(componentID, name string) any {
+	if m, ok := componentSignals[componentID]; ok {
+		return m[name]
+	}
+	return nil
+}
 
 // TemplateHook is an optional callback invoked after a DOM update to allow
 // custom processing of the rendered HTML.
@@ -25,12 +47,23 @@ func UpdateDOM(componentID string, html string) {
 		element = ByID("app")
 	} else {
 		element = Query(fmt.Sprintf("[data-component-id='%s']", componentID))
+		if element.IsNull() || element.IsUndefined() {
+			element = ByID("app")
+		}
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
 
 	RemoveEventListeners(componentID)
+
+	if strings.HasPrefix(html, "<root") && strings.EqualFold(element.Get("nodeName").String(), "ROOT") {
+		if end := strings.LastIndex(html, "</root>"); end != -1 {
+			if start := strings.Index(html, ">"); start != -1 {
+				html = html[start+1 : end]
+			}
+		}
+	}
 
 	patchInnerHTML(element, html)
 
@@ -39,6 +72,7 @@ func UpdateDOM(componentID string, html string) {
 	}
 
 	BindStoreInputs(element)
+	BindSignalInputs(componentID, element)
 
 	BindEventListeners(componentID, element)
 }
@@ -71,6 +105,34 @@ func BindStoreInputs(element jst.Value) {
 						st.Set(k, newValue)
 					}
 				}(input, store, key)
+			}
+		}
+	}
+}
+
+// BindSignalInputs binds input elements to local component signals.
+func BindSignalInputs(componentID string, element jst.Value) {
+	inputs := element.Call("querySelectorAll", "input, select, textarea")
+	for i := 0; i < inputs.Length(); i++ {
+		input := inputs.Index(i)
+		value := input.Get("value").String()
+		sigMatch := regexp.MustCompile(`@signal:(\w+):w`).FindStringSubmatch(value)
+
+		if len(sigMatch) == 2 {
+			name := sigMatch[1]
+			if sig := getSignal(componentID, name); sig != nil {
+				if s, ok := sig.(interface {
+					Read() any
+					Set(string)
+				}); ok {
+					input.Set("value", fmt.Sprintf("%v", s.Read()))
+					ch := events.Listen("input", input)
+					go func(in jst.Value, sg interface{ Set(string) }) {
+						for range ch {
+							sg.Set(in.Get("value").String())
+						}
+					}(input, s)
+				}
 			}
 		}
 	}

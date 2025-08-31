@@ -2,5 +2,15 @@
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
         <p>Count: @signal:count</p>
         <button class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" @click:inc>Increment</button>
+        <input class="border" value="@signal:message:w" />
+        @if:signal:count == "3"
+            <p>Count reached three!</p>
+        @endif
+        <button class="text-green-500 hover:text-green-700 font-bold cursor-pointer" @click:add>Add Message</button>
+        <ul>
+            @foreach:signal:items as it
+                <li>@it</li>
+            @endforeach
+        </ul>
     </div>
 </root>

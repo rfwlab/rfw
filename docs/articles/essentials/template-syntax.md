@@ -57,6 +57,13 @@ For global state, use the `@store` command to bind a value to an attribute. The 
 
 Updating the `count` key in the `counter` store reflects in the input, and editing the input writes back to the store.
 
+Local signals may be bound similarly using `@signal:name` and `@signal:name:w` for two‑way bindings:
+
+```rtml
+<p>@signal:message</p>
+<input value="@signal:message:w">
+```
+
 ### Boolean Attributes
 
 When an expression resolves to a boolean, the attribute is included only if the value is truthy:
@@ -131,6 +138,14 @@ Iterate collections with `@for`:
 @endfor
 ```
 
+When a signal's `Read` method returns a slice or map, `@foreach` can iterate it:
+
+```rtml
+@foreach:items as it
+  <li>@it</li>
+@endforeach
+```
+
 ## Components, Props and Slots
 
 Bring in child components with `@include:Name`, optionally passing props, and expose content placeholders with `@slot`:
@@ -185,6 +200,7 @@ RTML ships with a small set of built-in directives:
 - `@slot:name` / `@endslot` – declare named slots inside a component.
 - `@prop:name` – read a property passed to a component.
 - `@store:module.store.key[:w]` – bind to global state.
+- `@signal:name[:w]` – bind to a local signal.
 - `rt-is` – render a component dynamically.
 
 Commands may accept parameters or modifiers; see individual sections above for details.

@@ -43,6 +43,7 @@ type HTMLComponent struct {
 	Slots             map[string]any
 	HostComponent     string
 	conditionContents map[string]ConditionContent
+	foreachContents   map[string]ForeachConfig
 	hostVars          []string
 	hostCmds          []string
 	component         Component
@@ -60,6 +61,7 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTM
 		Props:             props,
 		Slots:             make(map[string]any),
 		conditionContents: make(map[string]ConditionContent),
+		foreachContents:   make(map[string]ForeachConfig),
 	}
 	// Attempt automatic cleanup when component is garbage collected.
 	runtime.SetFinalizer(c, func(hc *HTMLComponent) { hc.Unmount() })
@@ -166,6 +168,7 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 
 func (c *HTMLComponent) Unmount() {
 	dom.RemoveEventListeners(c.ID)
+	dom.RemoveComponentSignals(c.ID)
 	log.Printf("Unsubscribing %s from all stores", c.Name)
 	c.unsubscribes.Run()
 
