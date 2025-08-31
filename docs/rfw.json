@@ -5,9 +5,10 @@
   },
   "plugins": {
     "tailwind": {
-      "input": "input.css",
-      "output": "tailwind.css"
+      "input": "static/input.css",
+      "output": "static/tailwind.css"
     },
-    "env": {}
+    "env": {},
+    "docs": {}
   }
 }

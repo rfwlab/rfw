@@ -1,6 +1,6 @@
 # Server Side Computed
 
-The project manifest (`rfw.json`) can declare the build type. Setting it to `ssc` enables Server Side Computed builds.
+The project manifest (`rfw.json`) can declare the build type. Projects scaffolded with `rfw init` set it to `ssc` by default to enable Server Side Computed builds.
 
 ```json
 {
@@ -10,7 +10,7 @@ The project manifest (`rfw.json`) can declare the build type. Setting it to `ssc
 }
 ```
 
-When `ssc` is active, `rfw build` compiles the Wasm bundle and also builds the Go sources in the `host` directory into a server binary. The server keeps variables and commands prefixed with `h:` synchronized with the client through a persistent WebSocket connection.
+`rfw build` compiles the Wasm bundle into `build/client/` and builds the Go sources in the `host` directory into a server binary placed under `build/host/`. When `ssc` is active, the server keeps variables and commands prefixed with `h:` synchronized with the client through a persistent WebSocket connection.
 
 ## HTML and Host Components
 
@@ -49,7 +49,7 @@ func main() {
     host.Register(host.NewHostComponent("GreetingHost", func(_ map[string]any) any {
         return map[string]any{"hostMsg": "hello from server"}
     }))
-    host.ListenAndServe(":8080", ".")
+    host.ListenAndServe(":8080", "client")
 }
 ```
 

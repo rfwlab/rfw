@@ -1,19 +1,20 @@
 package build
 
 import (
-        "encoding/json"
-        "fmt"
-        "io"
-        "os"
-        "os/exec"
-        "path/filepath"
-        "strings"
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
-        "github.com/rfwlab/rfw/cmd/rfw/plugins"
-        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
-        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
-        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
-        _ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
+	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
 )
 
 func Build() error {
@@ -33,33 +34,71 @@ func Build() error {
 		return fmt.Errorf("pre build failed: %w", err)
 	}
 
+	clientDir := filepath.Join("build", "client")
+	hostDir := filepath.Join("build", "host")
+	staticDir := filepath.Join("build", "static")
+	if err := os.MkdirAll(clientDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create client build directory: %w", err)
+	}
+	if err := os.MkdirAll(staticDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create static build directory: %w", err)
+	}
+
 	goroot, err := exec.Command("go", "env", "GOROOT").Output()
 	if err != nil {
 		return fmt.Errorf("failed to get GOROOT: %w", err)
 	}
 	wasmExec := filepath.Join(strings.TrimSpace(string(goroot)), "lib", "wasm", "wasm_exec.js")
-	if err := copyFile(wasmExec, "wasm_exec.js"); err != nil {
+	if err := copyFile(wasmExec, filepath.Join(clientDir, "wasm_exec.js")); err != nil {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	cmd := exec.Command("go", "build", "-o", "app.wasm", "main.go")
+	cmd := exec.Command("go", "build", "-o", filepath.Join(clientDir, "app.wasm"), "main.go")
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
 	}
 
-	if strings.EqualFold(manifest.Build.Type, "ssc") {
-		hostCmd := exec.Command("go", "build", "-o", "host/host", "./host")
-		if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
-		}
+	if err := os.MkdirAll(hostDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create host build directory: %w", err)
+	}
+	hostCmd := exec.Command("go", "build", "-o", filepath.Join(hostDir, "host"), "./host")
+	if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
 	}
 	if err := plugins.Build(); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
 	}
 	if err := plugins.PostBuild(); err != nil {
 		return fmt.Errorf("post build failed: %w", err)
+	}
+	if _, err := os.Stat("index.html"); err == nil {
+		if err := copyFile("index.html", filepath.Join(clientDir, "index.html")); err != nil {
+			return fmt.Errorf("failed to copy index.html: %w", err)
+		}
+	}
+
+	if _, err := os.Stat("static"); err == nil {
+		if err := filepath.Walk("static", func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			rel, err := filepath.Rel("static", path)
+			if err != nil {
+				return err
+			}
+			dst := filepath.Join(staticDir, rel)
+			if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+				return err
+			}
+			return copyFile(path, dst)
+		}); err != nil {
+			return fmt.Errorf("failed to copy static assets: %w", err)
+		}
 	}
 
 	return nil

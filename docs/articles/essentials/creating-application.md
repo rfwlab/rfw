@@ -4,16 +4,25 @@ This guide walks through the structure of a basic RFW application and explains h
 
 ## Project Layout
 
-An RFW project pairs each Go component with an `.rtml` template. The `rfw init` command scaffolds this layout for you:
+An RFW project pairs each Go component with an `.rtml` template and ships with a host folder for server components. The `rfw init` command scaffolds this layout for you:
 
 ```
 hello-rfw/
 ├── main.go
-└── components/
-    └── app_component.go
-    └── templates/
-        └── app_component.rtml
+├── components/
+│   └── app_component.go
+│   └── templates/
+│       └── app_component.rtml
+├── host/
+│   ├── main.go
+│   └── components/
+│       └── hello_host.go
+├── static/
+│   └── (images, styles, etc.)
+└── rfw.json
 ```
+
+Files in `static/` are copied into `build/static/` and served from the root path. During development, requests to `/static/*` are mapped to `/*` so assets work without changing URLs.
 
 ## Bootstrapping
 
@@ -78,6 +87,7 @@ func NewAppComponent() *AppComponent {
         HTMLComponent: core.NewHTMLComponent("AppComponent", appComponentTpl, nil),
     }
     c.SetComponent(c)
+    c.AddHostComponent("HelloHost")
     c.Init(nil)
     return c
 }

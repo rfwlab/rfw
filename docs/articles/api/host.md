@@ -22,6 +22,6 @@ The handler receives payloads sent from the client and may return a response pay
 
 ## WebSocket server
 
-`ListenAndServe(addr, root string)` starts an HTTP server that serves files from `root` and exposes the WebSocket endpoint at `/ws`. Messages arriving on the socket are dispatched to the matching `HostComponent` and the response, if any, is sent back to the caller. Use `Broadcast` to push a payload to all clients subscribed to a component.
+`ListenAndServe(addr, root string)` starts an HTTP server that serves files from `root` and exposes the WebSocket endpoint at `/ws`. If `root` is not found relative to the current working directory, it is resolved from the host binary's location, allowing executables under `build/host` to access client files in `../client`. Messages arriving on the socket are dispatched to the matching `HostComponent` and the response, if any, is sent back to the caller. Use `Broadcast` to push a payload to all clients subscribed to a component.
 
 `NewMux(root string)` returns an `*http.ServeMux` preconfigured in the same way, allowing additional handlers to be registered before calling `http.ListenAndServe`.

@@ -1,0 +1,13 @@
+package main
+
+import (
+	"log"
+
+	"github.com/rfwlab/rfw/v1/host"
+	"{{moduleName}}/host/components"
+)
+
+func main() {
+	components.RegisterHelloHost()
+	log.Fatal(host.ListenAndServe(":8080", "client"))
+}
