@@ -4,6 +4,8 @@ Signals provide fine-grained reactive values that notify only the computations
 that read them. They are ideal for local component state without relying on
 store keys.
 
+For a comparison with stores, see [Stores vs signals](../guide/store-vs-signals).
+
 ## Creating a Signal
 
 Use `state.NewSignal` to create a signal and `Get`/`Set` to work with its value:
