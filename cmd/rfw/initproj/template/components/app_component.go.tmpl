@@ -20,6 +20,7 @@ func NewAppComponent() *AppComponent {
 		HTMLComponent: core.NewHTMLComponent("AppComponent", appComponentTpl, nil),
 	}
 	c.SetComponent(c)
+	c.AddHostComponent("HelloHost")
 	c.Init(nil)
 	return c
 }

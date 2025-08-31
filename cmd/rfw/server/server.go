@@ -58,7 +58,8 @@ func (s *Server) Start() error {
 			return err
 		}
 	} else {
-		mux = hostpkg.NewMux(".")
+		root := filepath.Join("build", "client")
+		mux = hostpkg.NewMux(root)
 		if s.Debug {
 			mux.Handle("/debug/vars", expvar.Handler())
 			mux.HandleFunc("GET /debug/pprof/", pprof.Index)
@@ -73,7 +74,7 @@ func (s *Server) Start() error {
 			}
 		}()
 		go func() {
-			if err := hostpkg.ListenAndServeTLS(":"+httpsPort, "."); err != nil {
+			if err := hostpkg.ListenAndServeTLS(":"+httpsPort, root); err != nil {
 				utils.Fatal("HTTPS server failed: ", err)
 			}
 		}()
@@ -218,7 +219,8 @@ func incrementPort(port string) string {
 }
 
 func (s *Server) startHost() error {
-	s.hostCmd = exec.Command("./host/host")
+	path := filepath.Join("build", "host", "host")
+	s.hostCmd = exec.Command(path)
 	s.hostCmd.Stdout = os.Stdout
 	s.hostCmd.Stderr = os.Stderr
 	return s.hostCmd.Start()

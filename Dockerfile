@@ -16,9 +16,10 @@ RUN curl -L https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.1
 WORKDIR /app
 
 RUN git clone https://github.com/rfwlab/rfw.git
+RUN rfw build
 
-WORKDIR /app/rfw/docs
+WORKDIR /app/rfw/docs/build/host
 
 EXPOSE 8080
 
-CMD ["rfw", "dev"]
+CMD ["./host"]

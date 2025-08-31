@@ -19,6 +19,9 @@ rfw init github.com/username/project-name
 
 # run the development server
 rfw dev
+
+# build for production
+rfw build
 ```
 
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
@@ -34,6 +37,6 @@ the CLI without relying on external tooling. Each plugin reports a numeric
 ### Tailwind CSS
 
 `rfw` includes a build step for [Tailwind CSS](https://tailwindcss.com/) using the official standalone CLI.
-Place an `input.css` file containing the `@tailwind` directives in your project. During development the server watches
+Place an `input.css` file (commonly under `static/`) containing the `@tailwind` directives in your project. During development the server watches
 template, stylesheet and configuration files and emits a trimmed `tailwind.css`
 containing only the classes you use, without requiring Node or a CDN.

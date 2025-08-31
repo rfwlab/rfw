@@ -15,12 +15,41 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+func resolveRoot(root string) string {
+	if _, err := os.Stat(root); err == nil {
+		return root
+	}
+	if exe, err := os.Executable(); err == nil {
+		candidate := filepath.Join(filepath.Dir(exe), "..", root)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return root
+}
+
 // NewMux returns an HTTP mux that serves static files from root and the
 // WebSocket handler at /ws.
 func NewMux(root string) *http.ServeMux {
+	root = resolveRoot(root)
+	staticRoot := filepath.Join(root, "..", "static")
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir(root))
+	var sfs http.Handler
+	if _, err := os.Stat(staticRoot); err == nil {
+		sfs = http.FileServer(http.Dir(staticRoot))
+	}
+	if sfs != nil {
+		mux.Handle("/static/", http.StripPrefix("/static", sfs))
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if sfs != nil {
+			spath := filepath.Join(staticRoot, r.URL.Path)
+			if st, err := os.Stat(spath); err == nil && !st.IsDir() {
+				sfs.ServeHTTP(w, r)
+				return
+			}
+		}
 		path := filepath.Join(root, r.URL.Path)
 		if st, err := os.Stat(path); err == nil && !st.IsDir() {
 			fs.ServeHTTP(w, r)
