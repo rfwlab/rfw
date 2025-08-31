@@ -26,6 +26,10 @@ rfw build
 
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
+## Server Side Computed (SSC)
+
+SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
+
 ## Build-level Plugins
 
 `rfw` exposes a simple plugin system for build-time tasks. Plugins can register
