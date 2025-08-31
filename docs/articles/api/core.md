@@ -8,6 +8,7 @@ interfaces that everything else builds upon.
 | `HTMLComponent` | Base struct for reactive components backed by RTML templates. |
 | `Logger` | Interface for redirecting log output. |
 | `ComponentRegistry` | Global registry for components loaded via `rt-is`. |
+| `ErrorBoundary` | Wrapper that renders fallback UI when a child panics. |
 
 ## Logger
 
@@ -23,6 +24,16 @@ warnings during development.
 
 `core.NewComponent(name, tpl, props)` returns an initialized `*core.HTMLComponent` with the provided template and props.
 For structs embedding `*core.HTMLComponent`, use `core.NewComponentWith(name, tpl, props, self)` to bind lifecycle hooks without manual setup.
+
+## ErrorBoundary
+
+`core.NewErrorBoundary(child, fallback)` wraps a component and replaces its output with the provided fallback HTML when the child panics during `Render` or `Mount`.
+
+```go
+child := core.NewComponent("unsafe", tpl, nil)
+safe := core.NewErrorBoundary(child, "<div>sorry</div>")
+html := safe.Render() // renders fallback if child panics
+```
 
 ## Dynamic components
 
