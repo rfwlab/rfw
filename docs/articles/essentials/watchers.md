@@ -27,7 +27,7 @@ state.Watch(state.Path{"default", "counter", "count"}, func(v any) {
 })
 ```
 
-The path points to a module, store, and key. Watchers return a function to stop observing when no longer needed.
+The path points to a module, store, and key. Watchers return a function to stop observing. Store this function and call it from `OnUnmount` to avoid leaks.
 
 ## Immediate and Deep Options
 

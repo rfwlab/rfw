@@ -56,6 +56,30 @@ func (c *Counter) Dec() { c.Count-- }
 
 Exposing only the methods you want templates to call keeps encapsulation clear.
 
+## Cleanup on Unmount
+
+When a component is removed from the DOM, `OnUnmount` lets you release resources like watchers or timers. `Store.RegisterWatcher` returns a cleanup function that should be called in this hook:
+
+```go
+type Counter struct {
+  *core.HTMLComponent
+  stop func()
+}
+
+func (c *Counter) OnMount() {
+  w := state.NewWatcher([]string{"Count"}, func(m map[string]any) {
+    log.Println("count changed", m["Count"])
+  })
+  c.stop = c.Store.RegisterWatcher(w)
+}
+
+func (c *Counter) OnUnmount() {
+  c.stop()
+}
+```
+
+`OnUnmount` runs before the component is detached, ensuring cleanup occurs while the component still exists.
+
 ## Composing Components
 
 Components can nest by including each other in RTML. Slots allow parents to inject markup into predefined outlets of a child component. This enables flexible layouts while keeping logic isolated.
