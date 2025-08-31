@@ -97,7 +97,7 @@
         "path": "guide/dom-patching.md"
       },
       {
-        "title": "State Management",
+        "title": "State Management & Suspense",
         "path": "guide/state-management.md"
       },
       {
