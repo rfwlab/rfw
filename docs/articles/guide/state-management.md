@@ -73,6 +73,27 @@ Options like `WatcherDeep` or `WatcherImmediate` enable more advanced
 behaviour such as deep watching of nested structures or running the
 callback immediately after registration.
 
+## Suspense
+
+Use Suspense to display a fallback while asynchronous data is loading. It accepts a render function and shows the fallback until the function stops returning `http.ErrPending`.
+
+```go
+import (
+    "fmt"
+
+    "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v1/http"
+)
+
+var todo Todo
+content := core.NewSuspense(func() (string, error) {
+    if err := http.FetchJSON("/api/todo/1", &todo); err != nil {
+        return "", err
+    }
+    return fmt.Sprintf("<div>%s</div>", todo.Title), nil
+}, "<div>Loading...</div>")
+```
+
 ## Binding in components
 
 When a component references `user/profile.fullName` in its template the
