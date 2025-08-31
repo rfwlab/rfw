@@ -64,6 +64,10 @@
                 "path": "essentials/watchers.md"
             },
             {
+                "title": "Signals & Effects",
+                "path": "essentials/signals-and-effects.md"
+            },
+            {
                 "title": "Template Refs",
                 "path": "essentials/template-refs.md"
             },

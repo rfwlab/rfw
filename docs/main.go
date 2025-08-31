@@ -165,6 +165,10 @@ func main() {
 		Path:      "/examples/twitch/callback",
 		Component: func() core.Component { return excomponents.NewTwitchCallbackComponent() },
 	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/signals",
+		Component: func() core.Component { return excomponents.NewSignalsEffectsComponent() },
+	})
 
 	router.InitRouter()
 	select {}

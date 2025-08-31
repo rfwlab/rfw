@@ -1,0 +1,6 @@
+<root>
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <p>Count: @signal:count</p>
+        <button class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" @click:inc>Increment</button>
+    </div>
+</root>

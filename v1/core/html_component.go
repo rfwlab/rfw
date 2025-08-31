@@ -124,6 +124,9 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// - :r stands for read-only inputs (default, not required, actually not even implemented)
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
 
+	// Handle @signal:name syntax for local signals
+	renderedTemplate = replaceSignalPlaceholders(renderedTemplate, c)
+
 	// Handle @prop:propName syntax for props
 	renderedTemplate = replacePropPlaceholders(renderedTemplate, c)
 
