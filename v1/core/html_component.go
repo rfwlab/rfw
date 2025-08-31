@@ -167,6 +167,10 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 }
 
 func (c *HTMLComponent) Unmount() {
+	if c.component != nil {
+		c.component.OnUnmount()
+	}
+
 	dom.RemoveEventListeners(c.ID)
 	dom.RemoveComponentSignals(c.ID)
 	log.Printf("Unsubscribing %s from all stores", c.Name)
@@ -174,10 +178,6 @@ func (c *HTMLComponent) Unmount() {
 
 	for _, dep := range c.Dependencies {
 		dep.Unmount()
-	}
-
-	if c.component != nil {
-		c.component.OnUnmount()
 	}
 }
 
