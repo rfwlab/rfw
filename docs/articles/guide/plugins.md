@@ -35,6 +35,20 @@ type Uninstaller interface { Uninstall(*core.App) }
 ## Priority and ordering
 Plugins may implement `Priority() int` to control execution order. Lower numbers run first, so a plugin returning `0` will precede one returning `10`. This matters when one plugin depends on the output of another.
 
+The CLI sorts registered plugins by priority:
+
+```go
+type first struct{}
+func (p *first) Priority() int { return 0 }
+
+type second struct{}
+func (p *second) Priority() int { return 10 }
+
+plugins.Register(&second{})
+plugins.Register(&first{})
+// During the build step "first" runs before "second" despite registration order.
+```
+
 ## Writing a plugin
 A minimal plugin defines a type, implements the desired hooks and registers itself:
 
