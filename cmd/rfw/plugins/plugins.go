@@ -13,8 +13,11 @@ import (
 // hooks when desired.
 type Plugin interface {
 	core.Plugin
+	// Name returns a unique identifier for the plugin.
 	Name() string
+	// ShouldRebuild reports whether a change at the given path requires a rebuild.
 	ShouldRebuild(path string) bool
+	// Priority determines execution order; lower values run earlier.
 	Priority() int
 }
 
