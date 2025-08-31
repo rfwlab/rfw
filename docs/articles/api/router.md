@@ -4,6 +4,7 @@ Client-side router with lazy loaded components and guards.
 
 - `RegisterRoute(Route)` adds a route definition.
 - `Navigate(path)` programmatically changes the URL.
+- `InitRouter()` starts the router and listens for navigation events.
 - `ExposeNavigate()` exposes navigation to JavaScript as `goNavigate`.
 - `NotFoundComponent` or `NotFoundCallback` handle unmatched routes.
 - Guards: `Guard` functions run before navigation and can cancel by returning `false`.
@@ -28,6 +29,14 @@ router.InitRouter()
 <a href="/docs" onclick="goNavigate('/docs'); return false">Docs</a>
 ```
 
-Routing parameters and query strings are merged and handled as in the following component.
+Components that need access to route parameters can implement the `routeParamReceiver` interface:
+
+```go
+type routeParamReceiver interface {
+    SetRouteParams(map[string]string)
+}
+```
+
+During navigation, the router merges path parameters and query string values and calls `SetRouteParams` before the component mounts. The following component demonstrates handling parameters.
 
 @include:ExampleFrame:{code:"/examples/components/another_component.go", uri:"/examples/user/jane"}
