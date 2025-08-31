@@ -43,6 +43,30 @@ directive. The DOM updates whenever the signal's value changes.
 <p>Local count: @signal:count</p>
 ```
 
+Form elements can write back to signals by adding the `:w` suffix:
+
+```rtml
+<input value="@signal:message:w">
+```
+
+Typing in the input updates the `message` signal and any `@signal:message`
+bindings elsewhere.
+
+Signals may also drive conditional blocks and loops. For example:
+
+```rtml
+@if:signal:count == "3"
+  <p>Three!</p>
+@endif
+
+@foreach:signal:items as it
+  <li>@it</li>
+@endforeach
+```
+
+The `items` signal may hold any slice or map type. When the collection changes,
+the loop patches only the affected DOM nodes.
+
 Provide the signal through component props:
 
 ```go
@@ -51,5 +75,8 @@ c := core.NewComponent("Example", tpl, map[string]any{"count": count})
 
 The template above will render the current value and update automatically when
 the `count` signal changes.
+
+The following example combines writable bindings, conditionals, and looping
+over a signal-backed slice:
 
 @include:ExampleFrame:{code:"/examples/components/signals_effects_component.go", uri:"/examples/signals"}
