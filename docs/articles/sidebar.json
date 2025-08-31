@@ -1,198 +1,202 @@
 [
-    {
+  {
+    "title": "Introduction",
+    "path": "index.md"
+  },
+  {
+    "title": "Getting Started",
+    "children": [
+      {
         "title": "Introduction",
-        "path": "index.md"
-    },
-    {
-        "title": "Getting Started",
-        "children": [
-            {
-                "title": "Introduction",
-                "path": "getting-started/introduction.md"
-            },
-            {
-                "title": "Quick Start",
-                "path": "getting-started/quick-start.md"
-            }
-        ]
-    },
-    {
-        "title": "Essentials",
-        "children": [
-            {
-                "title": "Creating an Application",
-                "path": "essentials/creating-application.md"
-            },
-            {
-                "title": "Template Syntax",
-                "path": "essentials/template-syntax.md"
-            },
-            {
-                "title": "Components Basics",
-                "path": "essentials/components-basics.md"
-            },
-            {
-                "title": "Reactivity Fundamentals",
-                "path": "essentials/reactivity-fundamentals.md"
-            },
-            {
-                "title": "Computed Properties",
-                "path": "essentials/computed-properties.md"
-            },
-            {
-                "title": "Class and Style Bindings",
-                "path": "essentials/class-and-style-bindings.md"
-            },
-            {
-                "title": "Conditional Rendering",
-                "path": "essentials/conditional-rendering.md"
-            },
-            {
-                "title": "List Rendering",
-                "path": "essentials/list-rendering.md"
-            },
-            {
-                "title": "Event Handling",
-                "path": "essentials/event-handling.md"
-            },
-            {
-                "title": "Form Input Bindings",
-                "path": "essentials/form-input-bindings.md"
-            },
-            {
-                "title": "Watchers",
-                "path": "essentials/watchers.md"
-            },
-            {
-                "title": "Signals & Effects",
-                "path": "essentials/signals-and-effects.md"
-            },
-            {
-                "title": "Template Refs",
-                "path": "essentials/template-refs.md"
-            },
-            {
-                "title": "Lifecycle Hooks",
-                "path": "essentials/lifecycle-hooks.md"
-            }
-        ]
-    },
-    {
-        "title": "Architecture",
-        "path": "architecture.md"
-    },
-    {
-        "title": "Guide",
-        "children": [
-            {
-                "title": "CLI",
-                "path": "guide/cli.md"
-            },
-            {
-                "title": "Why rfw?",
-                "path": "guide/features.md"
-            },
-            {
-                "title": "Selective DOM Patching",
-                "path": "guide/dom-patching.md"
-            },
-            {
-                "title": "State Management",
-                "path": "guide/state-management.md"
-            },
-            {
-                "title": "Routing",
-                "path": "guide/router.md"
-            },
-            {
-                "title": "Complex Routing",
-                "path": "guide/complex-routing.md"
-            },
-            {
-                "title": "API Integration",
-                "path": "guide/api-integration.md"
-            },
-            {
-                "title": "Animations",
-                "path": "guide/animation.md"
-            },
-            {
-                "title": "Plugins",
-                "path": "guide/plugins.md"
-            },
-            {
-                "title": "Manifest",
-                "path": "guide/manifest.md"
-            },
-            {
-                "title": "Server Side Computed",
-                "path": "guide/ssc.md"
-            },
-            {
-                "title": "Twitch OAuth",
-                "path": "guide/twitch-oauth.md"
-            }
-        ]
-    },
-    {
-        "title": "API",
-        "children": [
-            {
-                "title": "core",
-                "path": "api/core.md"
-            },
-            {
-                "title": "dom",
-                "path": "api/dom.md"
-            },
-            {
-                "title": "events",
-                "path": "api/events.md"
-            },
-            {
-                "title": "js",
-                "path": "api/js.md"
-            },
-            {
-                "title": "state",
-                "path": "api/state.md"
-            },
-            {
-                "title": "router",
-                "path": "api/router.md"
-            },
-            {
-                "title": "host",
-                "path": "api/host.md"
-            },
-            {
-                "title": "hostclient",
-                "path": "api/hostclient.md"
-            },
-            {
-                "title": "animation",
-                "path": "api/animation.md"
-            },
-            {
-                "title": "cinema",
-                "path": "api/cinema.md"
-            },
-            {
-                "title": "plugins",
-                "path": "api/plugins.md"
-            },
-            {
-                "title": "webgl",
-                "path": "api/webgl.md"
-            }
-        ]
-    },
-    {
-        "title": "Legacy Notes",
-        "path": "legacy.md"
-    },
-    {
-        "title": "Devtools",
-        "path": "devtools.md"
-    }
+        "path": "getting-started/introduction.md"
+      },
+      {
+        "title": "Quick Start",
+        "path": "getting-started/quick-start.md"
+      }
+    ]
+  },
+  {
+    "title": "Essentials",
+    "children": [
+      {
+        "title": "Creating an Application",
+        "path": "essentials/creating-application.md"
+      },
+      {
+        "title": "Template Syntax",
+        "path": "essentials/template-syntax.md"
+      },
+      {
+        "title": "Components Basics",
+        "path": "essentials/components-basics.md"
+      },
+      {
+        "title": "Reactivity Fundamentals",
+        "path": "essentials/reactivity-fundamentals.md"
+      },
+      {
+        "title": "Computed Properties",
+        "path": "essentials/computed-properties.md"
+      },
+      {
+        "title": "Class and Style Bindings",
+        "path": "essentials/class-and-style-bindings.md"
+      },
+      {
+        "title": "Conditional Rendering",
+        "path": "essentials/conditional-rendering.md"
+      },
+      {
+        "title": "List Rendering",
+        "path": "essentials/list-rendering.md"
+      },
+      {
+        "title": "Event Handling",
+        "path": "essentials/event-handling.md"
+      },
+      {
+        "title": "Form Input Bindings",
+        "path": "essentials/form-input-bindings.md"
+      },
+      {
+        "title": "Watchers",
+        "path": "essentials/watchers.md"
+      },
+      {
+        "title": "Signals & Effects",
+        "path": "essentials/signals-and-effects.md"
+      },
+      {
+        "title": "Template Refs",
+        "path": "essentials/template-refs.md"
+      },
+      {
+        "title": "Lifecycle Hooks",
+        "path": "essentials/lifecycle-hooks.md"
+      }
+    ]
+  },
+  {
+    "title": "Architecture",
+    "path": "architecture.md"
+  },
+  {
+    "title": "Guide",
+    "children": [
+      {
+        "title": "CLI",
+        "path": "guide/cli.md"
+      },
+      {
+        "title": "Why rfw?",
+        "path": "guide/features.md"
+      },
+      {
+        "title": "Selective DOM Patching",
+        "path": "guide/dom-patching.md"
+      },
+      {
+        "title": "State Management",
+        "path": "guide/state-management.md"
+      },
+      {
+        "title": "Stores vs signals",
+        "path": "guide/store-vs-signals.md"
+      },
+      {
+        "title": "Routing",
+        "path": "guide/router.md"
+      },
+      {
+        "title": "Complex Routing",
+        "path": "guide/complex-routing.md"
+      },
+      {
+        "title": "API Integration",
+        "path": "guide/api-integration.md"
+      },
+      {
+        "title": "Animations",
+        "path": "guide/animation.md"
+      },
+      {
+        "title": "Plugins",
+        "path": "guide/plugins.md"
+      },
+      {
+        "title": "Manifest",
+        "path": "guide/manifest.md"
+      },
+      {
+        "title": "Server Side Computed",
+        "path": "guide/ssc.md"
+      },
+      {
+        "title": "Twitch OAuth",
+        "path": "guide/twitch-oauth.md"
+      }
+    ]
+  },
+  {
+    "title": "API",
+    "children": [
+      {
+        "title": "core",
+        "path": "api/core.md"
+      },
+      {
+        "title": "dom",
+        "path": "api/dom.md"
+      },
+      {
+        "title": "events",
+        "path": "api/events.md"
+      },
+      {
+        "title": "js",
+        "path": "api/js.md"
+      },
+      {
+        "title": "state",
+        "path": "api/state.md"
+      },
+      {
+        "title": "router",
+        "path": "api/router.md"
+      },
+      {
+        "title": "host",
+        "path": "api/host.md"
+      },
+      {
+        "title": "hostclient",
+        "path": "api/hostclient.md"
+      },
+      {
+        "title": "animation",
+        "path": "api/animation.md"
+      },
+      {
+        "title": "cinema",
+        "path": "api/cinema.md"
+      },
+      {
+        "title": "plugins",
+        "path": "api/plugins.md"
+      },
+      {
+        "title": "webgl",
+        "path": "api/webgl.md"
+      }
+    ]
+  },
+  {
+    "title": "Legacy Notes",
+    "path": "legacy.md"
+  },
+  {
+    "title": "Devtools",
+    "path": "devtools.md"
+  }
 ]
