@@ -49,6 +49,28 @@ The example below demonstrates dynamic component loading.
 
 @include:ExampleFrame:{code:"/examples/components/dynamic_component.go", uri:"/examples/dynamic"}
 
+## Dependency Injection
+
+Components can share values without threading them through props. A parent
+calls `Provide` to expose a value, while descendants call `Inject` or
+`InjectTyped` to retrieve it. The `Inject` method returns an untyped `any`,
+and the generic `core.Inject[T]` helper (alias `InjectTyped`) casts the value
+to the requested type.
+
+```go
+parent := core.NewComponent("Parent", parentTpl, nil)
+child := core.NewComponent("Child", childTpl, nil)
+
+parent.Provide("answer", 42)
+parent.AddDependency("child", child)
+
+// Untyped lookup
+v, _ := child.Inject("answer")
+
+// Typed helper
+answer, _ := core.Inject[int](child, "answer")
+```
+
 ## Usage
 
 Components are created with `core.NewComponent` by passing a name, template
