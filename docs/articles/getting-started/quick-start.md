@@ -19,7 +19,7 @@ rfw init github.com/username/hello-rfw
 cd hello-rfw
 ```
 
-The generated project contains `main.go`, a `components` folder, and matching `.rtml` templates.
+The generated project contains `main.go`, a `components/` folder, matching `.rtml` templates, a `host/` directory with its own `components/`, and an `rfw.json` manifest enabling SSC builds.
 
 ## Run the Development Server
 
@@ -27,7 +27,7 @@ The generated project contains `main.go`, a `components` folder, and matching `.
 rfw dev
 ```
 
-`rfw dev` compiles the Go sources to `app.wasm`, serves an HTML shell, and reloads the page when files change.
+`rfw dev` compiles the Go sources to `app.wasm`, serves an HTML shell, reloads the page when files change, and serves files from a top-level `static/` directory at the root path. Requests to `/static/*` resolve to the same files so URLs stay unchanged. When a `host/` directory is present, the command also builds and runs the host binary from `build/host/host`.
 
 The default `index.html` mounts the Wasm module with plain JavaScript:
 
@@ -49,6 +49,7 @@ A global `rfw` object will be added in upcoming releases to expose high‑level 
 rfw build
 ```
 
-The build command outputs an optimized Wasm file and accompanying assets ready to deploy.
+The build command writes the Wasm bundle and supporting files to `build/client/`. Files placed in a top-level `static/` directory are copied into `build/static/` and served at the root path.
+The companion host binary, used to serve the client and optional host components, is placed under `build/host/`.
 
 With these basics in place, dive deeper into the framework starting with [Creating an Application](../essentials/creating-application.md).
