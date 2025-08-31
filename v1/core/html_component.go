@@ -49,6 +49,8 @@ type HTMLComponent struct {
 	component         Component
 	onMount           func(*HTMLComponent)
 	onUnmount         func(*HTMLComponent)
+	parent            *HTMLComponent
+	provides          map[string]any
 }
 
 func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTMLComponent {
@@ -162,6 +164,7 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 	}
 	if depComp, ok := dep.(*HTMLComponent); ok {
 		depComp.Init(c.Store)
+		depComp.parent = c
 	}
 	c.Dependencies[placeholderName] = dep
 }
@@ -235,6 +238,42 @@ func (c *HTMLComponent) SetSlots(slots map[string]any) {
 	for k, v := range slots {
 		c.Slots[k] = v
 	}
+}
+
+// Provide stores a value on this component so that descendants can
+// retrieve it with Inject. It creates the map on first use.
+func (c *HTMLComponent) Provide(key string, val any) {
+	if c.provides == nil {
+		c.provides = make(map[string]any)
+	}
+	c.provides[key] = val
+}
+
+// Inject searches for a provided value starting from this component and
+// walking up the parent chain. It returns the value as `any` and whether it
+// was found. Callers can type-assert the result.
+func (c *HTMLComponent) Inject(key string) (any, bool) {
+	if c.provides != nil {
+		if v, ok := c.provides[key]; ok {
+			return v, true
+		}
+	}
+	if c.parent != nil {
+		return c.parent.Inject(key)
+	}
+	return nil, false
+}
+
+// InjectTyped is a helper that performs a typed injection using generics.
+// It calls c.Inject and attempts to cast the value to T.
+func Inject[T any](c *HTMLComponent, key string) (T, bool) {
+	v, ok := c.Inject(key)
+	if !ok {
+		var zero T
+		return zero, false
+	}
+	t, ok := v.(T)
+	return t, ok
 }
 
 func (c *HTMLComponent) SetRouteParams(params map[string]string) {
