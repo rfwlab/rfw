@@ -249,6 +249,33 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
+	sigRegex := regexp.MustCompile(`@signal:(\w+)`)
+	return sigRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := sigRegex.FindStringSubmatch(match)
+		if len(parts) != 2 {
+			return match
+		}
+		name := parts[1]
+		if prop, ok := c.Props[name]; ok {
+			if sig, ok := prop.(interface{ Read() any }); ok {
+				val := sig.Read()
+				unsub := state.Effect(func() func() {
+					v := sig.Read()
+					updateSignalBindings(c, name, v)
+					return nil
+				})
+				c.unsubscribes.Add(unsub)
+				return fmt.Sprintf(`<span data-signal="%s">%v</span>`, name, val)
+			}
+		}
+		if DevMode {
+			Log().Warn("signal '%s' not found in component %s", name, c.Name)
+		}
+		return match
+	})
+}
+
 func replacePropPlaceholders(template string, c *HTMLComponent) string {
 	propRegex := regexp.MustCompile(`@prop:(\w+)`)
 	idx := 0
@@ -503,6 +530,25 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 	}
 
 	updateConditionsForStoreVariable(c, module, storeName, key)
+}
+
+func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
+	var element jst.Value
+	if c.ID == "" {
+		element = dom.ByID("app")
+	} else {
+		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+	}
+	if element.IsNull() || element.IsUndefined() {
+		return
+	}
+
+	selector := fmt.Sprintf(`[data-signal="%s"]`, name)
+	nodes := element.Call("querySelectorAll", selector)
+	for i := 0; i < nodes.Length(); i++ {
+		node := nodes.Index(i)
+		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
+	}
 }
 
 func insertDataKey(content string, key any) string {
