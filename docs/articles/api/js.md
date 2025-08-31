@@ -21,6 +21,9 @@ Additional helpers provide access to common objects like `Console()`,
 `History()`, `LocalStorage()` and constructors such as
 `MutationObserver()` and `IntersectionObserver()`.
 
+For higher-level HTTP helpers built on top of `fetch`, see the
+[`http` package](./http).
+
 ## Usage
 
 Use the `js` package for all direct JavaScript interop:

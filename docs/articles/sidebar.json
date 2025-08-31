@@ -162,6 +162,10 @@
         "path": "api/js.md"
       },
       {
+        "title": "http",
+        "path": "api/http.md"
+      },
+      {
         "title": "state",
         "path": "api/state.md"
       },
