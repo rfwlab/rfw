@@ -30,6 +30,15 @@ Use `@else` or `@else-if` for alternate branches:
 
 Each branch may contain any valid RTML, including loops or component includes.
 
+Conditions can reference signals as well. The block below renders when the
+`count` signal holds the string "3":
+
+```rtml
+@if:signal:count == "3"
+  <p>Three!</p>
+@endif
+```
+
 ## Combining with Loops
 
 Conditionals can be nested inside `@for` loops or vice versa to render complex structures while keeping templates readable.

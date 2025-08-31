@@ -138,7 +138,7 @@ func Navigate(fullPath string) {
 			}
 			c := NotFoundComponent()
 			currentComponent = c
-			dom.UpdateDOM("", c.Render())
+			dom.UpdateDOM(c.GetID(), c.Render())
 			c.Mount()
 			core.TriggerMount(c)
 			core.TriggerRouter(fullPath)
@@ -180,7 +180,7 @@ func Navigate(fullPath string) {
 		currentComponent.Unmount()
 	}
 	currentComponent = r.component
-	dom.UpdateDOM("", r.component.Render())
+	dom.UpdateDOM(r.component.GetID(), r.component.Render())
 	r.component.Mount()
 	core.TriggerMount(r.component)
 	core.TriggerRouter(fullPath)
