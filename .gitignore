@@ -13,3 +13,6 @@ examples/ssr_example/index.html
 dist/
 docs/host/host
 docs/build
+
+routes_gen.go
+rfwenv.go
