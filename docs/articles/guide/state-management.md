@@ -57,6 +57,37 @@ if s.Get("profile") == nil {
 This approach is useful for advanced cases such as combining many fields or
 transforming data before exposing it to components.
 
+## Actions
+
+Actions bundle state mutations into reusable functions executed with a `Context`.
+Define one with `state.Action` and run it immediately with `Dispatch` or bind it
+to event handlers via `UseAction`:
+
+```go
+import (
+    "context"
+
+    "github.com/rfwlab/rfw/v1/dom"
+    "github.com/rfwlab/rfw/v1/state"
+)
+
+s := state.NewStore("counter")
+s.Set("count", 0)
+
+increment := state.Action(func(ctx state.Context) error {
+    current, _ := s.Get("count").(int)
+    s.Set("count", current+1)
+    return nil
+})
+
+// Run the action immediately
+_ = state.Dispatch(context.Background(), increment)
+
+// Or bind it to an event handler
+handler := state.UseAction(context.Background(), increment)
+dom.RegisterHandlerFunc("increment", func() { _ = handler() })
+```
+
 ## Watchers
 
 Watchers trigger callbacks whenever a key (or set of keys) changes. Use
@@ -124,7 +155,7 @@ Enable `WithDevTools` when creating a store to log every mutation during
 development. Persistence can be toggled with `WithPersistence` to store
 state in the browser between sessions.
 
-See the example component for a practical demonstration of computed values and reactive updates.
+See the example component for a practical demonstration of actions, computed values and reactive updates.
 Stores provide reactive state management.
 
 @include:ExampleFrame:{code:"/examples/components/state_management_component.go", uri:"/examples/state"}
