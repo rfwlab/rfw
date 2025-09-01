@@ -170,10 +170,6 @@ func main() {
 		Component: func() core.Component { return excomponents.NewTwitchCallbackComponent() },
 	})
 	router.RegisterRoute(router.Route{
-		Path:      "/examples/form-validation",
-		Component: func() core.Component { return excomponents.NewFormValidationComponent() },
-	})
-	router.RegisterRoute(router.Route{
 		Path:      "/examples/signal-bindings",
 		Component: func() core.Component { return excomponents.NewSignalBindingsComponent() },
 	})
