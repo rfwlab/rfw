@@ -24,6 +24,23 @@ Modifiers such as `.prevent`, `.stop`, or `.once` may be appended after the even
 <form @on:submit.prevent.once:onSubmit>
 ```
 
+### Event Modifiers
+
+RFW supports a small set of modifiers that adjust how a listener behaves:
+
+| Modifier | Description |
+|----------|-------------|
+| `stop` | Calls `event.stopPropagation()` to prevent the event from bubbling. |
+| `prevent` | Calls `event.preventDefault()` to stop the browser's default action. |
+| `once` | Removes the listener after the first invocation. |
+
+Example:
+
+```rtml
+<button @on:click.stop.prevent:save>Save</button>
+<button @on:click.once:load>Load once</button>
+```
+
 Handlers can also be registered from Go code using the `events` package:
 
 ```go
