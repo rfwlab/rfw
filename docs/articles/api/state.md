@@ -23,6 +23,20 @@ free of handwritten JavaScript.
 
 For a comparison between store and signals, see [Stores vs signals](../guide/store-vs-signals).
 
+## StoreHook
+
+`state.StoreHook` runs on every mutation, allowing external observers such as
+plugins or devtools to react to state changes without importing the `state`
+package directly. Assign a function with the signature
+`func(module, store, key string, value any)` to receive notifications for each
+update.
+
+## SetLogger
+
+`state.SetLogger` replaces the default logger used when stores run in
+development mode. Provide an implementation of `state.Logger` and call
+`state.SetLogger` to capture or redirect mutation logs.
+
 ## History
 
 Passing `WithHistory` to `state.NewStore` records mutations and enables `Undo` and `Redo`:

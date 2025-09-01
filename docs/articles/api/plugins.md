@@ -24,6 +24,22 @@ Plugins are registered with `core.RegisterPlugin(...)` before compiling the WASM
 bundle. During `Install` they can register components, add routes or inject
 scripts, while `Uninstall` can clean up any hooks.
 
+## Store hooks
+
+Plugins can react to store mutations by registering a store hook. The hook is
+invoked for every `state.Set` call with the module, store, key and value:
+
+```go
+func (p loggerPlugin) Install(a *core.App) {
+    a.RegisterStore(func(module, store, key string, value any) {
+        // handle mutation
+    })
+}
+```
+
+Behind the scenes this uses `state.StoreHook`, allowing multiple plugins to
+observe mutations without interfering with each other.
+
 ## Usage
 
 Plugins must be registered before the application starts using
