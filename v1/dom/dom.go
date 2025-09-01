@@ -82,31 +82,56 @@ func BindStoreInputs(element jst.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
-		value := input.Get("value").String()
-		storeMatch := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+):w`).FindStringSubmatch(value)
 
-		if len(storeMatch) == 4 {
-			module := storeMatch[1]
-			storeName := storeMatch[2]
-			key := storeMatch[3]
-
-			store := state.GlobalStoreManager.GetStore(module, storeName)
-			if store != nil {
-				storeValue := store.Get(key)
-				if storeValue == nil {
-					storeValue = ""
-				}
-
-				input.Set("value", fmt.Sprintf("%v", storeValue))
-				ch := events.Listen("input", input)
-				go func(in jst.Value, st *state.Store, k string) {
-					for range ch {
-						newValue := in.Get("value").String()
-						st.Set(k, newValue)
-					}
-				}(input, store, key)
-			}
+		valueAttr := input.Get("value").String()
+		checkedAttr := ""
+		if input.Call("hasAttribute", "checked").Bool() {
+			checkedAttr = input.Call("getAttribute", "checked").String()
 		}
+
+		re := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+):w`)
+		valueMatch := re.FindStringSubmatch(valueAttr)
+		checkedMatch := re.FindStringSubmatch(checkedAttr)
+
+		var module, storeName, key string
+		var usesChecked bool
+		if len(valueMatch) == 4 {
+			module, storeName, key = valueMatch[1], valueMatch[2], valueMatch[3]
+		} else if len(checkedMatch) == 4 {
+			module, storeName, key = checkedMatch[1], checkedMatch[2], checkedMatch[3]
+			usesChecked = true
+		} else {
+			continue
+		}
+
+		store := state.GlobalStoreManager.GetStore(module, storeName)
+		if store == nil {
+			continue
+		}
+		storeValue := store.Get(key)
+
+		if usesChecked {
+			boolVal, _ := storeValue.(bool)
+			input.Set("checked", boolVal)
+			ch := events.Listen("change", input)
+			go func(in jst.Value, st *state.Store, k string) {
+				for range ch {
+					st.Set(k, in.Get("checked").Bool())
+				}
+			}(input, store, key)
+			continue
+		}
+
+		if storeValue == nil {
+			storeValue = ""
+		}
+		input.Set("value", fmt.Sprintf("%v", storeValue))
+		ch := events.Listen("input", input)
+		go func(in jst.Value, st *state.Store, k string) {
+			for range ch {
+				st.Set(k, in.Get("value").String())
+			}
+		}(input, store, key)
 	}
 }
 
@@ -115,25 +140,62 @@ func BindSignalInputs(componentID string, element jst.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
-		value := input.Get("value").String()
-		sigMatch := regexp.MustCompile(`@signal:(\w+):w`).FindStringSubmatch(value)
 
-		if len(sigMatch) == 2 {
-			name := sigMatch[1]
-			if sig := getSignal(componentID, name); sig != nil {
-				if s, ok := sig.(interface {
-					Read() any
-					Set(string)
-				}); ok {
-					input.Set("value", fmt.Sprintf("%v", s.Read()))
-					ch := events.Listen("input", input)
-					go func(in jst.Value, sg interface{ Set(string) }) {
-						for range ch {
-							sg.Set(in.Get("value").String())
-						}
-					}(input, s)
+		valueAttr := input.Get("value").String()
+		checkedAttr := ""
+		if input.Call("hasAttribute", "checked").Bool() {
+			checkedAttr = input.Call("getAttribute", "checked").String()
+		}
+
+		re := regexp.MustCompile(`@signal:(\w+):w`)
+		valueMatch := re.FindStringSubmatch(valueAttr)
+		checkedMatch := re.FindStringSubmatch(checkedAttr)
+
+		var name string
+		var usesChecked bool
+		if len(valueMatch) == 2 {
+			name = valueMatch[1]
+		} else if len(checkedMatch) == 2 {
+			name = checkedMatch[1]
+			usesChecked = true
+		} else {
+			continue
+		}
+
+		sig := getSignal(componentID, name)
+		if sig == nil {
+			continue
+		}
+
+		if usesChecked {
+			if s, ok := sig.(interface {
+				Read() any
+				Set(bool)
+			}); ok {
+				if b, ok := s.Read().(bool); ok {
+					input.Set("checked", b)
 				}
+				ch := events.Listen("change", input)
+				go func(in jst.Value, sg interface{ Set(bool) }) {
+					for range ch {
+						sg.Set(in.Get("checked").Bool())
+					}
+				}(input, s)
 			}
+			continue
+		}
+
+		if s, ok := sig.(interface {
+			Read() any
+			Set(string)
+		}); ok {
+			input.Set("value", fmt.Sprintf("%v", s.Read()))
+			ch := events.Listen("input", input)
+			go func(in jst.Value, sg interface{ Set(string) }) {
+				for range ch {
+					sg.Set(in.Get("value").String())
+				}
+			}(input, s)
 		}
 	}
 }
