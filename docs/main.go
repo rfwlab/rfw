@@ -154,6 +154,10 @@ func main() {
 		Component: func() core.Component { return excomponents.NewStateManagementComponent() },
 	})
 	router.RegisterRoute(router.Route{
+		Path:      "/examples/state-bindings",
+		Component: func() core.Component { return excomponents.NewStateBindingsComponent() },
+	})
+	router.RegisterRoute(router.Route{
 		Path:      "/examples/api",
 		Component: func() core.Component { return excomponents.NewAPIIntegrationComponent() },
 	})
@@ -164,6 +168,14 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/twitch/callback",
 		Component: func() core.Component { return excomponents.NewTwitchCallbackComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/form-validation",
+		Component: func() core.Component { return excomponents.NewFormValidationComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/signal-bindings",
+		Component: func() core.Component { return excomponents.NewSignalBindingsComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/signals",

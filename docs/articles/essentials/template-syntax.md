@@ -53,6 +53,8 @@ For global state, use the `@store` command to bind a value to an attribute. The 
 
 ```rtml
 <input value="@store:default.counter.count:w">
+<input type="checkbox" checked="@store:default.counter.enabled:w">
+<textarea>@store:default.counter.notes:w</textarea>
 ```
 
 Updating the `count` key in the `counter` store reflects in the input, and editing the input writes back to the store.
@@ -62,6 +64,8 @@ Local signals may be bound similarly using `@signal:name` and `@signal:name:w` f
 ```rtml
 <p>@signal:message</p>
 <input value="@signal:message:w">
+<input type="checkbox" checked="@signal:agree:w">
+<textarea>@signal:bio:w</textarea>
 ```
 
 ### Boolean Attributes

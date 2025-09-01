@@ -45,14 +45,19 @@ directive. The DOM updates whenever the signal's value changes.
 <p>Local count: @signal:count</p>
 ```
 
-Form elements can write back to signals by adding the `:w` suffix:
+Form elements can write back to signals by adding the `:w` suffix. Text inputs,
+checkboxes, and textareas are supported:
 
 ```rtml
 <input value="@signal:message:w">
+<input type="checkbox" checked="@signal:agree:w">
+<textarea>@signal:bio:w</textarea>
 ```
 
-Typing in the input updates the `message` signal and any `@signal:message`
-bindings elsewhere.
+Typing in these controls updates their corresponding signals and any
+`@signal` bindings elsewhere.
+
+@include:ExampleFrame:{code:"/examples/components/signal_bindings_component.go", uri:"/examples/signal-bindings"}
 
 Signals may also drive conditional blocks and loops. For example:
 

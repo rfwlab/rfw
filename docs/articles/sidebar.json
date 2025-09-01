@@ -166,6 +166,10 @@
         "path": "api/http.md"
       },
       {
+        "title": "forms",
+        "path": "api/forms.md"
+      },
+      {
         "title": "state",
         "path": "api/state.md"
       },

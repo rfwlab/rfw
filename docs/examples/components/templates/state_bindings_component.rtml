@@ -1,0 +1,10 @@
+<root>
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <input class="border" value="@store:app.default.name:w" />
+        <input type="checkbox" checked="@store:app.default.agree:w" />
+        <textarea class="border">@store:app.default.bio:w</textarea>
+        <p>Name: @store:app.default.name</p>
+        <p>Agree: @store:app.default.agree</p>
+        <p>Bio: @store:app.default.bio</p>
+    </div>
+</root>

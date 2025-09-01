@@ -560,11 +560,38 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
 	}
 
-	inputSelector := fmt.Sprintf(`input[value="@store:%s.%s.%s:w"], select[value="@store:%s.%s.%s:w"], textarea[value="@store:%s.%s.%s:w"]`, module, storeName, key, module, storeName, key, module, storeName, key)
+	placeholder := fmt.Sprintf("@store:%s.%s.%s:w", module, storeName, key)
+
+	// Update value-based inputs and selects
+	inputSelector := fmt.Sprintf(`input[value="%s"], select[value="%s"]`, placeholder, placeholder)
 	inputs := element.Call("querySelectorAll", inputSelector)
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
 		input.Set("value", fmt.Sprintf("%v", newValue))
+	}
+
+	// Update checkboxes bound via checked attribute
+	checkedSelector := fmt.Sprintf(`input[checked="%s"]`, placeholder)
+	checks := element.Call("querySelectorAll", checkedSelector)
+	for i := 0; i < checks.Length(); i++ {
+		chk := checks.Index(i)
+		switch v := newValue.(type) {
+		case bool:
+			chk.Set("checked", v)
+		case string:
+			chk.Set("checked", strings.ToLower(v) == "true")
+		default:
+			chk.Set("checked", newValue != nil)
+		}
+	}
+
+	// Update textareas where placeholder is in content
+	textareas := element.Call("querySelectorAll", "textarea")
+	for i := 0; i < textareas.Length(); i++ {
+		ta := textareas.Index(i)
+		if ta.Get("value").String() == placeholder {
+			ta.Set("value", fmt.Sprintf("%v", newValue))
+		}
 	}
 
 	updateConditionsForStoreVariable(c, module, storeName, key)
@@ -588,11 +615,38 @@ func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
 		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
 	}
 
-	inputSelector := fmt.Sprintf(`input[value="@signal:%s:w"], select[value="@signal:%s:w"], textarea[value="@signal:%s:w"]`, name, name, name)
+	placeholder := fmt.Sprintf("@signal:%s:w", name)
+
+	// Update value-based inputs and selects
+	inputSelector := fmt.Sprintf(`input[value="%s"], select[value="%s"]`, placeholder, placeholder)
 	inputs := element.Call("querySelectorAll", inputSelector)
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
 		input.Set("value", fmt.Sprintf("%v", newValue))
+	}
+
+	// Update checkboxes
+	checkedSelector := fmt.Sprintf(`input[checked="%s"]`, placeholder)
+	checks := element.Call("querySelectorAll", checkedSelector)
+	for i := 0; i < checks.Length(); i++ {
+		chk := checks.Index(i)
+		switch v := newValue.(type) {
+		case bool:
+			chk.Set("checked", v)
+		case string:
+			chk.Set("checked", strings.ToLower(v) == "true")
+		default:
+			chk.Set("checked", newValue != nil)
+		}
+	}
+
+	// Update textareas with placeholder in content
+	textareas := element.Call("querySelectorAll", "textarea")
+	for i := 0; i < textareas.Length(); i++ {
+		ta := textareas.Index(i)
+		if ta.Get("value").String() == placeholder {
+			ta.Set("value", fmt.Sprintf("%v", newValue))
+		}
 	}
 }
 
@@ -844,79 +898,79 @@ func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
 	if !val.IsValid() {
 		return ""
 	}
-       switch val.Kind() {
-       case reflect.Slice, reflect.Array:
-               var result strings.Builder
-               for i := 0; i < val.Len(); i++ {
-                       item := val.Index(i).Interface()
-                       iter := content
-                       if itemMap, ok := item.(map[string]any); ok {
-                               fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+)`, alias))
-                               iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-                                       fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
-                                       if len(fieldParts) == 2 {
-                                               if fieldValue, exists := itemMap[fieldParts[1]]; exists {
-                                                       return fmt.Sprintf("%v", fieldValue)
-                                               }
-                                       }
-                                       return fieldMatch
-                               })
-                               propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
-                               iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-                                       fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
-                                       if len(fieldParts) == 2 {
-                                               if fieldValue, exists := itemMap[fieldParts[1]]; exists {
-                                                       return fmt.Sprintf("%v", fieldValue)
-                                               }
-                                       }
-                                       return fieldMatch
-                               })
-                       }
-                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", item))
-                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", item))
-                       result.WriteString(iter)
-               }
-               return result.String()
-       case reflect.Map:
-               if val.Type().Key().Kind() != reflect.String {
-                       return ""
-               }
-               var result strings.Builder
-               keys := val.MapKeys()
-               sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
-               for _, k := range keys {
-                       v := val.MapIndex(k).Interface()
-                       iter := content
-                       if vMap, ok := v.(map[string]any); ok {
-                               fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+)`, alias))
-                               iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-                                       fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
-                                       if len(fieldParts) == 2 {
-                                               if fieldValue, exists := vMap[fieldParts[1]]; exists {
-                                                       return fmt.Sprintf("%v", fieldValue)
-                                               }
-                                       }
-                                       return fieldMatch
-                               })
-                               propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
-                               iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-                                       fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
-                                       if len(fieldParts) == 2 {
-                                               if fieldValue, exists := vMap[fieldParts[1]]; exists {
-                                                       return fmt.Sprintf("%v", fieldValue)
-                                               }
-                                       }
-                                       return fieldMatch
-                               })
-                       }
-                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", v))
-                       iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", v))
-                       result.WriteString(iter)
-               }
-               return result.String()
-       default:
-               return ""
-       }
+	switch val.Kind() {
+	case reflect.Slice, reflect.Array:
+		var result strings.Builder
+		for i := 0; i < val.Len(); i++ {
+			item := val.Index(i).Interface()
+			iter := content
+			if itemMap, ok := item.(map[string]any); ok {
+				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+)`, alias))
+				iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, exists := itemMap[fieldParts[1]]; exists {
+							return fmt.Sprintf("%v", fieldValue)
+						}
+					}
+					return fieldMatch
+				})
+				propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
+				iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, exists := itemMap[fieldParts[1]]; exists {
+							return fmt.Sprintf("%v", fieldValue)
+						}
+					}
+					return fieldMatch
+				})
+			}
+			iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", item))
+			iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", item))
+			result.WriteString(iter)
+		}
+		return result.String()
+	case reflect.Map:
+		if val.Type().Key().Kind() != reflect.String {
+			return ""
+		}
+		var result strings.Builder
+		keys := val.MapKeys()
+		sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
+		for _, k := range keys {
+			v := val.MapIndex(k).Interface()
+			iter := content
+			if vMap, ok := v.(map[string]any); ok {
+				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+)`, alias))
+				iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, exists := vMap[fieldParts[1]]; exists {
+							return fmt.Sprintf("%v", fieldValue)
+						}
+					}
+					return fieldMatch
+				})
+				propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+)`, alias))
+				iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, exists := vMap[fieldParts[1]]; exists {
+							return fmt.Sprintf("%v", fieldValue)
+						}
+					}
+					return fieldMatch
+				})
+			}
+			iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", v))
+			iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", v))
+			result.WriteString(iter)
+		}
+		return result.String()
+	default:
+		return ""
+	}
 }
 
 func updateForeachBindings(c *HTMLComponent, foreachID string) {
