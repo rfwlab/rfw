@@ -37,6 +37,7 @@ The full set of API references is listed below:
 - [http](http.md)
 - [js](js.md)
 - [plugins](plugins.md)
+- [i18n](i18n.md)
 - [router](router.md)
 - [state](state.md)
 - [webgl](webgl.md)
