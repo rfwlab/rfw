@@ -37,3 +37,4 @@ func (p *Page) Open() {
 ```
 
 Template refs should be used sparingly; most interactions can be handled with events and reactive state.
+They are typically accessed during `OnMount`; see [Lifecycle hooks](../api/core#lifecycle-hooks) for more on component lifecycles.

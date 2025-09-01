@@ -80,6 +80,8 @@ func (c *Counter) OnUnmount() {
 
 `OnUnmount` runs before the component is detached, ensuring cleanup occurs while the component still exists.
 
+For a full list of lifecycle helpers, see the [Lifecycle hooks](../api/core#lifecycle-hooks) section of the API.
+
 ## Composing Components
 
 Components can nest by including each other in RTML. Slots allow parents to inject markup into predefined outlets of a child component. This enables flexible layouts while keeping logic isolated.
