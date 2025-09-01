@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	jst "syscall/js"
+	"time"
 
 	"github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
@@ -81,6 +82,71 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			loadSidebar()
 		}
 	}()
+
+	if search := dom.ByID("doc-search"); search.Truthy() {
+		results := dom.ByID("search-results")
+		inputCh := events.Listen("input", search)
+		go func() {
+			for range inputCh {
+				if !c.mounted {
+					continue
+				}
+				q := strings.ToLower(search.Get("value").String())
+				results.Set("innerHTML", "")
+				if q == "" {
+					results.Get("classList").Call("add", "hidden")
+					continue
+				}
+				count := 0
+				for _, link := range c.order {
+					title := c.titleFor(link)
+					if !strings.Contains(strings.ToLower(title), q) {
+						continue
+					}
+					a := dom.CreateElement("a")
+					a.Set("href", "/docs/"+link)
+					a.Set("textContent", title)
+					a.Set("className", "block px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700")
+					ch := events.Listen("mousedown", a)
+					go func(l string) {
+						for e := range ch {
+							if !c.mounted {
+								continue
+							}
+							e.Call("preventDefault")
+							results.Set("innerHTML", "")
+							results.Get("classList").Call("add", "hidden")
+							search.Set("value", "")
+							router.Navigate("/docs/" + l)
+						}
+					}(link)
+					results.Call("appendChild", a)
+					count++
+					if count >= 5 {
+						break
+					}
+				}
+				if count > 0 {
+					results.Get("classList").Call("remove", "hidden")
+				} else {
+					results.Get("classList").Call("add", "hidden")
+				}
+			}
+		}()
+
+		blurCh := events.Listen("blur", search)
+		go func() {
+			for range blurCh {
+				if !c.mounted {
+					continue
+				}
+				go func() {
+					time.Sleep(100 * time.Millisecond)
+					results.Get("classList").Call("add", "hidden")
+				}()
+			}
+		}()
+	}
 
 	docCh := events.Listen("rfwDoc", doc)
 	go func() {

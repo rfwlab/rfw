@@ -1,15 +1,20 @@
 <root>
   <div class="flex flex-col min-h-screen">
-      <nav class="z-10 bg-lightbg dark:bg-darkbg sticky top-0 flex flex-wrap items-center gap-4 py-3 px-6 sm:px-10 md:px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
-        <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">
+      <nav class="z-10 bg-lightbg dark:bg-darkbg sticky top-0 flex flex-wrap items-stretch gap-4 px-6 sm:px-10 md:px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700 h-14">
+        <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold flex items-center">
           <picture>
               <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
                   <img src="/rfw-logo-black.png"
                       alt="rfw logo" class="inline-block h-6 w-11 mr-2">
           </picture>
         </a>
-        <div class="text-xl text-black/50 dark:text-white/30 hidden sm:block">/</div>
-        <div class="flex gap-3 sm:gap-5">
+        <div class="text-xl text-black/50 dark:text-white/30 hidden sm:flex items-center">/</div>
+        <div class="relative mx-auto h-full flex items-stretch">
+          <span class="material-symbols-outlined absolute mt-3.5 ml-3.5 text-white/40">search</span>
+          <input id="doc-search" type="text" placeholder="Why rfw?" class="h-full w-100 px-10 border-x border-y-0 border-gray-300 dark:border-zinc-700 bg-transparent text-black dark:text-white outline-none focus:bg-white/10 text-center">
+          <div id="search-results" class="absolute z-10 left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 shadow hidden"></div>
+        </div>
+        <div class="flex gap-3 sm:gap-5 ml-auto items-center">
           <a href="/docs/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
           <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
         </div>
