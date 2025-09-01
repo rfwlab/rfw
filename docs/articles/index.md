@@ -15,6 +15,7 @@ import (
     _ "embed"
 
     core "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v1/dom"
     "github.com/rfwlab/rfw/v1/state"
 )
 
@@ -24,7 +25,7 @@ var tpl []byte
 func NewCounter() *core.HTMLComponent {
     store := state.NewStore("counter")
     store.Set("count", 0)
-    store.RegisterAction("increment", func(args ...any) {
+    dom.RegisterHandlerFunc("increment", func() {
         current, _ := store.Get("count").(int)
         store.Set("count", current+1)
     })
@@ -42,7 +43,7 @@ func NewCounter() *core.HTMLComponent {
 
 **Result**
 
-Mounting this component displays a button whose label increments every time you click it.
+Mounting this component displays a button whose label increments with each click through a registered handler that updates the store directly.
 
 The example highlights two core features of rfw:
 
