@@ -1,6 +1,6 @@
 # Introduction
 
-You are reading the documentation for rfw v1.
+You are reading the documentation for rfw v1. Use the centered search box in the top navigation for real-time results across all pages.
 
 ## What is rfw?
 
