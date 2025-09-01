@@ -1,0 +1,10 @@
+<root>
+    <div class="p-4 pt-0 flex flex-col items-start gap-4">
+        <input class="border" value="@signal:name:w" />
+        <input type="checkbox" checked="@signal:agree:w" />
+        <textarea class="border">@signal:bio:w</textarea>
+        <p>Name: @signal:name</p>
+        <p>Agree: @signal:agree</p>
+        <p>Bio: @signal:bio</p>
+    </div>
+</root>
