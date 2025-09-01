@@ -1,5 +1,0 @@
-<div>
-  <input value="@signal:value:w" placeholder="ID">
-  <p class="error">@signal:err</p>
-  <p class="valid">@signal:valid</p>
-</div>
