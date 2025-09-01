@@ -3,6 +3,7 @@
 package components
 
 import (
+	"context"
 	_ "embed"
 
 	core "github.com/rfwlab/rfw/v1/core"
@@ -20,8 +21,6 @@ type StateManagementComponent struct {
 func NewStateManagementComponent() *StateManagementComponent {
 	c := &StateManagementComponent{}
 	c.HTMLComponent = core.NewComponentWith("StateManagementComponent", stateManagementComponentTpl, nil, c)
-	dom.RegisterHandlerFunc("increment", c.Increment)
-
 	return c
 }
 
@@ -32,10 +31,13 @@ func (c *StateManagementComponent) Init(store *state.Store) {
 			return v * 2
 		})
 	}
-}
 
-func (c *StateManagementComponent) Increment() {
-	if v, ok := c.Store.Get("count").(int); ok {
-		c.Store.Set("count", v+1)
-	}
+	increment := state.Action(func(ctx state.Context) error {
+		if v, ok := store.Get("count").(int); ok {
+			store.Set("count", v+1)
+		}
+		return nil
+	})
+	handler := state.UseAction(context.Background(), increment)
+	dom.RegisterHandlerFunc("increment", func() { _ = handler() })
 }
