@@ -12,6 +12,7 @@ Centralized reactive data stores.
 | `Map(store, key, dep, fn)` | Helper to map one key to another. |
 | `Map2(store, key, depA, depB, fn)` | Map two keys into a derived value. |
 | `RegisterWatcher(w)` | Run a callback after changes and return a cleanup function. |
+| `StoreManager.Snapshot()` | Deep copy of all stores and their current state. |
 | `WithHistory(limit)` | Enable mutation history for `Undo`/`Redo` up to `limit` steps. |
 | `Undo()` | Revert the last mutation when history is enabled. |
 | `Redo()` | Reapply the last undone mutation when history is enabled. |
@@ -53,6 +54,17 @@ plugins or devtools to react to state changes without importing the `state`
 package directly. Assign a function with the signature
 `func(module, store, key string, value any)` to receive notifications for each
 update.
+
+### Snapshotting state
+
+`StoreManager.Snapshot` captures a deep copy of every registered store and
+their current state. The snapshot is detached from live stores, making it a
+safe way to inspect or log values while debugging.
+
+```go
+snap := state.GlobalStoreManager.Snapshot()
+fmt.Println(snap["app"]["default"]["count"])
+```
 
 ## SetLogger
 
