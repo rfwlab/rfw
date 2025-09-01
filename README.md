@@ -44,3 +44,32 @@ the CLI without relying on external tooling. Each plugin reports a numeric
 Place an `input.css` file (commonly under `static/`) containing the `@tailwind` directives in your project. During development the server watches
 template, stylesheet and configuration files and emits a trimmed `tailwind.css`
 containing only the classes you use, without requiring Node or a CDN.
+
+### File-based Routing
+
+The built-in `pages` plugin scans a `pages/` directory and automatically
+registers routes based on its structure. Each Go file maps to a URL path:
+
+```
+pages/
+  index.go        // -> /
+  about.go        // -> /about
+  posts/[id].go   // -> /posts/:id
+```
+
+Every file must expose a constructor using the PascalCase form of its path,
+such as `func About() core.Component`. The plugin generates a temporary
+`routes_gen.go` that calls `router.RegisterRoute` for each page during the
+build. Import the generated package to execute the registrations, typically
+via a blank import in your entrypoint:
+
+```
+import _ "your/module/pages"
+```
+
+A working example can be found under `docs/examples/pages`, which
+contains `index.go`, `about.go` and `posts/[id].go` demonstrating the
+generated routes `/`, `/about` and `/posts/:id`. The documentation site in
+this repository uses the `pages` plugin for its home (`/`) and about (`/about`)
+pages, while the `docs` plugin continues to power the documentation
+content itself.

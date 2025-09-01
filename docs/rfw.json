@@ -3,12 +3,13 @@
   "build": {
     "type": "ssc"
   },
-  "plugins": {
-    "tailwind": {
-      "input": "static/input.css",
-      "output": "static/tailwind.css"
-    },
-    "env": {},
-    "docs": {}
-  }
+    "plugins": {
+        "tailwind": {
+            "input": "static/input.css",
+            "output": "static/tailwind.css"
+        },
+        "env": {},
+        "pages": {},
+        "docs": {}
+    }
 }
