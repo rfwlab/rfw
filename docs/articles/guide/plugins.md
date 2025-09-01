@@ -99,6 +99,20 @@ func main() {
 }
 ```
 
+## Official plugins
+
+RFW ships with a few ready-made plugins. The `i18n` package adds
+basic string translation helpers:
+
+```go
+import "github.com/rfwlab/rfw/v1/plugins/i18n"
+
+core.RegisterPlugin(i18n.New(map[string]map[string]string{
+    "en": {"hello": "Hello"},
+    "it": {"hello": "Ciao"},
+}))
+```
+
 ## Use cases
 Plugins excel at tasks such as analytics integration, asset processing, internationalization or feature flagging. By choosing which hooks to implement, a plugin can focus on build-time concerns, runtime behaviour or both.
 

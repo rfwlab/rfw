@@ -198,6 +198,10 @@
         "path": "api/plugins.md"
       },
       {
+        "title": "i18n",
+        "path": "api/i18n.md"
+      },
+      {
         "title": "webgl",
         "path": "api/webgl.md"
       }
