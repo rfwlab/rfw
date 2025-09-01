@@ -82,6 +82,31 @@ v, _ := child.Inject("answer")
 answer, _ := core.Inject[int](child, "answer")
 ```
 
+## Suspense
+
+`Suspense` displays a fallback string while waiting for asynchronous
+content. Create it with `core.NewSuspense(render func() (string,
+error), fallback string) *core.Suspense`. `Render` executes the
+function and keeps returning the fallback until the function stops
+returning `http.ErrPending`; other errors are stringified.
+
+```go
+import (
+        "fmt"
+
+        "github.com/rfwlab/rfw/v1/core"
+        "github.com/rfwlab/rfw/v1/http"
+)
+
+var todo Todo
+content := core.NewSuspense(func() (string, error) {
+        if err := http.FetchJSON("/api/todo/1", &todo); err != nil {
+                return "", err
+        }
+        return fmt.Sprintf("<div>%s</div>", todo.Title), nil
+}, "<div>Loading...</div>")
+```
+
 ## Usage
 
 Components are created with `core.NewComponent` by passing a name, template
