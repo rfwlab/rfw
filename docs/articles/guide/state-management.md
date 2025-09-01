@@ -118,7 +118,7 @@ s.Redo() // age -> 31
 
 ## Suspense
 
-Use Suspense to display a fallback while asynchronous data is loading. It accepts a render function and shows the fallback until the function stops returning `http.ErrPending`.
+Use Suspense to display a fallback while asynchronous data is loading. See the [Suspense API](../api/core#suspense) for more details. It accepts a render function and shows the fallback until the function stops returning `http.ErrPending`.
 
 ```go
 import (
