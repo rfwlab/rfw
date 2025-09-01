@@ -25,6 +25,37 @@ warnings during development.
 `core.NewComponent(name, tpl, props)` returns an initialized `*core.HTMLComponent` with the provided template and props.
 For structs embedding `*core.HTMLComponent`, use `core.NewComponentWith(name, tpl, props, self)` to bind lifecycle hooks without manual setup.
 
+## Lifecycle hooks
+
+Components expose entry points for code that should run when they are inserted into or removed from the DOM.
+
+- `OnMount()` runs after the component's template is attached to the page.
+- `OnUnmount()` executes just before the component is detached.
+- `SetOnMount(fn)` and `SetOnUnmount(fn)` register hook functions on an `HTMLComponent` without defining methods on the struct.
+- `WithLifecycle(child, mount, unmount)` wraps any component and attaches the provided mount and unmount functions.
+
+```go
+type Timer struct {
+    *core.HTMLComponent
+    stop func()
+}
+
+func NewTimer() *Timer {
+    tpl := []byte("<span></span>")
+    t := &Timer{HTMLComponent: core.NewComponent("Timer", tpl, nil)}
+    t.SetOnMount(func(_ *core.HTMLComponent) {
+        ticker := time.NewTicker(time.Second)
+        t.stop = ticker.Stop
+    })
+    t.SetOnUnmount(func(_ *core.HTMLComponent) {
+        if t.stop != nil {
+            t.stop()
+        }
+    })
+    return t
+}
+```
+
 ## ErrorBoundary
 
 `core.NewErrorBoundary(child, fallback)` wraps a component and replaces its output with the provided fallback HTML when the child panics during `Render` or `Mount`.
