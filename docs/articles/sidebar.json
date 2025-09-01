@@ -170,6 +170,10 @@
         "path": "api/state.md"
       },
       {
+        "title": "signal",
+        "path": "api/signal.md"
+      },
+      {
         "title": "router",
         "path": "api/router.md"
       },

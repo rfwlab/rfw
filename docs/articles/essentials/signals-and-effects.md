@@ -5,6 +5,7 @@ that read them. They are ideal for local component state without relying on
 store keys.
 
 For a comparison with stores, see [Stores vs signals](../guide/store-vs-signals).
+For the full API, see the [signal reference](../api/signal).
 
 ## Creating a Signal
 
