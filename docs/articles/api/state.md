@@ -12,8 +12,9 @@ Centralized reactive data stores.
 | `Map(store, key, dep, fn)` | Helper to map one key to another. |
 | `Map2(store, key, depA, depB, fn)` | Map two keys into a derived value. |
 | `RegisterWatcher(w)` | Run a callback after changes and return a cleanup function. |
-| `Undo()` | Revert the last mutation. |
-| `Redo()` | Reapply the last undone mutation. |
+| `WithHistory(limit)` | Enable mutation history for `Undo`/`Redo` up to `limit` steps. |
+| `Undo()` | Revert the last mutation when history is enabled. |
+| `Redo()` | Reapply the last undone mutation when history is enabled. |
 | `ExposeUpdateStore()` | Expose `goUpdateStore` to JavaScript. |
 
 Stores are the primary mechanism for application state. They emit
@@ -21,6 +22,18 @@ notifications to any component that reads their values, keeping most apps
 free of handwritten JavaScript.
 
 For a comparison between store and signals, see [Stores vs signals](../guide/store-vs-signals).
+
+## History
+
+Passing `WithHistory` to `state.NewStore` records mutations and enables `Undo` and `Redo`:
+
+```go
+s := state.NewStore("profile", state.WithHistory(5))
+s.Set("first", "Ada")
+s.Set("first", "Grace")
+s.Undo() // first -> Ada
+s.Redo() // first -> Grace
+```
 
 ## Usage
 

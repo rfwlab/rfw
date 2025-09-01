@@ -73,6 +73,18 @@ Options like `WatcherDeep` or `WatcherImmediate` enable more advanced
 behaviour such as deep watching of nested structures or running the
 callback immediately after registration.
 
+## Undo and redo
+
+State stores can record a mutation history. Passing `WithHistory` when creating a store enables `Undo` and `Redo` to step backward or forward through changes:
+
+```go
+s := state.NewStore("profile", state.WithHistory(5))
+s.Set("age", 30)
+s.Set("age", 31)
+s.Undo() // age -> 30
+s.Redo() // age -> 31
+```
+
 ## Suspense
 
 Use Suspense to display a fallback while asynchronous data is loading. It accepts a render function and shows the fallback until the function stops returning `http.ErrPending`.
