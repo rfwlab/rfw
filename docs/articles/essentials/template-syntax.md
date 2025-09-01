@@ -98,10 +98,21 @@ Events are bound with the `@on:` prefix followed by the event name and handler:
 <button @on:click:increment>Increment</button>
 ```
 
-Modifiers such as `.prevent`, `.stop` or `.once` may be appended:
+### Event Modifiers
+
+Modifiers may be appended after the event name to adjust behavior:
+
+| Modifier | Description |
+|----------|-------------|
+| `stop` | Calls `event.stopPropagation()` to prevent bubbling. |
+| `prevent` | Calls `event.preventDefault()` to stop the browser's default action. |
+| `once` | Removes the listener after the first invocation. |
+
+Example:
 
 ```rtml
-<form @on:submit.prevent:onSubmit>
+<form @on:submit.prevent.stop:onSubmit>
+<button @on:click.once:launch>Launch once</button>
 ```
 
 Event handlers are registered with `dom.RegisterHandlerFunc` on the Go side.
