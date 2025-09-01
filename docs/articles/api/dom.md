@@ -20,6 +20,10 @@ are available for advanced use:
 | `AddClass(el, name)` | Adds a class to an element. |
 | `RemoveClass(el, name)` | Removes a class from an element. |
 | `ScheduleRender(id, html, delay)` | Updates a component after a delay. |
+| `UpdateDOM(id, html)` | Patches a component's DOM with raw HTML. |
+| `TemplateHook` | Callback invoked after `UpdateDOM`. |
+| `BindStoreInputs(el)` | Binds inputs to `@store` directives. |
+| `BindSignalInputs(id, el)` | Binds inputs to local `@signal` directives. |
 
 ## Usage
 
@@ -48,6 +52,40 @@ The snippet demonstrates direct DOM interactions.
 
 ```go
 dom.ScheduleRender("comp", "<p>later</p>", time.Second)
+```
+
+### Custom rendering and manual bindings
+
+#### Manual DOM updates
+
+`UpdateDOM` applies raw HTML to a component and re-binds event handlers.
+Assign `TemplateHook` to inspect or post-process the generated markup:
+
+```go
+dom.TemplateHook = func(id, html string) {
+    log.Printf("patched %s", id)
+}
+
+dom.UpdateDOM("profile", "<p>signed in</p>")
+```
+
+#### Manual input binding
+
+`UpdateDOM` automatically connects inputs with `@store` and `@signal`
+directives. When building elements yourself, call the bind helpers
+explicitly:
+
+```go
+import "github.com/rfwlab/rfw/v1/state"
+
+el := dom.CreateElement("div")
+dom.SetInnerHTML(el, `<input value="@store:user.name:w">`)
+dom.BindStoreInputs(el)
+
+nameSig := state.NewSignal("")
+dom.RegisterSignal("cmp", "name", nameSig)
+dom.SetInnerHTML(el, `<input value="@signal:name:w">`)
+dom.BindSignalInputs("cmp", el)
 ```
 
 ### Virtual lists
