@@ -16,12 +16,35 @@ Centralized reactive data stores.
 | `Undo()` | Revert the last mutation when history is enabled. |
 | `Redo()` | Reapply the last undone mutation when history is enabled. |
 | `ExposeUpdateStore()` | Expose `goUpdateStore` to JavaScript. |
+| `Action` | Function type executed with a context. |
+| `Dispatch(ctx, action)` | Execute an Action with a context. |
+| `UseAction(ctx, action)` | Bind an Action to a Context and return a callback. |
 
 Stores are the primary mechanism for application state. They emit
 notifications to any component that reads their values, keeping most apps
 free of handwritten JavaScript.
 
 For a comparison between store and signals, see [Stores vs signals](../guide/store-vs-signals).
+
+## Actions
+
+Actions are self-contained units of work executed with a `Context`. Define an
+`Action` by creating a function with the signature `func(ctx state.Context)
+error`. `Dispatch` runs the action immediately, while `UseAction` binds it to a
+context and returns a callback that executes the action when invoked.
+
+```go
+increment := state.Action(func(ctx state.Context) error {
+        current, _ := store.Get("count").(int)
+        store.Set("count", current+1)
+        return nil
+})
+
+handler := state.UseAction(context.Background(), increment)
+if err := handler(); err != nil {
+        // handle error
+}
+```
 
 ## StoreHook
 
