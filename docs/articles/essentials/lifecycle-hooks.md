@@ -36,4 +36,4 @@ func (c *Widget) OnUnmount() {
 }
 ```
 
-Hooks can be registered by implementing the methods directly or by calling `SetOnMount`, `SetOnUpdate`, and `SetOnUnmount` on the underlying `HTMLComponent`. Lifecycle hooks provide structured entry points for augmenting component behavior.
+Hooks can be registered by implementing the methods directly or by calling `SetOnMount`, `SetOnUpdate`, and `SetOnUnmount` on the underlying `HTMLComponent`. Lifecycle hooks provide structured entry points for augmenting component behavior. See the [API reference](../api/core#lifecycle-hooks) for available helpers.
