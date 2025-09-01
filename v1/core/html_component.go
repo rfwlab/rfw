@@ -123,9 +123,8 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	renderedTemplate = replaceForPlaceholders(renderedTemplate, c)
 	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
 
-	// Handle @store:module.storeName.varName syntax:
-	// - :w stands for writeable inputs
-	// - :r stands for read-only inputs (default, not required, actually not even implemented)
+	// Handle @store:module.storeName.varName syntax.
+	// Append :w for writable inputs; read-only inputs omit the suffix (:r is not supported).
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
 
 	// Handle @signal:name syntax for local signals

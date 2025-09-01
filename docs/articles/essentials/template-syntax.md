@@ -49,7 +49,7 @@ Attributes may also contain expressions:
 <img src="{user.Avatar}" alt="{user.Name}">
 ```
 
-For global state, use the `@store` command to bind a value to an attribute. The optional `:w` suffix enables two‑way binding for form controls:
+For global state, use the `@store` command to bind a value to an attribute. The optional `:w` suffix enables two‑way binding for form controls. A `:r` suffix is not recognized; omit the suffix for read‑only bindings:
 
 ```rtml
 <input value="@store:default.counter.count:w">
@@ -232,6 +232,7 @@ Access global state using the `@store` directive. This command binds an element 
 - `STORE` chooses the store within that module.
 - `KEY` is the field to read.
 - `:w` is optional and enables two‑way bindings for form controls.
+- `:r` is not supported; omit the suffix for read‑only bindings.
 
 Example:
 
@@ -240,7 +241,7 @@ Example:
 <input value="@store:app.default.sharedState:w">
 ```
 
-Outside of form elements the `:w` suffix has no effect and the value is read‑only.
+Outside of form elements the `:w` suffix has no effect and the value is read‑only. There is no `:r` suffix.
 
 ## Security Notes
 
