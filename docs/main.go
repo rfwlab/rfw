@@ -6,11 +6,11 @@ import (
 	"github.com/rfwlab/rfw/docs/components"
 	excomponents "github.com/rfwlab/rfw/docs/examples/components"
 	plugs "github.com/rfwlab/rfw/docs/examples/plugins"
-	"github.com/rfwlab/rfw/docs/examples/plugins/i18n"
 	"github.com/rfwlab/rfw/docs/examples/plugins/logger"
 	mon "github.com/rfwlab/rfw/docs/examples/plugins/monitor"
 	"github.com/rfwlab/rfw/v1/core"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
+	"github.com/rfwlab/rfw/v1/plugins/i18n"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 )
