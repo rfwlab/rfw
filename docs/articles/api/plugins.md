@@ -1,24 +1,28 @@
 # plugins
 
-The plugin system lets libraries extend rfw's compiler and runtime. A
-plugin implements the core interface:
+The plugin system lets libraries extend rfw's compiler and runtime. Rather
+than conforming to a strict interface, plugins only need to implement the
+hooks they care about. The CLI automatically discovers methods by name and
+invokes them when present:
 
 ```go
-type Plugin interface {
-    Build(json.RawMessage) error
-    Install(*core.App)
-}
+func (p *MyPlugin) PreBuild(cfg json.RawMessage) error { /* optional */ }
+func (p *MyPlugin) Build(cfg json.RawMessage) error    { /* optional */ }
+func (p *MyPlugin) PostBuild(cfg json.RawMessage) error { /* optional */ }
+func (p *MyPlugin) Install(a *core.App)                { /* optional */ }
+func (p *MyPlugin) Uninstall(a *core.App)              { /* optional */ }
 ```
 
-Plugins may optionally hook into additional lifecycle stages:
+For build-time use a plugin must still provide a name, rebuild trigger and
+priority:
 
 ```go
-type PreBuilder interface { PreBuild(json.RawMessage) error }
-type PostBuilder interface { PostBuild(json.RawMessage) error }
-type Uninstaller interface { Uninstall(*core.App) }
+func (p *MyPlugin) Name() string
+func (p *MyPlugin) ShouldRebuild(path string) bool
+func (p *MyPlugin) Priority() int
 ```
 
-CLI build plugins are executed by priority (lower numbers run first).
+CLI build plugins are executed by priority with lower numbers running first.
 
 Plugins are registered with `core.RegisterPlugin(...)` before compiling the WASM
 bundle. During `Install` they can register components, add routes or inject

@@ -3,16 +3,14 @@ package plugins
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
-
-	"github.com/rfwlab/rfw/v1/core"
 )
 
-// Plugin defines the interface that build plugins must implement.
-// It embeds the core.Plugin interface to allow plugins to also install runtime
-// hooks when desired.
+// Plugin defines the minimal interface that build plugins must implement.
+// Lifecycle hooks like PreBuild, Build and PostBuild are detected
+// automatically via reflection when present.
 type Plugin interface {
-	core.Plugin
 	// Name returns a unique identifier for the plugin.
 	Name() string
 	// ShouldRebuild reports whether a change at the given path requires a rebuild.
@@ -57,12 +55,27 @@ func Configure(cfg map[string]json.RawMessage) error {
 	return nil
 }
 
+// invoke executes the named lifecycle hook on the plugin if it exists.
+func invoke(e entry, name string) error {
+	m := reflect.ValueOf(e.Plugin).MethodByName(name)
+	if !m.IsValid() {
+		return nil
+	}
+	typ := m.Type()
+	if typ.NumIn() != 1 || typ.In(0) != reflect.TypeOf(json.RawMessage{}) || typ.NumOut() != 1 || typ.Out(0) != reflect.TypeOf((*error)(nil)).Elem() {
+		return fmt.Errorf("%s has invalid signature for %s", e.Plugin.Name(), name)
+	}
+	out := m.Call([]reflect.Value{reflect.ValueOf(e.cfg)})
+	if err, _ := out[0].Interface().(error); err != nil {
+		return err
+	}
+	return nil
+}
+
 func PreBuild() error {
 	for _, e := range active {
-		if pb, ok := any(e.Plugin).(core.PreBuilder); ok {
-			if err := pb.PreBuild(e.cfg); err != nil {
-				return fmt.Errorf("%s prebuild failed: %w", e.Plugin.Name(), err)
-			}
+		if err := invoke(e, "PreBuild"); err != nil {
+			return fmt.Errorf("%s prebuild failed: %w", e.Plugin.Name(), err)
 		}
 	}
 	return nil
@@ -70,7 +83,7 @@ func PreBuild() error {
 
 func Build() error {
 	for _, e := range active {
-		if err := e.Plugin.Build(e.cfg); err != nil {
+		if err := invoke(e, "Build"); err != nil {
 			return fmt.Errorf("%s build failed: %w", e.Plugin.Name(), err)
 		}
 	}
@@ -79,10 +92,8 @@ func Build() error {
 
 func PostBuild() error {
 	for _, e := range active {
-		if pb, ok := any(e.Plugin).(core.PostBuilder); ok {
-			if err := pb.PostBuild(e.cfg); err != nil {
-				return fmt.Errorf("%s postbuild failed: %w", e.Plugin.Name(), err)
-			}
+		if err := invoke(e, "PostBuild"); err != nil {
+			return fmt.Errorf("%s postbuild failed: %w", e.Plugin.Name(), err)
 		}
 	}
 	return nil
