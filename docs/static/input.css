@@ -23,3 +23,37 @@ html {
 .prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
     background-color: #22272e;
 }
+
+/* Minimal scrollbar styling */
+* {
+    scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: #a1a1aa;
+    border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+    *::-webkit-scrollbar-thumb {
+        background-color: #52525b;
+    }
+    * {
+        scrollbar-color: #52525b transparent;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    * {
+        scrollbar-color: #a1a1aa transparent;
+    }
+}

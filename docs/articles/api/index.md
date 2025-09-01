@@ -18,7 +18,8 @@ JavaScript interop.
 RFW is designed to run in multiple environments. The [host](host.md) and
 [hostclient](hostclient.md) packages integrate the runtime with external
 systems, and [plugins](plugins.md) lets developers extend the framework
-with custom features.
+with custom features. The [docs plugin](docs-plugin.md) powers this site
+by loading markdown files and emitting events for navigation.
 
 More specialised modules cover advanced scenarios. Packages like
 [animation](animation.md), [cinema](cinema.md) and
@@ -37,6 +38,7 @@ The full set of API references is listed below:
 - [http](http.md)
 - [js](js.md)
 - [plugins](plugins.md)
+- [docs plugin](docs-plugin.md)
 - [i18n](i18n.md)
 - [router](router.md)
 - [state](state.md)

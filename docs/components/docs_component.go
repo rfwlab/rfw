@@ -20,7 +20,7 @@ var docsTpl []byte
 
 type DocsComponent struct {
 	*core.HTMLComponent
-	nav     jst.Value
+	nav     js.Value
 	order   []string
 	titles  map[string]string
 	page    string
@@ -100,6 +100,33 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			c.docComp.Mount()
 			if hljs := js.Get("hljs"); hljs.Truthy() {
 				hljs.Call("highlightAll")
+			}
+
+			if toc := dom.ByID("toc"); toc.Truthy() {
+				toc.Set("innerHTML", "")
+				if headings := detail.Get("headings"); headings.Truthy() {
+					length := headings.Length()
+					for i := 0; i < length; i++ {
+						h := headings.Index(i)
+						id := h.Get("id").String()
+						text := h.Get("text").String()
+						depth := h.Get("depth").Int()
+						a := dom.CreateElement("a")
+						a.Set("href", "#"+id)
+						a.Set("textContent", text)
+						a.Set("className", "block py-1 pl-"+strconv.Itoa((depth-1)*4)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
+						ch := events.Listen("click", a)
+						go func(i string) {
+							for e := range ch {
+								e.Call("preventDefault")
+								if el := dom.ByID(i); el.Truthy() {
+									el.Call("scrollIntoView", map[string]any{"behavior": "smooth"})
+								}
+							}
+						}(id)
+						toc.Call("appendChild", a)
+					}
+				}
 			}
 
 			link := strings.TrimSuffix(strings.TrimPrefix(path, "/docs/"), ".md")
