@@ -26,6 +26,8 @@ rfw build
 
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
+Documentation pages now include a right-hand table of contents generated from page headings for easier navigation.
+
 ## Server Side Computed (SSC)
 
 SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.

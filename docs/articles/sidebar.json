@@ -202,6 +202,10 @@
         "path": "api/plugins.md"
       },
       {
+        "title": "docs plugin",
+        "path": "api/docs-plugin.md"
+      },
+      {
         "title": "i18n",
         "path": "api/i18n.md"
       },
