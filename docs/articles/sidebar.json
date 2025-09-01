@@ -113,6 +113,10 @@
         "path": "guide/complex-routing.md"
       },
       {
+        "title": "File-based Routing",
+        "path": "guide/file-routing.md"
+      },
+      {
         "title": "API Integration",
         "path": "guide/api-integration.md"
       },
