@@ -113,8 +113,8 @@
         "path": "guide/complex-routing.md"
       },
       {
-        "title": "File-based Routing",
-        "path": "guide/file-routing.md"
+        "title": "Pages Plugin",
+        "path": "guide/pages-plugin.md"
       },
       {
         "title": "API Integration",
