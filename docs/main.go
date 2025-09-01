@@ -88,6 +88,10 @@ func main() {
 		Component: func() core.Component { return excomponents.NewAnotherComponent() },
 	})
 	router.RegisterRoute(router.Route{
+		Path:      "/examples/params/:id",
+		Component: func() core.Component { return excomponents.NewParamsComponent() },
+	})
+	router.RegisterRoute(router.Route{
 		Path:      "/examples/event",
 		Component: func() core.Component { return excomponents.NewEventComponent() },
 		Children: []router.Route{

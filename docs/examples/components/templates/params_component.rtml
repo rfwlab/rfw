@@ -1,0 +1,6 @@
+<root>
+    <div class="p-4 pt-0 flex flex-col gap-2">
+        <p>User ID: @prop:ID</p>
+        <p>Tab: @prop:Tab</p>
+    </div>
+</root>

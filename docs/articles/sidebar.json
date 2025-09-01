@@ -142,6 +142,10 @@
     "title": "API",
     "children": [
       {
+        "title": "Overview",
+        "path": "api/index.md"
+      },
+      {
         "title": "core",
         "path": "api/core.md"
       },
