@@ -56,10 +56,6 @@
         "path": "essentials/event-handling.md"
       },
       {
-        "title": "Form Input Bindings",
-        "path": "essentials/form-input-bindings.md"
-      },
-      {
         "title": "Watchers",
         "path": "essentials/watchers.md"
       },
@@ -164,10 +160,6 @@
       {
         "title": "http",
         "path": "api/http.md"
-      },
-      {
-        "title": "forms",
-        "path": "api/forms.md"
       },
       {
         "title": "state",
