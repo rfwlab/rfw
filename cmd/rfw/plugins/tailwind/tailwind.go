@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
-	"github.com/rfwlab/rfw/v1/core"
 )
 
 type plugin struct {
@@ -20,8 +19,6 @@ func init() {
 }
 
 func (p *plugin) Name() string { return "tailwind" }
-
-func (p *plugin) Install(a *core.App) {}
 
 func (p *plugin) Priority() int { return 0 }
 

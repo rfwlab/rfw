@@ -4,18 +4,19 @@ Plugins extend the rfw toolchain. They can contribute work before, during or aft
 
 ## Lifecycle hooks
 
-The core `Plugin` interface requires `Build` and `Install` methods. Additional optional hooks let a plugin participate in more stages:
+Plugins may define any combination of lifecycle methods. The CLI discovers
+hooks by name and invokes them automatically when present:
 
 ```go
-type Plugin interface {
-    Build(json.RawMessage) error    // run during CLI build
-    Install(*core.App)              // configure the app at runtime
-}
-
-type PreBuilder interface { PreBuild(json.RawMessage) error }
-type PostBuilder interface { PostBuild(json.RawMessage) error }
-type Uninstaller interface { Uninstall(*core.App) }
+func (p *Plugin) PreBuild(cfg json.RawMessage) error { /* optional */ }
+func (p *Plugin) Build(cfg json.RawMessage) error    { /* optional */ }
+func (p *Plugin) PostBuild(cfg json.RawMessage) error { /* optional */ }
+func (p *Plugin) Install(a *core.App)                { /* optional */ }
+func (p *Plugin) Uninstall(a *core.App)              { /* optional */ }
 ```
+
+Build plugins also need a `Name`, `ShouldRebuild` and `Priority` method so the
+CLI can register them and trigger rebuilds.
 
 ### PreBuild
 `PreBuild` executes before the CLI starts compiling. Use it to prepare input files or read configuration. For example, a plugin could download an external schema or generate source code that the subsequent build step consumes.
@@ -51,7 +52,6 @@ plugins.Register(&first{})
 
 ## Writing a plugin
 A minimal plugin defines a type, implements the desired hooks and registers itself:
-
 ```go
 package analytics
 
@@ -63,9 +63,13 @@ import (
 
 type Plugin struct{}
 
-func New() core.Plugin { return &Plugin{} }
+func New() *Plugin { return &Plugin{} }
 
 func (p *Plugin) Priority() int { return 0 }
+
+func (p *Plugin) Name() string { return "analytics" }
+
+func (p *Plugin) ShouldRebuild(path string) bool { return false }
 
 func (p *Plugin) PreBuild(cfg json.RawMessage) error {
     // e.g. generate tracking configuration

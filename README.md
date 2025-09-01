@@ -34,11 +34,11 @@ SSC mode runs most application logic on the server while the browser loads a lig
 
 ## Build-level Plugins
 
-`rfw` exposes a simple plugin system for build-time tasks. Plugins can register
-`PreBuild`, `Build` and `PostBuild` steps and file-watcher triggers to extend
-the CLI without relying on external tooling. Each plugin reports a numeric
-`Priority` to determine execution order and may clean up using an optional
-`Uninstall` hook.
+`rfw` exposes a simple plugin system for build-time tasks. The CLI
+automatically detects `PreBuild`, `Build` and `PostBuild` methods on plugins
+and invokes them when present. Each plugin must still provide a file-watcher
+trigger via `ShouldRebuild` and a numeric `Priority` to determine execution
+order.
 
 ### Tailwind CSS
 
