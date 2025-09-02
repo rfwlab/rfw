@@ -10,7 +10,7 @@
         </a>
         <div class="text-xl text-black/50 dark:text-white/30 hidden sm:flex items-center">/</div>
         <div class="relative mx-auto h-full flex items-stretch">
-          <span class="material-symbols-outlined absolute mt-3.5 ml-3.5 text-white/40">search</span>
+          <span class="material-symbols-outlined absolute mt-3.5 ml-3.5 dark:text-white/40 text-black/40">search</span>
           <input id="doc-search" type="text" placeholder="Why rfw?" class="h-full w-100 px-10 border-x border-y-0 border-gray-300 dark:border-zinc-700 bg-transparent text-black dark:text-white outline-none focus:bg-white/10 text-center">
           <div id="search-results" class="absolute z-10 left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 shadow hidden"></div>
         </div>
