@@ -1,7 +1,7 @@
 <root>
-  <div class="border border-gray-200 rounded mb-4 overflow-hidden" data-code="@prop:code">
-    <div class="flex border-b border-gray-200">
-      <button id="tab-code" class="px-4 py-2 border-b-2 border-blue-500">Code</button>
+  <div class="border border-gray-300 dark:border-zinc-700 rounded mb-4 overflow-hidden" data-code="@prop:code">
+    <div class="flex border-b border-gray-300 dark:border-zinc-700">
+      <button id="tab-code" class="px-4 py-2 border-b-2 border-red-500 text-red-500">Code</button>
       <button id="tab-preview" class="px-4 py-2">Preview</button>
     </div>
     <pre id="code" class="p-4 font-mono text-sm overflow-auto" style=" background-color: #22272e; margin: 0; border-radius: 0; ">

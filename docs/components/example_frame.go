@@ -68,8 +68,8 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 		for range codeCh {
 			codeDiv.Get("classList").Call("remove", "hidden")
 			previewDiv.Get("classList").Call("add", "hidden")
-			codeTab.Get("classList").Call("add", "border-b-2", "border-blue-500")
-			previewTab.Get("classList").Call("remove", "border-b-2", "border-blue-500")
+			codeTab.Get("classList").Call("add", "border-b-2", "border-red-500", "text-red-500")
+			previewTab.Get("classList").Call("remove", "border-b-2", "border-red-500", "text-red-500")
 		}
 	}()
 	previewCh := events.Listen("click", previewTab)
@@ -77,8 +77,8 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 		for range previewCh {
 			previewDiv.Get("classList").Call("remove", "hidden")
 			codeDiv.Get("classList").Call("add", "hidden")
-			previewTab.Get("classList").Call("add", "border-b-2", "border-blue-500")
-			codeTab.Get("classList").Call("remove", "border-b-2", "border-blue-500")
+			previewTab.Get("classList").Call("add", "border-b-2", "border-red-500", "text-red-500")
+			codeTab.Get("classList").Call("remove", "border-b-2", "border-red-500", "text-red-500")
 		}
 	}()
 }
