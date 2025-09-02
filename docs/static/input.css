@@ -50,10 +50,18 @@ html {
     * {
         scrollbar-color: #52525b transparent;
     }
+    ::selection {
+        background-color: #ff616142;
+        color: #ff9494;
+    }
 }
 
 @media (prefers-color-scheme: light) {
     * {
         scrollbar-color: #a1a1aa transparent;
+    }
+    ::selection {
+        background-color: #ff616142;
+        color: #521f1f;
     }
 }
