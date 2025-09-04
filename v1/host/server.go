@@ -64,7 +64,8 @@ func NewMux(root string) *http.ServeMux {
 // ListenAndServe starts an HTTP server using NewMux to serve files and the
 // WebSocket endpoint.
 func ListenAndServe(addr, root string) error {
-	return http.ListenAndServe(addr, NewMux(root))
+	logger.Info("serving HTTP", "addr", addr)
+	return http.ListenAndServe(addr, loggingMiddleware(NewMux(root)))
 }
 
 // ListenAndServeTLS starts an HTTPS server using a self-signed certificate
@@ -76,9 +77,10 @@ func ListenAndServeTLS(addr, root string) error {
 	}
 	srv := &http.Server{
 		Addr:      addr,
-		Handler:   NewMux(root),
+		Handler:   loggingMiddleware(NewMux(root)),
 		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
 	}
+	logger.Info("serving HTTPS", "addr", addr)
 	return srv.ListenAndServeTLS("", "")
 }
 

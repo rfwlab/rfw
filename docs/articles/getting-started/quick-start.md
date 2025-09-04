@@ -36,6 +36,13 @@ The server listens on port `8080` by default. Use the `--port` flag or set the
 RFW_PORT=3000 rfw dev
 ```
 
+Set the `RFW_LOG_LEVEL` environment variable to control log verbosity
+(`debug`, `info`, `warn`, `error`):
+
+```bash
+RFW_LOG_LEVEL=debug rfw dev
+```
+
 The default `index.html` mounts the Wasm module with plain JavaScript:
 
 ```html

@@ -9,5 +9,5 @@ import (
 
 func main() {
 	components.RegisterHelloHost()
-	log.Fatal(host.ListenAndServe(":8080", "client"))
+	log.Fatal(host.Start("client"))
 }
