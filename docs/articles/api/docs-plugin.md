@@ -11,5 +11,3 @@ The plugin dispatches these custom events on `document`:
   - `path` – the document path
   - `content` – raw markdown source
   - `headings` – extracted heading objects with `text`, `depth` and `id`
-
-These headings enable the interface to render a table of contents for each page.

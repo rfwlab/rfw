@@ -40,7 +40,6 @@ RFW_LOG_LEVEL=debug rfw dev
 
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
-Documentation pages now include a right-hand table of contents generated from page headings for easier navigation.
 
 ## Server Side Computed (SSC)
 
