@@ -147,6 +147,10 @@ func (s *Server) addWatchers(root string) error {
 			return err
 		}
 		if d.IsDir() {
+			name := d.Name()
+			if name != "." && (name == "build" || strings.HasPrefix(name, ".")) {
+				return filepath.SkipDir
+			}
 			return s.watcher.Add(path)
 		}
 		return nil
@@ -163,6 +167,10 @@ func (s *Server) watchFiles() {
 			utils.Debug(fmt.Sprintf("event: %s", event))
 			if event.Op&fsnotify.Create != 0 {
 				if fi, err := os.Stat(event.Name); err == nil && fi.IsDir() {
+					name := filepath.Base(event.Name)
+					if name == "build" || strings.HasPrefix(name, ".") {
+						continue
+					}
 					utils.Debug(fmt.Sprintf("watching new directory: %s", event.Name))
 					_ = s.watcher.Add(event.Name)
 					continue
