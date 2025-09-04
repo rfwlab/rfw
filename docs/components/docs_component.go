@@ -168,9 +168,28 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 				hljs.Call("highlightAll")
 			}
 
+			headings := detail.Get("headings")
+			if headings.Truthy() {
+				contentEl := dom.ByID("doc-content")
+				idxByDepth := map[int]int{}
+				length := headings.Length()
+				for i := 0; i < length; i++ {
+					h := headings.Index(i)
+					depth := h.Get("depth").Int()
+					id := h.Get("id").String()
+					tag := "h" + strconv.Itoa(depth)
+					nodes := contentEl.Call("getElementsByTagName", tag)
+					idx := idxByDepth[depth]
+					if el := nodes.Index(idx); el.Truthy() {
+						el.Set("id", id)
+					}
+					idxByDepth[depth] = idx + 1
+				}
+			}
+
 			if toc := dom.ByID("toc"); toc.Truthy() {
 				toc.Set("innerHTML", "")
-				if headings := detail.Get("headings"); headings.Truthy() {
+				if headings.Truthy() {
 					length := headings.Length()
 					for i := 0; i < length; i++ {
 						h := headings.Index(i)
