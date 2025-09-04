@@ -24,6 +24,13 @@ rfw dev
 rfw build
 ```
 
+By default the development server listens on port `8080`. Override it with
+the `--port` flag or the `RFW_PORT` environment variable:
+
+```bash
+RFW_PORT=3000 rfw dev
+```
+
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
 Documentation pages now include a right-hand table of contents generated from page headings for easier navigation.

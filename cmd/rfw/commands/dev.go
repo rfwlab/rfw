@@ -24,11 +24,14 @@ func NewDevCommand() *command.Command {
 }
 
 func runDev(cmd *command.Command, _ *command.RootFlags, _ []string) error {
-	port := cmd.GetFlagString("port")
+	port := os.Getenv("RFW_PORT")
 	if port == "" {
-		port = readPortFromManifest()
+		port = cmd.GetFlagString("port")
 		if port == "" {
-			port = "8080"
+			port = readPortFromManifest()
+			if port == "" {
+				port = "8080"
+			}
 		}
 	}
 	host := cmd.GetFlagBool("host")

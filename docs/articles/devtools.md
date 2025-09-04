@@ -4,6 +4,9 @@
 
 The `rfw dev` command launches a file‑watching server that recompiles your project into WebAssembly on every change. It also serves the generated assets over an HTTP server so you can iterate quickly without leaving the terminal. Any files placed in a top-level `static/` directory are available at the root URL during development, and requests to `/static/*` are transparently served as `/*`. When a `host/` directory is present, `rfw dev` builds and runs the host binary from `build/host/host` so host components can be exercised locally.
 
+By default the server listens on port `8080`. Override it with the `--port`
+flag or the `RFW_PORT` environment variable.
+
 Run the development server from the project directory:
 
 ```bash
@@ -17,6 +20,8 @@ The example above enables verbose logging and profiling endpoints on port `8081`
 - `--port` specify port
 - `--host` expose to network
 - `--debug` enable verbose logs and profiling endpoints (`/debug/vars`, `/debug/pprof/`)
+
+The port can also be set with the `RFW_PORT` environment variable.
 
 `--host` is useful when testing on real devices; however, remember to trust the network you expose the server to. `--debug` should be left off in production builds because it serves sensitive profiling data.
 
