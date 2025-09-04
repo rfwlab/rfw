@@ -29,6 +29,13 @@ rfw dev
 
 `rfw dev` compiles the Go sources to `app.wasm`, serves an HTML shell, reloads the page when files change, and serves files from a top-level `static/` directory at the root path. Requests to `/static/*` resolve to the same files so URLs stay unchanged. When a `host/` directory is present, the command also builds and runs the host binary from `build/host/host`.
 
+The server listens on port `8080` by default. Use the `--port` flag or set the
+`RFW_PORT` environment variable to change it:
+
+```bash
+RFW_PORT=3000 rfw dev
+```
+
 The default `index.html` mounts the Wasm module with plain JavaScript:
 
 ```html
