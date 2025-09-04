@@ -117,6 +117,10 @@
         "path": "guide/pages-plugin.md"
       },
       {
+        "title": "Assets Plugin",
+        "path": "guide/assets-plugin.md"
+      },
+      {
         "title": "API Integration",
         "path": "guide/api-integration.md"
       },
