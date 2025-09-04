@@ -23,6 +23,9 @@ The example above enables verbose logging and profiling endpoints on port `8081`
 
 The port can also be set with the `RFW_PORT` environment variable.
 
+Log verbosity can be tuned with the `RFW_LOG_LEVEL` environment variable
+(`debug`, `info`, `warn`, `error`).
+
 `--host` is useful when testing on real devices; however, remember to trust the network you expose the server to. `--debug` should be left off in production builds because it serves sensitive profiling data.
 
 ## Hot Reload
