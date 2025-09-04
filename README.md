@@ -31,6 +31,13 @@ the `--port` flag or the `RFW_PORT` environment variable:
 RFW_PORT=3000 rfw dev
 ```
 
+Control server log verbosity with the `RFW_LOG_LEVEL` environment variable.
+Possible values are `debug`, `info`, `warn`, and `error` (default is `info`):
+
+```
+RFW_LOG_LEVEL=debug rfw dev
+```
+
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
 Documentation pages now include a right-hand table of contents generated from page headings for easier navigation.
