@@ -12,7 +12,9 @@ import (
 var dynamicComponentTpl []byte
 
 func init() {
-	core.RegisterComponent("red-cube", func() core.Component { return NewRedCubeComponent() })
+	if err := core.RegisterComponent("red-cube", func() core.Component { return NewRedCubeComponent() }); err != nil {
+		panic(err)
+	}
 }
 
 func NewDynamicComponent() *core.HTMLComponent {

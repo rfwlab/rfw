@@ -70,12 +70,16 @@ html := safe.Render() // renders fallback if child panics
 
 `core.ComponentRegistry` holds constructors for components that can be
 loaded on demand. Register components with `core.RegisterComponent` and
-retrieve them with `core.LoadComponent`:
+retrieve them with `core.LoadComponent`. `RegisterComponent` returns an
+error and logs a warning if a component with the same name is already
+registered:
 
 ```go
-core.RegisterComponent("red-cube", func() core.Component {
+if err := core.RegisterComponent("red-cube", func() core.Component {
         return NewRedCubeComponent()
-})
+}); err != nil {
+        panic(err)
+}
 comp := core.LoadComponent("red-cube")
 ```
 
