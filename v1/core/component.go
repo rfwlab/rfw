@@ -2,6 +2,8 @@
 
 package core
 
+import "fmt"
+
 // DevMode enables additional runtime checks and warnings for development.
 // It is disabled by default.
 var DevMode bool
@@ -28,9 +30,16 @@ var ComponentRegistry = map[string]func() Component{}
 
 // RegisterComponent registers a component constructor under the provided name.
 // When a template references the name via `rt-is`, the constructor will be
-// invoked to create a new component instance at render time.
-func RegisterComponent(name string, constructor func() Component) {
+// invoked to create a new component instance at render time. It returns an
+// error if a component with the same name is already registered and logs a
+// warning.
+func RegisterComponent(name string, constructor func() Component) error {
+	if _, exists := ComponentRegistry[name]; exists {
+		Log().Warn("component %s already registered", name)
+		return fmt.Errorf("component %s already registered", name)
+	}
 	ComponentRegistry[name] = constructor
+	return nil
 }
 
 // LoadComponent retrieves a component by name using the registry. If no
