@@ -7,7 +7,7 @@ interfaces that everything else builds upon.
 | --- | --- |
 | `HTMLComponent` | Base struct for reactive components backed by RTML templates. |
 | `Logger` | Interface for redirecting log output. |
-| `ComponentRegistry` | Global registry for components loaded via `rt-is`. |
+| `ComponentRegistry` | Thread-safe registry for components loaded via `rt-is`. |
 | `ErrorBoundary` | Wrapper that renders fallback UI when a child panics. |
 
 ## Logger
@@ -69,7 +69,7 @@ html := safe.Render() // renders fallback if child panics
 ## Dynamic components
 
 `core.ComponentRegistry` holds constructors for components that can be
-loaded on demand. Register components with `core.MustRegisterComponent`
+loaded on demand and is safe for concurrent use. Register components with `core.MustRegisterComponent`
 (or `core.RegisterComponent` if you prefer explicit error handling) and
 retrieve them with `core.LoadComponent`. `MustRegisterComponent` panics if a
 component with the same name is already registered:
