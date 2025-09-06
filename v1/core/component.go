@@ -2,7 +2,10 @@
 
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 // DevMode enables additional runtime checks and warnings for development.
 // It is disabled by default.
@@ -26,7 +29,10 @@ type Component interface {
 // Components can register themselves with a unique name and a constructor function
 // returning a new instance of the component. This allows templates to reference
 // components by name using runtime selection attributes like `rt-is`.
-var ComponentRegistry = map[string]func() Component{}
+var (
+	ComponentRegistry   = map[string]func() Component{}
+	componentRegistryMu sync.RWMutex
+)
 
 // RegisterComponent registers a component constructor under the provided name.
 // When a template references the name via `rt-is`, the constructor will be
@@ -34,6 +40,8 @@ var ComponentRegistry = map[string]func() Component{}
 // error if a component with the same name is already registered and logs a
 // warning.
 func RegisterComponent(name string, constructor func() Component) error {
+	componentRegistryMu.Lock()
+	defer componentRegistryMu.Unlock()
 	if _, exists := ComponentRegistry[name]; exists {
 		Log().Warn("component %s already registered", name)
 		return fmt.Errorf("component %s already registered", name)
@@ -45,7 +53,10 @@ func RegisterComponent(name string, constructor func() Component) error {
 // LoadComponent retrieves a component by name using the registry. If no
 // component is registered under that name, nil is returned.
 func LoadComponent(name string) Component {
-	if ctor, ok := ComponentRegistry[name]; ok {
+	componentRegistryMu.RLock()
+	ctor, ok := ComponentRegistry[name]
+	componentRegistryMu.RUnlock()
+	if ok {
 		return ctor()
 	}
 	return nil
