@@ -24,8 +24,7 @@ func (c *testComponent) SetSlots(map[string]any)            {}
 func (c *testComponent) SetRouteParams(p map[string]string) { c.params = p }
 
 func TestNavigateQueryParams(t *testing.T) {
-	routes = nil
-	currentComponent = nil
+	Reset()
 	RegisterRoute(Route{Path: "/query", Component: func() core.Component { return &testComponent{} }})
 	Navigate("/query?key=value")
 	tc, ok := currentComponent.(*testComponent)
@@ -38,8 +37,7 @@ func TestNavigateQueryParams(t *testing.T) {
 }
 
 func TestNavigateNotFound(t *testing.T) {
-	routes = nil
-	currentComponent = nil
+	Reset()
 	called := false
 	NotFoundCallback = func(p string) { called = true }
 	Navigate("/missing")

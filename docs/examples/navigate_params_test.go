@@ -11,6 +11,7 @@ import (
 )
 
 func TestNavigateMergesParamsAndQuery(t *testing.T) {
+	router.Reset()
 	c := components.NewParamsComponent()
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/params/:id",

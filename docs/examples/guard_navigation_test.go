@@ -23,6 +23,7 @@ func (c *mountCheckComponent) GetID() string           { return "" }
 func (c *mountCheckComponent) SetSlots(map[string]any) {}
 
 func TestGuardBlocksNavigation(t *testing.T) {
+	router.Reset()
 	mc := &mountCheckComponent{}
 	router.RegisterRoute(router.Route{
 		Path:      "/guarded",
