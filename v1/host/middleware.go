@@ -1,6 +1,9 @@
 package host
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 	"time"
 )
@@ -13,6 +16,13 @@ type statusRecorder struct {
 func (r *statusRecorder) WriteHeader(code int) {
 	r.status = code
 	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := r.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, errors.New("http.Hijacker not supported")
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
