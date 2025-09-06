@@ -27,9 +27,7 @@ func NewExampleFrame(props map[string]any) *core.HTMLComponent {
 }
 
 func init() {
-	if err := core.RegisterComponent("ExampleFrame", func() core.Component { return NewExampleFrame(nil) }); err != nil {
-		panic(err)
-	}
+	core.MustRegisterComponent("ExampleFrame", func() core.Component { return NewExampleFrame(nil) })
 }
 
 func (e *exampleFrame) mount(hc *core.HTMLComponent) {
