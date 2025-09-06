@@ -129,6 +129,10 @@
         "path": "guide/animation.md"
       },
       {
+        "title": "WASM Loader",
+        "path": "guide/wasm-loader.md"
+      },
+      {
         "title": "Plugins",
         "path": "guide/plugins.md"
       },
