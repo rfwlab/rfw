@@ -49,6 +49,13 @@ var NotFoundComponent func() core.Component
 // unregistered route. It receives the requested path.
 var NotFoundCallback func(string)
 
+// Reset clears the router's registered routes and current component.
+// It is primarily intended for use in tests to ensure a clean state.
+func Reset() {
+	routes = nil
+	currentComponent = nil
+}
+
 // RegisterRoute adds a new Route to the router's configuration.
 func RegisterRoute(r Route) {
 	routes = append(routes, buildRoute(r))
