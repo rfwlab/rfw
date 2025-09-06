@@ -16,7 +16,7 @@ RUN curl -L https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.1
 WORKDIR /app
 
 RUN git clone https://github.com/rfwlab/rfw.git
-RUN rfw build
+RUN cd rfw/docs && rfw build
 
 WORKDIR /app/rfw/docs/build/host
 
