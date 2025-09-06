@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func InitProject(projectName string) error {
+func InitProject(projectName string, skipTidy bool) error {
 	if projectName == "" {
 		return fmt.Errorf("project name cannot be empty")
 	}
@@ -66,7 +66,7 @@ func InitProject(projectName string) error {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	if err := initGoModule(projectPath, moduleName); err != nil {
+	if err := initGoModule(projectPath, moduleName, skipTidy); err != nil {
 		return fmt.Errorf("failed to initialize go module: %w", err)
 	}
 
@@ -97,17 +97,19 @@ func copyWasmExec(projectDir string) error {
 	return nil
 }
 
-func initGoModule(projectPath, moduleName string) error {
+func initGoModule(projectPath, moduleName string, skipTidy bool) error {
 	cmd := exec.Command("go", "mod", "init", moduleName)
 	cmd.Dir = projectPath
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("go mod init failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 
-	cmd = exec.Command("go", "mod", "tidy")
-	cmd.Dir = projectPath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("go mod tidy failed: %w: %s", err, strings.TrimSpace(string(out)))
+	if !skipTidy {
+		cmd = exec.Command("go", "mod", "tidy")
+		cmd.Dir = projectPath
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("go mod tidy failed: %w: %s", err, strings.TrimSpace(string(out)))
+		}
 	}
 
 	return nil
