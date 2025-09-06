@@ -15,6 +15,7 @@ func NewInitCommand() *command.Command {
 		Description: "Initialize a new RFW project",
 		Run:         runInit,
 	}
+	cmd.AddBoolFlag("skip-tidy", "", "Skip running go mod tidy", false, false)
 	return cmd
 }
 
@@ -23,7 +24,8 @@ func runInit(cmd *command.Command, _ *command.RootFlags, args []string) error {
 		return fmt.Errorf("please specify a project name")
 	}
 	projectName := args[0]
-	if err := initproj.InitProject(projectName); err != nil {
+	skipTidy := cmd.GetFlagBool("skip-tidy")
+	if err := initproj.InitProject(projectName, skipTidy); err != nil {
 		return err
 	}
 	cmd.Logger.Success("Project initialized")
