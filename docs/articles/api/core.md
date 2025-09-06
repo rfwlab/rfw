@@ -69,17 +69,15 @@ html := safe.Render() // renders fallback if child panics
 ## Dynamic components
 
 `core.ComponentRegistry` holds constructors for components that can be
-loaded on demand. Register components with `core.RegisterComponent` and
-retrieve them with `core.LoadComponent`. `RegisterComponent` returns an
-error and logs a warning if a component with the same name is already
-registered:
+loaded on demand. Register components with `core.MustRegisterComponent`
+(or `core.RegisterComponent` if you prefer explicit error handling) and
+retrieve them with `core.LoadComponent`. `MustRegisterComponent` panics if a
+component with the same name is already registered:
 
 ```go
-if err := core.RegisterComponent("red-cube", func() core.Component {
+core.MustRegisterComponent("red-cube", func() core.Component {
         return NewRedCubeComponent()
-}); err != nil {
-        panic(err)
-}
+})
 comp := core.LoadComponent("red-cube")
 ```
 
