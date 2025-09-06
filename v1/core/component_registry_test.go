@@ -25,3 +25,14 @@ func TestRegisterComponentDuplicate(t *testing.T) {
 		t.Fatalf("expected error on duplicate registration")
 	}
 }
+
+func TestMustRegisterComponentPanic(t *testing.T) {
+	ComponentRegistry = map[string]func() Component{}
+	MustRegisterComponent("dup", func() Component { return noopComponent{} })
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatalf("expected panic on duplicate registration")
+		}
+	}()
+	MustRegisterComponent("dup", func() Component { return noopComponent{} })
+}
