@@ -6,8 +6,14 @@ The `rfw` command-line interface manages project scaffolding, development and bu
 
 Creates a new RFW project by cloning a template and initializing a Go module.
 
+Flags:
+
+- `--skip-tidy` skip running `go mod tidy`
+
 ```bash
 rfw init github.com/username/hello-rfw
+# or
+rfw init --skip-tidy github.com/username/hello-rfw
 ```
 
 Expected output:
