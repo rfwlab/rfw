@@ -7,6 +7,7 @@ Client-side router with lazy loaded components and guards.
 - `InitRouter()` starts the router and listens for navigation events.
 - `ExposeNavigate()` exposes navigation to JavaScript as `goNavigate`.
 - `NotFoundComponent` or `NotFoundCallback` handle unmatched routes.
+- `Reset()` clears registered routes and the current component, useful in tests.
 - `Children []Route` nests routes under a parent.
 - Guards: `Guard` functions run before navigation and can cancel by returning `false`.
 
