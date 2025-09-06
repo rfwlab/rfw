@@ -41,6 +41,17 @@ RFW_LOG_LEVEL=debug rfw dev
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
 
+## Testing
+
+Run all tests with:
+
+```bash
+go test ./...
+```
+
+Continuous Integration runs the same command on every push. See the [testing guide](./docs/articles/testing.md) for more details.
+
+
 ## Server Side Computed (SSC)
 
 SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
