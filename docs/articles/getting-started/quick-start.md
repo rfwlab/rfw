@@ -17,6 +17,8 @@ Initialize a new module. The command creates a Go module with a sample component
 ```bash
 rfw init github.com/username/hello-rfw
 cd hello-rfw
+# or skip go mod tidy using the --skip-tidy flag:
+# rfw init --skip-tidy github.com/username/hello-rfw
 ```
 
 The generated project contains `main.go`, a `components/` folder, matching `.rtml` templates, a `host/` directory with its own `components/`, and an `rfw.json` manifest enabling SSC builds.
