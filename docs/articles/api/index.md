@@ -31,6 +31,7 @@ The full set of API references is listed below:
 - [animation](animation.md)
 - [cinema](cinema.md)
 - [core](core.md)
+- [components](components.md)
 - [dom](dom.md)
 - [events](events.md)
 - [host](host.md)

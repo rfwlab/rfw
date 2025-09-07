@@ -51,6 +51,8 @@ type HTMLComponent struct {
 	onUnmount         func(*HTMLComponent)
 	parent            *HTMLComponent
 	provides          map[string]any
+	cache             map[string]string
+	lastCacheKey      string
 }
 
 func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTMLComponent {
@@ -89,6 +91,17 @@ func (c *HTMLComponent) Init(store *state.Store) {
 }
 
 func (c *HTMLComponent) Render() (renderedTemplate string) {
+	key := c.cacheKey()
+	if c.cache != nil {
+		if val, ok := c.cache[key]; ok {
+			return val
+		}
+		if c.lastCacheKey != "" && c.lastCacheKey != key {
+			delete(c.cache, c.lastCacheKey)
+		}
+	} else {
+		c.cache = make(map[string]string)
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			jsStack := js.Error().New().Get("stack").String()
@@ -153,7 +166,8 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	if c.HostComponent != "" {
 		hostclient.RegisterComponent(c.ID, c.HostComponent, c.hostVars)
 	}
-
+	c.cache[key] = renderedTemplate
+	c.lastCacheKey = key
 	return renderedTemplate
 }
 
@@ -289,6 +303,24 @@ func (c *HTMLComponent) SetRouteParams(params map[string]string) {
 // routed to the corresponding host component on the server.
 func (c *HTMLComponent) AddHostComponent(name string) {
 	c.HostComponent = name
+}
+
+func (c *HTMLComponent) cacheKey() string {
+	hasher := sha1.New()
+	hasher.Write([]byte(serializeProps(c.Props)))
+
+	if len(c.Dependencies) > 0 {
+		deps := make([]string, 0, len(c.Dependencies))
+		for name, dep := range c.Dependencies {
+			deps = append(deps, name+dep.GetID())
+		}
+		sort.Strings(deps)
+		for _, d := range deps {
+			hasher.Write([]byte(d))
+		}
+	}
+
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 func generateComponentID(name string, props map[string]any) string {

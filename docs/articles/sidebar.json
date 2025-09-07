@@ -162,6 +162,10 @@
         "path": "api/core.md"
       },
       {
+        "title": "components",
+        "path": "api/components.md"
+      },
+      {
         "title": "dom",
         "path": "api/dom.md"
       },
