@@ -20,8 +20,9 @@ html {
     }
 }
 
-.prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-    background-color: #22272e;
+.prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)),
+.hljs {
+    background-color: #141414 !important;
 }
 
 /* Minimal scrollbar styling */
