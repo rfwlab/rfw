@@ -11,6 +11,7 @@ import (
 
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/devtools"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/pages"
@@ -27,6 +28,12 @@ func Build() error {
 	}
 	if data, err := os.ReadFile("rfw.json"); err == nil {
 		_ = json.Unmarshal(data, &manifest)
+	}
+	if os.Getenv("RFW_DEVTOOLS") == "1" {
+		if manifest.Plugins == nil {
+			manifest.Plugins = map[string]json.RawMessage{}
+		}
+		manifest.Plugins["devtools"] = nil
 	}
 	if err := plugins.Configure(manifest.Plugins); err != nil {
 		return fmt.Errorf("failed to configure plugins: %w", err)
@@ -54,7 +61,12 @@ func Build() error {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	cmd := exec.Command("go", "build", "-o", filepath.Join(clientDir, "app.wasm"), "main.go")
+	args := []string{"build"}
+	if os.Getenv("RFW_DEVTOOLS") == "1" {
+		args = append(args, "-tags=devtools")
+	}
+	args = append(args, "-o", filepath.Join(clientDir, "app.wasm"), "main.go")
+	cmd := exec.Command("go", args...)
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -71,13 +83,13 @@ func Build() error {
 	if err := plugins.Build(); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
 	}
-	if err := plugins.PostBuild(); err != nil {
-		return fmt.Errorf("post build failed: %w", err)
-	}
 	if _, err := os.Stat("index.html"); err == nil {
 		if err := copyFile("index.html", filepath.Join(clientDir, "index.html")); err != nil {
 			return fmt.Errorf("failed to copy index.html: %w", err)
 		}
+	}
+	if err := plugins.PostBuild(); err != nil {
+		return fmt.Errorf("post build failed: %w", err)
 	}
 
 	if _, err := os.Stat("static"); err == nil {

@@ -147,6 +147,10 @@
       {
         "title": "Twitch OAuth",
         "path": "guide/twitch-oauth.md"
+      },
+      {
+        "title": "Debugging",
+        "path": "guide/debugging.md"
       }
     ]
   },

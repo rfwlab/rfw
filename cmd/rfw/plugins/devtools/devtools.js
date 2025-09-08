@@ -1,0 +1,490 @@
+const markup = `
+<style>
+:root{
+  /* Base palette */
+  --bg:#0f1115; --bg-2:#0b0d12; --panel:#121419; --elev:#171923; --text:#e6e9f2; --muted:#8b93a7;
+  --border:#4a3737; --border-2:#3a2426; --chip-bg:#0000007d; --tile-bg:#12080b; --tile-border:#2b191b; --tile-hover:#1a0f12;
+  --rose-50:#ffe6e7; --rose-100:#ffe1e2; --rose-200:#ffd6d8; --rose-300:#ffccd0; --rose-400:#ffb3b5;
+  --accent:#ff4d4f; --accent-2:#ff6b6b; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+  --shadow:0 10px 30px rgba(0,0,0,.4); --round:14px;
+}
+*{box-sizing:border-box}
+.rfw-button{font:inherit}
+.hidden{display:none !important}
+
+/* Toggle FAB */
+.rfw-fab{ position:fixed; right:16px; bottom:16px; z-index:2147483000; height:48px; width:48px; border-radius:999px; border:1px solid var(--border); background:linear-gradient(180deg, var(--panel), var(--bg)); color:var(--text); display:inline-flex; align-items:center; justify-content:center; box-shadow:var(--shadow); cursor:pointer; transition:transform .12s ease, background .2s ease, border-color .2s ease }
+.rfw-fab:hover{transform:translateY(-1px); border-color:var(--border-2)}
+.rfw-fab svg{width:22px;height:22px}
+
+/* Overlay shell (bottom dock only) */
+.rfw-overlay{ position:fixed; inset:auto 0 0 0; height:48vh; z-index:2147483640; background:linear-gradient(180deg, rgba(20,11,13,.8), rgba(13,7,9,.95)); backdrop-filter: blur(10px); border-top:1px solid var(--border); box-shadow:var(--shadow); display:flex; flex-direction:column }
+
+.rfw-header{ display:flex; align-items:center; gap:10px; padding:0 12px; border-bottom:1px solid var(--border) }
+.rfw-badge{ padding:3px 8px; border-radius:999px; color:var(--rose-300); font-size:12px }
+.rfw-title{font-weight:600; letter-spacing:.2px}
+.rfw-spacer{flex:1}
+.rfw-ctl{display:flex; align-items:center; gap:6px}
+.rfw-iconbtn{ display:inline-flex; align-items:center; justify-content:center; height:30px; width:30px; color:var(--rose-200); cursor:pointer; transition:background .15s ease, border-color .15s ease }
+.rfw-iconbtn:hover{color:var(--border-2)}
+.rfw-iconbtn svg{display:flex; align-items:center; justify-content:center; width:16px; height:16px}
+
+/* KPI row */
+.rfw-kpi{ display:flex; gap:10px; padding:5px 12px; border-bottom:1px dashed var(--border-2) }
+.rfw-chip{ display:inline-flex; align-items:center; gap:8px; padding:3px 10px; border:1px solid var(--border); border-radius:999px; background:var(--chip-bg); color:var(--rose-200); font-variant-numeric:tabular-nums }
+.rfw-dot{width:7px; height:7px; border-radius:999px}
+.ok{background:var(--good)} .warn{background:var(--warn)} .bad{background:var(--bad)} .info{background:var(--accent)}
+
+/* Tabs */
+.rfw-tabs{display:flex; align-items:center; gap:6px; padding:0 8px 0 8px}
+.rfw-tab{ padding: 8px 12px; border-bottom: 2px solid transparent; color: var(--rose-300); cursor: pointer; user-select: none; }
+.rfw-tab[aria-selected="true"]{background: var(--chip-bg); color: var(--rose-50); border-color: var(--rose-300);}
+.rfw-panels{ display:flex; gap:0; flex:1; min-height:0; border-top:1px solid var(--border-2); margin:0 0 8px; border-radius:0 0 var(--round) var(--round); overflow:hidden }
+
+/* Components panel */
+.rfw-split{display:flex; flex:1; min-height:0}
+.rfw-tree{ width:42%; min-width:240px; max-width:55%; border-right:1px solid var(--border); background:var(--chip-bg); display:flex; flex-direction:column }
+.rfw-tree .rfw-search{ border-bottom:1px solid var(--border) }
+.rfw-input{ width:100%; padding:8px 10px; border:0; background:transparent; color:var(--text); outline:none; transition:border-color .12s ease, background .12s ease }
+.tree-scroll{overflow:auto; padding:8px}
+.node{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; color:var(--rose-100)}
+.node:hover{background:var(--tile-hover)}
+.node .kind{font-size:11px; color:var(--accent-2); padding:2px 6px; border:1px solid var(--border-2); border-radius:999px; background:var(--tile-bg)}
+.node .name{font-weight:600}
+.node .time{margin-left:auto; font-variant-numeric:tabular-nums; color:var(--rose-300)}
+
+.rfw-detail{flex:1;background:var(--chip-bg);display:flex;flex-direction:column}
+.rfw-detail .rfw-subheader{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.kv{display:grid; grid-template-columns:160px 1fr; gap:8px 12px; padding:12px}
+.kv div{padding:6px 8px; background:var(--tile-bg); border:1px solid var(--tile-border); border-radius:10px; overflow:auto}
+.kv b{color:var(--rose-200)}
+
+.mono{font-variant-numeric:tabular-nums}
+
+/* Logs panel */
+.rfw-logs{display:flex;flex-direction:column;height:100%;flex:1}
+.log-toolbar{display:flex; gap:8px; border-bottom:1px solid var(--border);}
+.log-list{flex:1; overflow:auto; padding:8px}
+.log{ display:grid; grid-template-columns:100px 80px 1fr; gap:8px; padding:8px; border-bottom:1px dashed var(--tile-border); color:var(--rose-100) }
+.log .lvl{font-weight:600}
+.log[data-lvl="warn"] .lvl{color:var(--warn)}
+.log[data-lvl="error"] .lvl{color:var(--bad)}
+.log[data-lvl="info"] .lvl{color:var(--accent)}
+.log .msg{white-space:pre-wrap; word-break:break-word}
+
+/* Resize handle (bottom only) */
+.rfw-resize-h{position:absolute; left:0; right:0; top:-4px; height:8px; cursor:ns-resize}
+
+.kbd{border:1px solid var(--border-2); background:var(--tile-bg); padding:2px 6px; border-radius:6px; font-size:12px; color:var(--rose-200)}
+@media (max-width:960px){ .rfw-tree{width:48%} }
+@media (max-width:720px){ .rfw-split{flex-direction:column} .rfw-tree{width:100%; max-width:none; border-right:none; border-bottom:1px solid var(--border)} }
+</style>
+
+<button id="rfwDevtoolsToggle" class="rfw-button rfw-fab" data-rfw-ignore aria-label="Apri DevTools" title="DevTools (Ctrl+Shift+D)">
+  <span>rfw</span>
+</button>
+
+<section id="rfwDevtools" class="rfw-overlay hidden" data-rfw-ignore role="dialog" aria-modal="false" aria-label="RFW DevTools">
+  <div class="rfw-resize-h" data-resize="h"></div>
+
+  <header class="rfw-header">
+    <span class="rfw-badge">RFW DevTools</span>
+    <span class="rfw-spacer"></span>
+    <div class="rfw-ctl">
+      <button class="rfw-button rfw-iconbtn" id="minBtn" title="Minimize">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 12h12" stroke="var(--rose-400)" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="rfw-iconbtn" id="closeBtn" title="Close">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7 7 17" stroke="var(--accent-2)" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="rfw-kpi">
+    <span class="rfw-chip"><span class="rfw-dot ok"></span><b>FPS</b> <span id="kpiFps" class="mono">0</span></span>
+    <span class="rfw-chip"><span class="rfw-dot warn"></span><b>Mem</b> <span id="kpiMem" class="mono">n/a</span><span id="kpiMemSrc" class="mono" style="opacity:.7;font-size:12px;margin-left:6px"></span></span>
+    <span class="rfw-chip"><span class="rfw-dot ok"></span><b>Nodes</b> <span id="kpiNodes" class="mono">0</span></span>
+    <span class="rfw-chip"><span class="rfw-dot ok"></span><b>Render</b> <span id="kpiRender" class="mono">n/a</span></span>
+    <span class="rfw-spacer"></span>
+    <span class="rfw-chip"><b>Hotkey</b> <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">D</span></span>
+  </div>
+
+  <nav class="rfw-tabs" role="tablist" aria-label="Tabs">
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="true" aria-controls="tab-components" id="tabbtn-components">Components</button>
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-logs" id="tabbtn-logs">Logs</button>
+  </nav>
+
+  <div class="rfw-panels">
+
+    <!-- Components -->
+    <section id="tab-components" role="tabpanel" aria-labelledby="tabbtn-components" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="treeFilter" class="rfw-input" type="search" placeholder="Filter components… (e.g. Header, Button)" />
+          </div>
+          <div class="tree-scroll" id="treeContainer"></div>
+        </aside>
+
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="detailTitle">Select a component</span>
+            <span class="rfw-badge" id="detailKind">-</span>
+            <span class="rfw-spacer"></span>
+          </div>
+          <div class="kv" id="detailKV"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Logs -->
+    <section id="tab-logs" role="tabpanel" aria-labelledby="tabbtn-logs" class="hidden" style="width:100%">
+      <div class="rfw-logs">
+        <div class="log-toolbar">
+          <input id="logFilter" class="rfw-input" placeholder="Filter logs… (text, level, tag)" />
+          <span class="rfw-spacer"></span>
+          <button class="rfw-button rfw-iconbtn" id="clearLogs" title="Clear logs">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7v12m6-12v12M6 7l1-2h10l1 2" stroke="var(--rose-400)"/></svg>
+          </button>
+        </div>
+        <div id="logList" class="log-list" aria-live="polite"></div>
+      </div>
+    </section>
+
+  </div>
+</section>
+`;
+
+if (!document.getElementById("rfwDevtools")) {
+  document.body.insertAdjacentHTML("beforeend", markup);
+}
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const overlay = $("#rfwDevtools");
+const fab = $("#rfwDevtoolsToggle");
+const minBtn = $("#minBtn");
+const closeBtn = $("#closeBtn");
+const hHandle = $('[data-resize="h"]');
+
+const tabs = [
+  { btn: $("#tabbtn-components"), panel: $("#tab-components") },
+  { btn: $("#tabbtn-logs"), panel: $("#tab-logs") },
+];
+
+function setTab(name) {
+  tabs.forEach((t) => {
+    const active = t.btn && t.btn.id === `tabbtn-${name}`;
+    t.btn?.setAttribute("aria-selected", active ? "true" : "false");
+    t.panel?.classList.toggle("hidden", !active);
+    if (t.panel?.id === "tab-components")
+      t.panel.style.display = active ? "flex" : "none";
+  });
+}
+
+tabs.forEach((t) =>
+  t.btn?.addEventListener("click", () =>
+    setTab(t.btn.id.replace("tabbtn-", "")),
+  ),
+);
+setTab("components");
+
+function openDevtools() {
+  overlay?.classList.remove("hidden");
+  if (fab) {
+    fab.style.transform = "scale(0.98)";
+    setTimeout(() => (fab.style.transform = ""), 120);
+  }
+  refreshTree();
+}
+function closeDevtools() {
+  overlay?.classList.add("hidden");
+}
+function toggleDevtools() {
+  overlay?.classList.contains("hidden") ? openDevtools() : closeDevtools();
+}
+
+fab?.addEventListener("click", toggleDevtools);
+closeBtn?.addEventListener("click", closeDevtools);
+minBtn?.addEventListener("click", () => {
+  if (!overlay) return;
+  overlay.style.height = overlay.style.height === "38vh" ? "48vh" : "38vh";
+});
+
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") {
+    e.preventDefault();
+    toggleDevtools();
+  }
+});
+
+(function () {
+  if (!hHandle || !overlay) return;
+  let dragging = false,
+    startY = 0,
+    startH = 0;
+  hHandle.addEventListener("mousedown", (e) => {
+    dragging = true;
+    startY = e.clientY;
+    startH = overlay.getBoundingClientRect().height;
+    document.body.style.userSelect = "none";
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const dy = startY - e.clientY;
+    overlay.style.height =
+      Math.max(200, Math.min(window.innerHeight - 80, startH + dy)) + "px";
+  });
+  window.addEventListener("mouseup", () => {
+    dragging = false;
+    document.body.style.userSelect = "";
+  });
+})();
+
+const treeContainer = $("#treeContainer");
+const detailTitle = $("#detailTitle");
+const detailKind = $("#detailKind");
+const detailKV = $("#detailKV");
+
+function renderTree(list, root = true) {
+  const frag = document.createDocumentFragment();
+  list.forEach((node) => {
+    const el = document.createElement("div");
+    el.className = "node";
+    el.dataset.id = node.id;
+    el.innerHTML = `
+      <span class="kind">${node.kind}</span>
+      <span class="name">${node.name}</span>
+      <span class="time">${(node.time || 0).toFixed(1)} ms</span>
+    `;
+    el.addEventListener("click", () => selectNode(node));
+    frag.appendChild(el);
+    if (node.children?.length) {
+      const pad = document.createElement("div");
+      pad.style.marginLeft = "18px";
+      pad.appendChild(renderTree(node.children, false));
+      frag.appendChild(pad);
+    }
+  });
+  if (root) {
+    treeContainer?.replaceChildren(frag);
+    return treeContainer;
+  }
+  return frag;
+}
+
+function selectNode(n) {
+  if (!detailTitle || !detailKind || !detailKV) return;
+  detailTitle.textContent = n.name;
+  detailKind.textContent = n.kind;
+  detailKV.innerHTML = `
+    <b>Path</b><div>${n.path || ""}</div>
+    <b>Props</b><div>${escapeHTML(JSON.stringify(n.props || {}))}</div>
+    <b>Signals</b><div>${escapeHTML(JSON.stringify(n.signals || {}))}</div>
+    <b>Render time</b><div>${(n.time || 0).toFixed(2)} ms</div>
+    <b>Updates</b><div>${n.updates || 0}</div>
+    <b>Owner</b><div>${n.owner || ""}</div>
+  `;
+}
+
+function escapeHTML(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (m) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        m
+      ],
+  );
+}
+
+$("#treeFilter")?.addEventListener("input", (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const nodes = $$(".node", treeContainer);
+  nodes.forEach((n) => {
+    const text = n.textContent.toLowerCase();
+    n.style.display = text.includes(q) ? "" : "none";
+  });
+});
+
+function countNodes(list) {
+  let total = 0;
+  const walk = (nodes) => {
+    nodes.forEach((n) => {
+      total++;
+      if (n.children) walk(n.children);
+    });
+  };
+  walk(list);
+  return total;
+}
+
+function refreshTree() {
+  try {
+    if (typeof globalThis.RFW_DEVTOOLS_TREE === "function") {
+      const data = JSON.parse(globalThis.RFW_DEVTOOLS_TREE());
+      renderTree(data);
+      const k = $("#kpiNodes");
+      if (k) k.textContent = String(countNodes(data));
+      return;
+    }
+  } catch {}
+  if (treeContainer) treeContainer.textContent = "";
+  const k = $("#kpiNodes");
+  if (k) k.textContent = "0";
+}
+
+let fpsSample = 0,
+  memSample = 0;
+let frameCount = 0,
+  lastTime = performance.now();
+let renderSample = null;
+let memFrom = null; // 'expvar' | 'heap' | null
+
+function fpsLoop(t) {
+  frameCount++;
+  if (t - lastTime >= 1000) {
+    fpsSample = frameCount;
+    frameCount = 0;
+    lastTime = t;
+    const el = $("#kpiFps");
+    if (el) el.textContent = String(Math.round(fpsSample));
+  }
+  requestAnimationFrame(fpsLoop);
+}
+requestAnimationFrame(fpsLoop);
+
+async function pollMetrics() {
+  let tickMem = 0;
+  let tickFrom = null;
+
+  try {
+    const res = await fetch("/debug/vars", { cache: "no-store" });
+    if (res.ok) {
+      const vars = await res.json();
+      const ms = vars.memstats || {};
+      if (ms.Alloc) {
+        tickMem = ms.Alloc / 1048576;
+        tickFrom = "expvar";
+      }
+    }
+  } catch {}
+
+  if (!tickMem && performance && performance.memory) {
+    try {
+      tickMem = performance.memory.usedJSHeapSize / 1048576;
+      tickFrom = "heap";
+    } catch {}
+  }
+
+  if (tickFrom) {
+    memSample = tickMem;
+    memFrom = tickFrom;
+  }
+
+  const memEl = $("#kpiMem");
+  if (memEl)
+    memEl.textContent = memFrom ? Math.round(memSample) + " MB" : "n/a";
+  const memSrcEl = $("#kpiMemSrc");
+  if (memSrcEl) memSrcEl.textContent = `(${memFrom || "n/a"})`;
+
+  const rEl = $("#kpiRender");
+  if (rEl)
+    rEl.textContent =
+      renderSample != null ? Number(renderSample).toFixed(1) + " ms" : "n/a";
+
+  setTimeout(pollMetrics, 1000);
+}
+pollMetrics();
+
+const logList = $("#logList");
+const original = {
+  log: console.log.bind(console),
+  warn: console.warn.bind(console),
+  error: console.error.bind(console),
+  info: console.info.bind(console),
+};
+
+function addLog(level, args) {
+  if (!logList) return;
+  const msg = args
+    .map((a) => {
+      try {
+        return typeof a === "string" ? a : JSON.stringify(a);
+      } catch {
+        return String(a);
+      }
+    })
+    .join(" ");
+  if (msg.includes("mutation:")) return;
+  const time = new Date().toLocaleTimeString();
+  const row = document.createElement("div");
+  row.className = "log";
+  row.dataset.lvl = level;
+  row.innerHTML = `<div class="mono">${time}</div><div class="lvl">${level.toUpperCase()}</div><div class="msg">${escapeHTML(msg)}</div>`;
+  logList.appendChild(row);
+  if (logList.childElementCount > 200) logList.removeChild(logList.firstChild);
+  logList.scrollTop = logList.scrollHeight;
+}
+
+console.log = (...a) => {
+  addLog("info", a);
+  original.log(...a);
+};
+console.warn = (...a) => {
+  addLog("warn", a);
+  original.warn(...a);
+};
+console.error = (...a) => {
+  addLog("error", a);
+  original.error(...a);
+};
+console.info = (...a) => {
+  addLog("info", a);
+  original.info(...a);
+};
+
+$("#clearLogs")?.addEventListener("click", () => {
+  if (logList) logList.innerHTML = "";
+});
+$("#logFilter")?.addEventListener("input", (e) => {
+  if (!logList) return;
+  const q = e.target.value.toLowerCase();
+  $$(".log", logList).forEach((row) => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+});
+
+window.RFW_DEVTOOLS = {
+  open: openDevtools,
+  close: closeDevtools,
+  feedMetrics(m) {
+    if (m.fps != null) {
+      fpsSample = m.fps;
+      const el = $("#kpiFps");
+      if (el) el.textContent = String(Math.round(fpsSample));
+    }
+    if (m.mem != null) {
+      memSample = m.mem;
+      memFrom = "expvar";
+      const el = $("#kpiMem");
+      if (el) el.textContent = Math.round(memSample) + " MB";
+      const src = $("#kpiMemSrc");
+      if (src) src.textContent = "(expvar)";
+    }
+    if (m.render != null) {
+      renderSample = m.render;
+      const el = $("#kpiRender");
+      if (el) el.textContent = Number(m.render).toFixed(1) + " ms";
+    }
+  },
+  feedTree(t) {
+    if (Array.isArray(t)) {
+      renderTree(t);
+      const k = $("#kpiNodes");
+      if (k) k.textContent = String(countNodes(t));
+    }
+  },
+  log(level, ...args) {
+    addLog(level || "info", args);
+  },
+};
