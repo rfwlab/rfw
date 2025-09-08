@@ -25,7 +25,7 @@
         <div id="doc-content" class="prose max-w-none dark:prose-invert"></div>
         <div id="doc-nav" class="mt-8 flex flex-wrap justify-between text-sm text-gray-700 dark:text-gray-300"></div>
       </main>
-      <aside id="toc" class="hidden lg:block sticky top-14 w-64 max-h-[calc(100vh-56px)] p-6 border-l border-zinc-200 dark:border-zinc-700 overflow-y-auto"></aside>
+      <aside id="toc" class="lg:block sticky top-14 w-64 max-h-[calc(100vh-56px)] p-6 border-l border-zinc-200 dark:border-zinc-700 overflow-y-auto"></aside>
     </div>
     <footer class="p-6 text-center text-gray-500 dark:text-gray-400">
       <div class="flex flex-wrap items-center justify-center space-x-2">
