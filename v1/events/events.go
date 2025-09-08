@@ -80,17 +80,24 @@ func Listen(event string, target jst.Value) <-chan jst.Value {
 // It returns a channel receiving MutationRecord objects and a stop function
 // that disconnects the observer and releases resources.
 func ObserveMutations(sel string) (<-chan jst.Value, func()) {
-	ch := make(chan jst.Value)
-	node := js.Document().Call("querySelector", sel)
-	fn := js.FuncOf(func(this jst.Value, args []jst.Value) any {
-		mutations := args[0]
-		for i := 0; i < mutations.Length(); i++ {
-			ch <- mutations.Index(i)
-		}
-		return nil
-	})
-	observer := js.MutationObserver().New(fn)
-	observer.Call("observe", node, js.ValueOf(map[string]any{"childList": true, "subtree": true}))
+        ch := make(chan jst.Value)
+        node := js.Document().Call("querySelector", sel)
+        fn := js.FuncOf(func(this jst.Value, args []jst.Value) any {
+                mutations := args[0]
+                for i := 0; i < mutations.Length(); i++ {
+                        m := mutations.Index(i)
+                        t := m.Get("target")
+                        if t.Truthy() && t.Get("closest").Type() != jst.TypeUndefined {
+                                if t.Call("closest", "[data-rfw-ignore]").Truthy() {
+                                        continue
+                                }
+                        }
+                        ch <- m
+                }
+                return nil
+        })
+        observer := js.MutationObserver().New(fn)
+        observer.Call("observe", node, js.ValueOf(map[string]any{"childList": true, "subtree": true}))
 	stop := func() {
 		observer.Call("disconnect")
 		fn.Release()
