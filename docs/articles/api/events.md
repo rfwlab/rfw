@@ -12,7 +12,7 @@ Utilities for handling browser events and observing DOM changes.
 | `OnKeyDown(handler)` | Registers a `keydown` handler on `window`. |
 | `OnKeyUp(handler)` | Registers a `keyup` handler on `window`. |
 | `Listen(event, target)` | Returns a channel that receives the event's first argument. |
-| `ObserveMutations(selector)` | Watches DOM mutations. |
+| `ObserveMutations(selector)` | Watches DOM mutations, skipping elements marked with `data-rfw-ignore`. |
 | `ObserveIntersections(selector, opts)` | Streams `IntersectionObserverEntry` values. |
 
 `On` registers callbacks directly and returns a function to remove the

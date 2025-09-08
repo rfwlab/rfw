@@ -38,6 +38,15 @@ Possible values are `debug`, `info`, `warn`, and `error` (default is `info`):
 RFW_LOG_LEVEL=debug rfw dev
 ```
 
+Enable the in-browser debugging overlay with the `--debug` flag:
+
+```
+rfw dev --debug
+```
+
+Use `Ctrl`+`Shift`+`D` in the browser to toggle the overlay that shows the
+component tree and console logs with basic runtime metrics.
+
 Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
 
 
