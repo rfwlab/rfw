@@ -112,6 +112,8 @@ const markup = `
   <nav class="rfw-tabs" role="tablist" aria-label="Tabs">
     <button class="rfw-button rfw-tab" role="tab" aria-selected="true" aria-controls="tab-components" id="tabbtn-components">Components</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-logs" id="tabbtn-logs">Logs</button>
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-vars" id="tabbtn-vars">Vars</button>
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-pprof" id="tabbtn-pprof">Pprof</button>
   </nav>
 
   <div class="rfw-panels">
@@ -151,6 +153,44 @@ const markup = `
       </div>
     </section>
 
+    <!-- Vars -->
+    <section id="tab-vars" role="tabpanel" aria-labelledby="tabbtn-vars" class="hidden" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="varsFilter" class="rfw-input" type="search" placeholder="Filter vars…" />
+          </div>
+          <div class="tree-scroll" id="varsTree"></div>
+        </aside>
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="varsTitle">Select a variable</span>
+            <span class="rfw-spacer"></span>
+          </div>
+          <pre id="varsContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
+        </article>
+      </div>
+    </section>
+
+    <!-- Pprof -->
+    <section id="tab-pprof" role="tabpanel" aria-labelledby="tabbtn-pprof" class="hidden" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="pprofFilter" class="rfw-input" type="search" placeholder="Filter profiles…" />
+          </div>
+          <div class="tree-scroll" id="pprofLinks"></div>
+        </aside>
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="pprofTitle">Select a profile</span>
+            <span class="rfw-spacer"></span>
+          </div>
+          <pre id="pprofContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
+        </article>
+      </div>
+    </section>
+
   </div>
 </section>
 `;
@@ -170,6 +210,8 @@ const hHandle = $('[data-resize="h"]');
 const tabs = [
   { btn: $("#tabbtn-components"), panel: $("#tab-components") },
   { btn: $("#tabbtn-logs"), panel: $("#tab-logs") },
+  { btn: $("#tabbtn-vars"), panel: $("#tab-vars"), onShow: loadVars },
+  { btn: $("#tabbtn-pprof"), panel: $("#tab-pprof"), onShow: loadPprof },
 ];
 
 function setTab(name) {
@@ -179,6 +221,7 @@ function setTab(name) {
     t.panel?.classList.toggle("hidden", !active);
     if (t.panel?.id === "tab-components")
       t.panel.style.display = active ? "flex" : "none";
+    if (active && typeof t.onShow === "function") t.onShow();
   });
 }
 
@@ -395,6 +438,153 @@ async function pollMetrics() {
   setTimeout(pollMetrics, 1000);
 }
 pollMetrics();
+
+const varsTree = $("#varsTree");
+const varsTitle = $("#varsTitle");
+const varsContent = $("#varsContent");
+let varsData = [];
+
+function buildVarsTree(obj, path = "") {
+  return Object.entries(obj).map(([k, v]) => {
+    const p = path ? `${path}.${k}` : k;
+    const node = {
+      name: k,
+      path: p,
+      kind: Array.isArray(v) ? "array" : typeof v,
+      value: v,
+    };
+    if (v && typeof v === "object") node.children = buildVarsTree(v, p);
+    return node;
+  });
+}
+
+function renderVarsTree(list, root = true) {
+  const frag = document.createDocumentFragment();
+  list.forEach((node) => {
+    const el = document.createElement("div");
+    el.className = "node";
+    el.dataset.path = node.path.toLowerCase();
+    el.innerHTML = `
+      <span class="kind">${node.kind}</span>
+      <span class="name">${node.name}</span>
+      ${node.children ? "" : `<span class="time mono">${escapeHTML(String(node.value))}</span>`}
+    `;
+    el.addEventListener("click", () => selectVar(node));
+    frag.appendChild(el);
+    if (node.children) {
+      const pad = document.createElement("div");
+      pad.style.marginLeft = "18px";
+      pad.appendChild(renderVarsTree(node.children, false));
+      frag.appendChild(pad);
+    }
+  });
+  if (root) {
+    varsTree?.replaceChildren(frag);
+    return varsTree;
+  }
+  return frag;
+}
+
+function selectVar(node) {
+  if (!varsTitle || !varsContent) return;
+  varsTitle.textContent = node.path;
+  try {
+    varsContent.textContent = JSON.stringify(node.value, null, 2);
+  } catch {
+    varsContent.textContent = String(node.value);
+  }
+}
+
+async function loadVars() {
+  if (!varsTree) return;
+  varsTree.innerHTML = "";
+  try {
+    const res = await fetch("/debug/vars", { cache: "no-store" });
+    if (!res.ok) {
+      varsTree.textContent = "Failed to load";
+      return;
+    }
+    const data = await res.json();
+    varsData = buildVarsTree(data);
+    renderVarsTree(varsData);
+  } catch {
+    varsTree.textContent = "Error loading vars";
+  }
+}
+
+$("#varsFilter")?.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  $$(".node", varsTree).forEach((n) => {
+    const text = n.textContent.toLowerCase();
+    n.style.display = text.includes(q) ? "" : "none";
+  });
+});
+
+const pprofLinks = $("#pprofLinks");
+const pprofTitle = $("#pprofTitle");
+const pprofContent = $("#pprofContent");
+
+async function loadPprof() {
+  if (!pprofLinks) return;
+  pprofLinks.innerHTML = "";
+  pprofContent.textContent = "";
+  pprofTitle.textContent = "Select a profile";
+  try {
+    const res = await fetch("/debug/pprof/", { cache: "no-store" });
+    if (!res.ok) {
+      pprofLinks.textContent = "Failed to load";
+      return;
+    }
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const anchors = Array.from(doc.querySelectorAll("a[href]"));
+    anchors.forEach((a) => {
+      const href = a.getAttribute("href");
+      if (!href || href.startsWith("?")) return;
+      const el = document.createElement("div");
+      el.className = "node";
+      el.innerHTML = `<span class="name">${a.textContent || href}</span>`;
+      el.addEventListener("click", () => loadProfile(href));
+      pprofLinks.appendChild(el);
+    });
+  } catch {
+    pprofLinks.textContent = "Error loading profiles";
+  }
+}
+
+async function loadProfile(name) {
+  if (!pprofContent || !pprofTitle) return;
+  pprofTitle.textContent = name;
+  pprofContent.textContent = "Loading...";
+  try {
+    const hasQuery = name.includes("?");
+    const url = `/debug/pprof/${name}${hasQuery ? "&" : "?"}debug=1`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      pprofContent.textContent = "Failed to load";
+      return;
+    }
+    const type = res.headers.get("Content-Type") || "";
+    if (type.includes("text")) {
+      const text = await res.text();
+      pprofContent.textContent = text;
+    } else {
+      const blob = await res.blob();
+      const dl = URL.createObjectURL(blob);
+      pprofContent.innerHTML = `<a href="${dl}" download="${name.replace(/\?.*/, "")}">Download profile</a>`;
+    }
+  } catch {
+    pprofContent.textContent = "Error fetching profile";
+  }
+}
+
+$("#pprofFilter")?.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  $$(".node", pprofLinks).forEach((n) => {
+    const text = n.textContent.toLowerCase();
+    n.style.display = text.includes(q) ? "" : "none";
+  });
+});
 
 const logList = $("#logList");
 const original = {

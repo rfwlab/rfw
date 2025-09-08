@@ -6,7 +6,6 @@ import (
 	"expvar"
 	"fmt"
 	"net/http"
-	"net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -60,14 +59,6 @@ func (s *Server) Start() error {
 	} else {
 		root := filepath.Join("build", "client")
 		mux = hostpkg.NewMux(root)
-		if s.Debug {
-			mux.Handle("/debug/vars", expvar.Handler())
-			mux.HandleFunc("GET /debug/pprof/", pprof.Index)
-			mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
-			mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
-			mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
-			mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
-		}
 		go func() {
 			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
 				utils.Fatal("Server failed: ", err)

@@ -14,6 +14,8 @@ Use the floating button in the bottom-right corner or press
 - **Components**: a snapshot of the active component hierarchy.
 - **Logs**: a real-time console log feed with filtering and clearing.
   Recent FPS, memory usage, node count and render time are displayed in the KPI bar.
+- **Vars**: a searchable tree of the data served by `/debug/vars`.
+- **Pprof**: profile listings from `/debug/pprof/` with an inline viewer for text profiles and download links for binary ones.
 Only the most recent 200 entries are retained and logs containing `mutation:`
 are suppressed to keep the page responsive. The overlay itself is marked with
 `data-rfw-ignore` so application mutation observers ignore it.
@@ -21,5 +23,4 @@ are suppressed to keep the page responsive. The overlay itself is marked with
 The overlay is only injected in debug mode and is excluded from production
 builds.
 
-When running with `--debug`, profiling endpoints remain available at
-`/debug/vars` and `/debug/pprof/` for deeper analysis.
+When running with `--debug`, the same endpoints are available directly in the overlay or by visiting `/debug/vars` and `/debug/pprof/` for deeper analysis.

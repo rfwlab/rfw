@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"expvar"
 	"math/big"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,6 +60,14 @@ func NewMux(root string) *http.ServeMux {
 		http.ServeFile(w, r, filepath.Join(root, "index.html"))
 	})
 	mux.Handle("/ws", websocket.Handler(wsHandler))
+	if os.Getenv("RFW_DEVTOOLS") != "" {
+		mux.Handle("/debug/vars", expvar.Handler())
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
 	return mux
 }
 

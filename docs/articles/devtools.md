@@ -13,7 +13,7 @@ Run the development server from the project directory:
 rfw dev --port 8081 --debug
 ```
 
-The example above enables verbose logging and profiling endpoints on port `8081`. Use this mode when you need detailed insight into build or runtime behaviour.
+The example above enables verbose logging and profiling endpoints on port `8081`. These routes are exposed by both the development server and any host binary, so `/debug/vars` and `/debug/pprof/` remain available when server‑side components are active. Use this mode when you need detailed insight into build or runtime behaviour.
 
 ### Flags
 
@@ -36,10 +36,10 @@ New directories are watched automatically. On some network file systems events m
 
 ## Profiling
 
-With the `--debug` flag, runtime metrics are available at dedicated endpoints. These metrics help track build frequency and memory usage while iterating on components.
+ With the `--debug` flag, runtime metrics are available at dedicated endpoints. These metrics help track build frequency and memory usage while iterating on components. The DevTools overlay surfaces this data under two additional tabs:
 
-- `/debug/vars` exposes counters like `rebuilds`
-- `/debug/pprof/` provides pprof profiles
+- **Vars** presents the JSON from `/debug/vars` as a searchable tree.
+- **Pprof** lists profiles under `/debug/pprof/`. Text-based profiles render inline, while binary profiles offer a download link for inspection with external tools.
 
 To inspect CPU profiles, run:
 
