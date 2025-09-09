@@ -160,8 +160,10 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			html := js.Get("marked").Call("parse", content).String()
 			if c.docComp != nil {
 				c.docComp.Unmount()
+				delete(c.HTMLComponent.Dependencies, "doc")
 			}
 			c.docComp = core.NewComponent("DocContent", []byte(html), nil)
+			c.HTMLComponent.AddDependency("doc", c.docComp)
 			dom.ByID("doc-content").Set("innerHTML", c.docComp.Render())
 			c.docComp.Mount()
 			if hljs := js.Get("hljs"); hljs.Truthy() {
