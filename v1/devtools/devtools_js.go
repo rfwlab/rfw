@@ -7,13 +7,16 @@ import (
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/js"
+	"github.com/rfwlab/rfw/v1/state"
 )
 
 type plugin struct{}
 
 var (
-	root   core.Component
-	treeFn js.Func
+	root     core.Component
+	treeFn   js.Func
+	storeFn  js.Func
+	signalFn js.Func
 )
 
 func (plugin) Build(json.RawMessage) error { return nil }
@@ -47,6 +50,16 @@ func (plugin) Install(a *core.App) {
 			}
 		}
 	})
+	a.RegisterStore(func(_, _, _ string, _ any) {
+		if fn := js.Global().Get("RFW_DEVTOOLS_REFRESH_STORES"); fn.Type() == js.TypeFunction {
+			fn.Invoke()
+		}
+	})
+	state.SignalHook = func(int, any) {
+		if fn := js.Global().Get("RFW_DEVTOOLS_REFRESH_SIGNALS"); fn.Type() == js.TypeFunction {
+			fn.Invoke()
+		}
+	}
 }
 
 func init() {
@@ -57,5 +70,15 @@ func init() {
 		}
 		return treeJSON()
 	})
+	storeFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+		b, _ := json.Marshal(state.GlobalStoreManager.Snapshot())
+		return string(b)
+	})
+	signalFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+		b, _ := json.Marshal(state.SnapshotSignals())
+		return string(b)
+	})
 	js.Global().Set("RFW_DEVTOOLS_TREE", treeFn)
+	js.Global().Set("RFW_DEVTOOLS_STORES", storeFn)
+	js.Global().Set("RFW_DEVTOOLS_SIGNALS", signalFn)
 }
