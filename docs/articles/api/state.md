@@ -17,6 +17,7 @@ Centralized reactive data stores.
 | `Undo()` | Revert the last mutation when history is enabled. |
 | `Redo()` | Reapply the last undone mutation when history is enabled. |
 | `ExposeUpdateStore()` | Expose `goUpdateStore` to JavaScript. |
+| `SnapshotSignals()` | Copy of all tracked signals for debugging. |
 | `Action` | Function type executed with a context. |
 | `Dispatch(ctx, action)` | Execute an Action with a context. |
 | `UseAction(ctx, action)` | Bind an Action to a Context and return a callback. |
@@ -64,6 +65,23 @@ safe way to inspect or log values while debugging.
 ```go
 snap := state.GlobalStoreManager.Snapshot()
 fmt.Println(snap["app"]["default"]["count"])
+```
+
+## SignalHook
+
+`state.SignalHook` fires on every signal update. Assign a function with the
+signature `func(id int, value any)` to observe changes, typically for devtools
+integration.
+
+### Snapshotting signals
+
+`SnapshotSignals` returns a map of tracked signal values for debugging:
+
+```go
+sig := state.NewSignal(1)
+sig.Set(2)
+snap := state.SnapshotSignals()
+fmt.Println(snap)
 ```
 
 ## SetLogger
