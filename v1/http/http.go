@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/rfwlab/rfw/v1/js"
 )
@@ -23,6 +24,15 @@ type cacheEntry struct {
 
 var cache sync.Map // map[string]*cacheEntry
 
+// RegisterHTTPHook adds a callback invoked on request start and completion.
+// The callback receives a start flag, request URL, status code and duration.
+var httpHook func(start bool, url string, status int, duration time.Duration)
+
+// RegisterHTTPHook registers fn to receive HTTP request events.
+func RegisterHTTPHook(fn func(start bool, url string, status int, duration time.Duration)) {
+	httpHook = fn
+}
+
 // FetchJSON retrieves JSON data from the given URL and decodes it into v.
 // Results are cached by URL. If a request is already in progress, FetchJSON
 // returns ErrPending.
@@ -32,20 +42,31 @@ func FetchJSON(url string, v any) error {
 
 	ce.once.Do(func() {
 		go func() {
+			if httpHook != nil {
+				httpHook(true, url, 0, 0)
+			}
+			start := time.Now()
 			js.Fetch(url).Call("then",
 				js.FuncOf(func(this js.Value, args []js.Value) any {
 					resp := args[0]
+					status := resp.Get("status").Int()
 					resp.Call("json").Call("then",
 						js.FuncOf(func(this js.Value, args []js.Value) any {
 							obj := args[0]
 							jsonStr := js.JSON().Call("stringify", obj).String()
 							ce.data = []byte(jsonStr)
 							close(ce.ready)
+							if httpHook != nil {
+								httpHook(false, url, status, time.Since(start))
+							}
 							return nil
 						}),
 						js.FuncOf(func(this js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
 							close(ce.ready)
+							if httpHook != nil {
+								httpHook(false, url, status, time.Since(start))
+							}
 							return nil
 						}),
 					)
@@ -54,6 +75,9 @@ func FetchJSON(url string, v any) error {
 				js.FuncOf(func(this js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
 					close(ce.ready)
+					if httpHook != nil {
+						httpHook(false, url, 0, time.Since(start))
+					}
 					return nil
 				}),
 			)

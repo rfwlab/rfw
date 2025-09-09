@@ -6,6 +6,7 @@ Helpers for making HTTP requests in the browser using the JavaScript `fetch` API
 | --- | --- |
 | `FetchJSON(url, v)` | Fetches JSON from `url` into `v`. Results are cached by URL and the function returns `ErrPending` while the request is in flight. |
 | `ClearCache(url)` | Removes the cached response for `url`. |
+| `RegisterHTTPHook(fn)` | Adds a callback invoked on request start and completion. |
 
 `FetchJSON` integrates basic caching and a suspense-style API. Calling it while a request is ongoing returns `ErrPending`, allowing callers to defer rendering until data is ready and to pair naturally with [`Suspense`](core#suspense).
 
@@ -24,4 +25,19 @@ if err != nil {
                 // handle fetch error
         }
 }
+```
+
+### Hooks
+
+```go
+import (
+    "log"
+    "time"
+)
+
+http.RegisterHTTPHook(func(start bool, url string, status int, d time.Duration) {
+    if !start {
+        log.Printf("%s -> %d in %v", url, status, d)
+    }
+})
 ```
