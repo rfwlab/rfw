@@ -163,6 +163,10 @@ func main() {
 		Component: func() core.Component { return excomponents.NewAPIIntegrationComponent() },
 	})
 	router.RegisterRoute(router.Route{
+		Path:      "/examples/fetchjson",
+		Component: func() core.Component { return excomponents.NewFetchJSONComponent() },
+	})
+	router.RegisterRoute(router.Route{
 		Path:      "/examples/twitch/login",
 		Component: func() core.Component { return excomponents.NewTwitchLoginComponent() },
 	})
