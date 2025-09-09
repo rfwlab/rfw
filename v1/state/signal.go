@@ -11,17 +11,24 @@ type subscriber interface {
 	remove(*effect)
 }
 
-var currentEffect *effect
+var (
+	currentEffect *effect
+	// SignalHook observes updates when devtools are enabled.
+	SignalHook func(id int, value any)
+)
 
 // Signal holds a value of type T and tracks which effects depend on it.
 type Signal[T any] struct {
+	id    int
 	value T
 	subs  map[*effect]struct{}
 }
 
 // NewSignal creates a new Signal with the given initial value.
 func NewSignal[T any](initial T) *Signal[T] {
-	return &Signal[T]{value: initial, subs: make(map[*effect]struct{})}
+	s := &Signal[T]{value: initial, subs: make(map[*effect]struct{})}
+	s.id = registerSignal(initial)
+	return s
 }
 
 // Get returns the current value of the signal and registers the calling effect.
@@ -39,6 +46,7 @@ func (s *Signal[T]) Read() any { return s.Get() }
 // Set updates the signal's value and notifies dependent effects.
 func (s *Signal[T]) Set(v T) {
 	s.value = v
+	updateSignal(s.id, v)
 	for eff := range s.subs {
 		eff.runEffect()
 	}

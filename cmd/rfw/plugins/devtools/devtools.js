@@ -110,8 +110,10 @@ const markup = `
     <span class="rfw-chip"><b>Hotkey</b> <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">D</span></span>
   </div>
 
-  <nav class="rfw-tabs" role="tablist" aria-label="Tabs">
+    <nav class="rfw-tabs" role="tablist" aria-label="Tabs">
     <button class="rfw-button rfw-tab" role="tab" aria-selected="true" aria-controls="tab-components" id="tabbtn-components">Components</button>
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-store" id="tabbtn-store">Store</button>
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-signals" id="tabbtn-signals">Signals</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-logs" id="tabbtn-logs">Logs</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-vars" id="tabbtn-vars">Vars</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-pprof" id="tabbtn-pprof">Pprof</button>
@@ -139,6 +141,50 @@ const markup = `
             <span class="rfw-spacer"></span>
           </div>
           <div class="kv" id="detailKV"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Store -->
+    <section id="tab-store" role="tabpanel" aria-labelledby="tabbtn-store" class="hidden" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="storeFilter" class="rfw-input" type="search" placeholder="Filter stores…" />
+            <button class="rfw-button rfw-iconbtn" id="refreshStore" title="Refresh stores">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0 1 14-7M19 5a9 9 0 0 0-14 7" stroke="var(--rose-400)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="tree-scroll" id="storeTree"></div>
+        </aside>
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="storeTitle">Select a key</span>
+            <span class="rfw-spacer"></span>
+          </div>
+          <pre id="storeContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
+        </article>
+      </div>
+    </section>
+
+    <!-- Signals -->
+    <section id="tab-signals" role="tabpanel" aria-labelledby="tabbtn-signals" class="hidden" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="signalFilter" class="rfw-input" type="search" placeholder="Filter signals…" />
+            <button class="rfw-button rfw-iconbtn" id="refreshSignals" title="Refresh signals">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0 1 14-7M19 5a9 9 0 0 0-14 7" stroke="var(--rose-400)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="tree-scroll" id="signalList"></div>
+        </aside>
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="signalTitle">Select a signal</span>
+            <span class="rfw-spacer"></span>
+          </div>
+          <pre id="signalContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
         </article>
       </div>
     </section>
@@ -213,6 +259,8 @@ const hHandle = $('[data-resize="h"]');
 
 const tabs = [
   { btn: $("#tabbtn-components"), panel: $("#tab-components") },
+  { btn: $("#tabbtn-store"), panel: $("#tab-store"), onShow: refreshStore },
+  { btn: $("#tabbtn-signals"), panel: $("#tab-signals"), onShow: refreshSignals },
   { btn: $("#tabbtn-logs"), panel: $("#tab-logs") },
   { btn: $("#tabbtn-vars"), panel: $("#tab-vars"), onShow: loadVars },
   { btn: $("#tabbtn-pprof"), panel: $("#tab-pprof"), onShow: loadPprof },
@@ -243,6 +291,8 @@ function openDevtools() {
     setTimeout(() => (fab.style.transform = ""), 120);
   }
   refreshTree();
+  refreshStore();
+  refreshSignals();
 }
 function closeDevtools() {
   overlay?.classList.add("hidden");
@@ -443,6 +493,145 @@ async function pollMetrics() {
   setTimeout(pollMetrics, 1000);
 }
 pollMetrics();
+
+const storeTree = $("#storeTree");
+const storeTitle = $("#storeTitle");
+const storeContent = $("#storeContent");
+
+function buildStoreTree(obj, path = "") {
+  return Object.entries(obj).map(([mod, stores]) => {
+    const p = path ? `${path}/${mod}` : mod;
+    const node = { name: mod, path: p, kind: "module" };
+    node.children = Object.entries(stores).map(([st, keys]) => {
+      const sp = `${p}/${st}`;
+      return {
+        name: st,
+        path: sp,
+        kind: "store",
+        children: Object.entries(keys).map(([k, v]) => ({
+          name: k,
+          path: `${sp}/${k}`,
+          kind: Array.isArray(v) ? "array" : typeof v,
+          value: v,
+        })),
+      };
+    });
+    return node;
+  });
+}
+
+function renderStoreTree(list, root = true) {
+  const frag = document.createDocumentFragment();
+  list.forEach((node) => {
+    const el = document.createElement("div");
+    el.className = "node";
+    el.dataset.path = node.path.toLowerCase();
+    el.innerHTML = `
+      <span class="kind">${node.kind}</span>
+      <span class="name">${node.name}</span>
+      ${node.children ? "" : `<span class="time mono">${escapeHTML(String(node.value))}</span>`}
+    `;
+    el.addEventListener("click", () => selectStore(node));
+    frag.appendChild(el);
+    if (node.children) {
+      const pad = document.createElement("div");
+      pad.style.marginLeft = "18px";
+      pad.appendChild(renderStoreTree(node.children, false));
+      frag.appendChild(pad);
+    }
+  });
+  if (root) {
+    storeTree?.replaceChildren(frag);
+    return storeTree;
+  }
+  return frag;
+}
+
+function selectStore(node) {
+  if (!storeTitle || !storeContent) return;
+  storeTitle.textContent = node.path;
+  try {
+    storeContent.textContent = JSON.stringify(node.value, null, 2);
+  } catch {
+    storeContent.textContent = String(node.value);
+  }
+}
+
+function refreshStore() {
+  if (!storeTree) return;
+  storeTree.innerHTML = "";
+  try {
+    if (typeof globalThis.RFW_DEVTOOLS_STORES === "function") {
+      const data = JSON.parse(globalThis.RFW_DEVTOOLS_STORES());
+      renderStoreTree(buildStoreTree(data));
+    }
+  } catch {
+    storeTree.textContent = "";
+  }
+}
+
+$("#refreshStore")?.addEventListener("click", refreshStore);
+$("#storeFilter")?.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  $$(".node", storeTree).forEach((n) => {
+    const text = n.textContent.toLowerCase();
+    n.style.display = text.includes(q) ? "" : "none";
+  });
+});
+
+const signalList = $("#signalList");
+const signalTitle = $("#signalTitle");
+const signalContent = $("#signalContent");
+
+function renderSignalList(list) {
+  if (!signalList) return;
+  signalList.innerHTML = "";
+  list.forEach((sig) => {
+    const el = document.createElement("div");
+    el.className = "node";
+    el.dataset.id = String(sig.id);
+    el.innerHTML = `
+      <span class="name">#${sig.id}</span>
+      <span class="time mono">${escapeHTML(String(sig.value))}</span>
+    `;
+    el.addEventListener("click", () => selectSignal(sig));
+    signalList.appendChild(el);
+  });
+}
+
+function selectSignal(sig) {
+  if (!signalTitle || !signalContent) return;
+  signalTitle.textContent = `Signal #${sig.id}`;
+  try {
+    signalContent.textContent = JSON.stringify(sig.value, null, 2);
+  } catch {
+    signalContent.textContent = String(sig.value);
+  }
+}
+
+function refreshSignals() {
+  if (!signalList) return;
+  try {
+    if (typeof globalThis.RFW_DEVTOOLS_SIGNALS === "function") {
+      const data = JSON.parse(globalThis.RFW_DEVTOOLS_SIGNALS());
+      const list = Object.entries(data).map(([id, v]) => ({ id, value: v }));
+      renderSignalList(list);
+    }
+  } catch {
+    signalList.textContent = "";
+  }
+}
+
+$("#refreshSignals")?.addEventListener("click", refreshSignals);
+$("#signalFilter")?.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  $$(".node", signalList).forEach((n) => {
+    n.style.display = n.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+});
+
+window.RFW_DEVTOOLS_REFRESH_STORES = refreshStore;
+window.RFW_DEVTOOLS_REFRESH_SIGNALS = refreshSignals;
 
 const varsTree = $("#varsTree");
 const varsTitle = $("#varsTitle");
