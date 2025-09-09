@@ -99,3 +99,65 @@ Components added dynamically must be registered with [`AddDependency`](../api/co
 - [core lifecycle hooks](../api/core#lifecycle-hooks)
 - [router](../api/router#usage)
 
+## Store inspection
+
+Inspect global state stores from the **Store** tab. Each module, store and key
+is listed in a tree view similar to the component browser.
+
+### When to use
+
+Use this tab during development to observe mutations without instrumenting
+application code.
+
+### How it works
+
+The DevTools plugin registers a store hook via `core.RegisterStore`, capturing
+updates and exposing the current snapshot through
+`RFW_DEVTOOLS_STORES()`.
+
+### Example
+
+```js
+// Dump all registered stores
+console.log(JSON.parse(globalThis.RFW_DEVTOOLS_STORES()));
+```
+
+### Limitations
+
+Only stores created in debug builds are reported. Avoid using this API in
+production.
+
+### Related links
+
+- [state StoreHook](../api/state#storehook)
+- [Stores vs signals](../guide/store-vs-signals)
+
+## Signal inspection
+
+The **Signals** tab lists reactive signals and their current values.
+
+### When to use
+
+Use it to debug local reactive state while iterating on components.
+
+### How it works
+
+Signals register with the DevTools runtime when created. The snapshot is exposed
+through `RFW_DEVTOOLS_SIGNALS()` and refreshes on every `Set`.
+
+### Example
+
+```js
+// List all tracked signals
+console.log(JSON.parse(globalThis.RFW_DEVTOOLS_SIGNALS()));
+```
+
+### Limitations
+
+Signals are anonymous; the tab identifies them by numerical ID. The feature is
+available only in debug builds.
+
+### Related links
+
+- [Signals & Effects](../essentials/signals-and-effects)
+
