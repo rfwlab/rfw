@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 
 	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v1/http"
 	"github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
+	"time"
 )
 
 type plugin struct{}
@@ -60,6 +62,13 @@ func (plugin) Install(a *core.App) {
 			fn.Invoke()
 		}
 	}
+	http.RegisterHTTPHook(func(start bool, url string, status int, d time.Duration) {
+		if obj := js.Global().Get("RFW_DEVTOOLS"); obj.Type() == js.TypeObject {
+			if fn := obj.Get("network"); fn.Type() == js.TypeFunction {
+				fn.Invoke(start, url, status, d.Milliseconds())
+			}
+		}
+	})
 }
 
 func init() {

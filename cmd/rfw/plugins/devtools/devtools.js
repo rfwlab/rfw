@@ -62,6 +62,12 @@ const markup = `
 
 .mono{font-variant-numeric:tabular-nums}
 
+/* Network panel */
+.net-list{flex:1; overflow:auto; padding:8px}
+.net{display:grid; grid-template-columns:1fr 80px 80px; gap:8px; padding:8px; border-bottom:1px dashed var(--tile-border); color:var(--rose-100)}
+.net .url{word-break:break-all}
+.net .mono{font-variant-numeric:tabular-nums}
+
 /* Logs panel */
 .rfw-logs{display:flex;flex-direction:column;height:100%;flex:1}
 .log-toolbar{display:flex; gap:8px; border-bottom:1px solid var(--border);}
@@ -113,8 +119,9 @@ const markup = `
     <nav class="rfw-tabs" role="tablist" aria-label="Tabs">
     <button class="rfw-button rfw-tab" role="tab" aria-selected="true" aria-controls="tab-components" id="tabbtn-components">Components</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-store" id="tabbtn-store">Store</button>
-    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-signals" id="tabbtn-signals">Signals</button>
-    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-logs" id="tabbtn-logs">Logs</button>
+      <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-signals" id="tabbtn-signals">Signals</button>
+      <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-network" id="tabbtn-network">Network</button>
+      <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-logs" id="tabbtn-logs">Logs</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-vars" id="tabbtn-vars">Vars</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-pprof" id="tabbtn-pprof">Pprof</button>
   </nav>
@@ -167,8 +174,8 @@ const markup = `
       </div>
     </section>
 
-    <!-- Signals -->
-    <section id="tab-signals" role="tabpanel" aria-labelledby="tabbtn-signals" class="hidden" style="display:flex;flex:1">
+      <!-- Signals -->
+      <section id="tab-signals" role="tabpanel" aria-labelledby="tabbtn-signals" class="hidden" style="display:flex;flex:1">
       <div class="rfw-split">
         <aside class="rfw-tree">
           <div class="rfw-search">
@@ -187,10 +194,23 @@ const markup = `
           <pre id="signalContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
         </article>
       </div>
-    </section>
+      </section>
 
-    <!-- Logs -->
-    <section id="tab-logs" role="tabpanel" aria-labelledby="tabbtn-logs" class="hidden" style="width:100%">
+      <!-- Network -->
+      <section id="tab-network" role="tabpanel" aria-labelledby="tabbtn-network" class="hidden" style="width:100%">
+        <div class="rfw-logs">
+          <div class="log-toolbar">
+            <span class="rfw-spacer"></span>
+            <button class="rfw-button rfw-iconbtn" id="clearNet" title="Clear requests">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7v12m6-12v12M6 7l1-2h10l1 2" stroke="var(--rose-400)"/></svg>
+            </button>
+          </div>
+          <div id="netList" class="net-list" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- Logs -->
+      <section id="tab-logs" role="tabpanel" aria-labelledby="tabbtn-logs" class="hidden" style="width:100%">
       <div class="rfw-logs">
         <div class="log-toolbar">
           <input id="logFilter" class="rfw-input" placeholder="Filter logs… (text, level, tag)" />
@@ -261,6 +281,7 @@ const tabs = [
   { btn: $("#tabbtn-components"), panel: $("#tab-components") },
   { btn: $("#tabbtn-store"), panel: $("#tab-store"), onShow: refreshStore },
   { btn: $("#tabbtn-signals"), panel: $("#tab-signals"), onShow: refreshSignals },
+  { btn: $("#tabbtn-network"), panel: $("#tab-network") },
   { btn: $("#tabbtn-logs"), panel: $("#tab-logs") },
   { btn: $("#tabbtn-vars"), panel: $("#tab-vars"), onShow: loadVars },
   { btn: $("#tabbtn-pprof"), panel: $("#tab-pprof"), onShow: loadPprof },
@@ -781,6 +802,7 @@ $("#pprofFilter")?.addEventListener("input", (e) => {
 });
 
 const logList = $("#logList");
+const netList = $("#netList");
 const original = {
   log: console.log.bind(console),
   warn: console.warn.bind(console),
@@ -838,6 +860,20 @@ $("#logFilter")?.addEventListener("input", (e) => {
   });
 });
 
+function addRequest(url, status, dur) {
+  if (!netList) return;
+  const row = document.createElement("div");
+  row.className = "net";
+  row.innerHTML = `<div class="url">${escapeHTML(url)}</div><div class="mono">${status}</div><div class="mono">${Number(dur).toFixed(1)} ms</div>`;
+  netList.appendChild(row);
+  if (netList.childElementCount > 200) netList.removeChild(netList.firstChild);
+  netList.scrollTop = netList.scrollHeight;
+}
+
+$("#clearNet")?.addEventListener("click", () => {
+  if (netList) netList.innerHTML = "";
+});
+
 window.RFW_DEVTOOLS = {
   open: openDevtools,
   close: closeDevtools,
@@ -867,6 +903,9 @@ window.RFW_DEVTOOLS = {
       const k = $("#kpiNodes");
       if (k) k.textContent = String(countNodes(t));
     }
+  },
+  network(start, url, status, dur) {
+    if (!start) addRequest(url, status, dur);
   },
   log(level, ...args) {
     addLog(level || "info", args);

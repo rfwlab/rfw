@@ -161,3 +161,40 @@ available only in debug builds.
 
 - [Signals & Effects](../essentials/signals-and-effects)
 
+## Network inspector
+
+Monitor HTTP requests from the **Network** tab.
+
+### When to use
+
+Use it during development to see request URLs, status codes and timings without instrumenting application code.
+
+### How it works
+
+The runtime wraps [`http.FetchJSON`](../api/http) and forwards request events through a hook registered with `http.RegisterHTTPHook`. DevTools records completed requests and displays their status and duration.
+
+### Example
+
+```go
+import (
+    "log"
+    "time"
+)
+
+http.RegisterHTTPHook(func(start bool, url string, status int, d time.Duration) {
+    if !start {
+        log.Printf("%s -> %d in %v", url, status, d)
+    }
+})
+```
+
+@include:ExampleFrame:{code:"/examples/components/fetchjson_component.go", uri:"/examples/fetchjson"}
+
+### Limitations
+
+Only requests made via `FetchJSON` are tracked. The feature is available in debug builds when `RFW_DEVTOOLS=1`.
+
+### Related links
+
+- [http helpers](../api/http)
+
