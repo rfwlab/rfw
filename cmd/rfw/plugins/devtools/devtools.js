@@ -44,7 +44,8 @@ const markup = `
 /* Components panel */
 .rfw-split{display:flex; flex:1; min-height:0}
 .rfw-tree{ width:42%; min-width:240px; max-width:55%; border-right:1px solid var(--border); background:var(--chip-bg); display:flex; flex-direction:column }
-.rfw-tree .rfw-search{ border-bottom:1px solid var(--border) }
+.rfw-tree .rfw-search{ display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--border) }
+.rfw-tree .rfw-search .rfw-input{flex:1}
 .rfw-input{ width:100%; padding:8px 10px; border:0; background:transparent; color:var(--text); outline:none; transition:border-color .12s ease, background .12s ease }
 .tree-scroll{overflow:auto; padding:8px}
 .node{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; color:var(--rose-100)}
@@ -124,6 +125,9 @@ const markup = `
         <aside class="rfw-tree">
           <div class="rfw-search">
             <input id="treeFilter" class="rfw-input" type="search" placeholder="Filter components… (e.g. Header, Button)" />
+            <button class="rfw-button rfw-iconbtn" id="refreshTree" title="Refresh components">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0 1 14-7M19 5a9 9 0 0 0-14 7" stroke="var(--rose-400)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
           </div>
           <div class="tree-scroll" id="treeContainer"></div>
         </aside>
@@ -348,6 +352,7 @@ $("#treeFilter")?.addEventListener("input", (e) => {
     n.style.display = text.includes(q) ? "" : "none";
   });
 });
+$("#refreshTree")?.addEventListener("click", refreshTree);
 
 function countNodes(list) {
   let total = 0;
@@ -678,3 +683,4 @@ window.RFW_DEVTOOLS = {
     addLog(level || "info", args);
   },
 };
+window.RFW_DEVTOOLS_REFRESH = refreshTree;

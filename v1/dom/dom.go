@@ -297,7 +297,9 @@ func patchNode(oldNode, newNode jst.Value) {
 		return
 	}
 
-	patchAttributes(oldNode, newNode)
+	if nodeType == 1 { // Element node
+		patchAttributes(oldNode, newNode)
+	}
 	patchChildren(oldNode, newNode)
 }
 

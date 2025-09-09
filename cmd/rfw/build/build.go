@@ -65,7 +65,7 @@ func Build() error {
 	if os.Getenv("RFW_DEVTOOLS") == "1" {
 		args = append(args, "-tags=devtools")
 	}
-	args = append(args, "-o", filepath.Join(clientDir, "app.wasm"), "main.go")
+	args = append(args, "-o", filepath.Join(clientDir, "app.wasm"), ".")
 	cmd := exec.Command("go", args...)
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()

@@ -1,5 +1,15 @@
 # Devtools
 
+## Enabling the overlay
+
+Set `RFW_DEVTOOLS=1` before running any CLI command to include the debugging scripts in the build. This environment variable compiles the DevTools package and exposes runtime hooks.
+
+```bash
+RFW_DEVTOOLS=1 rfw dev --debug
+```
+
+Avoid enabling it for production builds where the overlay is unnecessary.
+
 ## Development Server
 
 The `rfw dev` command launches a file‑watching server that recompiles your project into WebAssembly on every change. It also serves the generated assets over an HTTP server so you can iterate quickly without leaving the terminal. Any files placed in a top-level `static/` directory are available at the root URL during development, and requests to `/static/*` are transparently served as `/*`. When a `host/` directory is present, `rfw dev` builds and runs the host binary from `build/host/host` so host components can be exercised locally.
@@ -48,4 +58,44 @@ go tool pprof http://localhost:8081/debug/pprof/profile
 ```
 
 Refer to the [Go pprof guide](https://pkg.go.dev/net/http/pprof) for more ways to analyse performance.
+
+## Component tree API
+
+The debug overlay mirrors the active component hierarchy by collecting lifecycle events.
+
+### When to use
+
+Enable the development server with `--debug` to inspect the tree during local development.
+
+### How it works
+
+The runtime registers hooks via `core.RegisterLifecycle` and `RegisterRouter` so mounts, unmounts and navigation rebuild the structure. The current tree is exposed to JavaScript as `RFW_DEVTOOLS_TREE()` which returns JSON.
+
+### Example
+
+```js
+// Dump the active component hierarchy
+console.log(JSON.parse(globalThis.RFW_DEVTOOLS_TREE()));
+```
+
+### Refreshing
+
+Use the refresh button next to the component filter to rebuild the list. The overlay
+also refreshes automatically on navigation.
+
+```js
+// Manual refresh from the console
+globalThis.RFW_DEVTOOLS_REFRESH();
+```
+
+### Limitations
+
+This function exists only in debug builds and should not be relied upon in production code.
+
+Components added dynamically must be registered with [`AddDependency`](../api/core#dependency-injection) or use `rt-is` so the overlay can display them. This includes markdown-driven pages that mount components after parsing to display embedded examples.
+
+### Related links
+
+- [core lifecycle hooks](../api/core#lifecycle-hooks)
+- [router](../api/router#usage)
 
