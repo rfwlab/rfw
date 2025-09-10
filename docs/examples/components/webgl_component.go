@@ -13,6 +13,7 @@ import (
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	game "github.com/rfwlab/rfw/v1/game/loop"
+	scene "github.com/rfwlab/rfw/v1/game/scene"
 	js "github.com/rfwlab/rfw/v1/js"
 	m "github.com/rfwlab/rfw/v1/math"
 	webgl "github.com/rfwlab/rfw/v1/webgl"
@@ -28,10 +29,12 @@ const gridSize = 20
 var cellSize = 2.0 / float32(gridSize)
 
 var (
-	snake []point
-	dir   point
-	food  point
-	score int
+	root      *scene.Node
+	snakeRoot *scene.Node
+	foodNode  *scene.Node
+	snake     []*scene.Node
+	dir       point
+	score     int
 
 	ctx      webgl.Context
 	colorLoc jst.Value
@@ -146,7 +149,21 @@ void main(){
 		game.Start()
 	}
 
-	snake = []point{{gridSize / 2, gridSize / 2}, {gridSize/2 - 1, gridSize / 2}, {gridSize/2 - 2, gridSize / 2}}
+	root = scene.NewNode()
+	snakeRoot = scene.NewNode()
+	root.AddChild(snakeRoot)
+	snakeRoot.AddEntity(&snakeEntity{comps: []scene.Component{&snakeComponent{}}})
+	snake = nil
+	for _, p := range []point{{gridSize / 2, gridSize / 2}, {gridSize/2 - 1, gridSize / 2}, {gridSize/2 - 2, gridSize / 2}} {
+		seg := scene.NewNode()
+		seg.Transform = scene.Transform{X: float64(p.x), Y: float64(p.y)}
+		seg.AddEntity(&renderEntity{color: [4]float32{0, 1, 0, 1}})
+		snakeRoot.AddChild(seg)
+		snake = append(snake, seg)
+	}
+	foodNode = scene.NewNode()
+	foodNode.AddEntity(&renderEntity{color: [4]float32{1, 0, 0, 1}})
+	root.AddChild(foodNode)
 	dir = point{1, 0}
 	score = 0
 	running = true
@@ -158,6 +175,28 @@ void main(){
 }
 
 func updateLoop(t game.Ticker) {
+	scene.Update(root, scene.Ticker{Delta: t.Delta, FPS: t.FPS})
+}
+
+func renderLoop(t game.Ticker) {
+	if ctx.Value().IsUndefined() || ctx.Value().IsNull() {
+		return
+	}
+	elapsed += t.Delta.Seconds()
+	ctx.Clear(webgl.COLOR_BUFFER_BIT)
+	ctx.Uniform1f(timeLoc, float32(elapsed))
+	scene.Traverse(root, func(n *scene.Node) {
+		for _, e := range n.Entities {
+			if r, ok := e.(*renderEntity); ok {
+				drawSquare(n, r.color)
+			}
+		}
+	})
+}
+
+type snakeComponent struct{}
+
+func (c *snakeComponent) Update(n *scene.Node, t scene.Ticker) {
 	if !running {
 		return
 	}
@@ -180,54 +219,61 @@ func updateLoop(t game.Ticker) {
 	}
 }
 
-func renderLoop(t game.Ticker) {
-	if ctx.Value().IsUndefined() || ctx.Value().IsNull() {
-		return
-	}
-	elapsed += t.Delta.Seconds()
-	ctx.Clear(webgl.COLOR_BUFFER_BIT)
-	ctx.Uniform1f(timeLoc, float32(elapsed))
+type snakeEntity struct{ comps []scene.Component }
 
-	drawSquare(food, [4]float32{1, 0, 0, 1})
-	for _, p := range snake {
-		drawSquare(p, [4]float32{0, 1, 0, 1})
-	}
-}
+func (e *snakeEntity) Components() []scene.Component { return e.comps }
+
+type renderEntity struct{ color [4]float32 }
+
+func (e *renderEntity) Components() []scene.Component { return nil }
 
 func moveSnake() {
-	head := point{snake[0].x + dir.x, snake[0].y + dir.y}
-	if head.x < 0 {
-		head.x = gridSize - 1
+	head := snake[0]
+	nx := int(head.Transform.X) + dir.x
+	ny := int(head.Transform.Y) + dir.y
+	if nx < 0 {
+		nx = gridSize - 1
 	}
-	if head.x >= gridSize {
-		head.x = 0
+	if nx >= gridSize {
+		nx = 0
 	}
-	if head.y < 0 {
-		head.y = gridSize - 1
+	if ny < 0 {
+		ny = gridSize - 1
 	}
-	if head.y >= gridSize {
-		head.y = 0
+	if ny >= gridSize {
+		ny = 0
 	}
 	for _, s := range snake {
-		if s == head {
+		if int(s.Transform.X) == nx && int(s.Transform.Y) == ny {
 			running = false
 			dom.RemoveClass(dom.ByID("menu"), "hidden")
 			return
 		}
 	}
-	snake = append([]point{head}, snake...)
-	if head == food {
+	newHead := scene.NewNode()
+	newHead.Transform = scene.Transform{X: float64(nx), Y: float64(ny)}
+	newHead.AddEntity(&renderEntity{color: [4]float32{0, 1, 0, 1}})
+	snakeRoot.AddChild(newHead)
+	snake = append([]*scene.Node{newHead}, snake...)
+	if nx == int(foodNode.Transform.X) && ny == int(foodNode.Transform.Y) {
 		score++
 		updateScore()
 		newFood()
 	} else {
+		tail := snake[len(snake)-1]
 		snake = snake[:len(snake)-1]
+		for i, c := range snakeRoot.Children {
+			if c == tail {
+				snakeRoot.Children = append(snakeRoot.Children[:i], snakeRoot.Children[i+1:]...)
+				break
+			}
+		}
 	}
 }
 
-func drawSquare(p point, color [4]float32) {
-	x := -1 + cellSize*float32(p.x) + cellSize/2
-	y := -1 + cellSize*float32(p.y) + cellSize/2
+func drawSquare(n *scene.Node, color [4]float32) {
+	x := -1 + cellSize*float32(n.Transform.X) + cellSize/2
+	y := -1 + cellSize*float32(n.Transform.Y) + cellSize/2
 
 	model := m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize * 1.4, cellSize * 1.4, 1}))
 	mvp := proj.Mul(model)
@@ -248,16 +294,15 @@ func newFood() {
 	for {
 		fx := js.Get("Math").Call("floor", js.Get("Math").Call("random").Float()*float64(gridSize)).Int()
 		fy := js.Get("Math").Call("floor", js.Get("Math").Call("random").Float()*float64(gridSize)).Int()
-		p := point{fx, fy}
 		collision := false
 		for _, s := range snake {
-			if s == p {
+			if int(s.Transform.X) == fx && int(s.Transform.Y) == fy {
 				collision = true
 				break
 			}
 		}
 		if !collision {
-			food = p
+			foodNode.Transform = scene.Transform{X: float64(fx), Y: float64(fy)}
 			return
 		}
 	}
