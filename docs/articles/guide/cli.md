@@ -35,6 +35,8 @@ Flags:
 - `--host` expose the server to the local network
 - `--debug` enable verbose logs and profiling endpoints (`/debug/vars`, `/debug/pprof/`)
 
+When `--debug` is used, the `bundler` plugin is skipped so assets remain unminified during development. Use `rfw build` when you need the optimized output.
+
 Example:
 
 ```bash

@@ -35,3 +35,14 @@ func TestDebug(t *testing.T) {
 		t.Fatalf("expected no output, got %q", out)
 	}
 }
+
+func TestIsDebug(t *testing.T) {
+	EnableDebug(true)
+	if !IsDebug() {
+		t.Fatalf("expected true in debug mode")
+	}
+	EnableDebug(false)
+	if IsDebug() {
+		t.Fatalf("expected false when debug disabled")
+	}
+}

@@ -8,6 +8,8 @@ automatically inject the overlay into served pages.
 rfw dev --debug
 ```
 
+In this mode the `bundler` plugin is disabled, leaving JavaScript, CSS and HTML files unminified. Run `rfw build` for optimized assets when preparing a release.
+
 Use the floating button in the bottom-right corner or press
 `Ctrl`+`Shift`+`D` to toggle the overlay. The overlay exposes:
 
