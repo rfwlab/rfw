@@ -116,6 +116,12 @@ func (c Context) BindBuffer(target int, buffer jst.Value) {
 	c.v.Call("bindBuffer", target, buffer)
 }
 
+// CreateVertexArray creates a new vertex array object.
+func (c Context) CreateVertexArray() jst.Value { return c.v.Call("createVertexArray") }
+
+// BindVertexArray binds a vertex array object.
+func (c Context) BindVertexArray(vao jst.Value) { c.v.Call("bindVertexArray", vao) }
+
 // CreateTexture creates a new texture object.
 func (c Context) CreateTexture() jst.Value { return c.v.Call("createTexture") }
 
@@ -193,30 +199,54 @@ func (c Context) BlendFunc(sfactor, dfactor int) { c.v.Call("blendFunc", sfactor
 // DrawArrays renders primitives from array data.
 func (c Context) DrawArrays(mode, first, count int) { c.v.Call("drawArrays", mode, first, count) }
 
+// DrawElements renders primitives using an index buffer.
+func (c Context) DrawElements(mode, count, typ, offset int) {
+	c.v.Call("drawElements", mode, count, typ, offset)
+}
+
+// Viewport sets the viewport dimensions.
+func (c Context) Viewport(x, y, width, height int) { c.v.Call("viewport", x, y, width, height) }
+
+// DepthFunc specifies the depth comparison function.
+func (c Context) DepthFunc(fn int) { c.v.Call("depthFunc", fn) }
+
 // Constants related to WebGL operations.
 const (
 	COLOR_BUFFER_BIT   = 0x4000
 	DEPTH_BUFFER_BIT   = 0x0100
 	STENCIL_BUFFER_BIT = 0x0400
 
-	TRIANGLES    = 0x0004
-	ARRAY_BUFFER = 0x8892
-	STATIC_DRAW  = 0x88E4
+	TRIANGLES            = 0x0004
+	ARRAY_BUFFER         = 0x8892
+	STATIC_DRAW          = 0x88E4
+	ELEMENT_ARRAY_BUFFER = 0x8893
 
 	FLOAT = 0x1406
 
 	VERTEX_SHADER   = 0x8B31
 	FRAGMENT_SHADER = 0x8B30
 
-	BLEND     = 0x0BE2
-	SRC_ALPHA = 0x0302
-	ONE       = 1
+	BLEND      = 0x0BE2
+	DEPTH_TEST = 0x0B71
+	SRC_ALPHA  = 0x0302
+	ONE        = 1
 
 	TEXTURE_2D         = 0x0DE1
 	TEXTURE0           = 0x84C0
 	RGBA               = 0x1908
 	UNSIGNED_BYTE      = 0x1401
+	UNSIGNED_SHORT     = 0x1403
 	TEXTURE_MIN_FILTER = 0x2801
 	TEXTURE_MAG_FILTER = 0x2800
 	LINEAR             = 0x2601
+
+	// Depth function comparisons.
+	NEVER    = 0x0200
+	LESS     = 0x0201
+	EQUAL    = 0x0202
+	LEQUAL   = 0x0203
+	GREATER  = 0x0204
+	NOTEQUAL = 0x0205
+	GEQUAL   = 0x0206
+	ALWAYS   = 0x0207
 )
