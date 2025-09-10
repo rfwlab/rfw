@@ -120,6 +120,7 @@ const markup = `
     <button class="rfw-button rfw-tab" role="tab" aria-selected="true" aria-controls="tab-components" id="tabbtn-components">Components</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-store" id="tabbtn-store">Store</button>
       <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-signals" id="tabbtn-signals">Signals</button>
+      <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-plugins" id="tabbtn-plugins">Plugins</button>
       <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-network" id="tabbtn-network">Network</button>
       <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-logs" id="tabbtn-logs">Logs</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-vars" id="tabbtn-vars">Vars</button>
@@ -192,6 +193,27 @@ const markup = `
             <span class="rfw-spacer"></span>
           </div>
           <pre id="signalContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
+        </article>
+      </div>
+      </section>
+      <!-- Plugins -->
+      <section id="tab-plugins" role="tabpanel" aria-labelledby="tabbtn-plugins" class="hidden" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="pluginFilter" class="rfw-input" type="search" placeholder="Filter plugins…" />
+            <button class="rfw-button rfw-iconbtn" id="refreshPlugins" title="Refresh plugins">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0 1 14-7M19 5a9 9 0 0 0-14 7" stroke="var(--rose-400)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="tree-scroll" id="pluginTree"></div>
+        </aside>
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="pluginTitle">Select a plugin</span>
+            <span class="rfw-spacer"></span>
+          </div>
+          <pre id="pluginContent" style="flex:1;margin:0;padding:12px;overflow:auto"></pre>
         </article>
       </div>
       </section>
@@ -281,6 +303,7 @@ const tabs = [
   { btn: $("#tabbtn-components"), panel: $("#tab-components") },
   { btn: $("#tabbtn-store"), panel: $("#tab-store"), onShow: refreshStore },
   { btn: $("#tabbtn-signals"), panel: $("#tab-signals"), onShow: refreshSignals },
+  { btn: $("#tabbtn-plugins"), panel: $("#tab-plugins"), onShow: refreshPlugins },
   { btn: $("#tabbtn-network"), panel: $("#tab-network") },
   { btn: $("#tabbtn-logs"), panel: $("#tab-logs") },
   { btn: $("#tabbtn-vars"), panel: $("#tab-vars"), onShow: loadVars },
@@ -314,6 +337,7 @@ function openDevtools() {
   refreshTree();
   refreshStore();
   refreshSignals();
+  refreshPlugins();
 }
 function closeDevtools() {
   overlay?.classList.add("hidden");
@@ -646,13 +670,61 @@ function refreshSignals() {
 $("#refreshSignals")?.addEventListener("click", refreshSignals);
 $("#signalFilter")?.addEventListener("input", (e) => {
   const q = e.target.value.toLowerCase();
-  $$(".node", signalList).forEach((n) => {
+$$(".node", signalList).forEach((n) => {
+  n.style.display = n.textContent.toLowerCase().includes(q) ? "" : "none";
+});
+});
+
+const pluginTree = $("#pluginTree");
+const pluginTitle = $("#pluginTitle");
+const pluginContent = $("#pluginContent");
+
+function renderPluginList(list) {
+  if (!pluginTree) return;
+  pluginTree.innerHTML = "";
+  list.forEach((p) => {
+    const el = document.createElement("div");
+    el.className = "node";
+    el.dataset.name = p.name.toLowerCase();
+    el.innerHTML = `<span class="name">${p.name}</span>`;
+    el.addEventListener("click", () => selectPlugin(p));
+    pluginTree.appendChild(el);
+  });
+}
+
+function selectPlugin(p) {
+  if (!pluginTitle || !pluginContent) return;
+  pluginTitle.textContent = p.name;
+  try {
+    pluginContent.textContent = JSON.stringify(p.config, null, 2);
+  } catch {
+    pluginContent.textContent = String(p.config);
+  }
+}
+
+function refreshPlugins() {
+  if (!pluginTree) return;
+  try {
+    if (typeof globalThis.RFW_DEVTOOLS_PLUGINS === "function") {
+      const list = globalThis.RFW_DEVTOOLS_PLUGINS();
+      renderPluginList(list);
+    }
+  } catch {
+    pluginTree.textContent = "";
+  }
+}
+
+$("#refreshPlugins")?.addEventListener("click", refreshPlugins);
+$("#pluginFilter")?.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  $$(".node", pluginTree).forEach((n) => {
     n.style.display = n.textContent.toLowerCase().includes(q) ? "" : "none";
   });
 });
 
 window.RFW_DEVTOOLS_REFRESH_STORES = refreshStore;
 window.RFW_DEVTOOLS_REFRESH_SIGNALS = refreshSignals;
+window.RFW_DEVTOOLS_REFRESH_PLUGINS = refreshPlugins;
 
 const varsTree = $("#varsTree");
 const varsTitle = $("#varsTitle");

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,6 +31,21 @@ func (p *plugin) PreBuild(json.RawMessage) error {
 func (p *plugin) PostBuild(json.RawMessage) error {
 	dst := filepath.Join("build", "client", "rfw-devtools.js")
 	if err := os.WriteFile(dst, devtoolsJS, 0o644); err != nil {
+		return err
+	}
+	info, err := json.Marshal(plugins.Active())
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(f, "\n;globalThis.RFW_DEVTOOLS_PLUGINS=()=>%s;\n", info); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
 		return err
 	}
 	index := filepath.Join("build", "client", "index.html")
