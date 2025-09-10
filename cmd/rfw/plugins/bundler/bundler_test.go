@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 
 func TestShouldRebuild(t *testing.T) {
@@ -71,6 +73,8 @@ func TestPostBuildMinifiesFiles(t *testing.T) {
 		t.Fatalf("chdir: %v", err)
 	}
 
+	utils.EnableDebug(false)
+
 	p := &plugin{}
 	if err := p.PostBuild(nil); err != nil {
 		t.Fatalf("postbuild: %v", err)
@@ -87,5 +91,38 @@ func TestPostBuildMinifiesFiles(t *testing.T) {
 	outHTML, _ := os.ReadFile(htmlFile)
 	if len(outHTML) >= len(html) {
 		t.Fatalf("html not minified: %s", outHTML)
+	}
+}
+
+func TestPostBuildSkippedInDebug(t *testing.T) {
+	dir := t.TempDir()
+	buildDir := filepath.Join(dir, "build", "static")
+	if err := os.MkdirAll(buildDir, 0o755); err != nil {
+		t.Fatalf("mkdir build: %v", err)
+	}
+
+	jsFile := filepath.Join(buildDir, "app.js")
+	content := "function add ( a , b ){ return a + b ; }"
+	if err := os.WriteFile(jsFile, []byte(content), 0o644); err != nil {
+		t.Fatalf("write js: %v", err)
+	}
+
+	wd, _ := os.Getwd()
+	defer os.Chdir(wd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+
+	utils.EnableDebug(true)
+	defer utils.EnableDebug(false)
+
+	p := &plugin{}
+	if err := p.PostBuild(nil); err != nil {
+		t.Fatalf("postbuild: %v", err)
+	}
+
+	out, _ := os.ReadFile(jsFile)
+	if string(out) != content {
+		t.Fatalf("file should remain unminified, got %s", out)
 	}
 }

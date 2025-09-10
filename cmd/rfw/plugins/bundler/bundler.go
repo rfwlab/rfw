@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	"github.com/rfwlab/rfw/cmd/rfw/utils"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/html"
@@ -23,6 +24,11 @@ func (p *plugin) Name() string { return "bundler" }
 func (p *plugin) Priority() int { return 10 }
 
 func (p *plugin) PostBuild(raw json.RawMessage) error {
+	if utils.IsDebug() {
+		log.Printf("bundler: skipped in debug mode")
+		return nil
+	}
+
 	m := minify.New()
 	m.AddFunc("text/javascript", js.Minify)
 	m.AddFunc("text/css", css.Minify)

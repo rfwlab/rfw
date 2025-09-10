@@ -40,3 +40,10 @@ function add(a,b){return a+b}
 
 ## Notes
 - CSS files containing Tailwind directives (e.g. `@tailwind` or `tailwindcss`) are skipped so the `tailwind` plugin can process them.
+- Automatically skipped when running `rfw dev --debug`, keeping assets unminified. Use `rfw build` for optimized output:
+
+```bash
+rfw dev --debug
+rfw build
+```
+
