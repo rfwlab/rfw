@@ -78,3 +78,20 @@ func TestLifecycle(t *testing.T) {
 		t.Fatalf("unexpected rebuild for b.go")
 	}
 }
+
+func TestActive(t *testing.T) {
+	registry = map[string]Plugin{}
+	active = nil
+
+	p := &mockPlugin{name: "p", priority: 0}
+	Register(p)
+
+	cfg := map[string]json.RawMessage{"p": json.RawMessage("{\"x\":1}")}
+	if err := Configure(cfg); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	list := Active()
+	if len(list) != 1 || list[0].Name != "p" || string(list[0].Config) != "{\"x\":1}" {
+		t.Fatalf("unexpected active list: %#v", list)
+	}
+}
