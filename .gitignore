@@ -16,3 +16,4 @@ docs/build
 
 routes_gen.go
 rfwenv.go
+rfw_devtools.go
