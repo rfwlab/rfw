@@ -29,6 +29,21 @@ var (
 	active   []entry
 )
 
+// Info reports the name and configuration of an active plugin.
+type Info struct {
+	Name   string          `json:"name"`
+	Config json.RawMessage `json:"config"`
+}
+
+// Active returns the list of configured plugins in execution order.
+func Active() []Info {
+	out := make([]Info, len(active))
+	for i, e := range active {
+		out[i] = Info{Name: e.Plugin.Name(), Config: e.cfg}
+	}
+	return out
+}
+
 // Register adds a plugin to the registry.
 func Register(p Plugin) { registry[p.Name()] = p }
 
