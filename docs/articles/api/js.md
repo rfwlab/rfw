@@ -11,6 +11,7 @@ common globals.
 | `Document()` | Shortcut for `document`. |
 | `Call(name, args...)` | Invokes a function on the global object. |
 | `ValueOf(v)` | Converts a Go value to a JavaScript value. |
+| `TypedArrayOf(slice)` | Converts a Go slice to a JavaScript typed array. Call `Release` on the returned value when done. |
 | `FuncOf(fn)` | Wraps a Go function for use in JavaScript. |
 | `Expose(name, fn)` | Registers a no-arg Go function on the global scope. |
 | `ExposeEvent(name, fn)` | Registers a Go function that receives the first argument as an event. |
