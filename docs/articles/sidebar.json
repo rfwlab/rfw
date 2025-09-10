@@ -226,6 +226,10 @@
         "path": "api/i18n.md"
       },
       {
+        "title": "math",
+        "path": "api/math.md"
+      },
+      {
         "title": "webgl",
         "path": "api/webgl.md"
       }
