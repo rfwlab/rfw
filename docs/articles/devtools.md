@@ -161,6 +161,34 @@ available only in debug builds.
 
 - [Signals & Effects](../essentials/signals-and-effects)
 
+## Plugin inspection
+
+The **Plugins** tab lists build plugins that are active along with their configuration.
+
+### When to use
+
+Use it during development to verify which plugins ran and the parameters they received.
+
+### How it works
+
+The CLI exposes initialized plugins and their configuration directly from the plugin registry instead of reading `rfw.json`.
+
+### Example
+
+```js
+// Inspect active plugins
+console.log(globalThis.RFW_DEVTOOLS_PLUGINS());
+```
+
+### Limitations
+
+Only successfully configured plugins appear in this tab. The feature is available only in debug builds.
+
+### Related links
+
+- [plugins](../api/plugins)
+- [Manifest plugins](../guide/manifest#plugins)
+
 ## Network inspector
 
 Monitor HTTP requests from the **Network** tab.
