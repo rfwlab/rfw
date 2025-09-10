@@ -12,6 +12,7 @@ import (
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
+	m "github.com/rfwlab/rfw/v1/math"
 	webgl "github.com/rfwlab/rfw/v1/webgl"
 )
 
@@ -32,9 +33,9 @@ var (
 
 	ctx      webgl.Context
 	colorLoc jst.Value
-	transLoc jst.Value
-	scaleLoc jst.Value
+	mvpLoc   jst.Value
 	timeLoc  jst.Value
+	proj     m.Mat4
 	keyState = map[string]bool{}
 	render   jst.Func
 	running  bool
@@ -82,11 +83,10 @@ func startGame() {
 		ctx.BlendFunc(webgl.SRC_ALPHA, webgl.ONE)
 
 		vertexSrc := `attribute vec2 a_position;
-uniform vec2 u_translation;
-uniform vec2 u_scale;
+uniform mat4 u_mvp;
 void main(){
-    vec2 pos = a_position * u_scale + u_translation;
-    gl_Position = vec4(pos,0.0,1.0);
+    vec4 pos = vec4(a_position,0.0,1.0);
+    gl_Position = u_mvp * pos;
 }`
 		fragmentSrc := `precision mediump float;
 uniform vec4 u_color;
@@ -135,9 +135,9 @@ void main(){
 		ctx.VertexAttribPointer(posLoc, 2, webgl.FLOAT, false, 0, 0)
 
 		colorLoc = ctx.GetUniformLocation(prog, "u_color")
-		transLoc = ctx.GetUniformLocation(prog, "u_translation")
-		scaleLoc = ctx.GetUniformLocation(prog, "u_scale")
+		mvpLoc = ctx.GetUniformLocation(prog, "u_mvp")
 		timeLoc = ctx.GetUniformLocation(prog, "u_time")
+		proj = m.Orthographic(-1, 1, -1, 1, -1, 1)
 
 		render = js.FuncOf(renderLoop)
 		js.RequestAnimationFrame(render)
@@ -220,13 +220,18 @@ func moveSnake() {
 func drawSquare(p point, color [4]float32) {
 	x := -1 + cellSize*float32(p.x) + cellSize/2
 	y := -1 + cellSize*float32(p.y) + cellSize/2
-	ctx.Uniform2f(transLoc, x, y)
 
-	ctx.Uniform2f(scaleLoc, cellSize*1.4, cellSize*1.4)
+	model := m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize * 1.4, cellSize * 1.4, 1}))
+	mvp := proj.Mul(model)
+	arr := js.TypedArrayOf(mvp[:])
+	ctx.Call("uniformMatrix4fv", mvpLoc, false, arr)
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3]*0.3)
 	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 
-	ctx.Uniform2f(scaleLoc, cellSize, cellSize)
+	model = m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize, cellSize, 1}))
+	mvp = proj.Mul(model)
+	arr = js.TypedArrayOf(mvp[:])
+	ctx.Call("uniformMatrix4fv", mvpLoc, false, arr)
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3])
 	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 }
