@@ -57,6 +57,9 @@ func Fatal(message string, err error) {
 
 func EnableDebug(d bool) { dbg = d }
 
+// IsDebug reports whether debug mode is enabled.
+func IsDebug() bool { return dbg }
+
 func Debug(message string) {
 	if dbg {
 		fmt.Println(boldRed("[rfw][debug]"), faint(message))
