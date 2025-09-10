@@ -49,3 +49,4 @@ The full set of API references is listed below:
 - [state](state.md)
 - [webgl](webgl.md)
 - [math](math.md)
+- [game loop](game-loop.md)
