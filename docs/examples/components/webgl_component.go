@@ -74,6 +74,10 @@ func startGame() {
 	if ctx.Value().IsUndefined() || ctx.Value().IsNull() {
 		ctx = webgl.NewContext("glcanvas")
 		ctx.ClearColor(0, 0, 0, 1)
+		canvas := dom.ByID("glcanvas")
+		ctx.Viewport(0, 0, canvas.Get("width").Int(), canvas.Get("height").Int())
+		ctx.Enable(webgl.DEPTH_TEST)
+		ctx.DepthFunc(webgl.LEQUAL)
 		ctx.Enable(webgl.BLEND)
 		ctx.BlendFunc(webgl.SRC_ALPHA, webgl.ONE)
 
@@ -105,17 +109,26 @@ void main(){
 		ctx.LinkProgram(prog)
 		ctx.UseProgram(prog)
 
-		buf := ctx.CreateBuffer()
-		ctx.BindBuffer(webgl.ARRAY_BUFFER, buf)
+		if !ctx.Get("createVertexArray").IsUndefined() {
+			vao := ctx.CreateVertexArray()
+			ctx.BindVertexArray(vao)
+		}
+		vbuf := ctx.CreateBuffer()
+		ctx.BindBuffer(webgl.ARRAY_BUFFER, vbuf)
 		vertices := []float32{
 			-0.5, -0.5,
 			0.5, -0.5,
 			-0.5, 0.5,
-			-0.5, 0.5,
-			0.5, -0.5,
 			0.5, 0.5,
 		}
 		ctx.BufferDataFloat32(webgl.ARRAY_BUFFER, vertices, webgl.STATIC_DRAW)
+		ibuf := ctx.CreateBuffer()
+		ctx.BindBuffer(webgl.ELEMENT_ARRAY_BUFFER, ibuf)
+		inds := js.Get("Uint16Array").New(6)
+		for i, v := range []uint16{0, 1, 2, 2, 1, 3} {
+			inds.SetIndex(i, v)
+		}
+		ctx.BufferData(webgl.ELEMENT_ARRAY_BUFFER, inds, webgl.STATIC_DRAW)
 
 		posLoc := ctx.GetAttribLocation(prog, "a_position")
 		ctx.EnableVertexAttribArray(posLoc)
@@ -211,11 +224,11 @@ func drawSquare(p point, color [4]float32) {
 
 	ctx.Uniform2f(scaleLoc, cellSize*1.4, cellSize*1.4)
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3]*0.3)
-	ctx.DrawArrays(webgl.TRIANGLES, 0, 6)
+	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 
 	ctx.Uniform2f(scaleLoc, cellSize, cellSize)
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3])
-	ctx.DrawArrays(webgl.TRIANGLES, 0, 6)
+	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 }
 
 func newFood() {
