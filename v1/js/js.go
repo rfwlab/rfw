@@ -46,6 +46,34 @@ func Undefined() Value { return jst.Undefined() }
 // ValueOf converts a Go value to a JavaScript value.
 func ValueOf(v any) Value { return jst.ValueOf(v) }
 
+// TypedArrayOf converts a Go slice to a JavaScript typed array.
+func TypedArrayOf(slice any) jst.Value {
+	g := jst.Global()
+
+	switch b := slice.(type) {
+	case []byte:
+		u8 := g.Get("Uint8Array").New(len(b))
+		jst.CopyBytesToJS(u8, b)
+		return u8
+
+	case []float32:
+		f32 := g.Get("Float32Array").New(len(b))
+		for i, v := range b {
+			f32.SetIndex(i, v)
+		}
+		return f32
+
+	case []uint16:
+		u16 := g.Get("Uint16Array").New(len(b))
+		for i, v := range b {
+			u16.SetIndex(i, v)
+		}
+		return u16
+	}
+
+	return jst.ValueOf(slice)
+}
+
 // FuncOf wraps a Go function for use in JavaScript.
 func FuncOf(fn func(this Value, args []Value) any) Func { return jst.FuncOf(fn) }
 

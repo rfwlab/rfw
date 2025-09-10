@@ -48,3 +48,4 @@ The full set of API references is listed below:
 - [router](router.md)
 - [state](state.md)
 - [webgl](webgl.md)
+- [math](math.md)
