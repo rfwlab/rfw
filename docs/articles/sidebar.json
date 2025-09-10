@@ -230,6 +230,10 @@
         "path": "api/math.md"
       },
       {
+        "title": "game loop",
+        "path": "api/game-loop.md"
+      },
+      {
         "title": "webgl",
         "path": "api/webgl.md"
       }
