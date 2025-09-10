@@ -11,6 +11,7 @@ import (
 
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/bundler"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/devtools"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
@@ -88,9 +89,6 @@ func Build() error {
 			return fmt.Errorf("failed to copy index.html: %w", err)
 		}
 	}
-	if err := plugins.PostBuild(); err != nil {
-		return fmt.Errorf("post build failed: %w", err)
-	}
 
 	if _, err := os.Stat("static"); err == nil {
 		if err := filepath.Walk("static", func(path string, info os.FileInfo, err error) error {
@@ -112,6 +110,10 @@ func Build() error {
 		}); err != nil {
 			return fmt.Errorf("failed to copy static assets: %w", err)
 		}
+	}
+
+	if err := plugins.PostBuild(); err != nil {
+		return fmt.Errorf("post build failed: %w", err)
 	}
 
 	return nil
