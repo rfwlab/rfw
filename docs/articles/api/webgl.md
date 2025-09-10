@@ -37,6 +37,27 @@ Bindings for the WebGL rendering context used with WebAssembly applications.
 | `Context.Enable(cap)` | Enable a WebGL capability. |
 | `Context.BlendFunc(sfactor, dfactor)` | Define pixel blending factors. |
 | `Context.DrawArrays(mode, first, count)` | Render primitives from array data. |
+| `Context.CreateVertexArray()` | Create a vertex array object. |
+| `Context.BindVertexArray(vao)` | Bind a vertex array object. |
+| `Context.DrawElements(mode, count, type, offset)` | Render primitives using an index buffer. |
+| `Context.Viewport(x, y, width, height)` | Set viewport dimensions. |
+| `Context.DepthFunc(fn)` | Specify the depth comparison function. |
+
+### Constants
+
+| Constant | Description |
+| --- | --- |
+| `ELEMENT_ARRAY_BUFFER` | Bind target for index data. |
+| `DEPTH_TEST` | Capability enabling depth testing. |
+| `UNSIGNED_SHORT` | 16-bit unsigned integer index type. |
+| `NEVER` | Depth test never passes. |
+| `LESS` | Passes if incoming depth is less than stored depth. |
+| `EQUAL` | Passes if depths are equal. |
+| `LEQUAL` | Passes if incoming depth is less than or equal to stored depth. |
+| `GREATER` | Passes if incoming depth is greater than stored depth. |
+| `NOTEQUAL` | Passes if depths are not equal. |
+| `GEQUAL` | Passes if incoming depth is greater than or equal to stored depth. |
+| `ALWAYS` | Depth test always passes. |
 
 ## Usage
 
@@ -65,3 +86,55 @@ tex := ctx.LoadTexture2D(img)
 ctx.ActiveTexture(webgl.TEXTURE0)
 ctx.BindTexture(webgl.TEXTURE_2D, tex)
 ```
+
+### Indexed drawing & depth testing
+
+Indexed drawing avoids duplicating vertex data, and depth testing ensures that
+fragments closer to the camera obscure those farther away.
+
+#### Prerequisites
+
+Use when drawing geometry that shares vertices or requires depth ordering.
+
+#### How
+
+1. Set the viewport with `Context.Viewport`.
+2. Enable depth testing via `Context.Enable(webgl.DEPTH_TEST)` and specify the
+   comparison function using `Context.DepthFunc`.
+3. Optionally create a vertex array, upload vertex and index buffers and bind them.
+4. Render with `Context.DrawElements`.
+
+```go
+canvas := dom.ByID("canvas")
+ctx := webgl.NewContextFrom(canvas)
+ctx.Viewport(0, 0, canvas.Get("width").Int(), canvas.Get("height").Int())
+ctx.Enable(webgl.DEPTH_TEST)
+ctx.DepthFunc(webgl.LEQUAL)
+if !ctx.Get("createVertexArray").IsUndefined() {
+    vao := ctx.CreateVertexArray()
+    ctx.BindVertexArray(vao)
+}
+// buffer setup omitted
+ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
+```
+
+#### APIs used
+
+- `Context.Viewport`
+- `Context.Enable`
+- `Context.DepthFunc`
+- `Context.CreateVertexArray`
+- `Context.BindVertexArray`
+- `Context.DrawElements`
+- constants `ELEMENT_ARRAY_BUFFER`, `DEPTH_TEST`, `UNSIGNED_SHORT`, `NEVER`, `LESS`, `EQUAL`, `LEQUAL`, `GREATER`, `NOTEQUAL`, `GEQUAL`, `ALWAYS`
+
+#### Limitations
+
+- `Context.CreateVertexArray` and `Context.BindVertexArray` require WebGL2 or
+  the `OES_vertex_array_object` extension; check for availability before using
+  them.
+- Currently only `UNSIGNED_SHORT` indices are demonstrated.
+
+#### Related links
+
+- [MDN: WebGLRenderingContext.drawElements](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/drawElements)
