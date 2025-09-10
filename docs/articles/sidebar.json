@@ -125,6 +125,10 @@
         "path": "guide/api-integration.md"
       },
       {
+        "title": "Scene Graph",
+        "path": "guide/scene-graph.md"
+      },
+      {
         "title": "Animations",
         "path": "guide/animation.md"
       },
