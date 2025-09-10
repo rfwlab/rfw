@@ -236,10 +236,6 @@
     "path": "legacy.md"
   },
   {
-    "title": "Changelog",
-    "path": "changelog.md"
-  },
-  {
     "title": "Devtools",
     "path": "devtools.md"
   }
