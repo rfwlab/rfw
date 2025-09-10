@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"strings"
 	jst "syscall/js"
+	"time"
 
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
+	game "github.com/rfwlab/rfw/v1/game/loop"
 	js "github.com/rfwlab/rfw/v1/js"
 	m "github.com/rfwlab/rfw/v1/math"
 	webgl "github.com/rfwlab/rfw/v1/webgl"
@@ -37,9 +39,9 @@ var (
 	timeLoc  jst.Value
 	proj     m.Mat4
 	keyState = map[string]bool{}
-	render   jst.Func
 	running  bool
-	lastMove float64
+	lastMove time.Duration
+	elapsed  float64
 )
 
 // NewWebGLComponent returns a component demonstrating WebGL via a snake game.
@@ -59,6 +61,8 @@ func init() {
 		key := strings.ToLower(v.Get("key").String())
 		keyState[key] = false
 	})
+	game.OnUpdate(updateLoop)
+	game.OnRender(renderLoop)
 }
 
 func fullscreen() {
@@ -139,8 +143,7 @@ void main(){
 		timeLoc = ctx.GetUniformLocation(prog, "u_time")
 		proj = m.Orthographic(-1, 1, -1, 1, -1, 1)
 
-		render = js.FuncOf(renderLoop)
-		js.RequestAnimationFrame(render)
+		game.Start()
 	}
 
 	snake = []point{{gridSize / 2, gridSize / 2}, {gridSize/2 - 1, gridSize / 2}, {gridSize/2 - 2, gridSize / 2}}
@@ -148,42 +151,47 @@ void main(){
 	score = 0
 	running = true
 	lastMove = 0
+	elapsed = 0
 	updateScore()
 	newFood()
 	dom.AddClass(dom.ByID("menu"), "hidden")
 }
 
-func renderLoop(this jst.Value, args []jst.Value) any {
-	t := args[0].Float() / 1000
-	ctx.Clear(webgl.COLOR_BUFFER_BIT)
-	ctx.Uniform1f(timeLoc, float32(t))
-
-	if running {
-		if keyState["a"] && dir.x != 1 {
-			dir = point{-1, 0}
-		}
-		if keyState["d"] && dir.x != -1 {
-			dir = point{1, 0}
-		}
-		if keyState["w"] && dir.y != -1 {
-			dir = point{0, 1}
-		}
-		if keyState["s"] && dir.y != 1 {
-			dir = point{0, -1}
-		}
-		if t-lastMove > 0.15 {
-			moveSnake()
-			lastMove = t
-		}
+func updateLoop(t game.Ticker) {
+	if !running {
+		return
 	}
+	if keyState["a"] && dir.x != 1 {
+		dir = point{-1, 0}
+	}
+	if keyState["d"] && dir.x != -1 {
+		dir = point{1, 0}
+	}
+	if keyState["w"] && dir.y != -1 {
+		dir = point{0, 1}
+	}
+	if keyState["s"] && dir.y != 1 {
+		dir = point{0, -1}
+	}
+	lastMove += t.Delta
+	if lastMove > 150*time.Millisecond {
+		moveSnake()
+		lastMove = 0
+	}
+}
+
+func renderLoop(t game.Ticker) {
+	if ctx.Value().IsUndefined() || ctx.Value().IsNull() {
+		return
+	}
+	elapsed += t.Delta.Seconds()
+	ctx.Clear(webgl.COLOR_BUFFER_BIT)
+	ctx.Uniform1f(timeLoc, float32(elapsed))
 
 	drawSquare(food, [4]float32{1, 0, 0, 1})
 	for _, p := range snake {
 		drawSquare(p, [4]float32{0, 1, 0, 1})
 	}
-
-	js.RequestAnimationFrame(render)
-	return nil
 }
 
 func moveSnake() {
