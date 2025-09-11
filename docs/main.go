@@ -115,6 +115,10 @@ func main() {
 		Component: func() core.Component { return excomponents.NewAnimationComponent() },
 	})
 	router.RegisterRoute(router.Route{
+		Path:      "/examples/input",
+		Component: func() core.Component { return excomponents.NewInputComponent() },
+	})
+	router.RegisterRoute(router.Route{
 		Path:      "/examples/cinema",
 		Component: func() core.Component { return excomponents.NewCinemaComponent() },
 	})
