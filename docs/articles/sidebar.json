@@ -163,6 +163,10 @@
       {
         "title": "Pathfinding",
         "path": "guide/pathfinding.md"
+      },
+      {
+        "title": "Multiplayer",
+        "path": "guide/multiplayer.md"
       }
     ]
   },
