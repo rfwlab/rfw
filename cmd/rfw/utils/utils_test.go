@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"io"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -44,5 +45,34 @@ func TestIsDebug(t *testing.T) {
 	EnableDebug(false)
 	if IsDebug() {
 		t.Fatalf("expected false when debug disabled")
+	}
+}
+
+func TestPrintStartupInfo(t *testing.T) {
+	out := captureOutput(func() { PrintStartupInfo("8080", "8443", "192.168.0.1", true) })
+	if !strings.Contains(out, "http://localhost:8080/") {
+		t.Fatalf("expected local URL in output, got %q", out)
+	}
+	if !strings.Contains(out, "http://192.168.0.1:8080/") {
+		t.Fatalf("expected network URL, got %q", out)
+	}
+	out = captureOutput(func() { PrintStartupInfo("8080", "8443", "", false) })
+	if !strings.Contains(out, "--host") {
+		t.Fatalf("expected hint about --host, got %q", out)
+	}
+}
+
+func TestPrintHelp(t *testing.T) {
+	out := captureOutput(PrintHelp)
+	if !strings.Contains(out, "Shortcuts") || !strings.Contains(out, "Flags") {
+		t.Fatalf("missing help sections, got %q", out)
+	}
+}
+
+func TestLogServeRequest(t *testing.T) {
+	req := httptest.NewRequest("GET", "/foo", nil)
+	out := captureOutput(func() { LogServeRequest(req) })
+	if !strings.Contains(out, "/foo") {
+		t.Fatalf("expected path in output, got %q", out)
 	}
 }
