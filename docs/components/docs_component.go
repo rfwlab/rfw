@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"strconv"
 	"strings"
-	jst "syscall/js"
 	"time"
 
 	"github.com/rfwlab/rfw/v1/core"
@@ -285,7 +284,7 @@ func (c *DocsComponent) unmount(hc *core.HTMLComponent) {
 	c.mounted = false
 }
 
-func (c *DocsComponent) renderSidebar(items jst.Value, parent jst.Value, level int) {
+func (c *DocsComponent) renderSidebar(items js.Value, parent js.Value, level int) {
 	length := items.Length()
 	for i := 0; i < length; i++ {
 		item := items.Index(i)

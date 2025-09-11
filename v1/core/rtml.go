@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/dom"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -543,7 +543,7 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 }
 
 func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue any) {
-	var element jst.Value
+	var element js.Value
 	if c.ID == "" {
 		element = dom.ByID("app")
 	} else {
@@ -598,7 +598,7 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 }
 
 func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
-	var element jst.Value
+	var element js.Value
 	if c.ID == "" {
 		element = dom.ByID("app")
 	} else {
@@ -974,7 +974,7 @@ func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
 }
 
 func updateForeachBindings(c *HTMLComponent, foreachID string) {
-	var element jst.Value
+	var element js.Value
 	if c.ID == "" {
 		element = dom.ByID("app")
 	} else {
@@ -998,7 +998,7 @@ func updateForeachBindings(c *HTMLComponent, foreachID string) {
 }
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
-	var element jst.Value
+	var element js.Value
 	if c.ID == "" {
 		element = dom.ByID("app")
 	} else {
