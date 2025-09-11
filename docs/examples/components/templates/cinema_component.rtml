@@ -10,7 +10,10 @@
             <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:muteCinema>Mute</button>
             <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:unmuteCinema>Unmute</button>
             <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:subtitleCinema>Subtitle</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioCinema>Add audio</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:selectCinema>Select unit</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioVolumeCinema>Audio Vol 50%</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioMuteCinema>Mute audio</button>
+            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioUnmuteCinema>Unmute audio</button>
         </div>
         <div id="sceneBox" class="w-16 h-16 bg-blue-500"></div>
         <video id="sceneVideo" class="mt-2" width="320" src="https://www.w3schools.com/html/mov_bbb.mp4"></video>

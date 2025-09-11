@@ -14,6 +14,7 @@ import (
 var cinemaComponentTpl []byte
 
 var cinema *anim.CinemaBuilder
+var audioAdded bool
 
 func NewCinemaComponent() *core.HTMLComponent {
 	c := core.NewComponent("CinemaComponent", cinemaComponentTpl, nil)
@@ -28,6 +29,22 @@ func NewCinemaComponent() *core.HTMLComponent {
 				BindProgress("#progressBar")
 		}
 		cinema.PlayVideo().Play()
+	})
+
+	dom.RegisterHandlerFunc("selectCinema", func() {
+		if cinema == nil {
+			cinema = anim.NewCinemaBuilder("#cinemaRoot").
+				AddScene("#sceneBox", map[string]any{"duration": 1000}).
+				AddKeyFrame(anim.NewKeyFrame().Add("transform", "translateX(0px)"), 0).
+				AddKeyFrame(anim.NewKeyFrame().Add("transform", "translateX(100px)"), 1).
+				AddVideo("#sceneVideo").
+				BindProgress("#progressBar")
+		}
+		if !audioAdded {
+			cinema.AddAudio("https://www.w3schools.com/html/horse.mp3")
+			audioAdded = true
+		}
+		cinema.PlayAudio()
 	})
 
 	dom.RegisterHandlerFunc("pauseCinema", func() {
@@ -78,9 +95,21 @@ func NewCinemaComponent() *core.HTMLComponent {
 		}
 	})
 
-	dom.RegisterHandlerFunc("audioCinema", func() {
+	dom.RegisterHandlerFunc("audioVolumeCinema", func() {
 		if cinema != nil {
-			cinema.AddAudio("https://www.w3schools.com/html/horse.mp3")
+			cinema.SetAudioVolume(0.5)
+		}
+	})
+
+	dom.RegisterHandlerFunc("audioMuteCinema", func() {
+		if cinema != nil {
+			cinema.MuteAudio()
+		}
+	})
+
+	dom.RegisterHandlerFunc("audioUnmuteCinema", func() {
+		if cinema != nil {
+			cinema.UnmuteAudio()
 		}
 	})
 
