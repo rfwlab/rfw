@@ -2,14 +2,16 @@
 
 Client-side router with lazy loaded components and guards.
 
-- `RegisterRoute(Route)` adds a route definition.
-- `Navigate(path)` programmatically changes the URL.
-- `InitRouter()` starts the router and listens for navigation events.
-- `ExposeNavigate()` exposes navigation to JavaScript as `goNavigate`.
-- `NotFoundComponent` or `NotFoundCallback` handle unmatched routes.
-- `Reset()` clears registered routes and the current component, useful in tests.
-- `Children []Route` nests routes under a parent.
-- Guards: `Guard` functions run before navigation and can cancel by returning `false`.
+| Function | Description |
+| --- | --- |
+| `RegisterRoute(Route)` | Adds a route definition. |
+| `Navigate(path)` | Programmatically changes the URL. |
+| `InitRouter()` | Starts the router and listens for navigation events. |
+| `ExposeNavigate()` | Exposes navigation to JavaScript as `goNavigate`. |
+| `NotFoundComponent` / `NotFoundCallback` | Handle unmatched routes. |
+| `Reset()` | Clears registered routes and the current component, useful in tests. |
+| `Route.Children []Route` | Nests routes under a parent. |
+| `Guard` | Runs before navigation and can cancel by returning `false`. |
 
 ## Usage
 
