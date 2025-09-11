@@ -61,10 +61,13 @@ func (p *Pathfinder) RequestGridPath(ctx context.Context, grid Grid, start, goal
 	go func() {
 		defer close(ch)
 		path, found, err := gridAStar(ctx, grid, start, goal)
-		select {
-		case ch <- GridPathResult{Path: path, Found: found, Err: err}:
-		case <-ctx.Done():
+		// If cancellation happened right before sending, surface it explicitly.
+		if ctx.Err() != nil && err == nil {
+			err = context.Canceled
+			found = false
+			path = nil
 		}
+		ch <- GridPathResult{Path: path, Found: found, Err: err}
 		p.finish(id)
 	}()
 	return id, ch
@@ -78,10 +81,12 @@ func (p *Pathfinder) RequestNavMeshPath(ctx context.Context, mesh NavMesh, start
 	go func() {
 		defer close(out)
 		path, found, err := navMeshAStar(ctx, mesh, start, goal)
-		select {
-		case out <- MeshPathResult{Path: path, Found: found, Err: err}:
-		case <-ctx.Done():
+		if ctx.Err() != nil && err == nil {
+			err = context.Canceled
+			found = false
+			path = nil
 		}
+		out <- MeshPathResult{Path: path, Found: found, Err: err}
 		p.finish(id)
 	}()
 	return id, out
@@ -292,7 +297,7 @@ func navMeshAStar(ctx context.Context, mesh NavMesh, start, goal int) ([]int, bo
 			if _, ok := mesh.Polygons[nb]; !ok {
 				continue
 			}
-			gScore := current.g + 1 // uniform edge cost; replace with portal cost if available
+			gScore := current.g + 1 // uniform edge cost
 			if v, ok := visited[nb]; ok && gScore >= v.g {
 				continue
 			}
