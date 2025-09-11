@@ -6,10 +6,11 @@ import (
 
 	"github.com/mirkobrombin/go-cli-builder/v1/root"
 	"github.com/rfwlab/rfw/cmd/rfw/commands"
+	"github.com/rfwlab/rfw/v1/core"
 )
 
 func main() {
-	rootCmd := root.NewRootCommand("rfw", "rfw [command]", "RFW command line interface", "0.0.0")
+	rootCmd := root.NewRootCommand("rfw", "rfw [command]", "RFW command line interface", core.Version)
 
 	rootCmd.AddCommand(commands.NewInitCommand())
 	rootCmd.AddCommand(commands.NewDevCommand())
