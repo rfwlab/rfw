@@ -182,6 +182,10 @@ func main() {
 		Path:      "/examples/signals",
 		Component: func() core.Component { return excomponents.NewSignalsEffectsComponent() },
 	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/pathfinding",
+		Component: func() core.Component { return excomponents.NewPathfindingComponent() },
+	})
 
 	router.InitRouter()
 	select {}
