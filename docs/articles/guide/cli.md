@@ -46,7 +46,7 @@ rfw dev --port 3000 --host --debug
 Expected output:
 
 ```text
-rfw v0.1.3
+rfw v0.2.0-beta.1
 
 ➜ Local: http://localhost:3000/
 ➜ Network: http://192.168.1.10:3000/
