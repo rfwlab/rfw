@@ -23,6 +23,12 @@ An advanced animation builder for orchestrating scenes, keyframes, and media pla
 - `UnmuteVideo()` restores audio.
 - `AddSubtitle(kind, label, srcLang, src)` appends a subtitle track.
 - `AddAudio(src)` injects an audio element.
+- `PlayAudio()` starts the bound audio from the beginning.
+- `PauseAudio()` pauses the audio.
+- `StopAudio()` pauses and rewinds the audio.
+- `SetAudioVolume(v)` updates audio volume.
+- `MuteAudio()` silences the audio.
+- `UnmuteAudio()` restores audio.
 - `AddScripted(fn)` runs custom scripts.
 - `OnStart(fn)` and `OnEnd(fn)` register lifecycle callbacks.
 
@@ -31,4 +37,32 @@ An advanced animation builder for orchestrating scenes, keyframes, and media pla
 Build sequences with keyframes and media controls for rich presentations.
 
 @include:ExampleFrame:{code:"/examples/components/cinema_component.go", uri:"/examples/cinema"}
+
+## Audio playback
+
+### Why
+Supplement animations with sound effects or music cues.
+
+### When
+Use for lightweight audio playback without building a full Web Audio graph.
+
+### How
+1. Call `AddAudio(src)` to attach an audio element.
+2. Trigger `PlayAudio()` when a sound should play.
+3. Adjust output via `SetAudioVolume`, `MuteAudio` or `UnmuteAudio`.
+
+### Example: RTS unit selection
+
+```go
+cinema := animation.NewCinemaBuilder("#root").AddAudio("/sounds/select.mp3")
+dom.RegisterHandlerFunc("selectUnit", func() {
+        cinema.PlayAudio()
+})
+```
+
+### Limitations
+- only a single audio element is tracked; call `AddAudio` with a new source for different sounds
+
+### Related
+[animation](animation), [dom](dom)
 
