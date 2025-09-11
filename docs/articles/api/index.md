@@ -12,7 +12,7 @@ reactive primitives that form the foundation of every RFW application.
 
 Application level utilities build on top of this foundation. The
 [router](router.md) package offers client‑side navigation, while
-[http](http.md) and [js](js.md) simplify communication with servers and
+[http](http.md), [assets](assets.md) and [js](js.md) simplify communication with servers and
 JavaScript interop.
 
 RFW is designed to run in multiple environments. The [host](host.md) and
@@ -32,6 +32,7 @@ rendering using the same reactive model.
 The full set of API references is listed below:
 
 - [animation](animation.md)
+- [assets](assets.md)
 - [cinema](cinema.md)
 - [core](core.md)
 - [components](components.md)

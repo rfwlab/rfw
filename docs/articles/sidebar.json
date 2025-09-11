@@ -230,6 +230,10 @@
         "path": "api/animation.md"
       },
       {
+        "title": "assets",
+        "path": "api/assets.md"
+      },
+      {
         "title": "cinema",
         "path": "api/cinema.md"
       },
