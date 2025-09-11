@@ -70,7 +70,7 @@ go func() {
         fmt.Println(state)
     }
 }()
-c.Enqueue(map[string]any{"dx": 5})
+c.Enqueue(map[string]any{"dx": 5.0})
 ```
 
 Explore the demo below.
@@ -90,6 +90,7 @@ c := netcode.NewClient[testState]("Game", decodeState, lerp)
 
 - No built-in entity reconciliation.
 - All payloads must be JSON serialisable.
+- Command values are decoded as float64; enqueue numbers as floats (e.g., `1.0`).
 
 ## Related links
 
