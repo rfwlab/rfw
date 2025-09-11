@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	jst "syscall/js"
 
 	events "github.com/rfwlab/rfw/v1/events"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -42,7 +42,7 @@ var TemplateHook func(componentID, html string)
 // UpdateDOM patches the DOM of the specified component with the provided
 // HTML string.
 func UpdateDOM(componentID string, html string) {
-	var element jst.Value
+	var element js.Value
 	if componentID == "" {
 		element = ByID("app")
 	} else {
@@ -78,7 +78,7 @@ func UpdateDOM(componentID string, html string) {
 }
 
 // BindStoreInputs binds input elements to store variables.
-func BindStoreInputs(element jst.Value) {
+func BindStoreInputs(element js.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
@@ -114,7 +114,7 @@ func BindStoreInputs(element jst.Value) {
 			boolVal, _ := storeValue.(bool)
 			input.Set("checked", boolVal)
 			ch := events.Listen("change", input)
-			go func(in jst.Value, st *state.Store, k string) {
+			go func(in js.Value, st *state.Store, k string) {
 				for range ch {
 					st.Set(k, in.Get("checked").Bool())
 				}
@@ -127,7 +127,7 @@ func BindStoreInputs(element jst.Value) {
 		}
 		input.Set("value", fmt.Sprintf("%v", storeValue))
 		ch := events.Listen("input", input)
-		go func(in jst.Value, st *state.Store, k string) {
+		go func(in js.Value, st *state.Store, k string) {
 			for range ch {
 				st.Set(k, in.Get("value").String())
 			}
@@ -136,7 +136,7 @@ func BindStoreInputs(element jst.Value) {
 }
 
 // BindSignalInputs binds input elements to local component signals.
-func BindSignalInputs(componentID string, element jst.Value) {
+func BindSignalInputs(componentID string, element js.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
@@ -176,7 +176,7 @@ func BindSignalInputs(componentID string, element jst.Value) {
 					input.Set("checked", b)
 				}
 				ch := events.Listen("change", input)
-				go func(in jst.Value, sg interface{ Set(bool) }) {
+				go func(in js.Value, sg interface{ Set(bool) }) {
 					for range ch {
 						sg.Set(in.Get("checked").Bool())
 					}
@@ -191,7 +191,7 @@ func BindSignalInputs(componentID string, element jst.Value) {
 		}); ok {
 			input.Set("value", fmt.Sprintf("%v", s.Read()))
 			ch := events.Listen("input", input)
-			go func(in jst.Value, sg interface{ Set(string) }) {
+			go func(in js.Value, sg interface{ Set(string) }) {
 				for range ch {
 					sg.Set(in.Get("value").String())
 				}
@@ -200,18 +200,18 @@ func BindSignalInputs(componentID string, element jst.Value) {
 	}
 }
 
-func patchInnerHTML(element jst.Value, html string) {
+func patchInnerHTML(element js.Value, html string) {
 	template := CreateElement("template")
 	template.Set("innerHTML", html)
 	newContent := template.Get("content")
 	patchChildren(element, newContent)
 }
 
-func patchChildren(oldParent, newParent jst.Value) {
+func patchChildren(oldParent, newParent js.Value) {
 	oldChildren := oldParent.Get("childNodes")
 	newChildren := newParent.Get("childNodes")
 
-	keyed := make(map[string]jst.Value)
+	keyed := make(map[string]js.Value)
 	for i := 0; i < oldChildren.Length(); i++ {
 		child := oldChildren.Index(i)
 		if key := getDataKey(child); key != "" {
@@ -272,7 +272,7 @@ func patchChildren(oldParent, newParent jst.Value) {
 	}
 }
 
-func getDataKey(node jst.Value) string {
+func getDataKey(node js.Value) string {
 	if node.Get("nodeType").Int() != 1 {
 		return ""
 	}
@@ -283,7 +283,7 @@ func getDataKey(node jst.Value) string {
 	return ""
 }
 
-func patchNode(oldNode, newNode jst.Value) {
+func patchNode(oldNode, newNode js.Value) {
 	nodeType := newNode.Get("nodeType").Int()
 	if nodeType == 3 { // Text node
 		if oldNode.Get("nodeValue").String() != newNode.Get("nodeValue").String() {
@@ -303,7 +303,7 @@ func patchNode(oldNode, newNode jst.Value) {
 	patchChildren(oldNode, newNode)
 }
 
-func patchAttributes(oldNode, newNode jst.Value) {
+func patchAttributes(oldNode, newNode js.Value) {
 	oldAttrs := oldNode.Call("getAttributeNames")
 	for i := 0; i < oldAttrs.Length(); i++ {
 		name := oldAttrs.Index(i).String()

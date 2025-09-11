@@ -4,11 +4,10 @@ package dom
 
 import (
 	js "github.com/rfwlab/rfw/v1/js"
-	jst "syscall/js"
 )
 
 // Element represents a DOM element returned by selector helpers.
-type Element = jst.Value
+type Element = js.Value
 
 // CreateElement returns a new element with the given tag name.
 func CreateElement(tag string) Element {

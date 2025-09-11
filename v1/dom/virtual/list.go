@@ -4,15 +4,15 @@ package virtual
 
 import (
 	"fmt"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/events"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // VirtualList renders only the portion of a list that is visible within its container.
 type VirtualList struct {
-	Container  jst.Value
+	Container  js.Value
 	Total      int
 	ItemHeight int
 	Render     func(i int) string
@@ -27,7 +27,7 @@ func NewVirtualList(containerID string, total, itemHeight int, render func(i int
 		ItemHeight: itemHeight,
 		Render:     render,
 	}
-	v.stopScroll = events.OnScroll(v.Container, func(jst.Value) {
+	v.stopScroll = events.OnScroll(v.Container, func(js.Value) {
 		v.update()
 	})
 	v.update()

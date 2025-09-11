@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"fmt"
 	"strings"
-	jst "syscall/js"
 	"time"
 
 	core "github.com/rfwlab/rfw/v1/core"
@@ -37,9 +36,9 @@ var (
 	score     int
 
 	ctx      webgl.Context
-	colorLoc jst.Value
-	mvpLoc   jst.Value
-	timeLoc  jst.Value
+	colorLoc js.Value
+	mvpLoc   js.Value
+	timeLoc  js.Value
 	proj     m.Mat4
 	keyState = map[string]bool{}
 	running  bool
@@ -56,11 +55,11 @@ func NewWebGLComponent() *core.HTMLComponent {
 }
 
 func init() {
-	events.OnKeyDown(func(v jst.Value) {
+	events.OnKeyDown(func(v js.Value) {
 		key := strings.ToLower(v.Get("key").String())
 		keyState[key] = true
 	})
-	events.OnKeyUp(func(v jst.Value) {
+	events.OnKeyUp(func(v js.Value) {
 		key := strings.ToLower(v.Get("key").String())
 		keyState[key] = false
 	})

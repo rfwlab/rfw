@@ -12,11 +12,10 @@ package webgl
 import (
 	dom "github.com/rfwlab/rfw/v1/dom"
 	js "github.com/rfwlab/rfw/v1/js"
-	jst "syscall/js"
 )
 
 // Context wraps a JavaScript WebGL rendering context.
-type Context struct{ v jst.Value }
+type Context struct{ v js.Value }
 
 // NewContext obtains a WebGL rendering context from the canvas element with the
 // provided id. It returns an empty Context if the canvas or context is not
@@ -32,7 +31,7 @@ func NewContext(canvasID string) Context {
 
 // NewContextFrom obtains a WebGL rendering context from an existing canvas
 // element value. If ctxType is empty, "webgl" is used.
-func NewContextFrom(canvas jst.Value, ctxType ...string) Context {
+func NewContextFrom(canvas js.Value, ctxType ...string) Context {
 	t := "webgl"
 	if len(ctxType) > 0 {
 		t = ctxType[0]
@@ -41,14 +40,14 @@ func NewContextFrom(canvas jst.Value, ctxType ...string) Context {
 }
 
 // Value returns the underlying JavaScript value of the context.
-func (c Context) Value() jst.Value { return c.v }
+func (c Context) Value() js.Value { return c.v }
 
 // Call invokes a WebGL function on the context by name. It can be used to
 // access WebGL methods not covered by convenience wrappers.
-func (c Context) Call(name string, args ...any) jst.Value { return c.v.Call(name, args...) }
+func (c Context) Call(name string, args ...any) js.Value { return c.v.Call(name, args...) }
 
 // Get retrieves a property from the context.
-func (c Context) Get(name string) jst.Value { return c.v.Get(name) }
+func (c Context) Get(name string) js.Value { return c.v.Get(name) }
 
 // ClearColor sets the clear color.
 func (c Context) ClearColor(r, g, b, a float32) { c.v.Call("clearColor", r, g, b, a) }
@@ -57,29 +56,29 @@ func (c Context) ClearColor(r, g, b, a float32) { c.v.Call("clearColor", r, g, b
 func (c Context) Clear(mask int) { c.v.Call("clear", mask) }
 
 // CreateShader creates a shader of the given type.
-func (c Context) CreateShader(t int) jst.Value { return c.v.Call("createShader", t) }
+func (c Context) CreateShader(t int) js.Value { return c.v.Call("createShader", t) }
 
 // ShaderSource sets the source code of the shader.
-func (c Context) ShaderSource(shader jst.Value, src string) { c.v.Call("shaderSource", shader, src) }
+func (c Context) ShaderSource(shader js.Value, src string) { c.v.Call("shaderSource", shader, src) }
 
 // CompileShader compiles the given shader.
-func (c Context) CompileShader(shader jst.Value) { c.v.Call("compileShader", shader) }
+func (c Context) CompileShader(shader js.Value) { c.v.Call("compileShader", shader) }
 
 // CreateProgram creates a new program object.
-func (c Context) CreateProgram() jst.Value { return c.v.Call("createProgram") }
+func (c Context) CreateProgram() js.Value { return c.v.Call("createProgram") }
 
 // AttachShader attaches a shader to a program.
-func (c Context) AttachShader(program, shader jst.Value) { c.v.Call("attachShader", program, shader) }
+func (c Context) AttachShader(program, shader js.Value) { c.v.Call("attachShader", program, shader) }
 
 // LinkProgram links a program.
-func (c Context) LinkProgram(program jst.Value) { c.v.Call("linkProgram", program) }
+func (c Context) LinkProgram(program js.Value) { c.v.Call("linkProgram", program) }
 
 // UseProgram sets the active program.
-func (c Context) UseProgram(program jst.Value) { c.v.Call("useProgram", program) }
+func (c Context) UseProgram(program js.Value) { c.v.Call("useProgram", program) }
 
 // CreateProgramFromSource compiles the provided vertex and fragment shader
 // sources, links them into a program and returns it.
-func (c Context) CreateProgramFromSource(vertexSrc, fragmentSrc string) jst.Value {
+func (c Context) CreateProgramFromSource(vertexSrc, fragmentSrc string) js.Value {
 	vs := c.CreateShader(VERTEX_SHADER)
 	c.ShaderSource(vs, vertexSrc)
 	c.CompileShader(vs)
@@ -94,7 +93,7 @@ func (c Context) CreateProgramFromSource(vertexSrc, fragmentSrc string) jst.Valu
 }
 
 // BufferData uploads data to a buffer object.
-func (c Context) BufferData(target int, data jst.Value, usage int) {
+func (c Context) BufferData(target int, data js.Value, usage int) {
 	c.v.Call("bufferData", target, data, usage)
 }
 
@@ -109,24 +108,24 @@ func (c Context) BufferDataFloat32(target int, data []float32, usage int) {
 }
 
 // CreateBuffer creates a new buffer object.
-func (c Context) CreateBuffer() jst.Value { return c.v.Call("createBuffer") }
+func (c Context) CreateBuffer() js.Value { return c.v.Call("createBuffer") }
 
 // BindBuffer binds a buffer to a target.
-func (c Context) BindBuffer(target int, buffer jst.Value) {
+func (c Context) BindBuffer(target int, buffer js.Value) {
 	c.v.Call("bindBuffer", target, buffer)
 }
 
 // CreateVertexArray creates a new vertex array object.
-func (c Context) CreateVertexArray() jst.Value { return c.v.Call("createVertexArray") }
+func (c Context) CreateVertexArray() js.Value { return c.v.Call("createVertexArray") }
 
 // BindVertexArray binds a vertex array object.
-func (c Context) BindVertexArray(vao jst.Value) { c.v.Call("bindVertexArray", vao) }
+func (c Context) BindVertexArray(vao js.Value) { c.v.Call("bindVertexArray", vao) }
 
 // CreateTexture creates a new texture object.
-func (c Context) CreateTexture() jst.Value { return c.v.Call("createTexture") }
+func (c Context) CreateTexture() js.Value { return c.v.Call("createTexture") }
 
 // BindTexture binds a texture to a target.
-func (c Context) BindTexture(target int, texture jst.Value) {
+func (c Context) BindTexture(target int, texture js.Value) {
 	c.v.Call("bindTexture", target, texture)
 }
 
@@ -139,18 +138,18 @@ func (c Context) TexParameteri(target, pname, param int) {
 }
 
 // TexImage2D uploads pixel data to a 2D texture.
-func (c Context) TexImage2D(target, level, internalformat, width, height, border, format, typ int, pixels jst.Value) {
+func (c Context) TexImage2D(target, level, internalformat, width, height, border, format, typ int, pixels js.Value) {
 	c.v.Call("texImage2D", target, level, internalformat, width, height, border, format, typ, pixels)
 }
 
 // TexImage2DFromImage uploads an image, video or canvas source to a texture.
-func (c Context) TexImage2DFromImage(target, level, internalformat, format, typ int, img jst.Value) {
+func (c Context) TexImage2DFromImage(target, level, internalformat, format, typ int, img js.Value) {
 	c.v.Call("texImage2D", target, level, internalformat, format, typ, img)
 }
 
 // LoadTexture2D creates a texture and initializes it from an image source using
 // linear filtering. The created texture is returned.
-func (c Context) LoadTexture2D(img jst.Value) jst.Value {
+func (c Context) LoadTexture2D(img js.Value) js.Value {
 	tex := c.CreateTexture()
 	c.BindTexture(TEXTURE_2D, tex)
 	c.TexImage2DFromImage(TEXTURE_2D, 0, RGBA, RGBA, UNSIGNED_BYTE, img)
@@ -170,25 +169,25 @@ func (c Context) VertexAttribPointer(index, size, typ int, normalized bool, stri
 }
 
 // GetAttribLocation returns the location of an attribute variable in a program.
-func (c Context) GetAttribLocation(program jst.Value, name string) int {
+func (c Context) GetAttribLocation(program js.Value, name string) int {
 	return c.v.Call("getAttribLocation", program, name).Int()
 }
 
 // GetUniformLocation returns the location of a uniform variable.
-func (c Context) GetUniformLocation(program jst.Value, name string) jst.Value {
+func (c Context) GetUniformLocation(program js.Value, name string) js.Value {
 	return c.v.Call("getUniformLocation", program, name)
 }
 
 // Uniform2f sets a vec2 uniform value.
-func (c Context) Uniform2f(loc jst.Value, x, y float32) { c.v.Call("uniform2f", loc, x, y) }
+func (c Context) Uniform2f(loc js.Value, x, y float32) { c.v.Call("uniform2f", loc, x, y) }
 
 // Uniform4f sets a vec4 uniform value.
-func (c Context) Uniform4f(loc jst.Value, v0, v1, v2, v3 float32) {
+func (c Context) Uniform4f(loc js.Value, v0, v1, v2, v3 float32) {
 	c.v.Call("uniform4f", loc, v0, v1, v2, v3)
 }
 
 // Uniform1f sets a float uniform value.
-func (c Context) Uniform1f(loc jst.Value, x float32) { c.v.Call("uniform1f", loc, x) }
+func (c Context) Uniform1f(loc js.Value, x float32) { c.v.Call("uniform1f", loc, x) }
 
 // Enable enables a specific WebGL capability.
 func (c Context) Enable(cap int) { c.v.Call("enable", cap) }

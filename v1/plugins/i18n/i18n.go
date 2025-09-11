@@ -5,7 +5,6 @@ package i18n
 
 import (
 	"encoding/json"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
 	js "github.com/rfwlab/rfw/v1/js"
@@ -30,13 +29,13 @@ func New(trans map[string]map[string]string) core.Plugin {
 
 // Install exposes translation helpers to the JavaScript environment.
 func (p *Plugin) Install(a *core.App) {
-	js.Set("setLang", js.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Set("setLang", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			p.lang = args[0].String()
 		}
 		return nil
 	}))
-	js.Set("t", js.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Set("t", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return ""
 		}

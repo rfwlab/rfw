@@ -4,30 +4,30 @@ package monitor
 
 import (
 	"encoding/json"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/events"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // Plugin observes DOM mutations and intersections and exposes channels for monitoring.
 type Plugin struct {
 	MutationSelector     string
 	IntersectionSelector string
-	IntersectionOpts     jst.Value
+	IntersectionOpts     js.Value
 
-	Mutations     chan jst.Value
-	Intersections chan jst.Value
+	Mutations     chan js.Value
+	Intersections chan js.Value
 }
 
 // New creates a new monitoring plugin.
-func New(mSel, iSel string, opts jst.Value) *Plugin {
+func New(mSel, iSel string, opts js.Value) *Plugin {
 	return &Plugin{
 		MutationSelector:     mSel,
 		IntersectionSelector: iSel,
 		IntersectionOpts:     opts,
-		Mutations:            make(chan jst.Value),
-		Intersections:        make(chan jst.Value),
+		Mutations:            make(chan js.Value),
+		Intersections:        make(chan js.Value),
 	}
 }
 

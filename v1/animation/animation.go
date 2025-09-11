@@ -4,7 +4,6 @@ package animation
 
 import (
 	"fmt"
-	jst "syscall/js"
 	"time"
 
 	dom "github.com/rfwlab/rfw/v1/dom"
@@ -12,17 +11,17 @@ import (
 )
 
 // query returns the first element matching sel.
-func query(sel string) jst.Value {
+func query(sel string) js.Value {
 	return dom.Query(sel)
 }
 
 // animate drives a requestAnimationFrame loop for the given duration and
 // invokes step with the current progress (0..1).
-func animate(el jst.Value, duration time.Duration, step func(p float64)) {
+func animate(el js.Value, duration time.Duration, step func(p float64)) {
 	start := js.Performance().Call("now").Float()
 	total := float64(duration.Milliseconds())
-	var cb jst.Func
-	cb = js.FuncOf(func(this jst.Value, args []jst.Value) any {
+	var cb js.Func
+	cb = js.FuncOf(func(this js.Value, args []js.Value) any {
 		now := js.Performance().Call("now").Float()
 		p := (now - start) / total
 		if p > 1 {
@@ -42,7 +41,7 @@ func animate(el jst.Value, duration time.Duration, step func(p float64)) {
 // Keyframes leverages the Web Animations API to animate the selected element
 // using the provided keyframes and options. The returned value is the
 // underlying Animation object, allowing further control if needed.
-func Keyframes(sel string, keyframes []map[string]any, options map[string]any) jst.Value {
+func Keyframes(sel string, keyframes []map[string]any, options map[string]any) js.Value {
 	el := query(sel)
 
 	frames := make([]any, len(keyframes))

@@ -4,7 +4,6 @@ package animation
 
 import (
 	"strconv"
-	jst "syscall/js"
 	"time"
 
 	events "github.com/rfwlab/rfw/v1/events"
@@ -12,18 +11,18 @@ import (
 )
 
 type Scene struct {
-	el        jst.Value
+	el        js.Value
 	keyframes []map[string]any
 	options   map[string]any
 }
 
 type CinemaBuilder struct {
-	root    jst.Value
+	root    js.Value
 	scenes  []*Scene
 	current *Scene
 	scripts []func()
-	video   jst.Value
-	audio   jst.Value
+	video   js.Value
+	audio   js.Value
 	loop    int
 	start   func()
 	end     func()
@@ -236,14 +235,14 @@ func (c *CinemaBuilder) BindProgress(sel string) *CinemaBuilder {
 		if bar.Truthy() {
 			bar.Set("max", 100)
 
-			update := func(jst.Value) {
+			update := func(js.Value) {
 				dur := c.video.Get("duration").Float()
 				if dur > 0 {
 					cur := c.video.Get("currentTime").Float()
 					bar.Set("value", cur/dur*100)
 				}
 			}
-			input := func(jst.Value) {
+			input := func(js.Value) {
 				dur := c.video.Get("duration").Float()
 				if dur > 0 {
 					valStr := bar.Get("value").String()
@@ -260,7 +259,7 @@ func (c *CinemaBuilder) BindProgress(sel string) *CinemaBuilder {
 	return c
 }
 
-func (c *CinemaBuilder) AddScripted(fn func(el jst.Value)) *CinemaBuilder {
+func (c *CinemaBuilder) AddScripted(fn func(el js.Value)) *CinemaBuilder {
 	c.scripts = append(c.scripts, func() { fn(c.root) })
 	return c
 }
@@ -294,7 +293,7 @@ func (c *CinemaBuilder) Play() {
 	}
 }
 
-func KeyframesForScene(s *Scene) jst.Value {
+func KeyframesForScene(s *Scene) js.Value {
 	// convert frames to []any to ensure proper conversion to JS values
 	frames := make([]any, len(s.keyframes))
 	for i, f := range s.keyframes {
