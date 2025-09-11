@@ -27,9 +27,8 @@ jobs:
         with:
           go-version: 1.24
 
-      # Unit tests (if/when they exist)
-      # - name: Run Unit Tests
-      #   run: go test -v ./...
+      - name: Run Unit Tests
+        run: go test -v ./...
 
       - name: Build Application
         run: go build -o rfw -ldflags="-X 'main.Version=${{ github.sha }}'" ./cmd/rfw/main.go
