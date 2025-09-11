@@ -10,7 +10,6 @@ import (
 
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
-	hostclient "github.com/rfwlab/rfw/v1/hostclient"
 	"github.com/rfwlab/rfw/v1/netcode"
 )
 
@@ -34,7 +33,7 @@ func lerp(a, b ncState, alpha float64) ncState {
 
 // NewNetcodeComponent renders a simple netcode demo.
 func NewNetcodeComponent() *core.HTMLComponent {
-	hostclient.EnableDebug()
+	// hostclient.EnableDebug()
 	c := core.NewComponent("NetcodeComponent", netcodeComponentTpl, nil)
 	client := netcode.NewClient[ncState]("NetcodeHost", decodeState, lerp)
 	var tick int64
@@ -48,7 +47,7 @@ func NewNetcodeComponent() *core.HTMLComponent {
 		}
 	}()
 	dom.RegisterHandlerFunc("move", func() {
-		client.Enqueue(map[string]any{"dx": 1})
+		client.Enqueue(map[string]any{"dx": 1.0})
 	})
 	return c
 }
