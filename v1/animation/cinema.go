@@ -23,6 +23,7 @@ type CinemaBuilder struct {
 	current *Scene
 	scripts []func()
 	video   jst.Value
+	audio   jst.Value
 	loop    int
 	start   func()
 	end     func()
@@ -181,7 +182,51 @@ func (c *CinemaBuilder) AddAudio(src string) *CinemaBuilder {
 	audio.Set("src", src)
 	audio.Set("controls", true)
 	c.root.Call("appendChild", audio)
-	audio.Call("play")
+	c.audio = audio
+	return c
+}
+
+func (c *CinemaBuilder) PlayAudio() *CinemaBuilder {
+	if c.audio.Truthy() {
+		c.audio.Set("currentTime", 0)
+		c.audio.Call("play")
+	}
+	return c
+}
+
+func (c *CinemaBuilder) PauseAudio() *CinemaBuilder {
+	if c.audio.Truthy() {
+		c.audio.Call("pause")
+	}
+	return c
+}
+
+func (c *CinemaBuilder) StopAudio() *CinemaBuilder {
+	if c.audio.Truthy() {
+		c.audio.Call("pause")
+		c.audio.Set("currentTime", 0)
+	}
+	return c
+}
+
+func (c *CinemaBuilder) SetAudioVolume(v float64) *CinemaBuilder {
+	if c.audio.Truthy() {
+		c.audio.Set("volume", v)
+	}
+	return c
+}
+
+func (c *CinemaBuilder) MuteAudio() *CinemaBuilder {
+	if c.audio.Truthy() {
+		c.audio.Set("muted", true)
+	}
+	return c
+}
+
+func (c *CinemaBuilder) UnmuteAudio() *CinemaBuilder {
+	if c.audio.Truthy() {
+		c.audio.Set("muted", false)
+	}
 	return c
 }
 
