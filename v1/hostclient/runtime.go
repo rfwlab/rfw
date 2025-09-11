@@ -5,6 +5,7 @@ package hostclient
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -25,6 +26,8 @@ var (
 	once     sync.Once
 	mu       sync.RWMutex
 	pending  []message
+	handlers = map[string]func(map[string]any){}
+	debug    bool
 )
 
 type message struct {
@@ -43,10 +46,18 @@ func connectionLoop() {
 	if h := js.Global().Get("RFW_HOST"); h.Truthy() {
 		host = h.String()
 	}
+	scheme := "wss"
+	if js.Global().Get("location").Get("protocol").String() == "http:" {
+		scheme = "ws"
+	}
 	backoff := time.Second
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
-		c, _, err := websocket.Dial(ctx, fmt.Sprintf("wss://%s/ws", host), nil)
+		url := fmt.Sprintf("%s://%s/ws", scheme, host)
+		if debug {
+			log.Printf("hostclient: dialing %s", url)
+		}
+		c, _, err := websocket.Dial(ctx, url, nil)
 		if err != nil {
 			cancel()
 			time.Sleep(backoff)
@@ -63,6 +74,9 @@ func connectionLoop() {
 		mu.Unlock()
 
 		backoff = time.Second
+		if debug {
+			log.Printf("hostclient: connected")
+		}
 
 		for _, msg := range pend {
 			sendMessage(c, msg)
@@ -74,13 +88,16 @@ func connectionLoop() {
 		errCh := make(chan error, 1)
 		go func() { errCh <- readLoop(ctx, c) }()
 		go func() { errCh <- pingLoop(ctx, c) }()
-		<-errCh
+		err = <-errCh
 		cancel()
 		c.Close(websocket.StatusInternalError, "connection closed")
 
 		mu.Lock()
 		conn = nil
 		mu.Unlock()
+		if debug && err != nil {
+			log.Printf("hostclient: connection closed: %v", err)
+		}
 	}
 }
 
@@ -110,6 +127,13 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 		}
 		if err := wsjson.Read(ctx, c, &msg); err != nil {
 			return err
+		}
+		if debug {
+			log.Printf("hostclient: recv %s %v", msg.Component, msg.Payload)
+		}
+		if h, ok := handlers[msg.Component]; ok {
+			h(msg.Payload)
+			continue
 		}
 		if b, ok := bindings[msg.Component]; ok {
 			root := dom.Query(fmt.Sprintf("[data-component-id='%s']", b.id))
@@ -142,7 +166,19 @@ func Send(name string, payload any) {
 		mu.Unlock()
 		return
 	}
+	if debug {
+		log.Printf("hostclient: send %s %v", name, payload)
+	}
 	sendMessage(c, message{name: name, payload: payload})
+}
+
+// RegisterHandler installs a callback for messages targeting the component name.
+func RegisterHandler(name string, h func(map[string]any)) {
+	mu.Lock()
+	handlers[name] = h
+	mu.Unlock()
+	connect()
+	Send(name, map[string]any{"init": true})
 }
 
 func sendMessage(c *websocket.Conn, msg message) {
@@ -153,3 +189,6 @@ func sendMessage(c *websocket.Conn, msg message) {
 	ctx := context.Background()
 	_ = wsjson.Write(ctx, c, m)
 }
+
+// EnableDebug prints WebSocket traffic to the console.
+func EnableDebug() { debug = true }

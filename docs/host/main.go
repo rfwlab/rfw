@@ -10,5 +10,6 @@ import (
 func main() {
 	components.RegisterSSCHost()
 	components.RegisterTwitchOAuthHost()
+	components.RegisterNetcodeHost()
 	log.Fatal(host.Start("client"))
 }

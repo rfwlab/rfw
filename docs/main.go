@@ -186,6 +186,10 @@ func main() {
 		Path:      "/examples/pathfinding",
 		Component: func() core.Component { return excomponents.NewPathfindingComponent() },
 	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/netcode",
+		Component: func() core.Component { return excomponents.NewNetcodeComponent() },
+	})
 
 	router.InitRouter()
 	select {}
