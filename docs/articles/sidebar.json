@@ -159,6 +159,10 @@
       {
         "title": "Debugging",
         "path": "guide/debugging.md"
+      },
+      {
+        "title": "Pathfinding",
+        "path": "guide/pathfinding.md"
       }
     ]
   },
