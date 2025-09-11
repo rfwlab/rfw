@@ -30,6 +30,8 @@ For higher-level HTTP helpers built on top of `fetch`, see the
 Use the `js` package for all direct JavaScript interop:
 
 ```go
+import js "github.com/rfwlab/rfw/v1/js"
+
 js.Expose("goHello", func() {
         js.Console().Call("log", "hello from Go")
 })

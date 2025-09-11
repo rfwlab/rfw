@@ -7,7 +7,6 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
 	js "github.com/rfwlab/rfw/v1/js"
@@ -28,7 +27,7 @@ func (p *Plugin) Install(a *core.App) {
 
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
-type consoleLogger struct{ console jst.Value }
+type consoleLogger struct{ console js.Value }
 
 func (cl consoleLogger) Debug(format string, v ...any) {
 	cl.console.Call("debug", fmt.Sprintf(format, v...))

@@ -5,7 +5,6 @@ package dom
 import (
 	"fmt"
 	"strings"
-	jst "syscall/js"
 
 	"golang.org/x/net/html"
 
@@ -83,9 +82,9 @@ func printVDOM(node *VDOMNode, indent string) {
 }
 
 type eventListener struct {
-	element jst.Value
+	element js.Value
 	event   string
-	handler jst.Func
+	handler js.Func
 }
 
 var listeners = make(map[string][]eventListener)
@@ -104,7 +103,7 @@ func parseModifiers(attr string) map[string]bool {
 	return mods
 }
 
-func nodeByPath(root jst.Value, path []int) jst.Value {
+func nodeByPath(root js.Value, path []int) js.Value {
 	node := root
 	for _, idx := range path {
 		children := node.Get("children")
@@ -118,7 +117,7 @@ func nodeByPath(root jst.Value, path []int) jst.Value {
 
 // BindEventListeners attaches registered handlers to nodes within the component
 // identified by componentID.
-func BindEventListeners(componentID string, root jst.Value) {
+func BindEventListeners(componentID string, root js.Value) {
 	if bs, ok := compiledBindings[componentID]; ok {
 		for _, b := range bs {
 			node := nodeByPath(root, b.Path)
@@ -130,7 +129,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 			for _, m := range b.Modifiers {
 				mods[m] = true
 			}
-			wrapped := js.FuncOf(func(this jst.Value, args []jst.Value) any {
+			wrapped := js.FuncOf(func(this js.Value, args []js.Value) any {
 				if mods["stopPropagation"] && len(args) > 0 {
 					args[0].Call("stopPropagation")
 				}
@@ -167,7 +166,7 @@ func BindEventListeners(componentID string, root jst.Value) {
 				modifiers := parseModifiers(modsAttr)
 				handler := GetHandler(handlerName)
 				if handler.Truthy() {
-					wrapped := js.FuncOf(func(this jst.Value, args []jst.Value) any {
+					wrapped := js.FuncOf(func(this js.Value, args []js.Value) any {
 						if modifiers["stopPropagation"] && len(args) > 0 {
 							args[0].Call("stopPropagation")
 						}

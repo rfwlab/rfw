@@ -8,12 +8,11 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	jst "syscall/js"
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
-	"github.com/rfwlab/rfw/v1/js"
+	js "github.com/rfwlab/rfw/v1/js"
 )
 
 // Guard is a function that determines whether navigation to a route is
@@ -196,7 +195,7 @@ func Navigate(fullPath string) {
 
 // ExposeNavigate makes the Navigate function accessible from JavaScript.
 func ExposeNavigate() {
-	js.ExposeFunc("goNavigate", func(this jst.Value, args []jst.Value) any {
+	js.ExposeFunc("goNavigate", func(this js.Value, args []js.Value) any {
 		path := args[0].String()
 		Navigate(path)
 		return nil

@@ -4,12 +4,11 @@ package state
 
 import (
 	js "github.com/rfwlab/rfw/v1/js"
-	jst "syscall/js"
 )
 
 // ExposeUpdateStore exposes a JS function to update store values.
 func ExposeUpdateStore() {
-	js.Set("goUpdateStore", js.FuncOf(func(this jst.Value, args []jst.Value) any {
+	js.Set("goUpdateStore", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) < 4 {
 			return nil
 		}
