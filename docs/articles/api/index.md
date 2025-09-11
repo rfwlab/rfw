@@ -40,6 +40,7 @@ The full set of API references is listed below:
 - [host](host.md)
 - [hostclient](hostclient.md)
 - [http](http.md)
+- [input](input.md)
 - [js](js.md)
 - [plugins](plugins.md)
 - [docs plugin](docs-plugin.md)
