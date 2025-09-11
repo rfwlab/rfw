@@ -1,5 +1,29 @@
 # State Management
 
+## Why
+State stores keep application data reactive and in sync across components. The [State API](../api/state) provides factories for stores, signals, and actions.
+
+```go
+s := state.NewStore("profile")
+```
+
+## When to Use
+Use stores when multiple components depend on shared data or when persistence is required.
+
+```go
+s.Set("first", "Ada")
+```
+
+## When Not to Use
+Avoid global stores for transient, component-local state; prefer signals.
+
+```go
+count := state.NewSignal(0)
+```
+
+## Interactive Demo
+@include:ExampleFrame:{code:"/examples/components/state_management_component.go", uri:"/examples/state"}
+
 Reactivity in rfw is driven by **stores**. A store groups values by
 module and name. Components subscribe to specific keys and are
 automatically re‑rendered when those values change. This section covers
@@ -155,7 +179,4 @@ Enable `WithDevTools` when creating a store to log every mutation during
 development. Persistence can be toggled with `WithPersistence` to store
 state in the browser between sessions.
 
-See the example component for a practical demonstration of actions, computed values and reactive updates.
 Stores provide reactive state management.
-
-@include:ExampleFrame:{code:"/examples/components/state_management_component.go", uri:"/examples/state"}
