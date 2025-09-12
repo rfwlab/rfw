@@ -6,9 +6,19 @@ import (
 )
 
 func TestHighlightGo(t *testing.T) {
-	out, ok := Highlight("package main", "go")
-	if !ok || !strings.Contains(out, `<span class="hl-kw">package</span>`) {
+	code := "package main\n// comment\nvar s = \"hi\""
+	out, ok := Highlight(code, "go")
+	if !ok {
+		t.Fatalf("unexpected highlight failure: %s", out)
+	}
+	if !strings.Contains(out, `<span class="hl-kw">package</span>`) {
 		t.Fatalf("missing keyword highlighting: %s", out)
+	}
+	if !strings.Contains(out, `<span class="hl-comment">// comment</span>`) {
+		t.Fatalf("missing comment highlighting: %s", out)
+	}
+	if !strings.Contains(out, `<span class="hl-string">&#34;hi&#34;</span>`) {
+		t.Fatalf("missing string highlighting: %s", out)
 	}
 }
 

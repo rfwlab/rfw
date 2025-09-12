@@ -15,8 +15,8 @@ var (
 		"continue", "for", "import", "return", "var",
 	}
 	goKeywordRe = regexp.MustCompile(`\b(` + strings.Join(goKeywords, "|") + `)\b`)
-	goStringRe  = regexp.MustCompile(`"(?:\\.|[^"\\])*"`)
-	goCommentRe = regexp.MustCompile(`//.*?$|/\*[\s\S]*?\*/`)
+	goStringRe  = regexp.MustCompile(`&#34;[^\n]*?&#34;`)
+	goCommentRe = regexp.MustCompile(`(?m)//.*?$|/\*[\s\S]*?\*/`)
 
 	rtmlTagRe        = regexp.MustCompile(`&lt;/?[\s\S]*?&gt;`)
 	rtmlStringRe     = regexp.MustCompile(`&#34;.*?&#34;`)

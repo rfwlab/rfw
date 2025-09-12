@@ -10,7 +10,6 @@
             href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark-dimmed.min.css"
         />
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
         <link
             href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
             rel="stylesheet"
@@ -27,12 +26,6 @@
                     if (typeof rfwHighlight === "function") {
                         const res = rfwHighlight(code, lang);
                         if (res) return res;
-                    }
-                    if (typeof hljs !== "undefined" && lang && hljs.getLanguage(lang)) {
-                        return hljs.highlight(code, { language: lang }).value;
-                    }
-                    if (typeof hljs !== "undefined") {
-                        return hljs.highlightAuto(code).value;
                     }
                     return code;
                 },

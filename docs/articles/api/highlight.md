@@ -12,7 +12,8 @@ Register the plugin with the application.
 1. Import the package.
 2. Register it via `core.RegisterPlugin(highlight.New())`.
 3. The plugin injects its CSS when installed; no separate stylesheet is needed.
-4. Use the global `rfwHighlight` or `rfwHighlightAll` helpers to process code blocks.
+4. Use the global `rfwHighlight` or `rfwHighlightAll` helpers to process code blocks. `rfwHighlightAll` detects the language from
+   `language-<lang>` classes (case-insensitive) or a `data-lang` attribute on `<code>` elements.
 
 ## API
 
@@ -47,6 +48,7 @@ marked.setOptions({
 - Supports only `rtml` and `go` languages.
 - Falls back to Highlight.js when `rfwHighlight` returns an empty string.
 - Injects base styles at runtime; override the `.hl-*` classes to customize.
+- `rfwHighlightAll` matches class names case-insensitively and checks the `data-lang` attribute when no class is present.
 
 ## Related Links
 - [plugins](../plugins)

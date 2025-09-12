@@ -168,8 +168,6 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			c.docComp.Mount()
 			if h := js.Get("rfwHighlightAll"); h.Truthy() {
 				h.Invoke()
-			} else if hljs := js.Get("hljs"); hljs.Truthy() {
-				hljs.Call("highlightAll")
 			}
 
 			headings := detail.Get("headings")
