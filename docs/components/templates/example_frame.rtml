@@ -4,6 +4,7 @@
       <button id="tab-code" class="px-4 py-2 border-b-2 border-red-500 text-red-500">Code</button>
       <button id="tab-preview" class="px-4 py-2">Preview</button>
     </div>
+    <span id="file-path" class="block border-b border-gray-300 dark:border-zinc-700 rounded px-2 py-1"></span>
     <pre id="code" class="p-4 font-mono text-sm overflow-auto" style=" background-color: #22272e; margin: 0; border-radius: 0; ">
         <code class="language-go"></code></pre>
     <div id="preview" class="hidden">
