@@ -19,7 +19,9 @@ import (
 
 func init() {
     hljs.RegisterLanguage("rtml", func(h js.Value) js.Value {
-        return js.ValueOf(map[string]any{"name": "rtml"})
+        def := js.NewDict()
+        def.Set("name", "rtml")
+        return def.Value
     })
 }
 ```
