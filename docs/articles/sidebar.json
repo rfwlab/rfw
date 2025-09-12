@@ -266,6 +266,14 @@
         "path": "api/game-loop.md"
       },
       {
+        "title": "netcode",
+        "path": "api/netcode.md"
+      },
+      {
+        "title": "pathfinding",
+        "path": "api/pathfinding.md"
+      },
+      {
         "title": "webgl",
         "path": "api/webgl.md"
       }
