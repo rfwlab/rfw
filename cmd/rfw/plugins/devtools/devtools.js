@@ -87,7 +87,7 @@ const markup = `
 @media (max-width:720px){ .rfw-split{flex-direction:column} .rfw-tree{width:100%; max-width:none; border-right:none; border-bottom:1px solid var(--border)} }
 </style>
 
-<button id="rfwDevtoolsToggle" class="rfw-button rfw-fab" data-rfw-ignore aria-label="Apri DevTools" title="DevTools (Ctrl+Shift+D)">
+<button id="rfwDevtoolsToggle" class="rfw-button rfw-fab" data-rfw-ignore aria-label="Open DevTools" title="DevTools (Ctrl+Shift+D)">
   <span>rfw</span>
 </button>
 
@@ -302,8 +302,16 @@ const hHandle = $('[data-resize="h"]');
 const tabs = [
   { btn: $("#tabbtn-components"), panel: $("#tab-components") },
   { btn: $("#tabbtn-store"), panel: $("#tab-store"), onShow: refreshStore },
-  { btn: $("#tabbtn-signals"), panel: $("#tab-signals"), onShow: refreshSignals },
-  { btn: $("#tabbtn-plugins"), panel: $("#tab-plugins"), onShow: refreshPlugins },
+  {
+    btn: $("#tabbtn-signals"),
+    panel: $("#tab-signals"),
+    onShow: refreshSignals,
+  },
+  {
+    btn: $("#tabbtn-plugins"),
+    panel: $("#tab-plugins"),
+    onShow: refreshPlugins,
+  },
   { btn: $("#tabbtn-network"), panel: $("#tab-network") },
   { btn: $("#tabbtn-logs"), panel: $("#tab-logs") },
   { btn: $("#tabbtn-vars"), panel: $("#tab-vars"), onShow: loadVars },
@@ -670,9 +678,9 @@ function refreshSignals() {
 $("#refreshSignals")?.addEventListener("click", refreshSignals);
 $("#signalFilter")?.addEventListener("input", (e) => {
   const q = e.target.value.toLowerCase();
-$$(".node", signalList).forEach((n) => {
-  n.style.display = n.textContent.toLowerCase().includes(q) ? "" : "none";
-});
+  $$(".node", signalList).forEach((n) => {
+    n.style.display = n.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
 });
 
 const pluginTree = $("#pluginTree");
