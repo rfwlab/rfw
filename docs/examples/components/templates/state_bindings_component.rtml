@@ -1,8 +1,8 @@
 <root>
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
-        <input class="border" value="@store:app.default.name:w" />
-        <input type="checkbox" checked="@store:app.default.agree:w" />
-        <textarea class="border">@store:app.default.bio:w</textarea>
+        <input class="px-2 py-1 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white outline-none rounded-none" value="@store:app.default.name:w" />
+        <input type="checkbox" checked="@store:app.default.agree:w" class="border border-gray-300 dark:border-zinc-700 rounded-none" />
+        <textarea class="p-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white outline-none rounded-none">@store:app.default.bio:w</textarea>
         <p>Name: @store:app.default.name</p>
         <p>Agree: @store:app.default.agree</p>
         <p>Bio: @store:app.default.bio</p>

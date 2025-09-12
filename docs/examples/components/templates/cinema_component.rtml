@@ -1,22 +1,22 @@
 <root>
     <div id="cinemaRoot" class="p-4 pt-0 space-y-4">
         <div class="flex flex-wrap gap-2">
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:playCinema>Play</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:pauseCinema>Pause</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:stopCinema>Stop</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:seekCinema>Seek 5s</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:speedCinema>1.5x</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:volumeCinema>Vol 50%</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:muteCinema>Mute</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:unmuteCinema>Unmute</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:subtitleCinema>Subtitle</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:selectCinema>Select unit</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioVolumeCinema>Audio Vol 50%</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioMuteCinema>Mute audio</button>
-            <button class="bg-blue-500 text-white px-3 py-1 rounded" @click:audioUnmuteCinema>Unmute audio</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:playCinema>Play</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:pauseCinema>Pause</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:stopCinema>Stop</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:seekCinema>Seek 5s</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:speedCinema>1.5x</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:volumeCinema>Vol 50%</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:muteCinema>Mute</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:unmuteCinema>Unmute</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:subtitleCinema>Subtitle</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:selectCinema>Select unit</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:audioVolumeCinema>Audio Vol 50%</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:audioMuteCinema>Mute audio</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:audioUnmuteCinema>Unmute audio</button>
         </div>
-        <div id="sceneBox" class="w-16 h-16 bg-blue-500"></div>
+        <div id="sceneBox" class="w-16 h-16 bg-red-500"></div>
         <video id="sceneVideo" class="mt-2" width="320" src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
-        <input id="progressBar" type="range" min="0" max="100" value="0" class="w-full h-2 mt-2 accent-blue-500" />
+        <input id="progressBar" type="range" min="0" max="100" value="0" class="w-full h-2 mt-2 accent-red-500 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg rounded-none" />
     </div>
 </root>

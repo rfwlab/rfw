@@ -4,19 +4,31 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>rfw - Welcome</title>
+        <link rel="stylesheet" href="/tailwind.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark-dimmed.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+            rel="stylesheet"
+        />
     </head>
 
-    <body>
+    <body class="bg-lightbg dark:bg-darkbg text-black dark:text-white">
         <div id="app"></div>
-        <link rel="stylesheet" href="/tailwind.css" />
         <script src="/wasm_exec.js"></script>
+        <script src="/wasm_loader.js"></script>
         <script>
             const go = new Go();
-            WebAssembly.instantiateStreaming(
-                fetch("/app.wasm?" + Date.now()),
-                go.importObject,
-            ).then((result) => {
-                go.run(result.instance);
+            WasmLoader.load("/app.wasm?" + Date.now(), {
+                go: go,
+                color: "#ff0000",
+                height: "4px",
+                blur: "4px",
+            }).then(() => {
                 const jsPlugin = {
                     router: (p) => console.log("js navigate ->", p),
                     store: (m, s, k, v) =>
