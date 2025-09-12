@@ -21,7 +21,7 @@ Use these helpers whenever your component requires images, configuration JSON, o
 | Function | Description |
 | --- | --- |
 | `LoadImage(url string) (js.Value, error)` | Asynchronously fetches an image and caches it by URL. |
-| `LoadJSON(url string, v any) error` | Fetches JSON into `v` using [`http.FetchJSON`](http.md#usage). |
+| `LoadJSON(url string, v any) error` | Fetches JSON into `v` using [`http.FetchJSON`](http#usage). |
 | `LoadModel(url string) ([]byte, error)` | Downloads binary data such as glTF models, caching results. |
 | `ClearCache(url string)` | Removes a cached entry for `url`. |
 
@@ -49,5 +49,5 @@ return core.Img().Attr("src", img.Get("src").String())
 
 ## Related
 
-- [Assets guide](../guide/assets.md)
-- [http package](http.md)
+- [Assets guide](../guide/assets)
+- [http package](http)

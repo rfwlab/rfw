@@ -6,49 +6,49 @@ only the pieces they need. This overview outlines the areas covered by the
 public API surface and how the packages fit together.
 
 Core runtime behaviour is provided by packages such as
-[core](core.md), [dom](dom.md), [events](events.md) and
-[state](state.md). They implement the rendering loop, DOM bindings and
+[core](core), [dom](dom), [events](events) and
+[state](state). They implement the rendering loop, DOM bindings and
 reactive primitives that form the foundation of every RFW application.
 
 Application level utilities build on top of this foundation. The
-[router](router.md) package offers client‑side navigation, while
-[http](http.md), [assets](assets.md) and [js](js.md) simplify communication with servers and
+[router](router) package offers client‑side navigation, while
+[http](http), [assets](assets) and [js](js) simplify communication with servers and
 JavaScript interop.
 
-RFW is designed to run in multiple environments. The [host](host.md) and
-[hostclient](hostclient.md) packages integrate the runtime with external
-systems, and [plugins](plugins.md) lets developers extend the framework
-with custom features. The [docs plugin](docs-plugin.md) powers this site
+RFW is designed to run in multiple environments. The [host](host) and
+[hostclient](hostclient) packages integrate the runtime with external
+systems, and [plugins](plugins) lets developers extend the framework
+with custom features. The [docs plugin](docs-plugin) powers this site
 by loading markdown files and emitting events for navigation. The
-[bundler plugin](bundler-plugin.md) bundles and minifies JavaScript and
+[bundler plugin](bundler-plugin) bundles and minifies JavaScript and
 CSS assets in the `static/` directory and inline snippets in RTML
 templates during builds.
 
 More specialised modules cover advanced scenarios. Packages like
-[animation](animation.md), [cinema](cinema.md) and
-[webgl](webgl.md) demonstrate how to drive media playback or GPU
+[animation](animation), [cinema](cinema) and
+[webgl](webgl) demonstrate how to drive media playback or GPU
 rendering using the same reactive model.
 
 The full set of API references is listed below:
 
-- [animation](animation.md)
-- [assets](assets.md)
-- [cinema](cinema.md)
-- [core](core.md)
-- [components](components.md)
-- [dom](dom.md)
-- [events](events.md)
-- [host](host.md)
-- [hostclient](hostclient.md)
-- [http](http.md)
-- [input](input.md)
-- [js](js.md)
-- [plugins](plugins.md)
-- [docs plugin](docs-plugin.md)
-- [bundler plugin](bundler-plugin.md)
-- [i18n](i18n.md)
-- [router](router.md)
-- [state](state.md)
-- [webgl](webgl.md)
-- [math](math.md)
-- [game loop](game-loop.md)
+- [animation](animation)
+- [assets](assets)
+- [cinema](cinema)
+- [core](core)
+- [components](components)
+- [dom](dom)
+- [events](events)
+- [host](host)
+- [hostclient](hostclient)
+- [http](http)
+- [input](input)
+- [js](js)
+- [plugins](plugins)
+- [docs plugin](docs-plugin)
+- [bundler plugin](bundler-plugin)
+- [i18n](i18n)
+- [router](router)
+- [state](state)
+- [webgl](webgl)
+- [math](math)
+- [game loop](game-loop)

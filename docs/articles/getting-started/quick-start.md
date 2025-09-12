@@ -67,4 +67,4 @@ rfw build
 The build command writes the Wasm bundle and supporting files to `build/client/`. Files placed in a top-level `static/` directory are copied into `build/static/` and served at the root path.
 The companion host binary, used to serve the client and optional host components, is placed under `build/host/`.
 
-With these basics in place, dive deeper into the framework starting with [Creating an Application](../essentials/creating-application.md).
+With these basics in place, dive deeper into the framework starting with [Creating an Application](../essentials/creating-application).

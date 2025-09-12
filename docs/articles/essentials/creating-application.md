@@ -94,4 +94,4 @@ func NewAppComponent() *AppComponent {
 
 `NewHTMLComponent` wires the RTML template to the component, and `SetComponent` followed by `Init` prepares it for rendering. Once the router mounts the component, updates to its exported fields automatically patch the DOM.
 
-Continue with the [Template Syntax](./template-syntax.md) guide to learn how RTML templates bind DOM output to Go state.
+Continue with the [Template Syntax](./template-syntax) guide to learn how RTML templates bind DOM output to Go state.

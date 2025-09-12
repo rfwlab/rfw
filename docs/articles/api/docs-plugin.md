@@ -30,5 +30,5 @@ docplug.LoadArticle("/articles/guide.md")
 
 ### Related
 
-- [js package](js.md)
+- [js package](js)
 - [docs plugin events](#events)
