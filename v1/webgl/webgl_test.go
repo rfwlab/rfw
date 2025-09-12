@@ -10,11 +10,11 @@ import (
 
 func TestWrappersInvokeContext(t *testing.T) {
 	called := map[string]bool{}
-	obj := js.Global().Call("Object")
+	obj := js.Call("Object")
 
 	fCreate := js.FuncOf(func(this js.Value, args []js.Value) any {
 		called["createVertexArray"] = true
-		return js.Global().Call("Object")
+		return js.Call("Object")
 	})
 	defer fCreate.Release()
 	obj.Set("createVertexArray", fCreate)
