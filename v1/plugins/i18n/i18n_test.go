@@ -17,3 +17,20 @@ func TestNewSetsDefaultLanguage(t *testing.T) {
 		t.Fatalf("missing translation: %v", p.translations)
 	}
 }
+
+func TestSignalUpdatesOnSetLang(t *testing.T) {
+	trans := map[string]map[string]string{
+		"en": {"hello": "Hello"},
+		"it": {"hello": "Ciao"},
+	}
+	p := New(trans).(*Plugin)
+	p.Install(nil)
+	hello := Signal("hello")
+	if v := hello.Get(); v != "Hello" {
+		t.Fatalf("expected 'Hello', got %q", v)
+	}
+	SetLang("it")
+	if v := hello.Get(); v != "Ciao" {
+		t.Fatalf("expected 'Ciao', got %q", v)
+	}
+}
