@@ -31,3 +31,29 @@ func TestArray(t *testing.T) {
 		t.Fatalf("expected third element 'c', got %s", v)
 	}
 }
+
+func TestDict(t *testing.T) {
+	d := NewDict()
+	d.Set("a", 1)
+	d.Set("b", "two")
+
+	if v := d.Get("a").Int(); v != 1 {
+		t.Fatalf("expected 1, got %d", v)
+	}
+
+	keys := d.Keys()
+	if len(keys) != 2 {
+		t.Fatalf("expected 2 keys, got %d", len(keys))
+	}
+	found := map[string]bool{"a": false, "b": false}
+	for _, k := range keys {
+		if _, ok := found[k]; ok {
+			found[k] = true
+		}
+	}
+	for k, ok := range found {
+		if !ok {
+			t.Fatalf("missing key %s", k)
+		}
+	}
+}

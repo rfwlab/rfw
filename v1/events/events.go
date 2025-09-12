@@ -96,7 +96,10 @@ func ObserveMutations(sel string) (<-chan js.Value, func()) {
 		return nil
 	})
 	observer := js.MutationObserver().New(fn)
-	observer.Call("observe", node, js.ValueOf(map[string]any{"childList": true, "subtree": true}))
+	opts := js.NewDict()
+	opts.Set("childList", true)
+	opts.Set("subtree", true)
+	observer.Call("observe", node, opts.Value)
 	stop := func() {
 		observer.Call("disconnect")
 		fn.Release()

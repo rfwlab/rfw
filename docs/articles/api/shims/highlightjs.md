@@ -18,7 +18,9 @@ import (
 
 hljs.RegisterLanguage("rtml", func(h js.Value) js.Value {
     // construct the language definition
-    return js.ValueOf(map[string]any{"name": "rtml"})
+    def := js.NewDict()
+    def.Set("name", "rtml")
+    return def.Value
 })
 ```
 
@@ -33,16 +35,17 @@ func init() {
     hljs.RegisterLanguage("rtml", func(h js.Value) js.Value {
         xml := h.Call("getLanguage", "xml")
         reg := js.Get("RegExp")
-        interpolation := js.ValueOf(map[string]any{
-            "className": "template-variable",
-            "begin":     reg.New("\\{"),
-            "end":       reg.New("\\}"),
-            "relevance": 0,
-        })
+        interpolation := js.NewDict()
+        interpolation.Set("className", "template-variable")
+        interpolation.Set("begin", reg.New("\\{"))
+        interpolation.Set("end", reg.New("\\}"))
+        interpolation.Set("relevance", 0)
         arr := js.NewArray()
-        arr.Push(interpolation)
+        arr.Push(interpolation.Value)
         contains := js.ArrayOf(xml.Get("contains")).Concat(arr).Value
-        return h.Call("inherit", xml, map[string]any{"contains": contains})
+        def := js.NewDict()
+        def.Set("contains", contains)
+        return h.Call("inherit", xml, def.Value)
     })
 }
 ```

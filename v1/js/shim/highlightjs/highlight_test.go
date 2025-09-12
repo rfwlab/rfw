@@ -9,8 +9,8 @@ import (
 )
 
 func TestRegisterLanguage(t *testing.T) {
-	dummy := js.ValueOf(map[string]any{})
-	js.Set("hljs", dummy)
+	dummy := js.NewDict()
+	js.Set("hljs", dummy.Value)
 	var name string
 	dummy.Set("registerLanguage", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
@@ -24,7 +24,7 @@ func TestRegisterLanguage(t *testing.T) {
 	called := false
 	RegisterLanguage("rtml", func(v js.Value) js.Value {
 		called = true
-		return js.ValueOf(map[string]any{})
+		return js.NewDict().Value
 	})
 
 	if name != "rtml" {

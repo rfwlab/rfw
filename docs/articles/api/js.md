@@ -73,3 +73,42 @@ first := arr.Index(0).String()
 
 ### Related links
 - [highlightjs shim](./shims/highlightjs)
+
+## Dict
+
+### Why
+Facilitates creation and manipulation of JavaScript objects and associative arrays from Go.
+
+### When to use
+Use when passing option objects to JS APIs or when a map‑like structure is required.
+
+### How
+1. Create a dictionary: `d := js.NewDict()`.
+2. Assign values: `d.Set("foo", 1)`.
+3. Read values: `v := d.Get("foo")`.
+4. Enumerate keys: `keys := d.Keys()`.
+
+### API
+- `js.Object() js.Value`
+- `js.NewDict() js.Dict`
+- `js.DictOf(v js.Value) js.Dict`
+- `(js.Dict).Set(key string, val any)`
+- `(js.Dict).Get(key string) js.Value`
+- `(js.Dict).Keys() []string`
+
+### Example
+```go
+d := js.NewDict()
+d.Set("answer", 42)
+answer := d.Get("answer").Int()
+keys := d.Keys()
+js.Console().Call("log", answer, keys)
+```
+
+### Notes
+- Only available with the `js/wasm` build tag.
+- The wrapper embeds `js.Value`; all `Value` methods remain available.
+
+### Related links
+- [events](./events)
+- [shims](./shims/index)

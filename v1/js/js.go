@@ -46,6 +46,34 @@ func Undefined() Value { return jst.Undefined() }
 // ValueOf converts a Go value to a JavaScript value.
 func ValueOf(v any) Value { return jst.ValueOf(v) }
 
+// Object returns the JavaScript Object constructor.
+func Object() Value { return Get("Object") }
+
+// Dict represents a plain JavaScript object with string keys.
+type Dict struct{ Value }
+
+// NewDict constructs a new empty JavaScript object.
+func NewDict() Dict { return Dict{Value: Object().New()} }
+
+// DictOf wraps an existing JavaScript value as a Dict.
+func DictOf(v Value) Dict { return Dict{Value: v} }
+
+// Set assigns a property on the object.
+func (d Dict) Set(key string, val any) { d.Value.Set(key, val) }
+
+// Get retrieves a property from the object.
+func (d Dict) Get(key string) Value { return d.Value.Get(key) }
+
+// Keys returns all enumerable property names on the object.
+func (d Dict) Keys() []string {
+	arr := ArrayOf(Object().Call("keys", d.Value))
+	keys := make([]string, arr.Length())
+	for i := 0; i < arr.Length(); i++ {
+		keys[i] = arr.Index(i).String()
+	}
+	return keys
+}
+
 // Array represents a JavaScript Array instance.
 type Array struct{ Value }
 

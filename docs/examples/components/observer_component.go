@@ -56,8 +56,8 @@ func (c *ObserverComponent) Mount() {
 		}
 	}()
 
-	opts := js.ValueOf(map[string]any{})
-	intCh, stopInt := events.ObserveIntersections(".watched", opts)
+	opts := js.NewDict()
+	intCh, stopInt := events.ObserveIntersections(".watched", opts.Value)
 	c.stopInt = stopInt
 	go func() {
 		for range intCh {
