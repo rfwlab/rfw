@@ -121,6 +121,10 @@
         "path": "guide/assets-plugin.md"
       },
       {
+        "title": "Copy Plugin",
+        "path": "guide/copy-plugin.md"
+      },
+      {
         "title": "Assets",
         "path": "guide/assets.md"
       },
