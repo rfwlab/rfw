@@ -45,7 +45,7 @@ func createBar(opts Options) (js.Value, js.Value, js.Func) {
 
 	progress := 0.0
 	intervalFn := js.FuncOf(func(this js.Value, args []js.Value) any {
-		progress += js.Get("Math").Call("random").Float() * 10
+		progress += js.Math().Call("random").Float() * 10
 		if progress > 90 {
 			progress = 90
 		}
@@ -77,7 +77,7 @@ func Load(url string, opts Options) {
 					return nil
 				}), 300)
 			}
-			wasm := js.Get("WebAssembly")
+			wasm := js.WebAssembly()
 			wasm.Call("instantiate", bytes, opts.Go.Get("importObject")).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 				inst := args[0].Get("instance")
 				opts.Go.Call("run", inst)

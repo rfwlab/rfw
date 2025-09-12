@@ -11,6 +11,7 @@ import (
 
 	"github.com/rfwlab/rfw/v1/core"
 	js "github.com/rfwlab/rfw/v1/js"
+	marked "github.com/rfwlab/rfw/v1/js/shim/marked"
 )
 
 type Plugin struct {
@@ -45,8 +46,7 @@ func (p *Plugin) Install(a *core.App) {
 			res := args[0]
 			res.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 				content := args[0].String()
-				marked := js.Get("marked")
-				tokens := marked.Call("lexer", content)
+				tokens := marked.Lexer(content)
 				slug := newSlugger()
 				headings := make([]any, 0)
 				length := tokens.Length()

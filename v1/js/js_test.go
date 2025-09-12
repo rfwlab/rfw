@@ -57,3 +57,17 @@ func TestDict(t *testing.T) {
 		}
 	}
 }
+
+func TestMath(t *testing.T) {
+	v := Math().Call("random").Float()
+	if v < 0 || v >= 1 {
+		t.Fatalf("random out of range: %f", v)
+	}
+}
+
+func TestRegExp(t *testing.T) {
+	re := RegExp().New("foo")
+	if ok := re.Call("test", "foobar").Bool(); !ok {
+		t.Fatalf("expected match")
+	}
+}

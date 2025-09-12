@@ -297,8 +297,9 @@ func drawSquare(n *scene.Node, color [4]float32) {
 
 func newFood() {
 	for {
-		fx := js.Get("Math").Call("floor", js.Get("Math").Call("random").Float()*float64(gridSize)).Int()
-		fy := js.Get("Math").Call("floor", js.Get("Math").Call("random").Float()*float64(gridSize)).Int()
+		m := js.Math()
+		fx := m.Call("floor", m.Call("random").Float()*float64(gridSize)).Int()
+		fy := m.Call("floor", m.Call("random").Float()*float64(gridSize)).Int()
 		collision := false
 		for _, s := range snake {
 			if int(s.Transform.X) == fx && int(s.Transform.Y) == fy {
