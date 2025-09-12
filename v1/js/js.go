@@ -76,23 +76,21 @@ func (a Array) Length() int { return a.Get("length").Int() }
 
 // TypedArrayOf converts a Go slice to a JavaScript typed array.
 func TypedArrayOf(slice any) jst.Value {
-	g := jst.Global()
-
 	switch b := slice.(type) {
 	case []byte:
-		u8 := g.Get("Uint8Array").New(len(b))
+		u8 := Uint8Array().New(len(b))
 		jst.CopyBytesToJS(u8, b)
 		return u8
 
 	case []float32:
-		f32 := g.Get("Float32Array").New(len(b))
+		f32 := Float32Array().New(len(b))
 		for i, v := range b {
 			f32.SetIndex(i, v)
 		}
 		return f32
 
 	case []uint16:
-		u16 := g.Get("Uint16Array").New(len(b))
+		u16 := Uint16Array().New(len(b))
 		for i, v := range b {
 			u16.SetIndex(i, v)
 		}
@@ -149,6 +147,15 @@ func IntersectionObserver() Value { return Get("IntersectionObserver") }
 
 // CustomEvent returns the CustomEvent constructor.
 func CustomEvent() Value { return Get("CustomEvent") }
+
+// Uint8Array returns the Uint8Array constructor.
+func Uint8Array() Value { return Get("Uint8Array") }
+
+// Float32Array returns the Float32Array constructor.
+func Float32Array() Value { return Get("Float32Array") }
+
+// Uint16Array returns the Uint16Array constructor.
+func Uint16Array() Value { return Get("Uint16Array") }
 
 // LocalStorage returns the localStorage object.
 func LocalStorage() Value { return Get("localStorage") }
