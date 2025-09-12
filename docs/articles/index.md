@@ -119,3 +119,4 @@ Read the [architecture overview](./architecture) or open an issue on GitHub if s
 - [Read the Guide](./guide/features) to explore the framework in depth.
 - [Browse the API](../api/core) to see how rfw works under the hood.
 - [Testing](./testing) to learn how to run the test suite locally.
+- [Contributing](../../CONTRIBUTING.md) to learn how to propose changes.
