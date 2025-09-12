@@ -11,6 +11,7 @@ import (
 	_ "github.com/rfwlab/rfw/docs/pages"
 	"github.com/rfwlab/rfw/v1/core"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
+	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/plugins/i18n"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
@@ -43,6 +44,7 @@ func main() {
 		"it": {"hello": "Ciao"},
 	}))
 	core.RegisterPlugin(mon.New())
+	core.RegisterPlugin(highlight.New())
 	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
 
 	router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }

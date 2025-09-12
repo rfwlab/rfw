@@ -46,6 +46,7 @@ The full set of API references is listed below:
 - [shims](shims)
 - [plugins](plugins)
 - [docs plugin](docs-plugin)
+- [highlight](highlight)
 - [bundler plugin](bundler-plugin)
 - [i18n](i18n)
 - [router](router)

@@ -53,9 +53,16 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 		js.Fetch(codeURL).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 			resp := args[0]
 			return resp.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
-				codeEl.Set("textContent", args[0].String())
-				hljs := js.Get("hljs")
-				if hljs.Truthy() {
+				code := args[0].String()
+				codeEl.Set("textContent", code)
+				if h := js.Get("rfwHighlight"); h.Truthy() {
+					res := h.Invoke(code, "go")
+					if res.Truthy() && res.String() != "" {
+						codeEl.Set("innerHTML", res.String())
+					} else if hljs := js.Get("hljs"); hljs.Truthy() {
+						hljs.Call("highlightElement", codeEl)
+					}
+				} else if hljs := js.Get("hljs"); hljs.Truthy() {
 					hljs.Call("highlightElement", codeEl)
 				}
 				return nil
