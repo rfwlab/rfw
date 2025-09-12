@@ -58,11 +58,11 @@ func main() {
 
 ## Notes and Limitations
 
-Frames are scheduled with [`js.RequestAnimationFrame`](./js.md#requestanimationframe)
+Frames are scheduled with [`js.RequestAnimationFrame`](./js#requestanimationframe)
 and timed via `performance.now()`. Callbacks run until `Stop` is invoked.
 No throttling beyond the browser's frame pacing is performed.
 
 ## Related Links
 
-- [js package](./js.md)
-- [animation helpers](./animation.md)
+- [js package](./js)
+- [animation helpers](./animation)
