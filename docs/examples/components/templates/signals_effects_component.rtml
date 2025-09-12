@@ -1,12 +1,12 @@
 <root>
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
         <p>Count: @signal:count</p>
-        <button class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" @click:inc>Increment</button>
-        <input class="border" value="@signal:message:w" />
+        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:inc>Increment</button>
+        <input class="px-2 py-1 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white outline-none rounded-none" value="@signal:message:w" />
         @if:signal:count == "3"
             <p>Count reached three!</p>
         @endif
-        <button class="text-green-500 hover:text-green-700 font-bold cursor-pointer" @click:add>Add Message</button>
+        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:add>Add Message</button>
         <ul>
             @foreach:signal:items as it
                 <li>@it</li>

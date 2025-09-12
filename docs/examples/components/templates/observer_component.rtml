@@ -1,11 +1,11 @@
 <root>
     <div class="p-4 pt-0">
         <h2 class="text-xl font-bold mb-4">Observer Component</h2>
-        <div id="observeMe" class="p-2 border">Observed Node</div>
-        <button id="mutateBtn" class="bg-blue-500 text-white px-2 py-1 rounded mt-2">Mutate node</button>
+        <div id="observeMe" class="p-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg">Observed Node</div>
+        <button id="mutateBtn" class="mt-2 px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition">Mutate node</button>
         <p>Mutations: @store:app.default.mutations</p>
         <div class="watched h-16 mt-4 bg-gray-200">Watched Element</div>
-        <button id="toggleBtn" class="bg-blue-500 text-white px-2 py-1 rounded mt-2">Toggle visibility</button>
+        <button id="toggleBtn" class="mt-2 px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition">Toggle visibility</button>
         <p>Intersections: @store:app.default.intersections</p>
     </div>
 </root>

@@ -3,8 +3,8 @@
         <p>This page demonstrates routing with multiple parameters.</p>
         <p>You're viewing the "@prop:section" section for user "@prop:user".</p>
         <div class="flex gap-4">
-            <a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" onclick="goNavigate('/complex/@prop:user/profile')">Profile</a>
-            <a class="text-blue-500 hover:text-blue-700 font-bold cursor-pointer" onclick="goNavigate('/complex/@prop:user/settings')">Settings</a>
+            <a class="text-red-500 hover:text-red-700 font-bold cursor-pointer" onclick="goNavigate('/complex/@prop:user/profile')">Profile</a>
+            <a class="text-red-500 hover:text-red-700 font-bold cursor-pointer" onclick="goNavigate('/complex/@prop:user/settings')">Settings</a>
         </div>
     </div>
 </root>

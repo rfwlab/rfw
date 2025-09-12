@@ -1,8 +1,8 @@
 <root>
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
-        <input class="border" value="@signal:name:w" />
-        <input type="checkbox" checked="@signal:agree:w" />
-        <textarea class="border">@signal:bio:w</textarea>
+        <input class="px-2 py-1 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white outline-none rounded-none" value="@signal:name:w" />
+        <input type="checkbox" checked="@signal:agree:w" class="border border-gray-300 dark:border-zinc-700 rounded-none" />
+        <textarea class="p-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white outline-none rounded-none">@signal:bio:w</textarea>
         <p>Name: @signal:name</p>
         <p>Agree: @signal:agree</p>
         <p>Bio: @signal:bio</p>
