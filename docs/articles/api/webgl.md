@@ -17,7 +17,7 @@ Bindings for the WebGL rendering context used with WebAssembly applications.
 | `Context.UseProgram(prog)` | Use a program for rendering. |
 | `Context.CreateProgramFromSource(vSrc, fSrc)` | Compile shaders and link into a program. |
 | `Context.BufferData(target, data, usage)` | Upload data to a buffer object. |
-| `Context.BufferDataFloat32(target, data, usage)` | Upload float32 slice data to a buffer. |
+| `Context.BufferDataFloat32(target, data, usage)` | Upload float32 slice data via `js.Float32Array`. |
 | `Context.CreateBuffer()` | Create a buffer object. |
 | `Context.BindBuffer(target, buffer)` | Bind a buffer to a target. |
 | `Context.CreateTexture()` | Create a texture object. |

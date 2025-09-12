@@ -130,7 +130,7 @@ void main(){
 		ctx.BufferDataFloat32(webgl.ARRAY_BUFFER, vertices, webgl.STATIC_DRAW)
 		ibuf := ctx.CreateBuffer()
 		ctx.BindBuffer(webgl.ELEMENT_ARRAY_BUFFER, ibuf)
-		inds := js.Get("Uint16Array").New(6)
+		inds := js.Uint16Array().New(6)
 		for i, v := range []uint16{0, 1, 2, 2, 1, 3} {
 			inds.SetIndex(i, v)
 		}
@@ -276,14 +276,20 @@ func drawSquare(n *scene.Node, color [4]float32) {
 
 	model := m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize * 1.4, cellSize * 1.4, 1}))
 	mvp := proj.Mul(model)
-	arr := js.TypedArrayOf(mvp[:])
+	arr := js.Float32Array().New(len(mvp))
+	for i, v := range mvp {
+		arr.SetIndex(i, v)
+	}
 	ctx.Call("uniformMatrix4fv", mvpLoc, false, arr)
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3]*0.3)
 	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 
 	model = m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize, cellSize, 1}))
 	mvp = proj.Mul(model)
-	arr = js.TypedArrayOf(mvp[:])
+	arr = js.Float32Array().New(len(mvp))
+	for i, v := range mvp {
+		arr.SetIndex(i, v)
+	}
 	ctx.Call("uniformMatrix4fv", mvpLoc, false, arr)
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3])
 	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
