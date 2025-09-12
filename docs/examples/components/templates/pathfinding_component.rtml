@@ -2,8 +2,8 @@
   <div class="p-4 pt-0">
     <h2 class="text-xl font-bold mb-4">Pathfinding Demo</h2>
     <div class="flex gap-2">
-      <button class="bg-blue-500 text-white px-4 py-2 rounded" @click:runPathfinding>Find Path</button>
-      <button class="bg-gray-600 text-white px-4 py-2 rounded" @click:cancelPathfinding>Cancel</button>
+      <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:runPathfinding>Find Path</button>
+      <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:cancelPathfinding>Cancel</button>
     </div>
     <pre id="path-output" class="mt-4 whitespace-pre text-sm"></pre>
     <div class="mt-2 text-xs text-gray-500">
