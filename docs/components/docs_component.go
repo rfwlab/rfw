@@ -12,6 +12,7 @@ import (
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
+	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
 	"github.com/rfwlab/rfw/v1/router"
 )
 
@@ -261,7 +262,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 	if c.page == "" {
 		c.page = "index"
 	}
-	js.Call("rfwLoadDoc", "/articles/"+c.page+".md")
+	docplug.LoadArticle("/articles/" + c.page + ".md")
 }
 
 func (c *DocsComponent) SetRouteParams(params map[string]string) {
@@ -276,7 +277,7 @@ func (c *DocsComponent) SetRouteParams(params map[string]string) {
 		c.page = "index"
 	}
 	if c.mounted {
-		js.Call("rfwLoadDoc", "/articles/"+c.page+".md")
+		docplug.LoadArticle("/articles/" + c.page + ".md")
 	}
 }
 
