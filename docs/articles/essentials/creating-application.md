@@ -52,11 +52,10 @@ The generated `main.go` compiles to WebAssembly. To run it in the browser, inclu
 
 ```html
 <script src="/wasm_exec.js"></script>
+<script src="/wasm_loader.js"></script>
 <script>
   const go = new Go();
-  WebAssembly.instantiateStreaming(fetch('/app.wasm'), go.importObject).then((result) => {
-    go.run(result.instance);
-  });
+  WasmLoader.load('/app.wasm', { go });
 </script>
 ```
 
