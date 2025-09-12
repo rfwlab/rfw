@@ -47,9 +47,12 @@ func (e *exampleFrame) mount(hc *core.HTMLComponent) {
 	previewTab := wrapper.Call("querySelector", "#tab-preview")
 	codeDiv := wrapper.Call("querySelector", "#code")
 	codeEl := codeDiv.Call("querySelector", "code")
+	filePathEl := wrapper.Call("querySelector", "#file-path")
 	previewDiv := wrapper.Call("querySelector", "#preview")
 	codeURL := wrapper.Get("dataset").Get("code").String()
 	if codeURL != "" {
+		filePathEl.Set("textContent", codeURL)
+
 		js.Fetch(codeURL).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 			resp := args[0]
 			return resp.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
