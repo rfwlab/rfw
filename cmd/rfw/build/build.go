@@ -12,6 +12,7 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/bundler"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/copy"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/devtools"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"

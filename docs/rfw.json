@@ -11,6 +11,14 @@
     "env": {},
     "pages": {},
     "docs": {},
-    "bundler": {}
+    "bundler": {},
+    "copy": {
+      "files": [
+        {
+          "from": "examples/components/**/*",
+          "to": "build/static/examples/components"
+        }
+      ]
+    }
   }
 }

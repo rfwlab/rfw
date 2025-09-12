@@ -79,6 +79,25 @@ Copies files from a directory into the build output.
 - `dir`: source directory to copy from (defaults to `assets`).
 - `dest`: destination folder inside the build output (`dist` by default).
 
+### Copy files
+
+Copies selected files into the build output based on glob patterns.
+
+```json
+{
+  "plugins": {
+    "copy": {
+      "files": [
+        { "from": "examples/components/**/*", "to": "build/static/examples/components" }
+      ]
+    }
+  }
+}
+```
+
+- `from`: source glob pattern.
+- `to`: destination directory for matched files.
+
 Plugins run during `rfw build` and may watch relevant files for changes while developing.
 
 ### Documentation content
