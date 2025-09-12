@@ -12,7 +12,7 @@ import (
 
 // loadImageFn loads an image and invokes done on completion.
 var loadImageFn = func(url string, done func(js.Value, error)) {
-	img := js.Get("Image").New()
+	img := js.Image().New()
 	onload := js.FuncOf(func(this js.Value, args []js.Value) any {
 		done(img, nil)
 		return nil
@@ -33,7 +33,7 @@ var loadBinaryFn = func(url string, done func([]byte, error)) {
 			resp := args[0]
 			resp.Call("arrayBuffer").Call("then",
 				js.FuncOf(func(this js.Value, args []js.Value) any {
-					buf := js.Get("Uint8Array").New(args[0])
+					buf := js.Uint8Array().New(args[0])
 					length := buf.Get("length").Int()
 					data := make([]byte, length)
 					for i := 0; i < length; i++ {

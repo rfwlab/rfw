@@ -161,6 +161,12 @@ func JSON() Value { return Get("JSON") }
 // Error returns the Error constructor.
 func Error() Value { return Get("Error") }
 
+// Math returns the Math object.
+func Math() Value { return Get("Math") }
+
+// RegExp returns the RegExp constructor.
+func RegExp() Value { return Get("RegExp") }
+
 // Performance returns the performance object.
 func Performance() Value { return Get("performance") }
 
@@ -175,6 +181,12 @@ func IntersectionObserver() Value { return Get("IntersectionObserver") }
 
 // CustomEvent returns the CustomEvent constructor.
 func CustomEvent() Value { return Get("CustomEvent") }
+
+// Image returns the Image constructor.
+func Image() Value { return Get("Image") }
+
+// WebAssembly returns the WebAssembly object.
+func WebAssembly() Value { return Get("WebAssembly") }
 
 // Uint8Array returns the Uint8Array constructor.
 func Uint8Array() Value { return Get("Uint8Array") }

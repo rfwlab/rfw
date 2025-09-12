@@ -216,6 +216,10 @@
           {
             "title": "highlightjs",
             "path": "api/shims/highlightjs.md"
+          },
+          {
+            "title": "marked",
+            "path": "api/shims/marked.md"
           }
         ]
       },

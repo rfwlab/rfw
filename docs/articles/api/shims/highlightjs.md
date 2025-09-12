@@ -34,7 +34,7 @@ The docs site registers an `rtml` language at start‑up:
 func init() {
     hljs.RegisterLanguage("rtml", func(h js.Value) js.Value {
         xml := h.Call("getLanguage", "xml")
-        reg := js.Get("RegExp")
+       reg := js.RegExp()
         interpolation := js.NewDict()
         interpolation.Set("className", "template-variable")
         interpolation.Set("begin", reg.New("\\{"))

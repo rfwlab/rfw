@@ -12,6 +12,7 @@ import (
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
+	marked "github.com/rfwlab/rfw/v1/js/shim/marked"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
 	"github.com/rfwlab/rfw/v1/router"
 )
@@ -157,7 +158,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			detail := evt.Get("detail")
 			path := detail.Get("path").String()
 			content := detail.Get("content").String()
-			html := js.Get("marked").Call("parse", content).String()
+			html := marked.Parse(content)
 			if c.docComp != nil {
 				c.docComp.Unmount()
 				delete(c.HTMLComponent.Dependencies, "doc")
