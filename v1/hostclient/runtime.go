@@ -42,12 +42,12 @@ func connect() {
 }
 
 func connectionLoop() {
-	host := js.Global().Get("location").Get("host").String()
-	if h := js.Global().Get("RFW_HOST"); h.Truthy() {
+	host := js.Location().Get("host").String()
+	if h := js.Get("RFW_HOST"); h.Truthy() {
 		host = h.String()
 	}
 	scheme := "wss"
-	if js.Global().Get("location").Get("protocol").String() == "http:" {
+	if js.Location().Get("protocol").String() == "http:" {
 		scheme = "ws"
 	}
 	backoff := time.Second

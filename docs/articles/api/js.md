@@ -15,6 +15,7 @@ common globals.
 | `FuncOf(fn)` | Wraps a Go function for use in JavaScript. |
 | `Expose(name, fn)` | Registers a no-arg Go function on the global scope. |
 | `ExposeEvent(name, fn)` | Registers a Go function that receives the first argument as an event. |
+| `ExposeFunc(name, fn)` | Registers a Go function with custom arguments on the global scope. |
 | `RequestAnimationFrame(cb)` | Wrapper for `requestAnimationFrame`. |
 | `Fetch(args...)` | Wrapper for the global `fetch` function. |
 

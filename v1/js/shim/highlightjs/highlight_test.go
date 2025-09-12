@@ -10,7 +10,7 @@ import (
 
 func TestRegisterLanguage(t *testing.T) {
 	dummy := js.ValueOf(map[string]any{})
-	js.Global().Set("hljs", dummy)
+	js.Set("hljs", dummy)
 	var name string
 	dummy.Set("registerLanguage", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {

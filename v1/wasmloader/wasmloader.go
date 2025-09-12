@@ -45,14 +45,14 @@ func createBar(opts Options) (js.Value, js.Value, js.Func) {
 
 	progress := 0.0
 	intervalFn := js.FuncOf(func(this js.Value, args []js.Value) any {
-		progress += js.Global().Get("Math").Call("random").Float() * 10
+		progress += js.Get("Math").Call("random").Float() * 10
 		if progress > 90 {
 			progress = 90
 		}
 		bar.Get("style").Set("width", fmt.Sprintf("%f%%", progress))
 		return nil
 	})
-	intervalID := js.Global().Call("setInterval", intervalFn, 200)
+	intervalID := js.Call("setInterval", intervalFn, 200)
 	return bar, intervalID, intervalFn
 }
 
@@ -69,15 +69,15 @@ func Load(url string, opts Options) {
 		return resp.Call("arrayBuffer").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 			bytes := args[0]
 			if bar.Truthy() {
-				js.Global().Call("clearInterval", intervalID)
+				js.Call("clearInterval", intervalID)
 				intervalFn.Release()
 				bar.Get("style").Set("width", "100%")
-				js.Global().Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) any {
 					bar.Call("remove")
 					return nil
 				}), 300)
 			}
-			wasm := js.Global().Get("WebAssembly")
+			wasm := js.Get("WebAssembly")
 			wasm.Call("instantiate", bytes, opts.Go.Get("importObject")).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 				inst := args[0].Get("instance")
 				opts.Go.Call("run", inst)
@@ -107,7 +107,7 @@ func loadFunc(this js.Value, args []js.Value) any {
 }
 
 func init() {
-	js.Global().Set("WasmLoader", map[string]any{
+	js.Set("WasmLoader", map[string]any{
 		"load": js.FuncOf(loadFunc),
 	})
 }

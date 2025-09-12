@@ -166,7 +166,9 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			c.HTMLComponent.AddDependency("doc", c.docComp)
 			dom.ByID("doc-content").Set("innerHTML", c.docComp.Render())
 			c.docComp.Mount()
-			if hljs := js.Get("hljs"); hljs.Truthy() {
+			if h := js.Get("rfwHighlightAll"); h.Truthy() {
+				h.Invoke()
+			} else if hljs := js.Get("hljs"); hljs.Truthy() {
 				hljs.Call("highlightAll")
 			}
 

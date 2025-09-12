@@ -24,10 +24,17 @@
             const go = new Go();
             marked.setOptions({
                 highlight: (code, lang) => {
-                    if (lang && hljs.getLanguage(lang)) {
+                    if (typeof rfwHighlight === "function") {
+                        const res = rfwHighlight(code, lang);
+                        if (res) return res;
+                    }
+                    if (typeof hljs !== "undefined" && lang && hljs.getLanguage(lang)) {
                         return hljs.highlight(code, { language: lang }).value;
                     }
-                    return hljs.highlightAuto(code).value;
+                    if (typeof hljs !== "undefined") {
+                        return hljs.highlightAuto(code).value;
+                    }
+                    return code;
                 },
             });
             WasmLoader.load("/app.wasm?" + Date.now(), {
