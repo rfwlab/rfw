@@ -25,9 +25,12 @@ func TestInitProjectSuccess(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(projDir, "go.mod")); err != nil {
 		t.Fatalf("go.mod not created: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(projDir, "wasm_exec.js")); err != nil {
-		t.Fatalf("wasm_exec.js not created: %v", err)
-	}
+        if _, err := os.Stat(filepath.Join(projDir, "wasm_exec.js")); err != nil {
+                t.Fatalf("wasm_exec.js not created: %v", err)
+        }
+        if _, err := os.Stat(filepath.Join(projDir, "wasm_loader.js")); err != nil {
+                t.Fatalf("wasm_loader.js not created: %v", err)
+        }
 }
 
 // TestInitProjectErrors checks basic error paths.

@@ -84,11 +84,17 @@ func Build() error {
 	if err := plugins.Build(); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
 	}
-	if _, err := os.Stat("index.html"); err == nil {
-		if err := copyFile("index.html", filepath.Join(clientDir, "index.html")); err != nil {
-			return fmt.Errorf("failed to copy index.html: %w", err)
-		}
-	}
+        if _, err := os.Stat("index.html"); err == nil {
+                if err := copyFile("index.html", filepath.Join(clientDir, "index.html")); err != nil {
+                        return fmt.Errorf("failed to copy index.html: %w", err)
+                }
+        }
+
+        if _, err := os.Stat("wasm_loader.js"); err == nil {
+                if err := copyFile("wasm_loader.js", filepath.Join(clientDir, "wasm_loader.js")); err != nil {
+                        return fmt.Errorf("failed to copy wasm_loader.js: %w", err)
+                }
+        }
 
 	if _, err := os.Stat("static"); err == nil {
 		if err := filepath.Walk("static", func(path string, info os.FileInfo, err error) error {
