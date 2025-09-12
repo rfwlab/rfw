@@ -43,6 +43,7 @@ The full set of API references is listed below:
 - [http](http)
 - [input](input)
 - [js](js)
+- [shims](shims)
 - [plugins](plugins)
 - [docs plugin](docs-plugin)
 - [bundler plugin](bundler-plugin)
