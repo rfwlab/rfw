@@ -1,0 +1,65 @@
+name: Bug Report
+description: Report a bug in rfw
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug!
+        Please make sure you have read the [Contributing Guidelines](../CONTRIBUTING.md).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clearly explain the problem you encountered.
+      placeholder: "Describe what is not working..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: List the exact steps to reproduce the issue.
+      placeholder: |
+        1. Start rfw with ...
+        2. Run command ...
+        3. Observe the error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "I expected ..."
+    validations:
+      required: true
+
+  - type: input
+    id: rfw-version
+    attributes:
+      label: rfw Version
+      description: Which version of rfw are you using?
+      placeholder: "e.g. 0.2.1"
+    validations:
+      required: true
+
+  - type: input
+    id: go-version
+    attributes:
+      label: Go Version
+      description: Which version of Go is installed?
+      placeholder: "e.g. 1.23.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Add useful details like OS, architecture, special configs.
+      placeholder: "OS: Ubuntu 24.04, arch: amd64"
