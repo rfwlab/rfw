@@ -3,8 +3,8 @@ package utils
 import (
 	"fmt"
 	"net"
-	"os/exec"
-	"runtime"
+
+	"github.com/pkg/browser"
 )
 
 func GetLocalIP() (string, error) {
@@ -22,18 +22,6 @@ func GetLocalIP() (string, error) {
 	return "", fmt.Errorf("no local IP address found")
 }
 
-func OpenBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", url)
-	case "darwin":
-		cmd = exec.Command("open", url)
-	default:
-		cmd = exec.Command("xdg-open", url)
-	}
-
-	if err := cmd.Start(); err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-	}
+func OpenBrowser(url string) error {
+	return browser.OpenURL(url)
 }
