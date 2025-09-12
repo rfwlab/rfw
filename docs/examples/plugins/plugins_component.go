@@ -7,16 +7,27 @@ import (
 
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
-	js "github.com/rfwlab/rfw/v1/js"
+	"github.com/rfwlab/rfw/v1/plugins/i18n"
 )
 
 //go:embed templates/plugins_component.rtml
 var pluginsComponentTpl []byte
 
-func NewPluginsComponent() *core.HTMLComponent {
-	c := core.NewComponent("PluginsComponent", pluginsComponentTpl, nil)
-	c.SetOnMount(func(cmp *core.HTMLComponent) {
-		dom.SetText(dom.ByID("hello"), js.Get("t").Invoke("hello").String())
-	})
+type PluginsComponent struct{ *core.HTMLComponent }
+
+func NewPluginsComponent() *PluginsComponent {
+	hello := i18n.Signal("hello")
+	c := &PluginsComponent{}
+	c.HTMLComponent = core.NewComponentWith(
+		"PluginsComponent",
+		pluginsComponentTpl,
+		map[string]any{"hello": hello},
+		c,
+	)
+	dom.RegisterHandlerFunc("setEN", c.SetEN)
+	dom.RegisterHandlerFunc("setIT", c.SetIT)
 	return c
 }
+
+func (c *PluginsComponent) SetEN() { i18n.SetLang("en") }
+func (c *PluginsComponent) SetIT() { i18n.SetLang("it") }

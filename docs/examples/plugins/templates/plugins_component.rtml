@@ -4,10 +4,10 @@
         <p class="mb-4">Check the browser console when interacting below to see logs from the custom logger.</p>
         <div class="mb-6">
             <h3 class="font-semibold mb-2">i18n</h3>
-            <p id="hello" class="mb-2"></p>
+            <p class="mb-2">@signal:hello</p>
             <div class="flex gap-2">
-                <button class="bg-blue-500 text-white px-2 py-1 rounded" onclick="setLang('en'); document.getElementById('hello').innerText = t('hello')">EN</button>
-                <button class="bg-green-500 text-white px-2 py-1 rounded" onclick="setLang('it'); document.getElementById('hello').innerText = t('hello')">IT</button>
+                <button class="bg-blue-500 text-white px-2 py-1 rounded" @on:click:setEN>EN</button>
+                <button class="bg-green-500 text-white px-2 py-1 rounded" @on:click:setIT>IT</button>
             </div>
         </div>
     </div>
