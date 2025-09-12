@@ -39,9 +39,9 @@ func init() {
             "end":       reg.New("\\}"),
             "relevance": 0,
         })
-        arr := js.Get("Array").New()
-        arr.Call("push", interpolation)
-        contains := xml.Get("contains").Call("concat", arr)
+        arr := js.NewArray()
+        arr.Push(interpolation)
+        contains := js.ArrayOf(xml.Get("contains")).Concat(arr).Value
         return h.Call("inherit", xml, map[string]any{"contains": contains})
     })
 }
