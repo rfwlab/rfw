@@ -3,6 +3,8 @@
 ## Why
 Routing maps paths to components and keeps navigation in sync with browser history. The [Router API](../api/router) exposes registration and guard hooks.
 
+Paths can end with or without a trailing `/`; `/docs` and `/docs/` resolve to the same component.
+
 ```go
 router.RegisterRoute(router.Route{
     Path: "/",
