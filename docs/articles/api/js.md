@@ -39,3 +39,37 @@ js.Expose("goHello", func() {
 ```
 
 Direct imports of `syscall/js` should be limited to type references.
+
+## Array
+
+### Why
+Provides a typed wrapper for JavaScript arrays, avoiding direct global lookups.
+
+### When to use
+Use when constructing or manipulating arrays from Go code targeting `js/wasm`.
+
+### How
+1. Create an array: `arr := js.NewArray()`.
+2. Push values: `arr.Push(1, 2)`.
+3. Inspect length or elements with `arr.Length()` and `arr.Index(i)`.
+
+### API
+- `js.NewArray(items ...any) js.Array`
+- `js.ArrayOf(v js.Value) js.Array`
+- `(js.Array).Push(items ...any) int`
+- `(js.Array).Concat(arrs ...js.Array) js.Array`
+- `(js.Array).Length() int`
+
+### Example
+```go
+arr := js.NewArray()
+arr.Push("a", "b")
+first := arr.Index(0).String()
+```
+
+### Notes
+- Only available with the `js/wasm` build tag.
+- The wrapper embeds `js.Value`; all `Value` methods remain available.
+
+### Related links
+- [highlightjs shim](./shims/highlightjs)

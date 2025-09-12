@@ -46,6 +46,34 @@ func Undefined() Value { return jst.Undefined() }
 // ValueOf converts a Go value to a JavaScript value.
 func ValueOf(v any) Value { return jst.ValueOf(v) }
 
+// Array represents a JavaScript Array instance.
+type Array struct{ Value }
+
+// NewArray constructs a new JavaScript Array.
+func NewArray(items ...any) Array {
+	return Array{Value: Get("Array").New(items...)}
+}
+
+// ArrayOf wraps an existing JavaScript value as an Array.
+func ArrayOf(v Value) Array { return Array{Value: v} }
+
+// Push appends items to the array and returns the new length.
+func (a Array) Push(items ...any) int {
+	return a.Call("push", items...).Int()
+}
+
+// Concat merges the array with additional arrays.
+func (a Array) Concat(arrs ...Array) Array {
+	args := make([]any, len(arrs))
+	for i, arr := range arrs {
+		args[i] = arr.Value
+	}
+	return Array{Value: a.Call("concat", args...)}
+}
+
+// Length reports the number of elements in the array.
+func (a Array) Length() int { return a.Get("length").Int() }
+
 // TypedArrayOf converts a Go slice to a JavaScript typed array.
 func TypedArrayOf(slice any) jst.Value {
 	g := jst.Global()
