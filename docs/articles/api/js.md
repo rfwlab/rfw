@@ -20,8 +20,8 @@ common globals.
 | `Fetch(args...)` | Wrapper for the global `fetch` function. |
 
 Additional helpers provide access to common objects like `Console()`,
-`History()`, `LocalStorage()` and constructors such as
-`MutationObserver()` and `IntersectionObserver()`.
+`History()`, `LocalStorage()`, `Math()`, and `RegExp()` and constructors such as
+`Image()`, `MutationObserver()`, `IntersectionObserver()`, and `WebAssembly()`.
 
 For higher-level HTTP helpers built on top of `fetch`, see the
 [`http` package](./http).

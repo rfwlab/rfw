@@ -31,5 +31,6 @@ func init() {
 - Shims are available only when targeting `js/wasm`.
 
 ## Related links
-- [js](../js)
-- [highlightjs](highlightjs)
+ - [js](../js)
+ - [highlightjs](highlightjs)
+ - [marked](marked)
