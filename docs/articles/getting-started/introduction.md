@@ -96,4 +96,4 @@ During a build, the `rfw` CLI embeds the template into the component and outputs
 
 ## Next Steps
 
-Continue with the [Quick Start](./quick-start.md) to scaffold your first project and learn how to compile and serve the Wasm bundle. The sidebar lists additional guides covering templates, state management, components, and more.
+Continue with the [Quick Start](./quick-start) to scaffold your first project and learn how to compile and serve the Wasm bundle. The sidebar lists additional guides covering templates, state management, components, and more.

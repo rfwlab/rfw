@@ -1,12 +1,12 @@
 # Assets
 
 Efficient asset loading allows applications to fetch images, JSON data, and binary models at runtime without blocking rendering.
-The `assets` package provides asynchronous helpers with caching so repeated requests return immediately. See the [assets API reference](../api/assets.md) for detailed function signatures.
+The `assets` package provides asynchronous helpers with caching so repeated requests return immediately. See the [assets API reference](../api/assets) for detailed function signatures.
 
 ## When to Use
 
 Use these loaders when your application needs to fetch external images, configuration JSON or binary model formats such as glTF
-after the initial page load. They integrate with the [`http` package](../api/http.md) and return `http.ErrPending` while a
+after the initial page load. They integrate with the [`http` package](../api/http) and return `http.ErrPending` while a
 request is in flight, making them suitable for components that rely on suspense patterns.
 
 ## How It Works
@@ -16,7 +16,7 @@ request is in flight, making them suitable for components that rely on suspense 
 3. Handle `http.ErrPending` to show a loading state while the asset downloads.
 4. The result is cached by URL; subsequent calls return instantly.
 
-All loaders return `http.ErrPending` until the asset is ready. `LoadJSON` delegates to [`http.FetchJSON`](../api/http.md#usage)
+All loaders return `http.ErrPending` until the asset is ready. `LoadJSON` delegates to [`http.FetchJSON`](../api/http#usage)
 for fetching and decoding.
 
 ## Example
@@ -46,6 +46,6 @@ the cache and avoid additional network requests.
 
 ## Related
 
-- [Assets Plugin](./assets-plugin.md)
-- [http package](../api/http.md)
-- [Assets API](../api/assets.md)
+- [Assets Plugin](./assets-plugin)
+- [http package](../api/http)
+- [Assets API](../api/assets)
