@@ -75,11 +75,15 @@ func buildRoute(r Route) route {
 		}
 	}
 
-	suffix := "$"
+	pathRegex := strings.Join(regexParts, "/")
+	suffix := "/?$"
 	if len(r.Children) > 0 {
 		suffix = "(?:/|$)"
 	}
-	pattern := "^/" + strings.Join(regexParts, "/") + suffix
+	if pathRegex == "" {
+		suffix = "$"
+	}
+	pattern := "^/" + pathRegex + suffix
 	rt := route{
 		pattern:    r.Path,
 		regex:      regexp.MustCompile(pattern),

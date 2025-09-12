@@ -18,6 +18,19 @@ Client-side router with lazy loaded components and guards.
 Routes are defined with `router.RegisterRoute` by specifying the path and the
 component to mount. `router.InitRouter` starts the router.
 
+### Trailing slashes
+
+Routes accept an optional trailing `/`. Registering `Path: "/trail"` matches
+both `/trail` and `/trail/`, while `/trail/extra` is still treated as
+unregistered.
+
+```go
+router.RegisterRoute(router.Route{
+    Path: "/trail",
+    Component: func() core.Component { return components.NewTrailComponent() },
+})
+```
+
 ### Nested routes
 
 `Children []Route` lets a route own additional sub-routes. Child paths are
