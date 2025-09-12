@@ -38,13 +38,14 @@ func (p *Plugin) Install(a *core.App) {
 			cls := el.Get("className").String()
 			lang := ""
 			for _, c := range strings.Split(cls, " ") {
-				if strings.HasPrefix(c, "language-") {
-					lang = strings.TrimPrefix(c, "language-")
+				lc := strings.ToLower(c)
+				if strings.HasPrefix(lc, "language-") {
+					lang = strings.TrimPrefix(lc, "language-")
 					break
 				}
 			}
 			if lang == "" {
-				lang = el.Get("dataset").Get("lang").String()
+				lang = strings.ToLower(el.Get("dataset").Get("lang").String())
 			}
 			code := el.Get("textContent").String()
 			if res, ok := Highlight(code, lang); ok {
