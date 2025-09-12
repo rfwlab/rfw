@@ -144,7 +144,9 @@ func BindEventListeners(componentID string, root js.Value) {
 				return nil
 			})
 			if mods["once"] {
-				node.Call("addEventListener", b.Event, wrapped, js.ValueOf(map[string]any{"once": true}))
+				opts := js.NewDict()
+				opts.Set("once", true)
+				node.Call("addEventListener", b.Event, wrapped, opts.Value)
 			} else {
 				node.Call("addEventListener", b.Event, wrapped)
 			}
@@ -181,7 +183,9 @@ func BindEventListeners(componentID string, root js.Value) {
 						return nil
 					})
 					if modifiers["once"] {
-						node.Call("addEventListener", event, wrapped, js.ValueOf(map[string]any{"once": true}))
+						opts := js.NewDict()
+						opts.Set("once", true)
+						node.Call("addEventListener", event, wrapped, opts.Value)
 					} else {
 						node.Call("addEventListener", event, wrapped)
 					}
