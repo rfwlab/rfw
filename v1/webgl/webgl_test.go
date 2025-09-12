@@ -60,3 +60,31 @@ func TestWrappersInvokeContext(t *testing.T) {
 		}
 	}
 }
+
+func TestBufferDataFloat32UsesTypedArray(t *testing.T) {
+	var received js.Value
+	obj := js.Call("Object")
+
+	f := js.FuncOf(func(this js.Value, args []js.Value) any {
+		received = args[1]
+		return nil
+	})
+	defer f.Release()
+	obj.Set("bufferData", f)
+
+	ctx := Context{v: obj}
+	data := []float32{1, 2, 3}
+	ctx.BufferDataFloat32(ARRAY_BUFFER, data, STATIC_DRAW)
+
+	if !received.InstanceOf(js.Float32Array()) {
+		t.Fatalf("expected Float32Array, got %v", received)
+	}
+	if n := received.Get("length").Int(); n != len(data) {
+		t.Fatalf("expected length %d, got %d", len(data), n)
+	}
+	for i, v := range data {
+		if received.Index(i).Float() != float64(v) {
+			t.Fatalf("element %d mismatch", i)
+		}
+	}
+}

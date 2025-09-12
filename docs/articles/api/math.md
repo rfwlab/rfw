@@ -26,8 +26,10 @@ model := m.Scale(m.Vec3{1, 1, 1})
 mvp := proj.Mul(view).Mul(model)
 
 loc := ctx.GetUniformLocation(prog, "u_mvp")
-arr := js.TypedArrayOf(mvp[:])
-defer arr.Release()
+arr := js.Float32Array().New(len(mvp))
+for i, v := range mvp {
+    arr.SetIndex(i, v)
+}
 ctx.Call("uniformMatrix4fv", loc, false, arr)
 ```
 
@@ -40,20 +42,20 @@ Use when performing 2D or 3D transformations in WebGL components.
 1. Build projection with `math.Perspective` or `math.Orthographic`.
 2. Create model and view matrices using `math.Translation` and `math.Scale`.
 3. Combine them via `Mat4.Mul`.
-4. Convert the matrix to a typed array with `js.TypedArrayOf` and upload it via `Context.Call("uniformMatrix4fv", ...)`.
+4. Convert the matrix to a typed array with `js.Float32Array().New(len(mvp))` and upload it via `Context.Call("uniformMatrix4fv", ...)`.
 
 ### APIs used
 
 - `Vec2`, `Vec3`
 - `Mat4`, `Identity`, `Translation`, `Scale`, `Perspective`, `Orthographic`
 - `webgl.Context.Call`
-- `js.TypedArrayOf`
+- `js.Float32Array`
 
 ### Notes and Limitations
 
 - Matrices are column-major and use `float32` precision.
 - Only basic operations are provided.
-- Release typed arrays created with `js.TypedArrayOf` to free resources.
+- Arrays created with `js.Float32Array().New` are managed by JavaScript and need no manual release.
 
 ### Related links
 
