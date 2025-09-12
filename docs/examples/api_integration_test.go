@@ -7,20 +7,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/rfwlab/rfw/docs/examples/components"
+	rfwhttp "github.com/rfwlab/rfw/v1/http"
 )
 
-func TestFetchData(t *testing.T) {
+func TestFetchJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"title":"ok"}`))
 	}))
 	defer srv.Close()
 
-	data, err := components.FetchData(srv.URL)
-	if err != nil {
+	var todo struct {
+		Title string `json:"title"`
+	}
+	if err := rfwhttp.FetchJSON(srv.URL, &todo); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if data != "ok" {
-		t.Fatalf("expected 'ok', got %s", data)
+	if todo.Title != "ok" {
+		t.Fatalf("expected 'ok', got %s", todo.Title)
 	}
 }
