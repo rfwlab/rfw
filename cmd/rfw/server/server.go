@@ -125,7 +125,9 @@ func (s *Server) listenForCommands() {
 		case "o":
 			utils.Info("Opening the browser...")
 			url := fmt.Sprintf("http://localhost:%s/", s.Port)
-			utils.OpenBrowser(url)
+			if err := utils.OpenBrowser(url); err != nil {
+				utils.Info(fmt.Sprintf("Failed to open browser: %v", err))
+			}
 		default:
 			utils.Info("Unknown command. Press 'h' for help.")
 		}
