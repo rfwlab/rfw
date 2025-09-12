@@ -206,6 +206,16 @@
         "path": "api/js.md"
       },
       {
+        "title": "shims",
+        "path": "api/shims/index.md",
+        "children": [
+          {
+            "title": "highlightjs",
+            "path": "api/shims/highlightjs.md"
+          }
+        ]
+      },
+      {
         "title": "http",
         "path": "api/http.md"
       },
@@ -282,6 +292,10 @@
   {
     "title": "Legacy Notes",
     "path": "legacy.md"
+  },
+  {
+    "title": "Changelog",
+    "path": "changelog.md"
   },
   {
     "title": "Devtools",
