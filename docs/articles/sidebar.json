@@ -296,6 +296,10 @@
         "path": "api/pathfinding.md"
       },
       {
+        "title": "shortcut",
+        "path": "api/shortcut.md"
+      },
+      {
         "title": "webgl",
         "path": "api/webgl.md"
       }
