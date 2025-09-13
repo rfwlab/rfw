@@ -2,6 +2,6 @@
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
         <p>Count: @store:app.default.count</p>
         <p>Double: @store:app.default.double</p>
-        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:increment>Increment</button>
+        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:increment>Increment</button>
     </div>
 </root>
