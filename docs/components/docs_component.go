@@ -32,6 +32,7 @@ type DocsComponent struct {
 
 func NewDocsComponent() *DocsComponent {
 	c := &DocsComponent{titles: make(map[string]string)}
+	dom.RegisterHandlerFunc("navHome", func() { router.Navigate("/") })
 	c.HTMLComponent = core.NewComponent("DocsComponent", docsTpl, nil).WithLifecycle(c.mount, c.unmount)
 	return c
 }
@@ -41,15 +42,6 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 	doc := dom.Doc()
 
 	// intercept top nav links to use the router
-	if home := doc.Query("nav a[href='/']"); home.Truthy() {
-		ch := events.Listen("click", home.Value)
-		go func() {
-			for evt := range ch {
-				evt.Call("preventDefault")
-				router.Navigate("/")
-			}
-		}()
-	}
 	if docs := doc.Query("nav a[href='/docs/index']"); docs.Truthy() {
 		ch := events.Listen("click", docs.Value)
 		go func() {
