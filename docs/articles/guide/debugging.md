@@ -1,6 +1,6 @@
 # Debugging
 
-RFW provides a development overlay to inspect the component tree and view
+rfw provides a development overlay to inspect the component tree and view
 console logs. Start the development server with the `--debug` flag to
 automatically inject the overlay into served pages.
 

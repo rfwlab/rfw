@@ -13,10 +13,10 @@
     "docs": {},
     "bundler": {},
     "seo": {
-      "title": "RFW",
-      "pattern": "%s | RFW",
+      "title": "rfw",
+      "pattern": "%s | rfw",
       "meta": {
-        "description": "RFW documentation"
+        "description": "rfw documentation"
       }
     },
     "copy": {

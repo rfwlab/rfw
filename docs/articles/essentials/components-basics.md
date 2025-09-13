@@ -1,10 +1,10 @@
 # Components Basics
 
-Components are the building blocks of every RFW application. A component pairs a Go struct with an RTML template and exposes reactive state through exported fields. When those fields change, the DOM updates automatically.
+Components are the building blocks of every rfw application. A component pairs a Go struct with an RTML template and exposes reactive state through exported fields. When those fields change, the DOM updates automatically.
 
 ## Defining a Component
 
-Create a struct that embeds `*core.HTMLComponent` and register its template. The `SetComponent` call wires the struct so RFW can track exported fields.
+Create a struct that embeds `*core.HTMLComponent` and register its template. The `SetComponent` call wires the struct so rfw can track exported fields.
 
 ```go
 package components
@@ -86,4 +86,4 @@ For a full list of lifecycle helpers, see the [Lifecycle hooks](../api/core#life
 
 Components can nest by including each other in RTML. Slots allow parents to inject markup into predefined outlets of a child component. This enables flexible layouts while keeping logic isolated.
 
-Understanding components is key to structuring RFW apps. The following chapters build on this foundation to explore reactivity and data flow in more depth.
+Understanding components is key to structuring rfw apps. The following chapters build on this foundation to explore reactivity and data flow in more depth.

@@ -12,7 +12,7 @@ func NewInitCommand() *command.Command {
 	cmd := &command.Command{
 		Name:        "init",
 		Usage:       "init <project-name>",
-		Description: "Initialize a new RFW project",
+		Description: "Initialize a new rfw project",
 		Run:         runInit,
 	}
 	cmd.AddBoolFlag("skip-tidy", "", "Skip running go mod tidy", false, false)

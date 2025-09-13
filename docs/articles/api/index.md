@@ -1,6 +1,6 @@
 # API Overview
 
-The RFW framework exposes a collection of focused packages. Each package
+The rfw framework exposes a collection of focused packages. Each package
 encapsulates a domain of functionality, allowing applications to pull in
 only the pieces they need. This overview outlines the areas covered by the
 public API surface and how the packages fit together.
@@ -8,14 +8,14 @@ public API surface and how the packages fit together.
 Core runtime behaviour is provided by packages such as
 [core](core), [dom](dom), [events](events) and
 [state](state). They implement the rendering loop, DOM bindings and
-reactive primitives that form the foundation of every RFW application.
+reactive primitives that form the foundation of every rfw application.
 
 Application level utilities build on top of this foundation. The
 [router](router) package offers client‑side navigation, while
 [http](http), [assets](assets), [js](js) and [markdown](markdown) simplify
 communication with servers, JavaScript interop and markdown rendering.
 
-RFW is designed to run in multiple environments. The [host](host) and
+rfw is designed to run in multiple environments. The [host](host) and
 [hostclient](hostclient) packages integrate the runtime with external
 systems, and [plugins](plugins) lets developers extend the framework
 with custom features. The [docs plugin](docs-plugin) powers this site

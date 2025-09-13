@@ -91,7 +91,7 @@ const markup = `
   <span>rfw</span>
 </button>
 
-<section id="rfwDevtools" class="rfw-overlay hidden" data-rfw-ignore role="dialog" aria-modal="false" aria-label="RFW DevTools">
+<section id="rfwDevtools" class="rfw-overlay hidden" data-rfw-ignore role="dialog" aria-modal="false" aria-label="rfw DevTools">
   <div class="rfw-resize-h" data-resize="h"></div>
 
   <header class="rfw-header">

@@ -105,7 +105,7 @@ func main() {
 
 ## Official plugins
 
-RFW ships with a few ready-made plugins. The `i18n` package adds
+rfw ships with a few ready-made plugins. The `i18n` package adds
 basic string translation helpers:
 
 ```go

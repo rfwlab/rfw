@@ -1,35 +1,35 @@
 {
-    "name": "rtml-syntax-highlighting",
-    "displayName": "RTML Syntax Highlighting",
-    "description": "Syntax highlighting for RTML (RFW Template Markup Language)",
-    "version": "0.0.1",
-    "publisher": "fabricatorsltd",
-    "engines": {
-        "vscode": "^1.50.0"
-    },
-    "categories": [
-        "Programming Languages"
-    ],
-    "contributes": {
-        "languages": [
-            {
-                "id": "rtml",
-                "aliases": [
-                    "RTML",
-                    "rtml"
-                ],
-                "extensions": [
-                    ".rtml"
-                ],
-                "configuration": "./language-configuration.json"
-            }
+  "name": "rtml-syntax-highlighting",
+  "displayName": "RTML Syntax Highlighting",
+  "description": "Syntax highlighting for RTML (rfw Template Markup Language)",
+  "version": "0.0.1",
+  "publisher": "fabricatorsltd",
+  "engines": {
+    "vscode": "^1.50.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rtml",
+        "aliases": [
+          "RTML",
+          "rtml"
         ],
-        "grammars": [
-            {
-                "language": "rtml",
-                "scopeName": "text.html.rtml",
-                "path": "./syntaxes/rtml.tmLanguage.json"
-            }
-        ]
-    }
+        "extensions": [
+          ".rtml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rtml",
+        "scopeName": "text.html.rtml",
+        "path": "./syntaxes/rtml.tmLanguage.json"
+      }
+    ]
+  }
 }

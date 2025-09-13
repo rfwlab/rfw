@@ -1,7 +1,7 @@
 //go:build js && wasm
 
 // Package router implements a simple client-side router for WebAssembly
-// applications built with RFW.
+// applications built with rfw.
 package router
 
 import (

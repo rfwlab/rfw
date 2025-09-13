@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide walks through creating and running your first RFW application using the command‑line interface. All commands assume a Go environment configured for WebAssembly.
+This guide walks through creating and running your first rfw application using the command‑line interface. All commands assume a Go environment configured for WebAssembly.
 
 ## Install the CLI
 
