@@ -11,9 +11,8 @@ import (
 
 // Parse converts Markdown source to HTML.
 func Parse(src string) string {
-	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
-		Flags: blackfriday.CommonHTMLFlags,
-	})
+	flags := blackfriday.CommonHTMLFlags &^ blackfriday.Smartypants &^ blackfriday.SmartypantsFractions &^ blackfriday.SmartypantsDashes &^ blackfriday.SmartypantsLatexDashes
+	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{Flags: flags})
 	out := blackfriday.Run(
 		[]byte(src),
 		blackfriday.WithExtensions(blackfriday.CommonExtensions),

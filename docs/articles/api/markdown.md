@@ -35,6 +35,7 @@ func render(md string) {
 ## Notes and Limitations
 - Raw HTML in the source is preserved.
 - Heading ids follow a simple slug algorithm and may change if text repeats.
+- Smart punctuation is disabled so directives like `@include` keep plain quotes.
 
 ## Related links
 - [docs plugin](docs-plugin)
