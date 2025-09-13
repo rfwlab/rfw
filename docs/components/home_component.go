@@ -6,9 +6,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"time"
 
-	anim "github.com/rfwlab/rfw/v1/animation"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
 	js "github.com/rfwlab/rfw/v1/js"
@@ -21,67 +19,6 @@ var homeTpl []byte
 func NewHomeComponent() *core.HTMLComponent {
 	count := state.NewSignal(0)
 	c := core.NewComponent("HomeComponent", homeTpl, map[string]any{"count": count})
-
-	snippets := []map[string]string{
-		{"title": "GO component 1", "image": "/slide-1.png"},
-		{"title": "Go component 2", "image": "/slide-2.png"},
-		{"title": "RTML", "image": "/slide-3.png"},
-		{"title": "Browser Preview", "image": "/slide-4.png"},
-	}
-
-	// Track viewed snippets
-	viewed := make([]bool, len(snippets))
-
-	// Update the story card using the template markup
-	renderSnippet := func(index int) {
-		if index < 0 || index >= len(snippets) {
-			return
-		}
-
-		doc := dom.Doc()
-		snippet := snippets[index]
-		image := doc.ByID("story-image")
-		bars := doc.QueryAll("#progress-bars > div > div")
-		if !image.Truthy() || bars.Length() != len(snippets) {
-			return
-		}
-
-		image.Set("src", snippet["image"])
-		image.Set("alt", snippet["title"])
-
-		for i := 0; i < bars.Length(); i++ {
-			bar := bars.Index(i)
-			classList := bar.Get("classList")
-			classList.Call("remove", "bg-white/20", "bg-white/80", "animate-[story-progress_5s_linear]")
-			if viewed[i] {
-				classList.Call("add", "bg-white/80")
-			} else {
-				classList.Call("add", "bg-white/20")
-			}
-			if i == index {
-				classList.Call("remove", "bg-white/20")
-				classList.Call("add", "bg-white/80", "animate-[story-progress_5s_linear]")
-			}
-		}
-
-		anim.Fade("#story-image", 0, 1, 500*time.Millisecond)
-	}
-
-	// Start the carousel
-	go func() {
-		current := 0
-		for {
-			renderSnippet(current)
-			viewed[current] = true
-			current = (current + 1) % len(snippets)
-			if current == 0 {
-				for i := range viewed {
-					viewed[i] = false
-				}
-			}
-			time.Sleep(5 * time.Second)
-		}
-	}()
 
 	cart := state.NewStore("cart", state.WithHistory(20))
 	if cart.Get("items") == nil {
@@ -181,5 +118,24 @@ func NewHomeComponent() *core.HTMLComponent {
 		}
 	})
 
+	dom.RegisterHandlerFunc("showRTML", func() { show("rtml") })
+	dom.RegisterHandlerFunc("showGO", func() { show("go") })
+	dom.RegisterHandlerFunc("showPreview", func() { show("preview") })
+
 	return c
+}
+
+func show(target string) {
+	tabs := []string{"rtml", "go", "preview"}
+	for _, t := range tabs {
+		body := dom.Doc().ByID("body-" + t)
+		tab := dom.Doc().ByID("tab-" + t)
+		if t == target {
+			body.RemoveClass("hidden")
+			tab.AddClass("inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-red-500 text-red-600 bg-white/80 dark:bg-[#111111]")
+		} else {
+			body.AddClass("hidden")
+			tab.AddClass("inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-transparent text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/50 dark:hover:bg-[#141414]")
+		}
+	}
 }
