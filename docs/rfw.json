@@ -12,6 +12,13 @@
     "pages": {},
     "docs": {},
     "bundler": {},
+    "seo": {
+      "title": "RFW",
+      "pattern": "%s | RFW",
+      "meta": {
+        "description": "RFW documentation"
+      }
+    },
     "copy": {
       "files": [
         {

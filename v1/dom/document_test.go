@@ -12,3 +12,10 @@ func TestDocumentElementBasics(t *testing.T) {
 		t.Fatalf("Text() = %q", got)
 	}
 }
+
+func TestDocumentHead(t *testing.T) {
+	doc := Doc()
+	if node := doc.Head().Get("nodeName").String(); node != "HEAD" {
+		t.Fatalf("Head() node = %q", node)
+	}
+}

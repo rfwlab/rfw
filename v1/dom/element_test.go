@@ -38,3 +38,13 @@ func TestElementCollections(t *testing.T) {
 		t.Fatalf("ToggleClass/HasClass failed")
 	}
 }
+
+func TestElementAppendChild(t *testing.T) {
+	doc := Doc()
+	parent := doc.CreateElement("div")
+	child := doc.CreateElement("span")
+	parent.AppendChild(child)
+	if got := parent.Query("span"); !got.Truthy() {
+		t.Fatalf("AppendChild() did not append")
+	}
+}
