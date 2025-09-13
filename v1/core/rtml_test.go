@@ -53,3 +53,18 @@ Start
 		t.Fatalf("unexpected branches present: %s", out)
 	}
 }
+
+// Tests constructor decorators for refs and keyed lists.
+func TestReplaceConstructors(t *testing.T) {
+	tpl := `<div [header] class="box"></div>`
+	out := replaceConstructors(tpl)
+	if out != `<div class="box" data-ref="header"></div>` {
+		t.Fatalf("unexpected constructor replacement: %s", out)
+	}
+
+	tpl = `<li [key {item.ID}]></li>`
+	out = replaceConstructors(tpl)
+	if out != `<li data-key="{item.ID}"></li>` {
+		t.Fatalf("expected data-key constructor, got %s", out)
+	}
+}

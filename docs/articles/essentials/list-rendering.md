@@ -18,11 +18,11 @@ When items are added or removed, RFW patches only the affected `<li>` elements.
 
 ## Keyed Updates
 
-Provide a stable key with `data-key` to reorder lists efficiently:
+Provide a stable key with the `[key {expr}]` constructor to reorder lists efficiently:
 
 ```rtml
 @for:todo in todos
-  <li data-key="{todo.ID}">{todo.Text}</li>
+  <li [key {todo.ID}]>{todo.Text}</li>
 @endfor
 ```
 
