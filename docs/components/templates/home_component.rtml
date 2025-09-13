@@ -172,7 +172,7 @@
           </div>
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
             <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">architecture</span><div class="font-semibold">Developer Experience</div></div>
-            <div class="text-sm text-zinc-700 dark:text-zinc-400">Built-in development and production server, devtools for components, signals, stores, network and more. Enjoy a full developer experience with rfw.
+            <div class="text-sm text-zinc-700 dark:text-zinc-400">Built-in development and production server, devtools for components, signals, stores, network and more. Enjoy a full developer experience with rfw.</div>
             <div class="mt-4 grid grid-cols-6 gap-1" id="dxGrid"></div>
           </div>
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
