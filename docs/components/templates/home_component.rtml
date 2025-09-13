@@ -76,9 +76,9 @@
             <span id="sig-dot" class="inline-block h-2 w-2 outlined-full rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
           <div class="flex items-center gap-3">
-            <button id="dec" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">remove</span>Dec</button>
-            <div class="flex-1 flex items-center justify-center text-4xl font-semibold tabular-nums select-none"><span id="count">0</span></div>
-            <button id="inc" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">add</span>Inc</button>
+            <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:dec><span class="material-symbols-outlined text-[20px]">remove</span>Dec</button>
+            <div class="flex-1 flex items-center justify-center text-4xl font-semibold tabular-nums select-none"><span>@signal:count</span></div>
+            <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:inc><span class="material-symbols-outlined text-[20px]">add</span>Inc</button>
           </div>
           <div class="mt-4 grid grid-cols-5 gap-1" id="spark"></div>
         </div>
@@ -112,16 +112,18 @@
 
     <section class="py-12 border-t border-gray-200 dark:border-zinc-700 bg-gradient-to-b from-white/60 to-white/80 dark:from-[#1a1a1a] dark:to-[#111111]">
       <div class="max-w-6xl mx-auto px-6">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Playground: store-driven UI</h2>
+        <div class="flex items-start flex-col mb-6">
+          <h2 class="text-7xl font-bold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">RTML</h2>
+          <p class="text-xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Reactive Text Markup Language</p>
         </div>
         <div class="grid md:grid-cols-2 gap-6">
-          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex flex-col outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
             <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">database</span><div class="font-semibold">Cart Store</div></div>
-            <div class="flex items-center gap-3">
-              <button id="addItem" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>Add</button>
-              <button id="undo" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">undo</span>Undo</button>
-              <button id="redo" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">redo</span>Redo</button>
+            <div class="flex items-center gap-3 flex-1">
+              <span class="inline-flex items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-3 py-2">@store:default.cart.count</span>
+              <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:add><span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>Add</button>
+              <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:undo><span class="material-symbols-outlined text-[20px]">undo</span>Undo</button>
+              <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:redo><span class="material-symbols-outlined text-[20px]">redo</span>Redo</button>
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3" id="cart"></div>
           </div>
@@ -142,7 +144,7 @@
     <section class="py-12 bg-lightbg dark:bg-darkbg border-t border-gray-200 dark:border-zinc-700">
       <div class="max-w-6xl mx-auto px-6">
         <div class="flex items-center justify-between mb-8">
-          <h2 class="text-xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Built-in goodies</h2>
+          <h2 class="text-5xl font-bold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Built-in goodies</h2>
           <a href="/docs/index" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">menu_book</span>Explore Docs</a>
         </div>
         <div class="grid md:grid-cols-3 gap-6">
@@ -167,7 +169,7 @@
         <div class="grid md:grid-cols-3 gap-6 items-stretch">
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
             <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">speed</span><div class="font-semibold">Performance</div></div>
-            <div class="text-sm text-zinc-700 dark:text-zinc-400">Tiny Wasm bundles, no Node pipeline required.</div>
+            <div class="text-sm text-zinc-700 dark:text-zinc-400">Tiny Wasm bundles, no Node pipeline required. Small and efficient Javascript generation, optimized for performance. Blazing fast rendering, for real.</div>
             <div class="mt-4 h-2 bg-zinc-200/60 dark:bg-zinc-800 rounded-full outlined-full overflow-hidden"><div class="rounded-full h-full w-3/4 bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500 animate-[pulse_2s_ease-in-out_infinite]"></div></div>
           </div>
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
@@ -219,35 +221,4 @@ rfw dev --debug
   <style>
     @keyframes bar { from { width:0% } to { width:100% } }
   </style>
-
-  <script>
-    (function(){
-      const countEl = document.getElementById('count');
-      const inc = document.getElementById('inc');
-      const dec = document.getElementById('dec');
-      const spark = document.getElementById('spark');
-      const cart = document.getElementById('cart');
-      const add = document.getElementById('addItem');
-      const undo = document.getElementById('undo');
-      const redo = document.getElementById('redo');
-      const dxGrid = document.getElementById('dxGrid');
-
-      let c = 0; const history = []; let idx = -1;
-      function setCount(v){ c = v; countEl.textContent = String(c); drawSpark(); }
-      function pushState(items){ history.splice(idx+1); history.push(items.slice()); idx = history.length-1; renderCart(); }
-      function renderCart(){ cart.innerHTML = ''; (history[idx]||[]).forEach((i)=>{ const d=document.createElement('div'); d.className='outlined-xl border border-zinc-200 dark:border-zinc-700 p-3 bg-white/70 dark:bg-[#111111]'; d.textContent = i; cart.appendChild(d); }); }
-      function drawSpark(){ spark.innerHTML=''; const n=20; for(let i=0;i<n;i++){ const h=document.createElement('div'); h.className='h-8 outlined'; h.style.background='linear-gradient(90deg,var(--tw-gradient-stops))'; h.style.opacity=0.5; h.style.animation='bar 1.2s ease'; h.style.animationDelay= (i*40)+'ms'; h.style.width = (Math.max(2, (c%10)*8))+'%'; spark.appendChild(h); } }
-
-      inc && inc.addEventListener('click',()=>setCount(c+1));
-      dec && dec.addEventListener('click',()=>setCount(Math.max(0,c-1)));
-
-      add && add.addEventListener('click',()=>{ const items = (history[idx]||[]).slice(); const id = 'Item #'+String(items.length+1); items.unshift(id); pushState(items); });
-      undo && undo.addEventListener('click',()=>{ if(idx>0){ idx--; renderCart(); } });
-      redo && redo.addEventListener('click',()=>{ if(idx<history.length-1){ idx++; renderCart(); } });
-
-      if(dxGrid){ for(let i=0;i<48;i++){ const d=document.createElement('div'); d.className='h-3 outlined bg-zinc-200/60 dark:bg-zinc-800'; if(i%7===0) d.className+=' animate-pulse'; dxGrid.appendChild(d); } }
-
-      setCount(0); pushState([]);
-    })();
-  </script>
 </root>
