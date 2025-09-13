@@ -129,7 +129,7 @@
           </div>
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
             <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">code_blocks</span><div class="font-semibold">RTML</div></div>
-            <pre class="text-sm overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code>
+            <pre class="text-sm overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code class="language-rtml">
 &lt;div class="card"&gt;
   &lt;span&gt;@store:cart.count&lt;/span&gt;
   &lt;button @on:click:add&gt;Add&lt;/button&gt;
