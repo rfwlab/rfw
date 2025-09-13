@@ -21,6 +21,14 @@ type Plugin interface {
 // Implementing this interface is optional.
 type Named interface{ Name() string }
 
+// Requires allows plugins to declare mandatory dependencies.
+// Implementing this interface is optional.
+type Requires interface{ Requires() []Plugin }
+
+// Optional allows plugins to declare optional dependencies.
+// Implementing this interface is optional.
+type Optional interface{ Optional() []Plugin }
+
 // PreBuilder allows plugins to execute logic before the CLI build step.
 // Implementing this interface is optional.
 type PreBuilder interface {
@@ -136,6 +144,26 @@ func RegisterPlugin(p Plugin) {
 			app.plugins = make(map[string]Plugin)
 		}
 		app.plugins[n.Name()] = p
+	}
+	if r, ok := p.(Requires); ok {
+		for _, dep := range r.Requires() {
+			if dn, ok := dep.(Named); ok {
+				if app.HasPlugin(dn.Name()) {
+					continue
+				}
+			}
+			RegisterPlugin(dep)
+		}
+	}
+	if o, ok := p.(Optional); ok {
+		for _, dep := range o.Optional() {
+			if dn, ok := dep.(Named); ok {
+				if app.HasPlugin(dn.Name()) {
+					continue
+				}
+			}
+			RegisterPlugin(dep)
+		}
 	}
 	p.Install(app)
 }
