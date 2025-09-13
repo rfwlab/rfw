@@ -24,18 +24,71 @@
             </div>
         </div>
 
-        <div id="examples" class="relative max-w-[400px] h-max flex items-center justify-center">
-          <div class="relative w-full p-3 pt-11 outlined-2xl shadow-2xl text-white overflow-hidden"
-               style="background-image: url('/slide-bg.png'); background-size: cover; background-position: center; min-height: 400px; min-width: 400px;">
-            <img id="story-image" src="/slide-1.png" alt="GO component 1" class="w-full h-auto outlined-md shadow-lg" style="opacity: 0; min-height: 200px; min-width: 300px;">
-            <div id="progress-bars" class="absolute top-5 left-0 w-4/5 flex mx-auto right-0 h-1">
-              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
-              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
-              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
-              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
+        <div id="examples" class="relative max-w-[640px] w-full">
+          <div class="relative w-full rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur shadow-2xl overflow-hidden">
+
+            <div class="flex items-stretch gap-1 px-2 pt-2">
+              <button
+                id="tab-rtml"
+                class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-red-500 text-red-600 bg-white/80 dark:bg-[#111111]"
+                @on:click:showRTML
+              >
+                <span class="material-symbols-outlined text-[16px]">code_blocks</span> greeting.rtml
+              </button>
+              <button
+                id="tab-go"
+                class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-transparent text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/50 dark:hover:bg-[#141414]"
+                @on:click:showGO
+              >
+                <span class="material-symbols-outlined text-[16px]">code</span> greeting.go
+              </button>
+              <button
+                id="tab-preview"
+                class="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-transparent text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/50 dark:hover:bg-[#141414]"
+                @on:click:showPreview
+              >
+                <span class="material-symbols-outlined text-[16px]">visibility</span> preview
+              </button>
+            </div>
+
+            <div class="p-0">
+              <div id="body-rtml" class="flex">
+                <div class="select-none text-[11px] leading-5 px-3 py-4 text-zinc-400 dark:text-zinc-500 bg-white/60 dark:bg-[#121212] border-r border-zinc-200 dark:border-zinc-700">
+                  1<br>2<br>3
+                </div>
+                <pre class="w-full text-sm overflow-auto bg-white/60 dark:bg-[#121212] p-4"><code class="language-rtml">&lt;root&gt;
+    &lt;h1&gt;Howdy, @store:user.name&lt;/span&gt;
+&lt;/root&gt;</code></pre>
+              </div>
+
+              <div id="body-go" class="hidden">
+                <div class="flex">
+                  <div class="select-none text-[11px] leading-5 px-3 py-4 text-zinc-400 dark:text-zinc-500 bg-white/60 dark:bg-[#121212] border-r border-zinc-200 dark:border-zinc-700">
+                    1<br>2<br>3<br>4<br>5<br>6<br>7
+                  </div>
+                  <pre class="w-full text-sm overflow-auto bg-white/60 dark:bg-[#121212] p-4"><code class="language-go">//go:embed templates/test_component.rtml
+var testComponentTpl []byte
+
+func NewTestComponent() *core.HTMLComponent {
+\tc := core.NewComponent("MyComponent", testComponentTpl, map[string]any{})
+    store := state.GlobalStoreManager.GetStore("user", "default")
+    store.Set("name", "John Doe")
+\treturn c
+}</code></pre>
+                </div>
+              </div>
+
+              <div id="body-preview" class="hidden">
+                <div class="w-full h-[260px] bg-white/80 dark:bg-[#121212] flex items-center justify-center">
+                  <div class="p-8 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/90 dark:bg-[#181818] shadow-lg">
+                    <h1 class="text-2xl md:text-3xl font-semibold text-zinc-800 dark:text-zinc-100">Howdy, John Doe</span></h1>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
 
     </section>
 
