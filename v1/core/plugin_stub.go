@@ -11,6 +11,8 @@ type Plugin interface {
 }
 
 type Named interface{ Name() string }
+type Requires interface{ Requires() []Plugin }
+type Optional interface{ Optional() []Plugin }
 
 type PreBuilder interface{ PreBuild(json.RawMessage) error }
 type PostBuilder interface{ PostBuild(json.RawMessage) error }
