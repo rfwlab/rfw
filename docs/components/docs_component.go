@@ -238,7 +238,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			if idx > 0 {
 				prev := c.order[idx-1]
 				a := doc.CreateElement("a")
-				a.Set("className", "text-blue-600")
+				a.Set("className", "text-white")
 				a.Set("href", "/docs/"+prev)
 				a.Set("textContent", "\u2190 "+c.titleFor(prev))
 				ch := events.Listen("click", a.Value)
@@ -253,7 +253,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			if idx >= 0 && idx < len(c.order)-1 {
 				next := c.order[idx+1]
 				a := doc.CreateElement("a")
-				a.Set("className", "ml-auto text-blue-600")
+				a.Set("className", "ml-auto text-white")
 				a.Set("href", "/docs/"+next)
 				a.Set("textContent", c.titleFor(next)+" \u2192")
 				ch := events.Listen("click", a.Value)
