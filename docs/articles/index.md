@@ -42,7 +42,7 @@ func NewCounter() *core.HTMLComponent {
 
 ```html
 <root>
-  <button @click:increment>Count is: {count}</button>
+  <button @on:click:increment>Count is: {count}</button>
 </root>
 ```
 
