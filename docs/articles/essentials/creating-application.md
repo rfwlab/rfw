@@ -1,10 +1,10 @@
 # Creating an Application
 
-This guide walks through the structure of a basic RFW application and explains how Go components, RTML templates, and the router come together to mount an interface in the browser.
+This guide walks through the structure of a basic rfw application and explains how Go components, RTML templates, and the router come together to mount an interface in the browser.
 
 ## Project Layout
 
-An RFW project pairs each Go component with an `.rtml` template and ships with a host folder for server components. The `rfw init` command scaffolds this layout for you:
+An rfw project pairs each Go component with an `.rtml` template and ships with a host folder for server components. The `rfw init` command scaffolds this layout for you:
 
 ```
 hello-rfw/
@@ -59,7 +59,7 @@ The generated `main.go` compiles to WebAssembly. To run it in the browser, inclu
 </script>
 ```
 
-A future release will expose a global `rfw` object so that RFW APIs can be accessed directly from JavaScript without importing Go helpers.
+A future release will expose a global `rfw` object so that rfw APIs can be accessed directly from JavaScript without importing Go helpers.
 
 ## Defining the Root Component
 

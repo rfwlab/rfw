@@ -12,10 +12,10 @@ Use when an application needs to update `<title>` or `<meta>` elements dynamical
 {
   "plugins": {
     "seo": {
-      "title": "RFW",
-      "pattern": "%s | RFW",
+      "title": "rfw",
+      "pattern": "%s | rfw",
       "meta": {
-        "description": "RFW documentation"
+        "description": "rfw documentation"
       }
     }
   }
@@ -41,10 +41,10 @@ seo.SetMeta("description", "Page description")
 ## Example
 ```go
 p := seo.New()
-_ = p.Build([]byte(`{"title":"RFW","pattern":"%s | RFW"}`))
+_ = p.Build([]byte(`{"title":"rfw","pattern":"%s | rfw"}`))
 p.Install(nil)
 seo.SetTitle("Docs")
-seo.SetMeta("description", "RFW documentation")
+seo.SetMeta("description", "rfw documentation")
 ```
 
 ## Notes and Limitations

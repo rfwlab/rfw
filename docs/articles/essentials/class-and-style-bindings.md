@@ -26,7 +26,7 @@ Inline styles accept a similar map syntax. Keys are CSS properties in camelCase 
 <div style="{ map('backgroundColor', color, 'width', width + 'px') }"></div>
 ```
 
-RFW updates only the changed properties, leaving others untouched.
+rfw updates only the changed properties, leaving others untouched.
 
 ## Binding Objects
 
