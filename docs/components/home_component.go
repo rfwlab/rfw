@@ -132,10 +132,10 @@ func show(target string) {
 		tab := dom.Doc().ByID("tab-" + t)
 		if t == target {
 			body.RemoveClass("hidden")
-			tab.AddClass("inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-red-500 text-red-600 bg-white/80 dark:bg-[#111111]")
+			tab.SetAttr("class", "inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-red-500 text-red-600 bg-white/80 dark:bg-[#111111]")
 		} else {
 			body.AddClass("hidden")
-			tab.AddClass("inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-transparent text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/50 dark:hover:bg-[#141414]")
+			tab.SetAttr("class", "inline-flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-t-md border-b-2 border-transparent text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white/50 dark:hover:bg-[#141414]")
 		}
 	}
 }
