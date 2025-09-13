@@ -14,6 +14,7 @@ import (
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
 	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/plugins/i18n"
+	shortcut "github.com/rfwlab/rfw/v1/plugins/shortcut"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 )
@@ -48,6 +49,7 @@ func main() {
 	core.RegisterPlugin(highlight.New())
 	core.RegisterPlugin(soccer.New())
 	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
+	core.RegisterPlugin(shortcut.New())
 
 	router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
 
@@ -125,6 +127,10 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/cinema",
 		Component: func() core.Component { return excomponents.NewCinemaComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/shortcut",
+		Component: func() core.Component { return excomponents.NewShortcutComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/plugins",

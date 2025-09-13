@@ -1,0 +1,6 @@
+<root>
+  <div class="space-y-2">
+    <p>Press Ctrl+K to increment the counter.</p>
+    <p>Count: @signal:count</p>
+  </div>
+</root>
