@@ -23,14 +23,15 @@ func NewInputComponent() *core.HTMLComponent {
 	m.BindMouse("pan", 1)
 	m.BindMouse("rotate", 2)
 
+	doc := dom.Doc()
 	var loop js.Func
 	loop = js.FuncOf(func(this js.Value, args []js.Value) any {
 		cam := m.Camera()
-		dom.SetText(dom.ByID("camera"), fmt.Sprintf("pos(%.0f,%.0f) zoom %.2f rot %.0f", cam.Position.X, cam.Position.Y, cam.Zoom, cam.Rotation))
+		doc.ByID("camera").SetText(fmt.Sprintf("pos(%.0f,%.0f) zoom %.2f rot %.0f", cam.Position.X, cam.Position.Y, cam.Zoom, cam.Rotation))
 		if start, end, dragging := m.DragRect(); dragging {
-			dom.SetText(dom.ByID("drag"), fmt.Sprintf("drag (%.0f,%.0f)-(%.0f,%.0f)", start.X, start.Y, end.X, end.Y))
+			doc.ByID("drag").SetText(fmt.Sprintf("drag (%.0f,%.0f)-(%.0f,%.0f)", start.X, start.Y, end.X, end.Y))
 		} else {
-			dom.SetText(dom.ByID("drag"), "")
+			doc.ByID("drag").SetText("")
 		}
 		js.RequestAnimationFrame(loop)
 		return nil

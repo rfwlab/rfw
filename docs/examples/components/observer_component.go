@@ -32,6 +32,7 @@ func NewObserverComponent() *ObserverComponent {
 
 func (c *ObserverComponent) Mount() {
 	c.HTMLComponent.Mount()
+	doc := dom.Doc()
 	mutCh, stopMut := events.ObserveMutations("#observeMe")
 	c.stopMut = stopMut
 	go func() {
@@ -46,13 +47,13 @@ func (c *ObserverComponent) Mount() {
 	}()
 
 	// Button to mutate the observed node and trigger MutationObserver.
-	mutateBtn := dom.ByID("mutateBtn")
-	mutateCh := events.Listen("click", mutateBtn)
+	mutateBtn := doc.ByID("mutateBtn")
+	mutateCh := events.Listen("click", mutateBtn.Value)
 	go func() {
 		for range mutateCh {
-			node := dom.ByID("observeMe")
-			child := dom.CreateElement("span")
-			node.Call("appendChild", child)
+			node := doc.ByID("observeMe")
+			child := doc.CreateElement("span")
+			node.Call("appendChild", child.Value)
 		}
 	}()
 
@@ -71,11 +72,11 @@ func (c *ObserverComponent) Mount() {
 	}()
 
 	// Button to toggle visibility and trigger IntersectionObserver.
-	toggleBtn := dom.ByID("toggleBtn")
-	toggleCh := events.Listen("click", toggleBtn)
+	toggleBtn := doc.ByID("toggleBtn")
+	toggleCh := events.Listen("click", toggleBtn.Value)
 	go func() {
 		for range toggleCh {
-			el := dom.Query(".watched")
+			el := doc.Query(".watched")
 			style := el.Get("style")
 			if style.Get("display").String() == "none" {
 				style.Set("display", "block")

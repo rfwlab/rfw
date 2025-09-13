@@ -48,16 +48,17 @@ func NewPathfindingComponent() *core.HTMLComponent {
 
 			res := <-ch // GridPathResult{Path, Found, Err}
 
+			doc := dom.Doc()
 			switch {
 			case res.Err != nil:
-				dom.SetText(dom.ByID("path-output"), fmt.Sprintf("Error: %v", res.Err))
+				doc.ByID("path-output").SetText(fmt.Sprintf("Error: %v", res.Err))
 			case !res.Found:
-				dom.SetText(dom.ByID("path-output"), "No path found.")
+				doc.ByID("path-output").SetText("No path found.")
 			default:
 				// Render ASCII map with path overlay.
 				txt := renderGridASCII(grid, start, goal, res.Path)
 				info := fmt.Sprintf("Found: %v\nPath: %v\n\n%s", res.Found, res.Path, txt)
-				dom.SetText(dom.ByID("path-output"), info)
+				doc.ByID("path-output").SetText(info)
 			}
 		}()
 	})

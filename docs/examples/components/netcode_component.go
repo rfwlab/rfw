@@ -43,7 +43,7 @@ func NewNetcodeComponent() *core.HTMLComponent {
 			tick += 50
 			client.Flush(tick)
 			s := client.State(tick)
-			dom.SetText(dom.ByID("pos"), fmt.Sprintf("x: %.1f", s.X))
+			dom.Doc().ByID("pos").SetText(fmt.Sprintf("x: %.1f", s.X))
 		}
 	}()
 	dom.RegisterHandlerFunc("move", func() {

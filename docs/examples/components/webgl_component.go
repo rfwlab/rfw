@@ -68,20 +68,21 @@ func init() {
 }
 
 func fullscreen() {
-	doc := js.Document()
+	doc := dom.Doc()
 	fs := doc.Get("fullscreenElement")
 	if !fs.IsUndefined() && !fs.IsNull() {
 		doc.Call("exitFullscreen")
 	} else {
-		dom.ByID("game-container").Call("requestFullscreen")
+		doc.ByID("game-container").Call("requestFullscreen")
 	}
 }
 
 func startGame() {
+	doc := dom.Doc()
 	if ctx.Value().IsUndefined() || ctx.Value().IsNull() {
 		ctx = webgl.NewContext("glcanvas")
 		ctx.ClearColor(0, 0, 0, 1)
-		canvas := dom.ByID("glcanvas")
+		canvas := doc.ByID("glcanvas")
 		ctx.Viewport(0, 0, canvas.Get("width").Int(), canvas.Get("height").Int())
 		ctx.Enable(webgl.DEPTH_TEST)
 		ctx.DepthFunc(webgl.LEQUAL)
@@ -170,7 +171,7 @@ void main(){
 	elapsed = 0
 	updateScore()
 	newFood()
-	dom.AddClass(dom.ByID("menu"), "hidden")
+	doc.ByID("menu").AddClass("hidden")
 }
 
 func updateLoop(t game.Ticker) {
@@ -227,6 +228,7 @@ type renderEntity struct{ color [4]float32 }
 func (e *renderEntity) Components() []scene.Component { return nil }
 
 func moveSnake() {
+	doc := dom.Doc()
 	head := snake[0]
 	nx := int(head.Transform.X) + dir.x
 	ny := int(head.Transform.Y) + dir.y
@@ -245,7 +247,7 @@ func moveSnake() {
 	for _, s := range snake {
 		if int(s.Transform.X) == nx && int(s.Transform.Y) == ny {
 			running = false
-			dom.RemoveClass(dom.ByID("menu"), "hidden")
+			doc.ByID("menu").RemoveClass("hidden")
 			return
 		}
 	}
@@ -315,5 +317,5 @@ func newFood() {
 }
 
 func updateScore() {
-	dom.SetText(dom.ByID("score"), fmt.Sprintf("Score: %d", score))
+	dom.Doc().ByID("score").SetText(fmt.Sprintf("Score: %d", score))
 }

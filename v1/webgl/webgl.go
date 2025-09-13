@@ -21,7 +21,7 @@ type Context struct{ v js.Value }
 // provided id. It returns an empty Context if the canvas or context is not
 // available.
 func NewContext(canvasID string) Context {
-	canvas := dom.ByID(canvasID)
+	canvas := dom.Doc().ByID(canvasID)
 	if canvas.IsNull() || canvas.IsUndefined() {
 		return Context{}
 	}

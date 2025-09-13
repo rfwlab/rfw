@@ -30,7 +30,7 @@ func init() {
 }
 
 func (e *exampleFrame) mount(hc *core.HTMLComponent) {
-	root := dom.Query("[data-component-id='" + hc.GetID() + "']")
+	root := dom.Doc().Query("[data-component-id='" + hc.GetID() + "']")
 	if !root.Truthy() {
 		return
 	}

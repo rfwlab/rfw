@@ -12,7 +12,7 @@ import (
 
 // VirtualList renders only the portion of a list that is visible within its container.
 type VirtualList struct {
-	Container  js.Value
+	Container  dom.Element
 	Total      int
 	ItemHeight int
 	Render     func(i int) string
@@ -22,12 +22,12 @@ type VirtualList struct {
 // NewVirtualList attaches a virtualized list to the element with the given id.
 func NewVirtualList(containerID string, total, itemHeight int, render func(i int) string) *VirtualList {
 	v := &VirtualList{
-		Container:  dom.ByID(containerID),
+		Container:  dom.Doc().ByID(containerID),
 		Total:      total,
 		ItemHeight: itemHeight,
 		Render:     render,
 	}
-	v.stopScroll = events.OnScroll(v.Container, func(js.Value) {
+	v.stopScroll = events.OnScroll(v.Container.Value, func(js.Value) {
 		v.update()
 	})
 	v.update()
@@ -48,7 +48,7 @@ func (v *VirtualList) update() {
 	}
 	offsetBottom := (v.Total - end) * v.ItemHeight
 	html += fmt.Sprintf("<div style='height:%dpx'></div>", offsetBottom)
-	dom.SetInnerHTML(v.Container, html)
+	v.Container.SetHTML(html)
 }
 
 // Destroy removes scroll listeners and cleans up resources.

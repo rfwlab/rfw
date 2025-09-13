@@ -12,7 +12,7 @@ import (
 
 // query returns the first element matching sel.
 func query(sel string) js.Value {
-	return dom.Query(sel)
+	return dom.Doc().Query(sel).Value
 }
 
 // animate drives a requestAnimationFrame loop for the given duration and

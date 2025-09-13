@@ -33,9 +33,10 @@ func NewHomeComponent() *core.HTMLComponent {
 			return
 		}
 
+		doc := dom.Doc()
 		snippet := snippets[index]
-		image := dom.ByID("story-image")
-		bars := dom.QueryAll("#progress-bars > div > div")
+		image := doc.ByID("story-image")
+		bars := doc.QueryAll("#progress-bars > div > div")
 		if !image.Truthy() || bars.Length() != len(snippets) {
 			return
 		}

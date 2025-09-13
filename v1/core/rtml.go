@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/v1/dom"
-	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -543,11 +542,12 @@ func evaluateCondition(condition string, c *HTMLComponent) (bool, []ConditionDep
 }
 
 func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue any) {
-	var element js.Value
+	doc := dom.Doc()
+	var element dom.Element
 	if c.ID == "" {
-		element = dom.ByID("app")
+		element = doc.ByID("app")
 	} else {
-		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -598,11 +598,12 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 }
 
 func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
-	var element js.Value
+	doc := dom.Doc()
+	var element dom.Element
 	if c.ID == "" {
-		element = dom.ByID("app")
+		element = doc.ByID("app")
 	} else {
-		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -974,11 +975,12 @@ func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
 }
 
 func updateForeachBindings(c *HTMLComponent, foreachID string) {
-	var element js.Value
+	doc := dom.Doc()
+	var element dom.Element
 	if c.ID == "" {
-		element = dom.ByID("app")
+		element = doc.ByID("app")
 	} else {
-		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -998,11 +1000,12 @@ func updateForeachBindings(c *HTMLComponent, foreachID string) {
 }
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
-	var element js.Value
+	doc := dom.Doc()
+	var element dom.Element
 	if c.ID == "" {
-		element = dom.ByID("app")
+		element = doc.ByID("app")
 	} else {
-		element = dom.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
 	}
 	if element.IsNull() || element.IsUndefined() {
 		return
