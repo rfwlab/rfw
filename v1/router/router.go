@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
@@ -38,8 +39,11 @@ type route struct {
 	guards     []Guard
 }
 
-var routes []route
-var currentComponent core.Component
+var (
+	routes             []route
+	currentComponent   core.Component
+	exposeNavigateOnce sync.Once
+)
 
 // NotFoundComponent, if set, is rendered when no route matches the path.
 var NotFoundComponent func() core.Component
@@ -197,12 +201,43 @@ func Navigate(fullPath string) {
 	js.History().Call("pushState", nil, "", fullPath)
 }
 
-// ExposeNavigate makes the Navigate function accessible from JavaScript.
+// CanNavigate reports whether the specified path matches a registered route.
+func CanNavigate(fullPath string) bool {
+	path := fullPath
+	if idx := strings.Index(fullPath, "?"); idx != -1 {
+		path = fullPath[:idx]
+	}
+	r, _, _ := matchRoute(routes, path)
+	return r != nil
+}
+
+// ExposeNavigate makes the Navigate function accessible from JavaScript and
+// automatically routes internal anchor clicks.
 func ExposeNavigate() {
-	js.ExposeFunc("goNavigate", func(this js.Value, args []js.Value) any {
-		path := args[0].String()
-		Navigate(path)
-		return nil
+	exposeNavigateOnce.Do(func() {
+		js.ExposeFunc("goNavigate", func(this js.Value, args []js.Value) any {
+			path := args[0].String()
+			Navigate(path)
+			return nil
+		})
+
+		events.On("click", js.Document(), func(evt js.Value) {
+			link := evt.Get("target").Call("closest", "a[href]")
+			if !link.Truthy() {
+				return
+			}
+			if t := link.Get("target").String(); t != "" && t != "_self" {
+				return
+			}
+			if link.Get("origin").String() != js.Location().Get("origin").String() {
+				return
+			}
+			path := link.Get("pathname").String() + link.Get("search").String()
+			if CanNavigate(path) {
+				evt.Call("preventDefault")
+				Navigate(path)
+			}
+		})
 	})
 }
 

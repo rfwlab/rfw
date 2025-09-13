@@ -6,12 +6,21 @@ Client-side router with lazy loaded components and guards.
 | --- | --- |
 | `RegisterRoute(Route)` | Adds a route definition. |
 | `Navigate(path)` | Programmatically changes the URL. |
+| `CanNavigate(path) bool` | Reports whether a path matches a registered route. |
 | `InitRouter()` | Starts the router and listens for navigation events. |
-| `ExposeNavigate()` | Exposes navigation to JavaScript as `goNavigate`. |
+| `ExposeNavigate()` | Exposes navigation to JavaScript as `goNavigate` and auto-routes internal links. |
 | `NotFoundComponent` / `NotFoundCallback` | Handle unmatched routes. |
 | `Reset()` | Clears registered routes and the current component, useful in tests. |
 | `Route.Children []Route` | Nests routes under a parent. |
 | `Guard` | Runs before navigation and can cancel by returning `false`. |
+
+`CanNavigate` helps determine whether a path is registered before navigating:
+
+```go
+if router.CanNavigate(path) {
+    router.Navigate(path)
+}
+```
 
 ## Usage
 
@@ -51,9 +60,9 @@ router.RegisterRoute(router.Route{
 
 ### Navigating from JavaScript
 
-Call `router.ExposeNavigate()` to register a global `goNavigate(path)` function.
-This is often combined with `router.InitRouter()` to allow links or other
-handlers to navigate without reloading the page.
+Call `router.ExposeNavigate()` to register a global `goNavigate(path)` function
+and automatically route internal `<a>` clicks. Combine it with
+`router.InitRouter()` so the initial page loads correctly.
 
 ```go
 router.ExposeNavigate()
@@ -61,7 +70,8 @@ router.InitRouter()
 ```
 
 ```html
-<a href="/docs" onclick="goNavigate('/docs'); return false">Docs</a>
+<a href="/docs">Docs</a> <!-- internal links are routed -->
+<button onclick="goNavigate('/docs')">Docs</button> <!-- manual trigger -->
 ```
 
 Components that need access to route parameters can implement the `routeParamReceiver` interface:
