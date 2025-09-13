@@ -31,7 +31,8 @@ func (p *Plugin) Install(a *core.App) {
 	})
 
 	js.ExposeFunc("rfwHighlightAll", func(this js.Value, args []js.Value) any {
-		codes := dom.QueryAll("pre code")
+		doc := dom.Doc()
+		codes := doc.QueryAll("pre code")
 		length := codes.Length()
 		for i := 0; i < length; i++ {
 			el := codes.Index(i)
@@ -49,13 +50,14 @@ func (p *Plugin) Install(a *core.App) {
 			}
 			code := el.Get("textContent").String()
 			if res, ok := Highlight(code, lang); ok {
-				dom.SetInnerHTML(el, res)
+				el.SetHTML(res)
 			}
 		}
 		return nil
 	})
 
-	style := dom.CreateElement("style")
-	dom.SetInnerHTML(style, `.hl-kw{color:#ff7b72}.hl-tag{color:#7ee787}.hl-attr{color:#e3b341}.hl-string{color:#a5d6ff}.hl-comment{color:#8b949e;font-style:italic}.hl-var{color:#d2a8ff}.hl-cmd{color:#ffa657}`)
-	js.Doc().Get("head").Call("appendChild", style)
+	doc := dom.Doc()
+	style := doc.CreateElement("style")
+	style.SetHTML(`.hl-kw{color:#ff7b72}.hl-tag{color:#7ee787}.hl-attr{color:#e3b341}.hl-string{color:#a5d6ff}.hl-comment{color:#8b949e;font-style:italic}.hl-var{color:#d2a8ff}.hl-cmd{color:#ffa657}`)
+	doc.Query("head").Call("appendChild", style.Value)
 }

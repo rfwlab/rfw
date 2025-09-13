@@ -136,7 +136,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			continue
 		}
 		if b, ok := bindings[msg.Component]; ok {
-			root := dom.Query(fmt.Sprintf("[data-component-id='%s']", b.id))
+			root := dom.Doc().Query(fmt.Sprintf("[data-component-id='%s']", b.id))
 			if root.Truthy() {
 				for k, v := range msg.Payload {
 					el := root.Call("querySelector", fmt.Sprintf(`[data-host-var="%s"]`, k))

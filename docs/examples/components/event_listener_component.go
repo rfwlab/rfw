@@ -18,8 +18,8 @@ func NewEventListenerComponent() *core.HTMLComponent {
 	// Always start from zero to avoid residual persisted values.
 	c.Store.Set("clicks", float64(0))
 	c.SetOnMount(func(cmp *core.HTMLComponent) {
-		btn := dom.ByID("clickBtn")
-		ch := events.Listen("click", btn)
+		btn := dom.Doc().ByID("clickBtn")
+		ch := events.Listen("click", btn.Value)
 		go func() {
 			for range ch {
 				switch v := cmp.Store.Get("clicks").(type) {

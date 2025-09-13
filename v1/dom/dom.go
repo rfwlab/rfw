@@ -40,15 +40,16 @@ func getSignal(componentID, name string) any {
 var TemplateHook func(componentID, html string)
 
 // UpdateDOM patches the DOM of the specified component with the provided
-// HTML string.
+// HTML string, resolving the target via typed Document/Element wrappers.
 func UpdateDOM(componentID string, html string) {
-	var element js.Value
+	doc := Doc()
+	var element Element
 	if componentID == "" {
-		element = ByID("app")
+		element = doc.ByID("app")
 	} else {
-		element = Query(fmt.Sprintf("[data-component-id='%s']", componentID))
+		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", componentID))
 		if element.IsNull() || element.IsUndefined() {
-			element = ByID("app")
+			element = doc.ByID("app")
 		}
 	}
 	if element.IsNull() || element.IsUndefined() {
@@ -65,16 +66,16 @@ func UpdateDOM(componentID string, html string) {
 		}
 	}
 
-	patchInnerHTML(element, html)
+	patchInnerHTML(element.Value, html)
 
 	if TemplateHook != nil {
 		TemplateHook(componentID, html)
 	}
 
-	BindStoreInputs(element)
-	BindSignalInputs(componentID, element)
+	BindStoreInputs(element.Value)
+	BindSignalInputs(componentID, element.Value)
 
-	BindEventListeners(componentID, element)
+	BindEventListeners(componentID, element.Value)
 }
 
 // BindStoreInputs binds input elements to store variables.
