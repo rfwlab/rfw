@@ -25,7 +25,8 @@ emit their own notifications – a separate mechanism from DOM events.
 `On` attaches a handler and provides a cleanup function:
 
 ```go
-stop := events.OnClick(dom.ByID("btn"), func(evt js.Value) {
+doc := dom.Doc()
+stop := events.OnClick(doc.ByID("btn").Value, func(evt js.Value) {
         js.Console().Call("log", "clicked")
 })
 // ...

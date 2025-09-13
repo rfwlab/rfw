@@ -38,11 +38,11 @@ func NewDocsComponent() *DocsComponent {
 
 func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 	c.mounted = true
-	doc := js.Document()
+	doc := dom.Doc()
 
 	// intercept top nav links to use the router
-	if home := dom.Query("nav a[href='/']"); home.Truthy() {
-		ch := events.Listen("click", home)
+	if home := doc.Query("nav a[href='/']"); home.Truthy() {
+		ch := events.Listen("click", home.Value)
 		go func() {
 			for evt := range ch {
 				evt.Call("preventDefault")
@@ -50,8 +50,8 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			}
 		}()
 	}
-	if docs := dom.Query("nav a[href='/docs/index']"); docs.Truthy() {
-		ch := events.Listen("click", docs)
+	if docs := doc.Query("nav a[href='/docs/index']"); docs.Truthy() {
+		ch := events.Listen("click", docs.Value)
 		go func() {
 			for evt := range ch {
 				evt.Call("preventDefault")
@@ -68,13 +68,13 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			c.nav = js.JSON().Call("parse", sidebarJSON)
 			c.order = c.order[:0]
 			c.titles = map[string]string{}
-			sidebar := dom.ByID("sidebar")
-			sidebar.Set("innerHTML", "")
+			sidebar := doc.ByID("sidebar")
+			sidebar.SetHTML("")
 			c.renderSidebar(c.nav, sidebar, 0)
 		}
 	}
 	loadSidebar()
-	sidebarCh := events.Listen("rfwSidebar", doc)
+	sidebarCh := events.Listen("rfwSidebar", doc.Value)
 	go func() {
 		for range sidebarCh {
 			if !c.mounted {
@@ -84,16 +84,16 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 		}
 	}()
 
-	if search := dom.ByID("doc-search"); search.Truthy() {
-		results := dom.ByID("search-results")
-		inputCh := events.Listen("input", search)
+	if search := doc.ByID("doc-search"); search.Truthy() {
+		results := doc.ByID("search-results")
+		inputCh := events.Listen("input", search.Value)
 		go func() {
 			for range inputCh {
 				if !c.mounted {
 					continue
 				}
 				q := strings.ToLower(search.Get("value").String())
-				results.Set("innerHTML", "")
+				results.SetHTML("")
 				if q == "" {
 					results.Get("classList").Call("add", "hidden")
 					continue
@@ -104,24 +104,24 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 					if !strings.Contains(strings.ToLower(title), q) {
 						continue
 					}
-					a := dom.CreateElement("a")
+					a := doc.CreateElement("a")
 					a.Set("href", "/docs/"+link)
 					a.Set("textContent", title)
 					a.Set("className", "block px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700")
-					ch := events.Listen("mousedown", a)
+					ch := events.Listen("mousedown", a.Value)
 					go func(l string) {
 						for e := range ch {
 							if !c.mounted {
 								continue
 							}
 							e.Call("preventDefault")
-							results.Set("innerHTML", "")
+							results.SetHTML("")
 							results.Get("classList").Call("add", "hidden")
 							search.Set("value", "")
 							router.Navigate("/docs/" + l)
 						}
 					}(link)
-					results.Call("appendChild", a)
+					results.Call("appendChild", a.Value)
 					count++
 					if count >= 5 {
 						break
@@ -135,7 +135,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			}
 		}()
 
-		blurCh := events.Listen("blur", search)
+		blurCh := events.Listen("blur", search.Value)
 		go func() {
 			for range blurCh {
 				if !c.mounted {
@@ -149,7 +149,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 		}()
 	}
 
-	docCh := events.Listen("rfwDoc", doc)
+	docCh := events.Listen("rfwDoc", doc.Value)
 	go func() {
 		for evt := range docCh {
 			if !c.mounted {
@@ -165,7 +165,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			}
 			c.docComp = core.NewComponent("DocContent", []byte(html), nil)
 			c.HTMLComponent.AddDependency("doc", c.docComp)
-			dom.ByID("doc-content").Set("innerHTML", c.docComp.Render())
+			doc.ByID("doc-content").SetHTML(c.docComp.Render())
 			c.docComp.Mount()
 			if h := js.Get("rfwHighlightAll"); h.Truthy() {
 				h.Invoke()
@@ -173,7 +173,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 
 			headings := detail.Get("headings")
 			if headings.Truthy() {
-				contentEl := dom.ByID("doc-content")
+				contentEl := doc.ByID("doc-content")
 				idxByDepth := map[int]int{}
 				length := headings.Length()
 				for i := 0; i < length; i++ {
@@ -190,8 +190,8 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 				}
 			}
 
-			if toc := dom.ByID("toc"); toc.Truthy() {
-				toc.Set("innerHTML", "")
+			if toc := doc.ByID("toc"); toc.Truthy() {
+				toc.SetHTML("")
 				if headings.Truthy() {
 					length := headings.Length()
 					for i := 0; i < length; i++ {
@@ -199,20 +199,20 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 						id := h.Get("id").String()
 						text := h.Get("text").String()
 						depth := h.Get("depth").Int()
-						a := dom.CreateElement("a")
+						a := doc.CreateElement("a")
 						a.Set("href", "#"+id)
 						a.Set("textContent", text)
 						a.Set("className", "block py-1 pl-"+strconv.Itoa((depth-1)*4)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
-						ch := events.Listen("click", a)
+						ch := events.Listen("click", a.Value)
 						go func(i string) {
 							for e := range ch {
 								e.Call("preventDefault")
-								if el := dom.ByID(i); el.Truthy() {
+								if el := doc.ByID(i); el.Truthy() {
 									el.Call("scrollIntoView", map[string]any{"behavior": "smooth"})
 								}
 							}
 						}(id)
-						toc.Call("appendChild", a)
+						toc.Call("appendChild", a.Value)
 					}
 				}
 			}
@@ -225,37 +225,37 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 					break
 				}
 			}
-			nav := dom.ByID("doc-nav")
-			nav.Set("innerHTML", "")
+			nav := doc.ByID("doc-nav")
+			nav.SetHTML("")
 			if idx > 0 {
 				prev := c.order[idx-1]
-				a := dom.CreateElement("a")
+				a := doc.CreateElement("a")
 				a.Set("className", "text-blue-600")
 				a.Set("href", "/docs/"+prev)
 				a.Set("textContent", "\u2190 "+c.titleFor(prev))
-				ch := events.Listen("click", a)
+				ch := events.Listen("click", a.Value)
 				go func(p string) {
 					for e := range ch {
 						e.Call("preventDefault")
 						router.Navigate("/docs/" + p)
 					}
 				}(prev)
-				nav.Call("appendChild", a)
+				nav.Call("appendChild", a.Value)
 			}
 			if idx >= 0 && idx < len(c.order)-1 {
 				next := c.order[idx+1]
-				a := dom.CreateElement("a")
+				a := doc.CreateElement("a")
 				a.Set("className", "ml-auto text-blue-600")
 				a.Set("href", "/docs/"+next)
 				a.Set("textContent", c.titleFor(next)+" \u2192")
-				ch := events.Listen("click", a)
+				ch := events.Listen("click", a.Value)
 				go func(n string) {
 					for e := range ch {
 						e.Call("preventDefault")
 						router.Navigate("/docs/" + n)
 					}
 				}(next)
-				nav.Call("appendChild", a)
+				nav.Call("appendChild", a.Value)
 			}
 		}
 	}()
@@ -286,7 +286,8 @@ func (c *DocsComponent) unmount(hc *core.HTMLComponent) {
 	c.mounted = false
 }
 
-func (c *DocsComponent) renderSidebar(items js.Value, parent js.Value, level int) {
+func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level int) {
+	doc := dom.Doc()
 	length := items.Length()
 	for i := 0; i < length; i++ {
 		item := items.Index(i)
@@ -295,11 +296,11 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent js.Value, level int
 			link := strings.TrimSuffix(path.String(), ".md")
 			c.titles[link] = title
 			c.order = append(c.order, link)
-			a := dom.CreateElement("a")
+			a := doc.CreateElement("a")
 			a.Set("href", "/docs/"+link)
 			a.Set("textContent", title)
 			a.Set("className", "block py-1 pl-"+strconv.Itoa(4*level)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
-			ch := events.Listen("click", a)
+			ch := events.Listen("click", a.Value)
 			go func(l string) {
 				for evt := range ch {
 					if !c.mounted {
@@ -309,14 +310,14 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent js.Value, level int
 					router.Navigate("/docs/" + l)
 				}
 			}(link)
-			parent.Call("appendChild", a)
+			parent.Call("appendChild", a.Value)
 		}
 		if children := item.Get("children"); children.Truthy() {
 			if !item.Get("path").Truthy() && title != "" {
-				h := dom.CreateElement("div")
+				h := doc.CreateElement("div")
 				h.Set("textContent", title)
 				h.Set("className", "mt-4 mb-1 font-semibold text-gray-900 dark:text-white pl-"+strconv.Itoa(4*level))
-				parent.Call("appendChild", h)
+				parent.Call("appendChild", h.Value)
 			}
 			c.renderSidebar(children, parent, level+1)
 		}
