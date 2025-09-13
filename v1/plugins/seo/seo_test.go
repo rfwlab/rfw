@@ -38,3 +38,18 @@ func TestSetMetaUpdatesDocument(t *testing.T) {
 		t.Fatalf("expected 'hello', got %q", got)
 	}
 }
+
+func TestOverrideSetMeta(t *testing.T) {
+	prev := SetMeta
+	defer func() { SetMeta = prev }()
+	called := false
+	SetMeta = func(name, content string) {
+		if name == "custom" && content == "val" {
+			called = true
+		}
+	}
+	SetMeta("custom", "val")
+	if !called {
+		t.Fatalf("override not invoked")
+	}
+}

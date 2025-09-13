@@ -35,8 +35,8 @@ seo.SetMeta("description", "Page description")
 ```
 
 ## API
-- `func SetTitle(title string)`
-- `func SetMeta(name, content string)`
+- `var SetTitle func(title string)`
+- `var SetMeta func(name, content string)`
 
 ## Example
 ```go
@@ -48,7 +48,7 @@ seo.SetMeta("description", "RFW documentation")
 ```
 
 ## Notes and Limitations
-Creates missing `<title>` and `<meta>` elements in the document `<head>`. The `pattern` uses `fmt.Sprintf` semantics and should include a single `%s` placeholder.
+Creates missing `<title>` and `<meta>` elements in the document `<head>`. The `pattern` uses `fmt.Sprintf` semantics and should include a single `%s` placeholder. `SetTitle` and `SetMeta` may be reassigned before `core.RegisterPlugin` to customize behavior.
 
 ## Related links
 - [plugins](plugins)
