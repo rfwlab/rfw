@@ -113,21 +113,18 @@ func NewHomeComponent() *core.HTMLComponent {
 			return
 		}
 		spark.SetHTML("")
-		n := 20
-		width := (v % 10) * 8
-		if width < 2 {
-			width = 2
-		}
-		for i := 0; i < n; i++ {
-			h := dom.CreateElement("div")
-			h.AddClass("h-8")
-			h.AddClass("outlined")
-			h.SetStyle("background", "linear-gradient(90deg,var(--tw-gradient-stops))")
-			h.SetStyle("opacity", "0.5")
-			h.SetStyle("animation", "bar 1.2s ease")
-			h.SetStyle("animation-delay", fmt.Sprintf("%dms", i*40))
-			h.SetStyle("width", fmt.Sprintf("%d%%", width))
-			spark.AppendChild(h)
+
+		for i := 0; i < v; i++ {
+			dot := dom.CreateElement("div")
+			dot.AddClass("w-4")
+			dot.AddClass("h-4")
+			dot.AddClass("m-auto")
+			dot.AddClass("rounded-full")
+			dot.AddClass("outlined")
+			dot.SetStyle("background", "linear-gradient(90deg, #972b2b, #6e347e)")
+			dot.SetStyle("opacity", "0.7")
+			dot.SetStyle("display", "inline-block")
+			spark.AppendChild(dot)
 		}
 	}
 

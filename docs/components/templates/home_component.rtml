@@ -14,12 +14,12 @@
         <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
       </div>
     </nav>
-    <section class="flex flex-col md:flex-row gap-12 md:gap-0 justify-between items-center py-10 px-8 md:py-20 md:px-32 bg-[url(https://cdn.gxbs.dev/HeRO2/JUTiBejA45.png/raw)] dark:bg-[url(https://cdn.gxbs.dev/HeRO2/DUmaViCU01.png/raw)] bg-cover bg-center text-white border-b border-gray-200 dark:border-zinc-700">
+    <section class="flex flex-col md:flex-row gap-12 md:gap-0 justify-between items-center py-10 px-8 md:py-20 md:px-32 bg-[url(/raw.png)] dark:bg-[url(/raw-dark.ong)] bg-cover bg-center text-white border-b border-gray-200 dark:border-zinc-700">
         <div class="flex flex-col gap-8">
-            <h1 class="text-3xl text-center md:text-left md:text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with <span class="bg-clip-text text-transparent bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)]">Go</span>, <br>effortlessly</h1>
+            <h1 class="text-3xl text-center md:text-left md:text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with <span class="bg-clip-text text-transparent bg-[url(/btn.png)]">Go</span>, <br>effortlessly</h1>
             <p class="text-base md:text-lg text-center md:text-left text-black dark:text-white md:max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
             <div class="flex flex-row gap-2 items-center justify-center w-max">
-            <a href="/docs/getting-started/introduction" class="px-10 py-3 bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
+            <a href="/docs/getting-started/introduction" class="px-10 py-3 bg-[url(/btn.png)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
             <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-red-600 transition">Contribute</a>
             </div>
         </div>
@@ -75,7 +75,7 @@
             <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">bolt</span><h3 class="text-lg font-semibold">Live Signals</h3></div>
             <span id="sig-dot" class="inline-block h-2 w-2 outlined-full rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
-          <div class="flex items-center gap-3 flex-1">
+          <div class="flex items-start gap-3 flex-1">
             <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:dec><span class="material-symbols-outlined text-[20px]">remove</span>Dec</button>
             <div class="flex-1 flex items-center justify-center text-4xl font-semibold tabular-nums select-none"><span>@signal:count</span></div>
             <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:inc><span class="material-symbols-outlined text-[20px]">add</span>Inc</button>
@@ -119,7 +119,7 @@
         <div class="grid md:grid-cols-2 gap-6">
           <div class="flex flex-col outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
             <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">database</span><div class="font-semibold">Cart Store</div></div>
-            <div class="flex items-center gap-3 flex-1">
+            <div class="flex items-start gap-3 flex-1">
               <span class="inline-flex items-center justify-center rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-3 py-2">@store:default.cart.count</span>
               <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:add><span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>Add</button>
               <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:undo><span class="material-symbols-outlined text-[20px]">undo</span>Undo</button>
