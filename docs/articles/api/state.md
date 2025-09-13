@@ -16,7 +16,7 @@ Centralized reactive data stores.
 | `WithHistory(limit)` | Enable mutation history for `Undo`/`Redo` up to `limit` steps. |
 | `Undo()` | Revert the last mutation when history is enabled. |
 | `Redo()` | Reapply the last undone mutation when history is enabled. |
-| `ExposeUpdateStore()` | Expose `goUpdateStore` to JavaScript. |
+| `ExposeUpdateStore()` | Expose `goUpdateStore` to JavaScript for debugging or legacy scenarios. |
 | `SnapshotSignals()` | Copy of all tracked signals for debugging. |
 | `Action` | Function type executed with a context. |
 | `Dispatch(ctx, action)` | Execute an Action with a context. |
@@ -25,6 +25,19 @@ Centralized reactive data stores.
 Stores are the primary mechanism for application state. They emit
 notifications to any component that reads their values, keeping most apps
 free of handwritten JavaScript.
+
+### Mutating state in Go handlers
+
+Instead of relying on JavaScript bridges, stores can be updated directly in Go handlers:
+
+```go
+store := state.NewStore("app")
+
+http.HandleFunc("/inc", func(w http.ResponseWriter, r *http.Request) {
+        current, _ := store.Get("count").(int)
+        store.Set("count", current+1)
+})
+```
 
 For a comparison between store and signals, see [Stores vs signals](../guide/store-vs-signals).
 
