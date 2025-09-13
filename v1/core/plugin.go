@@ -39,6 +39,7 @@ type Uninstaller interface {
 // to attach to framework events.
 type App struct {
 	*hooks
+	pluginVars map[string]map[string]any
 }
 
 type hooks struct {
@@ -51,7 +52,7 @@ type hooks struct {
 
 // newApp creates an App with initialized hook storage.
 func newApp() *App {
-	return &App{hooks: &hooks{}}
+	return &App{hooks: &hooks{}, pluginVars: make(map[string]map[string]any)}
 }
 
 // RegisterRouter adds a router navigation hook.
@@ -77,6 +78,35 @@ func (a *App) RegisterLifecycle(mount, unmount func(Component)) {
 	if unmount != nil {
 		a.unmountHooks = append(a.unmountHooks, unmount)
 	}
+}
+
+// RegisterRTMLVar registers a value that can be referenced from RTML as
+// {plugin:NAME.VAR}.
+func (a *App) RegisterRTMLVar(plugin, name string, val any) {
+	if a.pluginVars == nil {
+		a.pluginVars = make(map[string]map[string]any)
+	}
+	if _, ok := a.pluginVars[plugin]; !ok {
+		a.pluginVars[plugin] = make(map[string]any)
+	}
+	a.pluginVars[plugin][name] = val
+}
+
+// getRTMLVar retrieves a registered plugin variable.
+func getRTMLVar(plugin, name string) (any, bool) {
+	if app.pluginVars == nil {
+		return nil, false
+	}
+	if vars, ok := app.pluginVars[plugin]; ok {
+		v, ok := vars[name]
+		return v, ok
+	}
+	return nil, false
+}
+
+// RegisterPluginVar is a convenience wrapper for plugins to expose variables.
+func RegisterPluginVar(plugin, name string, val any) {
+	app.RegisterRTMLVar(plugin, name, val)
 }
 
 var app = newApp()

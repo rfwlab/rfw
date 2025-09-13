@@ -218,7 +218,7 @@ RTML ships with a small set of built-in directives:
 - `@signal:name[:w]` – bind to a local signal.
 - `rt-is` – render a component dynamically.
 
-Commands may accept parameters or modifiers; see individual sections above for details.
+Commands may accept parameters or modifiers; see individual sections above for details. Plugins can also contribute `{plugin:NAME.var}` variables, `@plugin:NAME.cmd` commands and `[plugin:NAME.ref]` constructors. See the [Plugin API](../api/plugins.md#rtml-directives) and the [Plugin Directives](../guide/plugin-directives.md) guide for details and examples.
 
 ## Stores
 
