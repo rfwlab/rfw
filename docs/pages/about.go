@@ -10,6 +10,6 @@ import (
 // About renders the about page.
 func About() core.Component {
 	seo.SetTitle("About")
-	seo.SetMeta("description", "About RFW")
+	seo.SetMeta("description", "About rfw")
 	return core.NewComponent("AboutPage", []byte("<div>About Page</div>"), nil)
 }

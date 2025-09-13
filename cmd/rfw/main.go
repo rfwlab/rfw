@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	rootCmd := root.NewRootCommand("rfw", "rfw [command]", "RFW command line interface", core.Version)
+	rootCmd := root.NewRootCommand("rfw", "rfw [command]", "rfw command line interface", core.Version)
 
 	rootCmd.AddCommand(commands.NewInitCommand())
 	rootCmd.AddCommand(commands.NewDevCommand())

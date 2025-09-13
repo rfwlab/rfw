@@ -1,6 +1,6 @@
 # Event Handling
 
-Interactivity in RFW is driven by events. Templates register listeners with the `@on:` directive while Go code defines the handlers. RFW wires them together and cleans up automatically.
+Interactivity in rfw is driven by events. Templates register listeners with the `@on:` directive while Go code defines the handlers. rfw wires them together and cleans up automatically.
 
 ## DOM Events
 
@@ -26,7 +26,7 @@ Modifiers such as `.prevent`, `.stop`, or `.once` may be appended after the even
 
 ### Event Modifiers
 
-RFW supports a small set of modifiers that adjust how a listener behaves:
+rfw supports a small set of modifiers that adjust how a listener behaves:
 
 | Modifier | Description |
 |----------|-------------|

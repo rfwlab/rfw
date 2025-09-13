@@ -1,12 +1,12 @@
 # Introduction
 
-You are reading the documentation for RFW.
+You are reading the documentation for rfw.
 
-## What is RFW?
+## What is rfw?
 
-RFW (Reactive Framework for the Web) is a progressive framework for building user interfaces with Go and WebAssembly. It builds on top of standard HTML, CSS, and JavaScript and provides a declarative, component-based programming model that lets you author your entire UI in Go. When compiled to Wasm, RFW runs in the browser with minimal runtime overhead.
+rfw (Reactive Framework for the Web) is a progressive framework for building user interfaces with Go and WebAssembly. It builds on top of standard HTML, CSS, and JavaScript and provides a declarative, component-based programming model that lets you author your entire UI in Go. When compiled to Wasm, rfw runs in the browser with minimal runtime overhead.
 
-Templates are written in **RTML**, an HTML-like language extended with directives that bind the DOM to Go data or events. When state changes, RFW automatically updates the affected DOM nodes—no manual DOM manipulation is needed.
+Templates are written in **RTML**, an HTML-like language extended with directives that bind the DOM to Go data or events. When state changes, rfw automatically updates the affected DOM nodes—no manual DOM manipulation is needed.
 
 ## A Minimal Example
 
@@ -58,7 +58,7 @@ func main() {
 Mounting this component in the browser shows a button whose label increments each time it is clicked. The example demonstrates two core features:
 
 - **Declarative Rendering** – the RTML template describes the DOM based on Go state.
-- **Reactivity** – RFW tracks mutations and efficiently patches only the nodes that changed.
+- **Reactivity** – rfw tracks mutations and efficiently patches only the nodes that changed.
 
 You may already have questions—don't worry. The rest of the documentation explores these concepts in detail.
 
@@ -70,22 +70,22 @@ The guides assume basic familiarity with:
 - JavaScript
 - Go
 
-Browser integration currently uses plain JavaScript; TypeScript isn't supported yet. A future release will expose a global `rfw` object to let you call RFW APIs directly from JavaScript.
+Browser integration currently uses plain JavaScript; TypeScript isn't supported yet. A future release will expose a global `rfw` object to let you call rfw APIs directly from JavaScript.
 
 ## The Progressive Framework
 
-The web spans a wide range of use cases. RFW is designed to be flexible and adoptable incrementally:
+The web spans a wide range of use cases. rfw is designed to be flexible and adoptable incrementally:
 
 - **Enhance existing pages** by mounting individual components into server-rendered HTML.
 - **Build single-page applications** using the router and dev server.
 - **Render on the server** with Host Components and hydrate on the client.
 - **Target other environments** such as desktop or mobile shells that can run WebAssembly.
 
-Whichever entry point you choose, the core knowledge of components, reactivity, and templates remains the same. As your application grows, the skills you learn continue to apply—RFW grows with you.
+Whichever entry point you choose, the core knowledge of components, reactivity, and templates remains the same. As your application grows, the skills you learn continue to apply—rfw grows with you.
 
 ## Single-File Components
 
-Most RFW projects pair a Go source file with an `.rtml` template:
+Most rfw projects pair a Go source file with an `.rtml` template:
 
 ```
 counter.go

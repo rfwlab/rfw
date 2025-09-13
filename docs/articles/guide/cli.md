@@ -4,7 +4,7 @@ The `rfw` command-line interface manages project scaffolding, development and bu
 
 ## `rfw init <module>`
 
-Creates a new RFW project by cloning a template and initializing a Go module.
+Creates a new rfw project by cloning a template and initializing a Go module.
 
 Flags:
 

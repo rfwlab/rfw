@@ -1,6 +1,6 @@
 # Reactivity Fundamentals
 
-RFW reactivity keeps the DOM synchronized with Go data. Any exported field on a component becomes a reactive source. When its value changes, RFW computes the minimal DOM patches and applies them efficiently.
+rfw reactivity keeps the DOM synchronized with Go data. Any exported field on a component becomes a reactive source. When its value changes, rfw computes the minimal DOM patches and applies them efficiently.
 
 ## Reactive State
 
@@ -17,7 +17,7 @@ func (c *Counter) Inc() {
 }
 ```
 
-Bindings in the template use `{}` or directives to read these fields. RFW tracks which nodes consume which fields so unrelated parts of the DOM aren't touched.
+Bindings in the template use `{}` or directives to read these fields. rfw tracks which nodes consume which fields so unrelated parts of the DOM aren't touched.
 
 ## Stores
 
@@ -37,6 +37,6 @@ func main() {
 
 ## Avoiding Unnecessary Work
 
-Because rendering is tied to data dependencies, expensive computations should be placed in computed properties or watchers rather than inline in templates. This ensures RFW only recomputes when required and keeps interfaces snappy.
+Because rendering is tied to data dependencies, expensive computations should be placed in computed properties or watchers rather than inline in templates. This ensures rfw only recomputes when required and keeps interfaces snappy.
 
 Understanding how reactive data flows is essential before exploring higher‑level features like computed properties and watchers.

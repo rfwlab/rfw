@@ -11,6 +11,6 @@ import (
 // Index renders the home page.
 func Index() core.Component {
 	seo.SetTitle("Docs")
-	seo.SetMeta("description", "RFW documentation")
+	seo.SetMeta("description", "rfw documentation")
 	return components.NewHomeComponent()
 }

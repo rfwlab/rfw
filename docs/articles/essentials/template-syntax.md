@@ -1,6 +1,6 @@
 # Template Syntax
 
-RTML is RFW's declarative, HTML-like language for describing user interfaces. It extends standard markup with directives that connect the DOM to Go data and events. Templates are compiled to Go code so no parser runs in the browser. Browser integration currently relies on plain JavaScript; TypeScript builds are not supported yet, though a future release will expose a global `rfw` object to interact with RFW APIs directly.
+RTML is rfw's declarative, HTML-like language for describing user interfaces. It extends standard markup with directives that connect the DOM to Go data and events. Templates are compiled to Go code so no parser runs in the browser. Browser integration currently relies on plain JavaScript; TypeScript builds are not supported yet, though a future release will expose a global `rfw` object to interact with rfw APIs directly.
 
 ## Variables, Commands and Constructors
 
@@ -80,7 +80,7 @@ If `isDisabled` is `false`, the `disabled` attribute is removed from the element
 
 ### Keyed Bindings
 
-Lists often need stable identity for efficient updates. Use the `[key {expr}]` constructor inside the looped element so RFW can patch DOM nodes selectively:
+Lists often need stable identity for efficient updates. Use the `[key {expr}]` constructor inside the looped element so rfw can patch DOM nodes selectively:
 
 ```rtml
 @for:item in items
@@ -250,4 +250,3 @@ Interpolated data is escaped by default to prevent XSS vulnerabilities. Only inc
 ---
 
 These building blocks cover most of RTML's template syntax. Combine them with Go logic to create dynamic components. Templates compile to Go, which registers dependencies and subscribes to updates, ensuring the DOM stays in sync with your data.
-
