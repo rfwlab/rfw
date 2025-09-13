@@ -11,6 +11,7 @@ import (
 	anim "github.com/rfwlab/rfw/v1/animation"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
+	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -159,6 +160,9 @@ func NewHomeComponent() *core.HTMLComponent {
 			drawSpark(count.Get())
 			return nil
 		})
+		if h := js.Get("rfwHighlightAll"); h.Truthy() {
+			h.Invoke()
+		}
 	})
 
 	addItem := state.Action(func(ctx state.Context) error {
