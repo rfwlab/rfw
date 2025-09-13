@@ -17,6 +17,35 @@ func New() *Plugin { return &Plugin{} }
 
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
+// HighlightAll finds all <pre><code> blocks in the document and replaces
+// their contents with highlighted HTML using the registered Highlight
+// function. The language is detected from `language-<lang>` classes or the
+// `data-lang` attribute.
+func HighlightAll() {
+	doc := dom.Doc()
+	codes := doc.QueryAll("pre code")
+	length := codes.Length()
+	for i := 0; i < length; i++ {
+		el := codes.Index(i)
+		cls := el.Get("className").String()
+		lang := ""
+		for _, c := range strings.Split(cls, " ") {
+			lc := strings.ToLower(c)
+			if strings.HasPrefix(lc, "language-") {
+				lang = strings.TrimPrefix(lc, "language-")
+				break
+			}
+		}
+		if lang == "" {
+			lang = strings.ToLower(el.Get("dataset").Get("lang").String())
+		}
+		code := el.Get("textContent").String()
+		if res, ok := Highlight(code, lang); ok {
+			el.SetHTML(res)
+		}
+	}
+}
+
 func (p *Plugin) Install(a *core.App) {
 	js.ExposeFunc("rfwHighlight", func(this js.Value, args []js.Value) any {
 		if len(args) < 2 {
@@ -31,28 +60,7 @@ func (p *Plugin) Install(a *core.App) {
 	})
 
 	js.ExposeFunc("rfwHighlightAll", func(this js.Value, args []js.Value) any {
-		doc := dom.Doc()
-		codes := doc.QueryAll("pre code")
-		length := codes.Length()
-		for i := 0; i < length; i++ {
-			el := codes.Index(i)
-			cls := el.Get("className").String()
-			lang := ""
-			for _, c := range strings.Split(cls, " ") {
-				lc := strings.ToLower(c)
-				if strings.HasPrefix(lc, "language-") {
-					lang = strings.TrimPrefix(lc, "language-")
-					break
-				}
-			}
-			if lang == "" {
-				lang = strings.ToLower(el.Get("dataset").Get("lang").String())
-			}
-			code := el.Get("textContent").String()
-			if res, ok := Highlight(code, lang); ok {
-				el.SetHTML(res)
-			}
-		}
+		HighlightAll()
 		return nil
 	})
 

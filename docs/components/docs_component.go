@@ -14,6 +14,7 @@ import (
 	js "github.com/rfwlab/rfw/v1/js"
 	markdown "github.com/rfwlab/rfw/v1/markdown"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
+	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/plugins/seo"
 	"github.com/rfwlab/rfw/v1/router"
 )
@@ -168,9 +169,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			c.HTMLComponent.AddDependency("doc", c.docComp)
 			doc.ByID("doc-content").SetHTML(c.docComp.Render())
 			c.docComp.Mount()
-			if h := js.Get("rfwHighlightAll"); h.Truthy() {
-				h.Invoke()
-			}
+			highlight.HighlightAll()
 
 			headings := detail.Get("headings")
 			if headings.Truthy() {
