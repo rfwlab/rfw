@@ -46,6 +46,9 @@ delegate to the wrappers for backward compatibility:
 | `TemplateHook` | Callback invoked after `UpdateDOM`. |
 | `BindStoreInputs(el)` | Binds inputs to `@store` directives. |
 | `BindSignalInputs(id, el)` | Binds inputs to local `@signal` directives. |
+| `(Element).On(event, handler)` | Attaches an event listener and returns a stop function. |
+| `(Element).OnClick(handler)` | Convenience wrapper for click events. |
+
 
 ## Usage
 
@@ -84,6 +87,20 @@ Go functions to named DOM events.
        items.Index(i).ToggleClass("active")
    }
    ```
+
+   ### Listening for events
+
+   1. Select an element.
+      ```go
+      btn := doc.ByID("save")
+      ```
+   2. Attach a listener and defer its cleanup.
+      ```go
+      stop := btn.OnClick(func(dom.Event) {
+          // handle click
+      })
+      defer stop()
+      ```
 
 The snippet demonstrates direct DOM interactions.
 
