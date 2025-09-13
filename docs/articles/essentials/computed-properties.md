@@ -18,7 +18,7 @@ Bind the computed value in a template just like any other field:
 <p>Doubled: {double.Value()}</p>
 ```
 
-The call to `Value()` reads the cached result. When `count` changes, RFW invalidates the cache and recomputes on next access.
+The call to `Value()` reads the cached result. When `count` changes, rfw invalidates the cache and recomputes on next access.
 
 ## Using Computed in Components
 

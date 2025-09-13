@@ -20,66 +20,234 @@
             <p class="text-base md:text-lg text-center md:text-left text-black dark:text-white md:max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
             <div class="flex flex-row gap-2 items-center justify-center w-max">
             <a href="/docs/getting-started/introduction" class="px-10 py-3 bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
-            <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-blue-600 transition">Contribute</a>
+            <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-red-600 transition">Contribute</a>
             </div>
         </div>
 
-        <!-- Story Carousel -->
         <div id="examples" class="relative max-w-[400px] h-max flex items-center justify-center">
-          <div class="relative w-full p-3 pt-11 rounded-2xl shadow-2xl text-white overflow-hidden"
+          <div class="relative w-full p-3 pt-11 outlined-2xl shadow-2xl text-white overflow-hidden"
                style="background-image: url('/slide-bg.png'); background-size: cover; background-position: center; min-height: 400px; min-width: 400px;">
-            <!-- Image block -->
-            <img id="story-image" src="/slide-1.png" alt="GO component 1" class="w-full h-auto rounded-md shadow-lg" style="opacity: 0; min-height: 200px; min-width: 300px;">
-            <!-- Progress bar (like stories) -->
+            <img id="story-image" src="/slide-1.png" alt="GO component 1" class="w-full h-auto outlined-md shadow-lg" style="opacity: 0; min-height: 200px; min-width: 300px;">
             <div id="progress-bars" class="absolute top-5 left-0 w-4/5 flex mx-auto right-0 h-1">
-              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
-              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
-              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
-              <div class="h-1 rounded-full flex-1 mx-1 bg-white/20"><div class="h-1 rounded-full bg-white/20"></div></div>
+              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
+              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
+              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
+              <div class="h-1 outlined-full flex-1 mx-1 bg-white/20"><div class="h-1 outlined-full bg-white/20"></div></div>
             </div>
           </div>
         </div>
 
     </section>
+
     <section class="py-12 bg-lightbg dark:bg-darkbg">
         <h1 class="text-2xl text-center font-semibold bg-gradient-to-r from-30% from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent mb-12">Why choose rfw?</h1>
 
-      <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 px-6">
-        <div>
-          <h3 class="text-xl font-semibold mb-2">Reactive Components</h3>
+      <div class="max-w-6xl mx-auto grid md:grid-cols-3 gap-6 px-6">
+        <div class="group outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-3 mb-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">auto_awesome_motion</span><h3 class="text-lg font-semibold">Reactive Components</h3></div>
           <p class="text-zinc-700 dark:text-zinc-400">Compose your UI with idiomatic Go.</p>
         </div>
-        <div>
-          <h3 class="text-xl font-semibold mb-2">Built-in Router</h3>
+        <div class="group outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-3 mb-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">alt_route</span><h3 class="text-lg font-semibold">Built-in Router</h3></div>
           <p class="text-zinc-700 dark:text-zinc-400">Navigate client-side with ease.</p>
         </div>
-        <div>
-          <h3 class="text-xl font-semibold mb-2">State Management</h3>
+        <div class="group outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-3 mb-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">deployed_code</span><h3 class="text-lg font-semibold">State Management</h3></div>
           <p class="text-zinc-700 dark:text-zinc-400">Share state across components.</p>
         </div>
-        <div>
-          <h3 class="text-xl font-semibold mb-2">Minimal JavaScript</h3>
+        <div class="group outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-3 mb-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">code</span><h3 class="text-lg font-semibold">Minimal JavaScript</h3></div>
           <p class="text-zinc-700 dark:text-zinc-400">Most apps are written entirely in Go.</p>
         </div>
-        <div>
-          <h3 class="text-xl font-semibold mb-2">Plugin System</h3>
+        <div class="group outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-3 mb-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">extension</span><h3 class="text-lg font-semibold">Plugin System</h3></div>
           <p class="text-zinc-700 dark:text-zinc-400">Extend the framework to fit your needs.</p>
         </div>
-        <div>
-          <h3 class="text-xl font-semibold mb-2">WASM Powered</h3>
+        <div class="group outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-3 mb-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">memory_alt</span><h3 class="text-lg font-semibold">WASM Powered</h3></div>
           <p class="text-zinc-700 dark:text-zinc-400">Ship small binaries without a JS toolchain.</p>
         </div>
       </div>
+
+      <div class="max-w-6xl mx-auto mt-12 grid md:grid-cols-3 gap-6 px-6">
+        <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">bolt</span><h3 class="text-lg font-semibold">Live Signals</h3></div>
+            <span id="sig-dot" class="inline-block h-2 w-2 outlined-full rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="dec" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">remove</span>Dec</button>
+            <div class="flex-1 flex items-center justify-center text-4xl font-semibold tabular-nums select-none"><span id="count">0</span></div>
+            <button id="inc" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">add</span>Inc</button>
+          </div>
+          <div class="mt-4 grid grid-cols-5 gap-1" id="spark"></div>
+        </div>
+        <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-4"><span class="material-symbols-outlined text-[22px]">hub</span><h3 class="text-lg font-semibold">SSC Backchannel</h3></div>
+          <div class="relative">
+            <div class="grid grid-cols-3 gap-3 items-center text-sm">
+              <div class="outlined-xl border border-zinc-200 dark:border-zinc-700 p-3 bg-white/70 dark:bg-[#111111]">Server<br><span class="text-xs opacity-70">Go Host</span></div>
+              <div class="outlined-xl border border-zinc-200 dark:border-zinc-700 p-3 bg-white/70 dark:bg-[#111111] text-center">WebSocket<br><span class="text-xs opacity-70">Sync</span></div>
+              <div class="outlined-xl border border-zinc-200 dark:border-zinc-700 p-3 bg-white/70 dark:bg-[#111111] text-right">Client<br><span class="text-xs opacity-70">Wasm UI</span></div>
+            </div>
+            <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-2/3 h-0.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500 animate-pulse"></div>
+          </div>
+          <div class="mt-4 text-zinc-700 dark:text-zinc-400 text-sm">Hydrate server-rendered HTML, keep state mirrored in real time.</div>
+        </div>
+        <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+          <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-4"><span class="material-symbols-outlined text-[22px]">image</span><h3 class="text-lg font-semibold">HTML made reactive</h3></div>
+          <div class="relative h-28 outlined-xl overflow-hidden">
+            <div class="absolute inset-0 grid grid-cols-7 grid-rows-3 gap-1 p-1">
+              <div class="col-span-2 row-span-2 outlined-lg bg-gradient-to-br from-rose-400/40 to-rose-600/40 blur-[1px]"></div>
+              <div class="col-span-3 row-span-1 outlined-lg bg-gradient-to-tr from-blue-400/40 to-cyan-500/40"></div>
+              <div class="col-span-2 row-span-1 outlined-lg bg-gradient-to-tr from-emerald-400/40 to-lime-500/40"></div>
+              <div class="col-span-4 row-span-2 outlined-lg bg-gradient-to-tr from-violet-400/40 to-fuchsia-500/40"></div>
+              <div class="col-span-3 row-span-1 outlined-lg bg-gradient-to-tr from-amber-400/40 to-orange-500/40"></div>
+            </div>
+          </div>
+          <div class="mt-4 text-zinc-700 dark:text-zinc-400 text-sm">Imagine the HTML you already know, but with a twist: it's reactive. It's like magic, but with Go.</div>
+        </div>
+      </div>
     </section>
-    <footer class="p-6 text-center text-gray-500 border-t border-gray-200 dark:border-zinc-700 bg-lightbg dark:bg-darkbg">
-      <div class="flex items-center justify-center space-x-2">
+
+    <section class="py-12 border-t border-gray-200 dark:border-zinc-700 bg-gradient-to-b from-white/60 to-white/80 dark:from-[#1a1a1a] dark:to-[#111111]">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Playground: store-driven UI</h2>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+            <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">database</span><div class="font-semibold">Cart Store</div></div>
+            <div class="flex items-center gap-3">
+              <button id="addItem" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>Add</button>
+              <button id="undo" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">undo</span>Undo</button>
+              <button id="redo" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">redo</span>Redo</button>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-3" id="cart"></div>
+          </div>
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+            <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">code_blocks</span><div class="font-semibold">RTML</div></div>
+            <pre class="text-sm overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code>
+&lt;div class="card"&gt;
+  &lt;span&gt;@store:cart.count&lt;/span&gt;
+  &lt;button @on:click:add&gt;Add&lt;/button&gt;
+  &lt;button @on:click:undo&gt;Undo&lt;/button&gt;
+&lt;/div&gt;
+            </code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-12 bg-lightbg dark:bg-darkbg border-t border-gray-200 dark:border-zinc-700">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Built-in goodies</h2>
+          <a href="/docs/index" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">menu_book</span>Explore Docs</a>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-2"><span class="material-symbols-outlined text-[22px]">movie_edit</span><div class="font-semibold">Cinema & Animation</div></div>
+            <p class="text-sm text-zinc-700 dark:text-zinc-400">Keyframes, scenes and media playback.</p>
+          </div>
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-2"><span class="material-symbols-outlined text-[22px]">grid_4x4</span><div class="font-semibold">Pathfinding</div></div>
+            <p class="text-sm text-zinc-700 dark:text-zinc-400">Async A* for grids and navmeshes.</p>
+          </div>
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-2"><span class="material-symbols-outlined text-[22px]">polymer</span><div class="font-semibold">Plugins</div></div>
+            <p class="text-sm text-zinc-700 dark:text-zinc-400">SEO, Tailwind, Docs, Highlight, more.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-12 bg-gradient-to-b from-white/80 to-white/60 dark:from-[#111111] dark:to-[#0f0f0f] border-t border-gray-200 dark:border-zinc-700">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="grid md:grid-cols-3 gap-6 items-stretch">
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">speed</span><div class="font-semibold">Performance</div></div>
+            <div class="text-sm text-zinc-700 dark:text-zinc-400">Tiny Wasm bundles, no Node pipeline required.</div>
+            <div class="mt-4 h-2 bg-zinc-200/60 dark:bg-zinc-800 rounded-full outlined-full overflow-hidden"><div class="rounded-full h-full w-3/4 bg-gradient-to-r from-emerald-500 via-sky-500 to-rose-500 animate-[pulse_2s_ease-in-out_infinite]"></div></div>
+          </div>
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">architecture</span><div class="font-semibold">Developer Experience</div></div>
+            <div class="text-sm text-zinc-700 dark:text-zinc-400">Built-in development and production server, devtools for components, signals, stores, network and more. Enjoy a full developer experience with rfw.
+            <div class="mt-4 grid grid-cols-6 gap-1" id="dxGrid"></div>
+          </div>
+          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">terminal</span><div class="font-semibold">Getting Started</div></div>
+            <pre class="text-xs overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code>
+curl -L https://github.com/rfwlab/rfw/releases/download/continuous/rfw -o ~/.local/bin/rfw &amp;&amp; chmod +x ~/.local/bin/rfw
+rfw init github.com/you/app
+rfw dev --debug
+            </code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="px-6 md:px-14 py-10 text-center text-gray-600 dark:text-zinc-400 border-t border-gray-200 dark:border-zinc-700 bg-lightbg dark:bg-darkbg">
+      <div class="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 items-center">
+        <div class="flex flex-col items-center md:items-start gap-3">
+          <picture>
+            <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
+            <img src="/rfw-logo-black.png" alt="rfw logo" class="h-7 w-12"/>
+          </picture>
+          <div class="text-sm">Reactive Framework for Go &amp; WebAssembly</div>
+        </div>
+        <div class="flex items-center justify-center gap-6 text-sm">
+          <a href="/docs/index" class="hover:text-red-600">Docs</a>
+          <a href="/docs/articles/guide/ssc" class="hover:text-red-600">SSC</a>
+          <a href="/docs/articles/api/index" class="hover:text-red-600">API</a>
+          <a href="/docs/articles/guide/pages-plugin" class="hover:text-red-600">Pages</a>
+        </div>
+        <div class="flex items-center md:justify-end justify-center gap-4">
+          <a href="https://github.com/rfwlab" aria-label="GitHub" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition">
+            <span class="material-symbols-outlined text-[20px]">open_in_new</span>GitHub
+          </a>
+        </div>
+      </div>
+      <div class="mt-6 flex items-center justify-center gap-2 text-sm opacity-75">
         <span>&copy; 2025 rfw</span>
-        <a href="https://github.com/rfwlab" aria-label="GitHub" class="text-gray-500 hover:text-gray-700">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.167 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.621.069-.608.069-.608 1.004.071 1.532 1.032 1.532 1.032.892 1.528 2.341 1.087 2.91.832.091-.647.35-1.087.636-1.338-2.22-.252-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.681-.103-.253-.446-1.271.098-2.65 0 0 .84-.269 2.75 1.025A9.563 9.563 0 0 1 12 6.844c.851.004 1.705.115 2.503.337 1.909-1.294 2.748-1.025 2.748-1.025.546 1.379.203 2.397.1 2.65.64.697 1.028 1.59 1.028 2.681 0 3.842-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .268.18.58.688.481A10.013 10.013 0 0 0 22 12c0-5.523-4.477-10-10-10Z" clip-rule="evenodd" />
-          </svg>
-        </a>
+        <span>•</span>
+        <span>Made with Go</span>
       </div>
     </footer>
   </div>
+
+  <style>
+    @keyframes bar { from { width:0% } to { width:100% } }
+  </style>
+
+  <script>
+    (function(){
+      const countEl = document.getElementById('count');
+      const inc = document.getElementById('inc');
+      const dec = document.getElementById('dec');
+      const spark = document.getElementById('spark');
+      const cart = document.getElementById('cart');
+      const add = document.getElementById('addItem');
+      const undo = document.getElementById('undo');
+      const redo = document.getElementById('redo');
+      const dxGrid = document.getElementById('dxGrid');
+
+      let c = 0; const history = []; let idx = -1;
+      function setCount(v){ c = v; countEl.textContent = String(c); drawSpark(); }
+      function pushState(items){ history.splice(idx+1); history.push(items.slice()); idx = history.length-1; renderCart(); }
+      function renderCart(){ cart.innerHTML = ''; (history[idx]||[]).forEach((i)=>{ const d=document.createElement('div'); d.className='outlined-xl border border-zinc-200 dark:border-zinc-700 p-3 bg-white/70 dark:bg-[#111111]'; d.textContent = i; cart.appendChild(d); }); }
+      function drawSpark(){ spark.innerHTML=''; const n=20; for(let i=0;i<n;i++){ const h=document.createElement('div'); h.className='h-8 outlined'; h.style.background='linear-gradient(90deg,var(--tw-gradient-stops))'; h.style.opacity=0.5; h.style.animation='bar 1.2s ease'; h.style.animationDelay= (i*40)+'ms'; h.style.width = (Math.max(2, (c%10)*8))+'%'; spark.appendChild(h); } }
+
+      inc && inc.addEventListener('click',()=>setCount(c+1));
+      dec && dec.addEventListener('click',()=>setCount(Math.max(0,c-1)));
+
+      add && add.addEventListener('click',()=>{ const items = (history[idx]||[]).slice(); const id = 'Item #'+String(items.length+1); items.unshift(id); pushState(items); });
+      undo && undo.addEventListener('click',()=>{ if(idx>0){ idx--; renderCart(); } });
+      redo && redo.addEventListener('click',()=>{ if(idx<history.length-1){ idx++; renderCart(); } });
+
+      if(dxGrid){ for(let i=0;i<48;i++){ const d=document.createElement('div'); d.className='h-3 outlined bg-zinc-200/60 dark:bg-zinc-800'; if(i%7===0) d.className+=' animate-pulse'; dxGrid.appendChild(d); } }
+
+      setCount(0); pushState([]);
+    })();
+  </script>
 </root>

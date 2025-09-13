@@ -14,7 +14,7 @@ Use `@for:item in items` to loop through a slice:
 </ul>
 ```
 
-When items are added or removed, RFW patches only the affected `<li>` elements.
+When items are added or removed, rfw patches only the affected `<li>` elements.
 
 ## Keyed Updates
 
