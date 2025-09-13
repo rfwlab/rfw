@@ -151,6 +151,9 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle @prop:propName syntax for props
 	renderedTemplate = replacePropPlaceholders(renderedTemplate, c)
 
+	// Handle plugin variable and command placeholders
+	renderedTemplate = replacePluginPlaceholders(renderedTemplate)
+
 	// Handle host variable and command placeholders
 	if c.HostComponent != "" {
 		renderedTemplate = replaceHostPlaceholders(renderedTemplate, c)
