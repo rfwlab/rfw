@@ -42,3 +42,17 @@ func TestHighlightRTML(t *testing.T) {
 		t.Fatalf("missing standalone command highlighting: %s", out)
 	}
 }
+
+func TestOverrideHighlight(t *testing.T) {
+	prev := Highlight
+	defer func() { Highlight = prev }()
+	Highlight = func(code, lang string) (string, bool) {
+		if code == "c" && lang == "l" {
+			return "ok", true
+		}
+		return "", false
+	}
+	if out, ok := Highlight("c", "l"); !ok || out != "ok" {
+		t.Fatalf("override failed: %v %v", out, ok)
+	}
+}
