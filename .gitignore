@@ -15,5 +15,4 @@ docs/host/host
 docs/build
 
 routes_gen.go
-rfwenv.go
-rfw_devtools.go
+rfw_*.go

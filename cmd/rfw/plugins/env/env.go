@@ -57,7 +57,7 @@ func (p *plugin) PreBuild(raw json.RawMessage) error {
 	b.WriteString("}\n\n")
 	b.WriteString("func Get(key string) string {\n\treturn vars[key]\n}\n")
 
-	return os.WriteFile(filepath.Join(p.dir, "rfwenv.go"), []byte(b.String()), 0o644)
+	return os.WriteFile(filepath.Join(p.dir, "rfw_env.go"), []byte(b.String()), 0o644)
 }
 
 func (p *plugin) Build(raw json.RawMessage) error { return nil }

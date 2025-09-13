@@ -27,7 +27,7 @@ func TestPreAndPostBuild(t *testing.T) {
 		t.Fatalf("PreBuild: %v", err)
 	}
 
-	data, err := os.ReadFile(filepath.Join("rfwenv", "rfwenv.go"))
+	data, err := os.ReadFile(filepath.Join("rfwenv", "rfw_env.go"))
 	if err != nil {
 		t.Fatalf("read generated file: %v", err)
 	}
