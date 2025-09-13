@@ -329,6 +329,34 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+func replacePluginPlaceholders(template string) string {
+	varRegex := regexp.MustCompile(`\{plugin:(\w+)\.(\w+)\}`)
+	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := varRegex.FindStringSubmatch(match)
+		if len(parts) != 3 {
+			return match
+		}
+		plug, name := parts[1], parts[2]
+		if v, ok := getRTMLVar(plug, name); ok {
+			return fmt.Sprintf("%v", v)
+		}
+		if DevMode {
+			Log().Warn("plugin variable %s.%s not found", plug, name)
+		}
+		return match
+	})
+	cmdRegex := regexp.MustCompile(`@plugin:(\w+)\.(\w+)([\s>/])`)
+	template = cmdRegex.ReplaceAllStringFunc(template, func(match string) string {
+		parts := cmdRegex.FindStringSubmatch(match)
+		if len(parts) != 4 {
+			return match
+		}
+		plug, name, suffix := parts[1], parts[2], parts[3]
+		return fmt.Sprintf(`data-plugin-cmd="%s.%s"%s`, plug, name, suffix)
+	})
+	return template
+}
+
 func replaceHostPlaceholders(template string, c *HTMLComponent) string {
 	varRegex := regexp.MustCompile(`\{h:(\w+)\}`)
 	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
@@ -669,7 +697,7 @@ func insertDataKey(content string, key any) string {
 //
 // Only a single constructor per element is handled.
 func replaceConstructors(template string) string {
-	re := regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[(\w+)(?:\s+([^\]]+))?\]([^>]*)>`)
+	re := regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
 	return re.ReplaceAllStringFunc(template, func(match string) string {
 		parts := re.FindStringSubmatch(match)
 		if len(parts) < 6 {
@@ -683,6 +711,8 @@ func replaceConstructors(template string) string {
 		attr := ""
 		if name == "key" && param != "" {
 			attr = fmt.Sprintf(` data-key="%s"`, param)
+		} else if strings.HasPrefix(name, "plugin:") {
+			attr = fmt.Sprintf(` data-plugin="%s"`, strings.TrimPrefix(name, "plugin:"))
 		} else {
 			attr = fmt.Sprintf(` data-ref="%s"`, name)
 		}

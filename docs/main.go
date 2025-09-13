@@ -8,6 +8,7 @@ import (
 	plugs "github.com/rfwlab/rfw/docs/examples/plugins"
 	"github.com/rfwlab/rfw/docs/examples/plugins/logger"
 	mon "github.com/rfwlab/rfw/docs/examples/plugins/monitor"
+	soccer "github.com/rfwlab/rfw/docs/examples/plugins/soccer"
 	_ "github.com/rfwlab/rfw/docs/pages"
 	"github.com/rfwlab/rfw/v1/core"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
@@ -45,6 +46,7 @@ func main() {
 	}))
 	core.RegisterPlugin(mon.New())
 	core.RegisterPlugin(highlight.New())
+	core.RegisterPlugin(soccer.New())
 	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
 
 	router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
@@ -127,6 +129,10 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/plugins",
 		Component: func() core.Component { return plugs.NewPluginsComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/plugin-directives",
+		Component: func() core.Component { return excomponents.NewPluginDirectivesComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/stores",
