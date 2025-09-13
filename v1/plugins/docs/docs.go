@@ -5,13 +5,11 @@ package docs
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/rfwlab/rfw/v1/core"
 	js "github.com/rfwlab/rfw/v1/js"
-	marked "github.com/rfwlab/rfw/v1/js/shim/marked"
+	"github.com/rfwlab/rfw/v1/markdown"
 )
 
 type Plugin struct {
@@ -46,18 +44,10 @@ func (p *Plugin) Install(a *core.App) {
 			res := args[0]
 			res.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 				content := args[0].String()
-				tokens := marked.Lexer(content)
-				slug := newSlugger()
-				headings := make([]any, 0)
-				length := tokens.Length()
-				for i := 0; i < length; i++ {
-					tok := tokens.Index(i)
-					if tok.Get("type").String() == "heading" {
-						text := tok.Get("text").String()
-						depth := tok.Get("depth").Int()
-						id := slug.slug(text)
-						headings = append(headings, map[string]any{"text": text, "depth": depth, "id": id})
-					}
+				mhs := markdown.Headings(content)
+				headings := make([]any, len(mhs))
+				for i, h := range mhs {
+					headings[i] = map[string]any{"text": h.Text, "depth": h.Depth, "id": h.ID}
 				}
 				doc.Call("dispatchEvent", js.CustomEvent().New("rfwDoc", map[string]any{"detail": map[string]any{"path": path, "content": content, "headings": headings}}))
 				return nil
@@ -70,26 +60,3 @@ func (p *Plugin) Install(a *core.App) {
 }
 
 func (p *Plugin) Build(json.RawMessage) error { return nil }
-
-var slugRe = regexp.MustCompile(`[^a-z0-9\s-]`)
-
-type slugger struct {
-	seen map[string]int
-}
-
-func newSlugger() *slugger {
-	return &slugger{seen: make(map[string]int)}
-}
-
-func (s *slugger) slug(text string) string {
-	slug := strings.ToLower(text)
-	slug = slugRe.ReplaceAllString(slug, "")
-	slug = strings.TrimSpace(slug)
-	slug = strings.ReplaceAll(slug, " ", "-")
-	if n, ok := s.seen[slug]; ok {
-		s.seen[slug] = n + 1
-		return fmt.Sprintf("%s-%d", slug, n)
-	}
-	s.seen[slug] = 1
-	return slug
-}
