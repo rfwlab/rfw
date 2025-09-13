@@ -133,6 +133,10 @@
         "path": "guide/copy-plugin.md"
       },
       {
+        "title": "docs plugin",
+        "path": "guide/docs-plugin.md"
+      },
+      {
         "title": "Assets",
         "path": "guide/assets.md"
       },
@@ -266,10 +270,6 @@
       {
         "title": "plugins",
         "path": "api/plugins.md"
-      },
-      {
-        "title": "docs plugin",
-        "path": "api/docs-plugin.md"
       },
       {
         "title": "highlight",
