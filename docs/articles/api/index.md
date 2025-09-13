@@ -50,6 +50,7 @@ The full set of API references is listed below:
 - [highlight](highlight)
 - [bundler plugin](bundler-plugin)
 - [i18n](i18n)
+- [toast](toast)
 - [shortcut](shortcut)
 - [router](router)
 - [state](state)

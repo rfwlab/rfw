@@ -280,6 +280,10 @@
         "path": "api/i18n.md"
       },
       {
+        "title": "toast",
+        "path": "api/toast.md"
+      },
+      {
         "title": "math",
         "path": "api/math.md"
       },
