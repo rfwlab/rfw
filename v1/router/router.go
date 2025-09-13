@@ -169,7 +169,7 @@ func Navigate(fullPath string) {
 		}
 	}
 
-	if r.component == nil && r.loader != nil {
+	if r.loader != nil {
 		r.component = r.loader()
 	}
 
