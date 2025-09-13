@@ -1,7 +1,7 @@
 <root>
   <div>
     <nav class="flex items-center gap-4 py-6 px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700">
-      <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold">
+      <a href="/" class="text-2xl font-bold">
         <picture>
             <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
             <img src="/rfw-logo-black.png"
@@ -10,7 +10,7 @@
       </a>
       <div class="text-xl text-black/50 dark:text-white/30">/</div>
       <div class="flex gap-5">
-        <a href="/docs/index" onclick="goNavigate('/docs/index'); return false" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
+        <a href="/docs/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
         <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
       </div>
     </nav>
@@ -19,7 +19,7 @@
             <h1 class="text-3xl text-center md:text-left md:text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with <span class="bg-clip-text text-transparent bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)]">Go</span>, <br>effortlessly</h1>
             <p class="text-base md:text-lg text-center md:text-left text-black dark:text-white md:max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
             <div class="flex flex-row gap-2 items-center justify-center w-max">
-            <a href="/docs/getting-started" onclick="goNavigate('/docs/getting-started/introduction'); return false" class="px-10 py-3 bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
+            <a href="/docs/getting-started/introduction" class="px-10 py-3 bg-[url(https://cdn.gxbs.dev/HeRO2/ReSObADo44.png/raw)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
             <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-blue-600 transition">Contribute</a>
             </div>
         </div>
