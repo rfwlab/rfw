@@ -1,7 +1,7 @@
 <root>
   <div class="flex flex-col min-h-screen">
       <nav class="z-10 bg-lightbg dark:bg-darkbg sticky top-0 flex flex-wrap items-stretch gap-4 px-6 sm:px-10 md:px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700 h-14">
-        <a href="/" onclick="goNavigate('/'); return false" class="text-2xl font-bold flex items-center">
+        <a href="/" @click:navHome class="text-2xl font-bold flex items-center">
           <picture>
               <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
                   <img src="/rfw-logo-black.png"
