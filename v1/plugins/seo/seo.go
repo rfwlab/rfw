@@ -22,6 +22,12 @@ var (
 	cfgPattern string
 )
 
+// SetTitle updates the document title. Override before RegisterPlugin for custom behavior.
+var SetTitle func(string) = defaultSetTitle
+
+// SetMeta updates or creates a meta tag. Override before RegisterPlugin for custom behavior.
+var SetMeta func(string, string) = defaultSetMeta
+
 func (p *Plugin) Name() string { return "seo" }
 
 func (p *Plugin) Install(a *core.App) {
@@ -67,7 +73,7 @@ func (p *Plugin) Build(cfg json.RawMessage) error {
 	return nil
 }
 
-func SetTitle(t string) {
+func defaultSetTitle(t string) {
 	if !titleEl.Truthy() {
 		doc := dom.Doc()
 		head := doc.Head()
@@ -84,7 +90,7 @@ func SetTitle(t string) {
 	}
 }
 
-func SetMeta(name, content string) {
+func defaultSetMeta(name, content string) {
 	if metaEls == nil {
 		metaEls = make(map[string]dom.Element)
 	}

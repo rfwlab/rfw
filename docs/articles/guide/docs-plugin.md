@@ -46,8 +46,8 @@ core.RegisterPlugin(docs.New("/articles/sidebar.json"))
 3. Load an article with `LoadArticle`. The metadata in `sidebar.json` becomes the page title and description.
 
 ### API
-- `func SetTitle(title string)`
-- `func SetMeta(name, content string)`
+- `var SetTitle func(title string)`
+- `var SetMeta func(name, content string)`
 
 ### Example
 ```go

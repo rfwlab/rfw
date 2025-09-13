@@ -140,6 +140,45 @@ attributes:
 Plugins can then scan the DOM for `data-plugin-cmd` or `data-plugin` attributes
 to attach behavior.
 
+## Overriding plugin functions
+
+### Context
+Some plugins expose function variables so applications can replace default
+behavior without forking the plugin.
+
+### Prerequisites
+- Assign overrides before calling `core.RegisterPlugin`.
+- Only documented variables such as `seo.SetMeta` and `seo.SetTitle` may be
+  reassigned.
+
+### How
+1. Implement a replacement function matching the variable's signature.
+2. Assign it to the exported variable.
+3. Register the plugin with `core.RegisterPlugin`.
+
+### API
+- `var seo.SetMeta func(name, content string)`
+- `var seo.SetTitle func(title string)`
+- `func RegisterPlugin(p Plugin)`
+
+### Example
+```go
+seo.SetMeta = func(name, content string) {
+        // custom metadata handling
+}
+core.RegisterPlugin(seo.New())
+```
+
+### Notes and Limitations
+- Overrides are global and affect all code using the variable.
+- Reassign the variable back to the default implementation to restore standard
+  behavior.
+- Replacement functions must match the original signature exactly.
+
+### Related links
+- [seo](seo)
+- [core](core)
+
 ## Usage
 
 Plugins must be registered before the application starts using
