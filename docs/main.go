@@ -14,6 +14,7 @@ import (
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
 	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/plugins/i18n"
+	"github.com/rfwlab/rfw/v1/plugins/seo"
 	shortcut "github.com/rfwlab/rfw/v1/plugins/shortcut"
 	"github.com/rfwlab/rfw/v1/plugins/toast"
 	"github.com/rfwlab/rfw/v1/router"
@@ -50,6 +51,7 @@ func main() {
 	core.RegisterPlugin(highlight.New())
 	core.RegisterPlugin(toast.New())
 	core.RegisterPlugin(soccer.New())
+	core.RegisterPlugin(seo.New())
 	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
 	core.RegisterPlugin(shortcut.New())
 

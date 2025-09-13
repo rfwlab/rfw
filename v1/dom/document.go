@@ -39,3 +39,9 @@ func (d Document) ByTag(tag string) Element {
 func (d Document) CreateElement(tag string) Element {
 	return Element{d.Call("createElement", tag)}
 }
+
+// Head returns the document's <head> element.
+func (d Document) Head() Element { return Element{d.Get("head")} }
+
+// Body returns the document's <body> element.
+func (d Document) Body() Element { return Element{d.Get("body")} }

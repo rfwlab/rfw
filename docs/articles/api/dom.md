@@ -21,6 +21,8 @@ delegate to the wrappers for backward compatibility:
 | Function | Description |
 | --- | --- |
 | `Doc()` | Returns the global `Document`. |
+| `Document.Head()` | Returns the `<head>` element. |
+| `Document.Body()` | Returns the `<body>` element. |
 | `CreateElement(tag)` | Returns a new element. |
 | `ByID(id)` | Fetches an element by id. |
 | `Query(sel)` | Returns the first element matching the CSS selector. |
@@ -28,6 +30,7 @@ delegate to the wrappers for backward compatibility:
 | `ByClass(name)` | Returns elements with the given class name. |
 | `ByTag(tag)` | Returns elements with the given tag name. |
 | `SetInnerHTML(el, html)` | Replaces an element's children with raw HTML. |
+| `Element.AppendChild(child)` | Appends a child to an element. |
 | `Text(el)` | Returns an element's text content. |
 | `SetText(el, text)` | Sets an element's text content. |
 | `Attr(el, name)` | Retrieves the value of an attribute. |
@@ -71,6 +74,10 @@ Go functions to named DOM events.
 
    box := doc.CreateElement("div")
    box.SetAttr("style", dom.StyleInline(map[string]string{"display": "flex", "gap": "4px"}))
+
+   head := doc.Head()
+   style := doc.CreateElement("style")
+   head.AppendChild(style)
 
    items := doc.QueryAll("li")
    for i := 0; i < items.Length(); i++ {
