@@ -14,6 +14,7 @@ import (
 	js "github.com/rfwlab/rfw/v1/js"
 	markdown "github.com/rfwlab/rfw/v1/markdown"
 	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
+	"github.com/rfwlab/rfw/v1/plugins/seo"
 	"github.com/rfwlab/rfw/v1/router"
 )
 
@@ -24,14 +25,14 @@ type DocsComponent struct {
 	*core.HTMLComponent
 	nav     js.Value
 	order   []string
-	titles  map[string]string
+	meta    map[string]struct{ Title, Description string }
 	page    string
 	mounted bool
 	docComp *core.HTMLComponent
 }
 
 func NewDocsComponent() *DocsComponent {
-	c := &DocsComponent{titles: make(map[string]string)}
+	c := &DocsComponent{meta: make(map[string]struct{ Title, Description string })}
 	c.HTMLComponent = core.NewComponent("DocsComponent", docsTpl, nil).WithLifecycle(c.mount, c.unmount)
 	return c
 }
@@ -67,7 +68,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 		if sidebarJSON.Truthy() {
 			c.nav = js.JSON().Call("parse", sidebarJSON)
 			c.order = c.order[:0]
-			c.titles = map[string]string{}
+			c.meta = map[string]struct{ Title, Description string }{}
 			sidebar := doc.ByID("sidebar")
 			sidebar.SetHTML("")
 			c.renderSidebar(c.nav, sidebar, 0)
@@ -217,7 +218,14 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 				}
 			}
 
-			link := strings.TrimSuffix(strings.TrimPrefix(path, "/docs/"), ".md")
+			link := strings.TrimSuffix(strings.TrimPrefix(path, "/articles/"), ".md")
+			meta := c.meta[link]
+			if meta.Title != "" {
+				seo.SetTitle(meta.Title)
+			} else {
+				seo.SetTitle(link)
+			}
+			seo.SetMeta("description", meta.Description)
 			idx := -1
 			for i, p := range c.order {
 				if p == link {
@@ -292,9 +300,13 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level 
 	for i := 0; i < length; i++ {
 		item := items.Index(i)
 		title := item.Get("title").String()
+		desc := ""
+		if d := item.Get("description"); d.Truthy() {
+			desc = d.String()
+		}
 		if path := item.Get("path"); path.Truthy() {
 			link := strings.TrimSuffix(path.String(), ".md")
-			c.titles[link] = title
+			c.meta[link] = struct{ Title, Description string }{Title: title, Description: desc}
 			c.order = append(c.order, link)
 			a := doc.CreateElement("a")
 			a.Set("href", "/docs/"+link)
@@ -325,8 +337,8 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level 
 }
 
 func (c *DocsComponent) titleFor(path string) string {
-	if t, ok := c.titles[path]; ok {
-		return t
+	if m, ok := c.meta[path]; ok && m.Title != "" {
+		return m.Title
 	}
 	return path
 }
