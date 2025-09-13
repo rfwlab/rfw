@@ -56,6 +56,50 @@ func (p featurePlugin) Install(a *core.App) {
 }
 ```
 
+## Dependencies
+
+### Context
+Some plugins build on features provided by others. Declaring these dependencies
+lets `core.RegisterPlugin` install them automatically.
+
+### Prerequisites
+- Dependent plugins should implement `Named` so they can be deduplicated.
+
+### How
+1. Use `Requires` for mandatory dependencies:
+```go
+type Requires interface { Requires() []Plugin }
+```
+2. Use `Optional` for soft dependencies that users may disable:
+```go
+type Optional interface { Optional() []Plugin }
+```
+3. Register the plugin with `core.RegisterPlugin`; dependencies are resolved
+   before `Install` runs.
+
+### API
+- `func RegisterPlugin(p Plugin)`
+- `func (a *App) HasPlugin(name string) bool`
+- `type Requires interface { Requires() []Plugin }`
+- `type Optional interface { Optional() []Plugin }`
+
+### Example
+The `docs` plugin installs the `seo` plugin unless disabled:
+```go
+func (p *Plugin) Optional() []core.Plugin {
+    if p.DisableSEO {
+        return nil
+    }
+    return []core.Plugin{seo.New()}
+}
+
+// Disable the seo dependency
+core.RegisterPlugin(docs.New("/articles/sidebar.json", true))
+```
+
+### Notes
+Dependencies are registered recursively and only if not already present.
+
 ## Store hooks
 
 Plugins can react to store mutations by registering a store hook. The hook is

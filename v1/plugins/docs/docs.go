@@ -10,16 +10,31 @@ import (
 	"github.com/rfwlab/rfw/v1/core"
 	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/markdown"
+	"github.com/rfwlab/rfw/v1/plugins/seo"
 )
 
 type Plugin struct {
-	Sidebar string
-	loader  js.Func
+	Sidebar    string
+	loader     js.Func
+	disableSEO bool
 }
 
-func New(sidebar string) *Plugin {
+func New(sidebar string, disableSEO ...bool) *Plugin {
 	sidebar = fmt.Sprintf("%s?%s", sidebar, time.Now().Unix())
-	return &Plugin{Sidebar: sidebar}
+	p := &Plugin{Sidebar: sidebar}
+	if len(disableSEO) > 0 {
+		p.disableSEO = disableSEO[0]
+	}
+	return p
+}
+
+func (p *Plugin) Name() string { return "docs" }
+
+func (p *Plugin) Optional() []core.Plugin {
+	if p.disableSEO {
+		return nil
+	}
+	return []core.Plugin{seo.New()}
 }
 
 func (p *Plugin) Install(a *core.App) {

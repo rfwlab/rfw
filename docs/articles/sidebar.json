@@ -1,18 +1,21 @@
 [
   {
     "title": "Introduction",
-    "path": "index.md"
+    "path": "index.md",
+    "description": "Overview of the rfw documentation."
   },
   {
     "title": "Getting Started",
     "children": [
       {
         "title": "Introduction",
-        "path": "getting-started/introduction.md"
+        "path": "getting-started/introduction.md",
+        "description": "Introduction to building with rfw."
       },
       {
         "title": "Quick Start",
-        "path": "getting-started/quick-start.md"
+        "path": "getting-started/quick-start.md",
+        "description": "Minimal steps to run your first rfw app."
       }
     ]
   },
