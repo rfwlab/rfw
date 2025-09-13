@@ -17,6 +17,7 @@ import (
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/pages"
+	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/seo"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
 )

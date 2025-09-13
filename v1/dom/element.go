@@ -39,6 +39,9 @@ func (e Element) HTML() string { return e.Get("innerHTML").String() }
 // SetHTML replaces the element's children with raw HTML.
 func (e Element) SetHTML(html string) { e.Set("innerHTML", html) }
 
+// AppendChild appends a child element.
+func (e Element) AppendChild(child Element) { e.Call("appendChild", child.Value) }
+
 // Attr retrieves the value of an attribute or "" if unset.
 func (e Element) Attr(name string) string {
 	v := e.Call("getAttribute", name)
