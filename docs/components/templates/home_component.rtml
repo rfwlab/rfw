@@ -70,12 +70,12 @@
       </div>
 
       <div class="max-w-6xl mx-auto mt-12 grid md:grid-cols-3 gap-6 px-6">
-        <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
+        <div class="flex flex-col outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">bolt</span><h3 class="text-lg font-semibold">Live Signals</h3></div>
             <span id="sig-dot" class="inline-block h-2 w-2 outlined-full rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 flex-1">
             <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:dec><span class="material-symbols-outlined text-[20px]">remove</span>Dec</button>
             <div class="flex-1 flex items-center justify-center text-4xl font-semibold tabular-nums select-none"><span>@signal:count</span></div>
             <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:inc><span class="material-symbols-outlined text-[20px]">add</span>Inc</button>
@@ -110,7 +110,7 @@
       </div>
     </section>
 
-    <section class="py-12 border-t border-gray-200 dark:border-zinc-700 bg-gradient-to-b from-white/60 to-white/80 dark:from-[#1a1a1a] dark:to-[#111111]">
+    <section class="py-12 border-t border-gray-200 dark:border-zinc-700 dark:from-[#1a1a1a] dark:to-[#111111]">
       <div class="max-w-6xl mx-auto px-6">
         <div class="flex items-start flex-col mb-6">
           <h2 class="text-7xl font-bold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">RTML</h2>
@@ -129,13 +129,12 @@
           </div>
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
             <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">code_blocks</span><div class="font-semibold">RTML</div></div>
-            <pre class="text-sm overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code class="language-rtml">
-&lt;div class="card"&gt;
+            <pre class="text-sm overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code class="language-rtml">&lt;div class="card"&gt;
   &lt;span&gt;@store:cart.count&lt;/span&gt;
   &lt;button @on:click:add&gt;Add&lt;/button&gt;
   &lt;button @on:click:undo&gt;Undo&lt;/button&gt;
-&lt;/div&gt;
-            </code></pre>
+  &lt;button @on:click:redo&gt;Redo&lt;/button&gt;
+&lt;/div&gt;</code></pre>
           </div>
         </div>
       </div>
@@ -164,9 +163,9 @@
       </div>
     </section>
 
-    <section class="py-12 bg-gradient-to-b from-white/80 to-white/60 dark:from-[#111111] dark:to-[#0f0f0f] border-t border-gray-200 dark:border-zinc-700">
-      <div class="max-w-6xl mx-auto px-6">
-        <div class="grid md:grid-cols-3 gap-6 items-stretch">
+    <section class="py-12 dark:from-[#111111] dark:to-[#0f0f0f] border-t border-gray-200 dark:border-zinc-700">
+      <div class="max-w-6xl mx-auto px-6 flex gap-6 flex-col">
+        <div class="grid md:grid-cols-2 gap-6 items-stretch">
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
             <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">speed</span><div class="font-semibold">Performance</div></div>
             <div class="text-sm text-zinc-700 dark:text-zinc-400">Tiny Wasm bundles, no Node pipeline required. Small and efficient Javascript generation, optimized for performance. Blazing fast rendering, for real.</div>
@@ -177,14 +176,13 @@
             <div class="text-sm text-zinc-700 dark:text-zinc-400">Built-in development and production server, devtools for components, signals, stores, network and more. Enjoy a full developer experience with rfw.</div>
             <div class="mt-4 grid grid-cols-6 gap-1" id="dxGrid"></div>
           </div>
-          <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
-            <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">terminal</span><div class="font-semibold">Getting Started</div></div>
-            <pre class="text-xs overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code>
-curl -L https://github.com/rfwlab/rfw/releases/download/continuous/rfw -o ~/.local/bin/rfw &amp;&amp; chmod +x ~/.local/bin/rfw
+        </div>
+        <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
+          <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-3"><span class="material-symbols-outlined text-[22px]">terminal</span><div class="font-semibold">Getting Started</div></div>
+          <p class="text-sm text-zinc-700 dark:text-zinc-400">rfw comes with a command-line interface to help you get started really quickly.</p>
+          <pre class="mt-4 text-xs overflow-auto outlined-xl border border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-[#121212] p-4"><code>curl -L https://github.com/rfwlab/rfw/releases/download/continuous/rfw -o ~/.local/bin/rfw &amp;&amp; chmod +x ~/.local/bin/rfw
 rfw init github.com/you/app
-rfw dev --debug
-            </code></pre>
-          </div>
+rfw dev --debug</code></pre>
         </div>
       </div>
     </section>
