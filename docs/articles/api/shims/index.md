@@ -33,4 +33,3 @@ func init() {
 ## Related links
  - [js](../js)
  - [highlightjs](highlightjs)
- - [marked](marked)

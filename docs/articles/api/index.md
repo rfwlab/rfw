@@ -12,8 +12,8 @@ reactive primitives that form the foundation of every RFW application.
 
 Application level utilities build on top of this foundation. The
 [router](router) package offers client‑side navigation, while
-[http](http), [assets](assets) and [js](js) simplify communication with servers and
-JavaScript interop.
+[http](http), [assets](assets), [js](js) and [markdown](markdown) simplify
+communication with servers, JavaScript interop and markdown rendering.
 
 RFW is designed to run in multiple environments. The [host](host) and
 [hostclient](hostclient) packages integrate the runtime with external
@@ -43,6 +43,7 @@ The full set of API references is listed below:
 - [http](http)
 - [input](input)
 - [js](js)
+- [markdown](markdown)
 - [shims](shims)
 - [plugins](plugins)
 - [docs plugin](docs-plugin)

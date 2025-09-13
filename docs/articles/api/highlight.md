@@ -38,8 +38,10 @@ func main() {
 
 ```html
 <script>
-marked.setOptions({
-    highlight: (code, lang) => rfwHighlight(code, lang),
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof rfwHighlightAll === "function") {
+        rfwHighlightAll();
+    }
 });
 </script>
 ```

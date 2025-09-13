@@ -9,7 +9,6 @@
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark-dimmed.min.css"
         />
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <link
             href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
             rel="stylesheet"
@@ -21,15 +20,6 @@
         <script src="/wasm_loader.js"></script>
         <script>
             const go = new Go();
-            marked.setOptions({
-                highlight: (code, lang) => {
-                    if (typeof rfwHighlight === "function") {
-                        const res = rfwHighlight(code, lang);
-                        if (res) return res;
-                    }
-                    return code;
-                },
-            });
             WasmLoader.load("/app.wasm?" + Date.now(), {
                 go: go,
                 color: "#ff0000",

@@ -210,16 +210,16 @@
         "path": "api/js.md"
       },
       {
+        "title": "markdown",
+        "path": "api/markdown.md"
+      },
+      {
         "title": "shims",
         "path": "api/shims/index.md",
         "children": [
           {
             "title": "highlightjs",
             "path": "api/shims/highlightjs.md"
-          },
-          {
-            "title": "marked",
-            "path": "api/shims/marked.md"
           }
         ]
       },
