@@ -15,6 +15,7 @@ import (
 	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/plugins/i18n"
 	shortcut "github.com/rfwlab/rfw/v1/plugins/shortcut"
+	"github.com/rfwlab/rfw/v1/plugins/toast"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 )
@@ -47,6 +48,7 @@ func main() {
 	}))
 	core.RegisterPlugin(mon.New())
 	core.RegisterPlugin(highlight.New())
+	core.RegisterPlugin(toast.New())
 	core.RegisterPlugin(soccer.New())
 	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
 	core.RegisterPlugin(shortcut.New())
@@ -135,6 +137,10 @@ func main() {
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/plugins",
 		Component: func() core.Component { return plugs.NewPluginsComponent() },
+	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/toast",
+		Component: func() core.Component { return plugs.NewToastComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/plugin-directives",
