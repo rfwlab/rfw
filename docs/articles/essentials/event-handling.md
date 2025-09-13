@@ -44,7 +44,8 @@ Example:
 Handlers can also be registered from Go code using the `events` package:
 
 ```go
-stop := events.OnClick(dom.ByID("save"), func(evt js.Value) {
+doc := dom.Doc()
+stop := events.OnClick(doc.ByID("save").Value, func(evt js.Value) {
         // handle click
 })
 defer stop()

@@ -81,8 +81,9 @@ ctx.UseProgram(prog)
 ### Loading a texture
 
 ```go
-img := dom.ByID("img")
-tex := ctx.LoadTexture2D(img)
+doc := dom.Doc()
+img := doc.ByID("img")
+tex := ctx.LoadTexture2D(img.Value)
 ctx.ActiveTexture(webgl.TEXTURE0)
 ctx.BindTexture(webgl.TEXTURE_2D, tex)
 ```
@@ -105,8 +106,9 @@ Use when drawing geometry that shares vertices or requires depth ordering.
 4. Render with `Context.DrawElements`.
 
 ```go
-canvas := dom.ByID("canvas")
-ctx := webgl.NewContextFrom(canvas)
+doc := dom.Doc()
+canvas := doc.ByID("canvas")
+ctx := webgl.NewContextFrom(canvas.Value)
 ctx.Viewport(0, 0, canvas.Get("width").Int(), canvas.Get("height").Int())
 ctx.Enable(webgl.DEPTH_TEST)
 ctx.DepthFunc(webgl.LEQUAL)
