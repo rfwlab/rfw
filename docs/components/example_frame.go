@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
 )
@@ -30,64 +29,67 @@ func init() {
 }
 
 func (e *exampleFrame) mount(hc *core.HTMLComponent) {
-	root := dom.Doc().Query("[data-component-id='" + hc.GetID() + "']")
-	if !root.Truthy() {
+	wrapper := hc.GetRef("wrapper")
+	if !wrapper.Truthy() {
 		return
 	}
-	wrapper := root.Get("firstElementChild")
-	if code, ok := hc.Props["code"].(string); ok {
-		wrapper.Get("dataset").Set("code", code)
-	}
-	iframe := wrapper.Call("querySelector", "iframe")
+	frame := hc.GetRef("frame")
 	if uri, ok := hc.Props["uri"].(string); ok {
 		uri = fmt.Sprintf(`%s?%s`, uri, hc.GetID())
-		iframe.Set("src", uri)
+		frame.SetAttr("src", uri)
 	}
-	codeTab := wrapper.Call("querySelector", "#tab-code")
-	previewTab := wrapper.Call("querySelector", "#tab-preview")
-	codeDiv := wrapper.Call("querySelector", "#code")
-	codeEl := codeDiv.Call("querySelector", "code")
-	filePathEl := wrapper.Call("querySelector", "#file-path")
-	previewDiv := wrapper.Call("querySelector", "#preview")
-	codeURL := wrapper.Get("dataset").Get("code").String()
-	if codeURL != "" {
-		filePathEl.Set("textContent", codeURL)
+	codeTab := hc.GetRef("codeTab")
+	previewTab := hc.GetRef("previewTab")
+	codeDiv := hc.GetRef("codeDiv")
+	codeEl := hc.GetRef("codeEl")
+	filePathEl := hc.GetRef("filePath")
+	previewDiv := hc.GetRef("previewDiv")
+	if codeURL, ok := hc.Props["code"].(string); ok && codeURL != "" {
+		filePathEl.SetText(codeURL)
 
 		js.Fetch(codeURL).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 			resp := args[0]
 			return resp.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
 				code := args[0].String()
-				codeEl.Set("textContent", code)
+				codeEl.SetText(code)
 				if h := js.Get("rfwHighlight"); h.Truthy() {
 					res := h.Invoke(code, "go")
 					if res.Truthy() && res.String() != "" {
-						codeEl.Set("innerHTML", res.String())
+						codeEl.SetHTML(res.String())
 					} else if hljs := js.Get("hljs"); hljs.Truthy() {
-						hljs.Call("highlightElement", codeEl)
+						hljs.Call("highlightElement", codeEl.Value)
 					}
 				} else if hljs := js.Get("hljs"); hljs.Truthy() {
-					hljs.Call("highlightElement", codeEl)
+					hljs.Call("highlightElement", codeEl.Value)
 				}
 				return nil
 			}))
 		}))
 	}
-	codeCh := events.Listen("click", codeTab)
+	codeCh := events.Listen("click", codeTab.Value)
 	go func() {
 		for range codeCh {
-			codeDiv.Get("classList").Call("remove", "hidden")
-			previewDiv.Get("classList").Call("add", "hidden")
-			codeTab.Get("classList").Call("add", "border-b-2", "border-red-500", "text-red-500")
-			previewTab.Get("classList").Call("remove", "border-b-2", "border-red-500", "text-red-500")
+			codeDiv.RemoveClass("hidden")
+			previewDiv.AddClass("hidden")
+			codeTab.AddClass("border-b-2")
+			codeTab.AddClass("border-red-500")
+			codeTab.AddClass("text-red-500")
+			previewTab.RemoveClass("border-b-2")
+			previewTab.RemoveClass("border-red-500")
+			previewTab.RemoveClass("text-red-500")
 		}
 	}()
-	previewCh := events.Listen("click", previewTab)
+	previewCh := events.Listen("click", previewTab.Value)
 	go func() {
 		for range previewCh {
-			previewDiv.Get("classList").Call("remove", "hidden")
-			codeDiv.Get("classList").Call("add", "hidden")
-			previewTab.Get("classList").Call("add", "border-b-2", "border-red-500", "text-red-500")
-			codeTab.Get("classList").Call("remove", "border-b-2", "border-red-500", "text-red-500")
+			previewDiv.RemoveClass("hidden")
+			codeDiv.AddClass("hidden")
+			previewTab.AddClass("border-b-2")
+			previewTab.AddClass("border-red-500")
+			previewTab.AddClass("text-red-500")
+			codeTab.RemoveClass("border-b-2")
+			codeTab.RemoveClass("border-red-500")
+			codeTab.RemoveClass("text-red-500")
 		}
 	}()
 }
