@@ -68,3 +68,22 @@ func TestReplaceConstructors(t *testing.T) {
 		t.Fatalf("expected data-key constructor, got %s", out)
 	}
 }
+
+// Tests plugin placeholders for variables, commands and constructors.
+func TestPluginPlaceholders(t *testing.T) {
+	RegisterPluginVar("soccer", "team", "lions")
+	tpl := `<div @plugin:soccer.init>{plugin:soccer.team}</div>`
+	out := replacePluginPlaceholders(tpl)
+	if !strings.Contains(out, "lions") {
+		t.Fatalf("plugin variable not replaced: %s", out)
+	}
+	if !strings.Contains(out, `data-plugin-cmd="soccer.init"`) {
+		t.Fatalf("plugin command not replaced: %s", out)
+	}
+
+	tpl = `<span [plugin:soccer.badge]></span>`
+	out = replaceConstructors(tpl)
+	if !strings.Contains(out, `data-plugin="soccer.badge"`) {
+		t.Fatalf("plugin constructor not replaced: %s", out)
+	}
+}

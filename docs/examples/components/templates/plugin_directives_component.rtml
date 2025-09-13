@@ -1,0 +1,5 @@
+<div class="space-y-2">
+  <p>Team: {plugin:soccer.team}</p>
+  <button @plugin:soccer.log>Log team</button>
+  <div [plugin:soccer.badge]></div>
+</div>

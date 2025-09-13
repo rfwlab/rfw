@@ -113,6 +113,14 @@
         "path": "guide/complex-routing.md"
       },
       {
+        "title": "Plugins",
+        "path": "guide/plugins.md"
+      },
+      {
+        "title": "Plugin Directives",
+        "path": "guide/plugin-directives.md"
+      },
+      {
         "title": "Pages Plugin",
         "path": "guide/pages-plugin.md"
       },
@@ -149,10 +157,6 @@
         "path": "guide/wasm-loader.md"
       },
       {
-        "title": "Plugins",
-        "path": "guide/plugins.md"
-      },
-      {
         "title": "Manifest",
         "path": "guide/manifest.md"
       },
@@ -175,10 +179,6 @@
       {
         "title": "Multiplayer",
         "path": "guide/multiplayer.md"
-      },
-      {
-        "title": "Speculative Intent",
-        "path": "guide/speculative-intent.md"
       }
     ]
   },

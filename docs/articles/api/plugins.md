@@ -52,6 +52,30 @@ func (p loggerPlugin) Install(a *core.App) {
 Behind the scenes this uses `state.StoreHook`, allowing multiple plugins to
 observe mutations without interfering with each other.
 
+## RTML directives
+
+Plugins may expose values and actions directly to templates. Register a value
+with `a.RegisterRTMLVar` during `Install` and reference it in RTML using the
+`plugin:` domain:
+
+```go
+func (p dataPlugin) Install(a *core.App) {
+    a.RegisterRTMLVar("soccer", "team", "lions")
+}
+```
+
+The variable becomes available in templates as `{plugin:soccer.team}`. Commands
+and constructors follow the same prefix and are emitted as `data-plugin-*`
+attributes:
+
+```rtml
+<button @plugin:soccer.refresh>...</button>
+<div [plugin:soccer.badge]></div>
+```
+
+Plugins can then scan the DOM for `data-plugin-cmd` or `data-plugin` attributes
+to attach behavior.
+
 ## Usage
 
 Plugins must be registered before the application starts using
