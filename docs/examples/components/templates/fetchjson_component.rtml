@@ -1,6 +1,6 @@
 <root>
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
-        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:fetch>Fetch TODO</button>
+        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:fetch>Fetch TODO</button>
         <p>Data: @store:app.default.apiData</p>
     </div>
 </root>

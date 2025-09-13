@@ -1,5 +1,5 @@
 <div class="p-4 space-y-2">
     <h3 class="font-bold">Netcode Demo</h3>
     <p id="pos">x: 0</p>
-    <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:move>Move</button>
+    <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:move>Move</button>
 </div>
