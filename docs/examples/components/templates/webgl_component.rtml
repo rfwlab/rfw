@@ -10,10 +10,10 @@
     <div id="game-container">
         <canvas id="glcanvas" width="600" height="600"></canvas>
         <p id="score">Score: 0</p>
-        <button id="fullscreen-btn" class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:webglFullscreen>Fullscreen</button>
+        <button id="fullscreen-btn" class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:webglFullscreen>Fullscreen</button>
         <div id="menu">
             <h2>Snake</h2>
-            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:webglStart>Start</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:webglStart>Start</button>
         </div>
     </div>
 </root>

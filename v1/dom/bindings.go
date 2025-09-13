@@ -81,7 +81,7 @@ func collectBindings(n *html.Node, path []int) []binding {
 	return res
 }
 
-// eventRegex matches event directives (e.g. @click:handler) ensuring the
+// eventRegex matches event directives (e.g. @on:click:handler) ensuring the
 // handler is terminated by whitespace, a self-closing slash or the end of the
 // tag. The terminating character is captured to preserve it during replacement
 // and avoid matching constructs like store bindings within attribute values.

@@ -8,7 +8,7 @@ By compiling to WebAssembly, the same Go code can run on both the client and the
 
 ```rtml
 <root>
-  <button @click:increment>Count: {count}</button>
+  <button @on:click:increment>Count: {count}</button>
 </root>
 ```
 
@@ -32,7 +32,7 @@ func New() *core.HTMLComponent {
 }
 ```
 
-The `@click` directive binds the `increment` handler to the button. When the button is pressed, the Go value is increased and the DOM is patched automatically—no manual manipulation is required. RTML placeholders such as `{count}` are resolved against the component's `Props` map on every re-render.
+The `@on:click` directive binds the `increment` handler to the button. When the button is pressed, the Go value is increased and the DOM is patched automatically—no manual manipulation is required. RTML placeholders such as `{count}` are resolved against the component's `Props` map on every re-render.
 
 For larger components consider updating state through stores to avoid race conditions. The Go WASM runtime is single threaded; heavy computations should be offloaded to web workers or handled asynchronously to prevent UI freezing.
 

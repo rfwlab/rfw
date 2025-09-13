@@ -59,7 +59,7 @@ The RTML template can read variables coming from both the HTML component and the
 <root>
     <p>Client: {clientMsg}</p>
     <p>Host: {h:hostMsg}</p>
-    <button @click:h:updateTime>refresh</button>
+    <button @on:click:h:updateTime>refresh</button>
 </root>
 ```
 

@@ -6,10 +6,10 @@
             <li><a class="text-red-500 hover:text-red-700 cursor-pointer" onclick="goNavigate('/event/observer')">Observers demo</a></li>
         </ul>
         <p class="mb-2">Basic click increments the counter:</p>
-        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition mr-2" @click:increment>Increment</button>
+        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition mr-2" @on:click:increment>Increment</button>
 
         <p class="mt-4 mb-2">With once, stopPropagation and preventDefault modifiers (only the first click counts):</p>
-        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click.once.stopPropagation.preventDefault:increment>Increment with modifiers</button>
+        <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click.once.stopPropagation.preventDefault:increment>Increment with modifiers</button>
 
         <p class="mt-4">Count: @store:app.default.count</p>
     </div>

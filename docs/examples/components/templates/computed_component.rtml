@@ -2,8 +2,8 @@
     <div class="p-4 pt-0">
         <h2 class="text-xl font-bold mb-4">Computed & Watcher Component</h2>
         <div class="space-x-2">
-            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:setAda>Ada Lovelace</button>
-            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @click:setGrace>Grace Hopper</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:setAda>Ada Lovelace</button>
+            <button class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition" @on:click:setGrace>Grace Hopper</button>
         </div>
         <p class="mt-4">Full name: @store:app.default.fullName</p>
         <p class="mt-2 italic text-sm">@store:app.default.lastChange</p>
