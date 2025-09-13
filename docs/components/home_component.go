@@ -9,7 +9,7 @@ import (
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
-	js "github.com/rfwlab/rfw/v1/js"
+	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -94,9 +94,7 @@ func NewHomeComponent() *core.HTMLComponent {
 			drawSpark(count.Get())
 			return nil
 		})
-		if h := js.Get("rfwHighlightAll"); h.Truthy() {
-			h.Invoke()
-		}
+		highlight.HighlightAll()
 	})
 
 	addItem := state.Action(func(ctx state.Context) error {
