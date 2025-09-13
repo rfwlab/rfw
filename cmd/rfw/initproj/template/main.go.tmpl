@@ -5,15 +5,11 @@ package main
 import (
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/router"
-	"{{moduleName}}/components"
+	_ "{{moduleName}}/pages"
 )
 
 func main() {
 	core.SetDevMode(true)
-	router.RegisterRoute(router.Route{
-		Path:      "/",
-		Component: func() core.Component { return components.NewAppComponent() },
-	})
 	router.InitRouter()
 	select {}
 }

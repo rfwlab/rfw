@@ -1,0 +1,13 @@
+//go:build js && wasm
+
+package pages
+
+import (
+	"github.com/rfwlab/rfw/v1/core"
+	"{{moduleName}}/components"
+)
+
+// Index renders the home page.
+func Index() core.Component {
+	return components.NewAppComponent()
+}
