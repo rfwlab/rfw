@@ -1,4 +1,5 @@
 <root>
+    <!-- Demonstrates list rendering with keyed constructors -->
     <div class="p-4 pt-0 flex flex-col items-start gap-4">
         <button onclick="goNavigate('/user/Luigi')"
             class="px-4 py-2 border border-gray-300 dark:border-zinc-700 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full hover:bg-white hover:text-red-600 transition">Go to another page</button>
@@ -26,7 +27,7 @@
 
         <ul class="list-disc ml-4">
             @for:item in items
-                <li>
+                <li [key {item.name}]>
                     <p><b>Name:</b> @prop:item.name</p>
                     <p><b>Age:</b> @prop:item.age</p>
                 </li>
@@ -35,7 +36,7 @@
 
         <ul class="list-disc ml-4">
             @for:item in store:app.default.testLoop
-                <li>
+                <li [key {item.name}]>
                     <p><b>Name:</b> @prop:item.name</p>
                 </li>
             @endfor
@@ -43,13 +44,13 @@
 
         <ul class="list-disc ml-4">
             @for:key,val in obj
-                <li>@prop:key: @prop:val</li>
+                <li [key {key}]>@prop:key: @prop:val</li>
             @endfor
         </ul>
 
         <ul class="list-disc ml-4">
             @for:i in 0..n
-                <li>Number: @prop:i</li>
+                <li [key {i}]>Number: @prop:i</li>
             @endfor
         </ul>
 

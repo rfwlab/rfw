@@ -5,7 +5,7 @@ routine that works directly on real DOM nodes. When a component renders, the
 framework parses the new markup into a fragment and walks it alongside the
 existing subtree:
 
-- elements carrying a `data-key` are matched and moved if necessary;
+- elements annotated with `[key {expr}]` are matched and moved if necessary;
 - text and attributes are updated in place;
 - missing nodes are created and obsolete ones removed.
 

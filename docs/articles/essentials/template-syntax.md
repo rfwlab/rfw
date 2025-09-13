@@ -2,24 +2,24 @@
 
 RTML is RFW's declarative, HTML-like language for describing user interfaces. It extends standard markup with directives that connect the DOM to Go data and events. Templates are compiled to Go code so no parser runs in the browser. Browser integration currently relies on plain JavaScript; TypeScript builds are not supported yet, though a future release will expose a global `rfw` object to interact with RFW APIs directly.
 
-## Identifiers, Variables and Commands
+## Variables, Commands and Constructors
 
 RTML distinguishes three constructs:
 
-- **Identifiers**: regular HTML `id` attributes. They are static and allow CSS or JavaScript to target elements.
 - **Variables**: placeholders wrapped in `{}` that insert reactive values.
 - **Commands**: directives starting with `@` that drive logic or register behavior.
+- **Constructors**: square‑bracket annotations inside a start tag. `[name]` on an element adds a reference, while `[key {expr}]` injects a list key for efficient diffing.
 
 Each construct has its own responsibility and they should not be intermixed. Example:
 
 ```rtml
-<div id="user-card">
+<div [userCard]>
   <h2>{user.Name}</h2>
   <button @on:click:save>Save</button>
 </div>
 ```
 
-`id="user-card"` is a plain identifier, `{user.Name}` prints data, and `@on:click:save` attaches an event handler.
+`[userCard]` registers the `<div>` for later lookup with `GetRef`, `{user.Name}` prints data, and `@on:click:save` attaches an event handler.
 
 ## Text Interpolation
 
@@ -80,15 +80,15 @@ If `isDisabled` is `false`, the `disabled` attribute is removed from the element
 
 ### Keyed Bindings
 
-Lists often need stable identity for efficient updates. Add a `data-key` attribute to an element inside a loop so RFW can patch DOM nodes selectively:
+Lists often need stable identity for efficient updates. Use the `[key {expr}]` constructor inside the looped element so RFW can patch DOM nodes selectively:
 
 ```rtml
 @for:item in items
-  <li data-key="{item.ID}">{item.Text}</li>
+  <li [key {item.ID}]>{item.Text}</li>
 @endfor
 ```
 
-Without `data-key`, list items are recreated when their order changes.
+Without a key, list items are recreated when their order changes.
 
 ## Event Handling
 

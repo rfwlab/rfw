@@ -1,7 +1,7 @@
 <root>
   <div class="space-y-2">
     <p>Left drag draws a rectangle. Middle drag pans. Right drag rotates. Scroll to zoom.</p>
-    <p id="camera" class="font-mono"></p>
-    <p id="drag" class="font-mono text-sm text-red-600"></p>
+    <p [camera] class="font-mono"></p>
+    <p [drag] class="font-mono text-sm text-red-600"></p>
   </div>
 </root>

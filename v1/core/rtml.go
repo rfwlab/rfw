@@ -660,6 +660,36 @@ func insertDataKey(content string, key any) string {
 	return content[:loc[1]] + fmt.Sprintf(` data-key="%v"`, key) + content[loc[1]:]
 }
 
+// replaceConstructors scans for inline constructor tokens inside an element's
+// start tag and injects the corresponding data attribute. Supported
+// constructors:
+//
+//	[name]       -> data-ref="name"
+//	[key expr]   -> data-key="expr"
+//
+// Only a single constructor per element is handled.
+func replaceConstructors(template string) string {
+	re := regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[(\w+)(?:\s+([^\]]+))?\]([^>]*)>`)
+	return re.ReplaceAllStringFunc(template, func(match string) string {
+		parts := re.FindStringSubmatch(match)
+		if len(parts) < 6 {
+			return match
+		}
+		tag := parts[1]
+		before := parts[2]
+		name := parts[3]
+		param := parts[4]
+		after := parts[5]
+		attr := ""
+		if name == "key" && param != "" {
+			attr = fmt.Sprintf(` data-key="%s"`, param)
+		} else {
+			attr = fmt.Sprintf(` data-ref="%s"`, name)
+		}
+		return fmt.Sprintf("<%s%s%s%s>", tag, before, attr, after)
+	})
+}
+
 func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 	if n, err := strconv.Atoi(expr); err == nil {
 		return n, nil
