@@ -17,6 +17,10 @@ type Plugin interface {
 	Install(*App)
 }
 
+// Named plugins expose a unique identifier used for deduplication.
+// Implementing this interface is optional.
+type Named interface{ Name() string }
+
 // PreBuilder allows plugins to execute logic before the CLI build step.
 // Implementing this interface is optional.
 type PreBuilder interface {
@@ -40,6 +44,7 @@ type Uninstaller interface {
 type App struct {
 	*hooks
 	pluginVars map[string]map[string]any
+	plugins    map[string]Plugin
 }
 
 type hooks struct {
@@ -52,7 +57,7 @@ type hooks struct {
 
 // newApp creates an App with initialized hook storage.
 func newApp() *App {
-	return &App{hooks: &hooks{}, pluginVars: make(map[string]map[string]any)}
+	return &App{hooks: &hooks{}, pluginVars: make(map[string]map[string]any), plugins: make(map[string]Plugin)}
 }
 
 // RegisterRouter adds a router navigation hook.
@@ -111,8 +116,29 @@ func RegisterPluginVar(plugin, name string, val any) {
 
 var app = newApp()
 
-// RegisterPlugin registers a plugin and allows it to add hooks.
-func RegisterPlugin(p Plugin) { p.Install(app) }
+// HasPlugin reports whether a plugin with the given name is installed.
+func (a *App) HasPlugin(name string) bool {
+	if a.plugins == nil {
+		return false
+	}
+	_, ok := a.plugins[name]
+	return ok
+}
+
+// RegisterPlugin registers a plugin and allows it to add hooks. If the plugin
+// implements Named and has already been installed, it is skipped.
+func RegisterPlugin(p Plugin) {
+	if n, ok := p.(Named); ok {
+		if app.HasPlugin(n.Name()) {
+			return
+		}
+		if app.plugins == nil {
+			app.plugins = make(map[string]Plugin)
+		}
+		app.plugins[n.Name()] = p
+	}
+	p.Install(app)
+}
 
 // TriggerRouter invokes router hooks with the given path.
 func TriggerRouter(path string) {

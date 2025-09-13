@@ -7,7 +7,7 @@
 | `PostBuild(cfg json.RawMessage) error` | Runs after the build completes. |
 | `Install(a *core.App)` | Registers runtime features before the app starts. |
 | `Uninstall(a *core.App)` | Cleans up resources added during `Install`. |
-| `Name() string` | Unique identifier reported to the CLI. |
+| `Name() string` | Optional identifier provided via the `Named` interface. |
 | `ShouldRebuild(path string) bool` | Signals if a file change triggers a rebuild. |
 | `Priority() int` | Execution order – lower numbers run first. |
 
@@ -35,6 +35,26 @@ func (p *MyPlugin) Priority() int
 Plugins are registered with `core.RegisterPlugin(...)` before compiling the
 WASM bundle. During `Install` they can register components, add routes or inject
 scripts, while `Uninstall` can clean up any hooks.
+
+## Plugin identification
+
+Plugins may optionally expose a name via the `Named` interface:
+
+```go
+type Named interface { Name() string }
+```
+
+When implemented, `core.RegisterPlugin` indexes the plugin by its name and
+ignores subsequent registrations with the same identifier. Inside `Install` a
+plugin can check for the presence of another plugin using `a.HasPlugin`:
+
+```go
+func (p featurePlugin) Install(a *core.App) {
+    if a.HasPlugin("seo") {
+        // interact with the seo plugin
+    }
+}
+```
 
 ## Store hooks
 

@@ -10,6 +10,8 @@ type Plugin interface {
 	Install(*App)
 }
 
+type Named interface{ Name() string }
+
 type PreBuilder interface{ PreBuild(json.RawMessage) error }
 type PostBuilder interface{ PostBuild(json.RawMessage) error }
 type Uninstaller interface{ Uninstall(*App) }
@@ -22,6 +24,7 @@ func (a *App) RegisterStore(fn func(module, store, key string, value any)) {}
 func (a *App) RegisterLifecycle(mount, unmount func(Component))            {}
 func (a *App) RegisterTemplate(fn func(componentID, html string))          {}
 func (a *App) RegisterRTMLVar(plugin, name string, val any)                {}
+func (a *App) HasPlugin(name string) bool                                  { return false }
 
 func RegisterPlugin(p Plugin)                           {}
 func TriggerRouter(path string)                         {}
