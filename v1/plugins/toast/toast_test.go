@@ -1,5 +1,10 @@
+//go:build js && wasm
+
 package toast
 
 import "testing"
 
-func TestPlaceholder(t *testing.T) {}
+func TestPushOptionsNoPlugin(t *testing.T) {
+	// Ensure calling PushOptions without installation is a no-op.
+	PushOptions("msg", Options{})
+}
