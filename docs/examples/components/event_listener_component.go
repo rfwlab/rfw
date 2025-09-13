@@ -6,7 +6,6 @@ import (
 	_ "embed"
 
 	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
 )
 
@@ -18,7 +17,7 @@ func NewEventListenerComponent() *core.HTMLComponent {
 	// Always start from zero to avoid residual persisted values.
 	c.Store.Set("clicks", float64(0))
 	c.SetOnMount(func(cmp *core.HTMLComponent) {
-		btn := dom.Doc().ByID("clickBtn")
+		btn := cmp.GetRef("clickBtn")
 		ch := events.Listen("click", btn.Value)
 		go func() {
 			for range ch {

@@ -168,6 +168,9 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Render any components introduced via rt-is placeholders
 	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
 
+	// Handle constructor decorators like [ref] and [key expr]
+	renderedTemplate = replaceConstructors(renderedTemplate)
+
 	if c.HostComponent != "" {
 		hostclient.RegisterComponent(c.ID, c.HostComponent, c.hostVars)
 	}
@@ -247,6 +250,23 @@ func (c *HTMLComponent) GetName() string {
 
 func (c *HTMLComponent) GetID() string {
 	return c.ID
+}
+
+// GetRef returns the DOM element annotated with a matching constructor
+// decorator. It searches within this component's root element using the
+// data-ref attribute injected during template rendering.
+func (c *HTMLComponent) GetRef(name string) dom.Element {
+	doc := dom.Doc()
+	var root dom.Element
+	if c.ID == "" {
+		root = doc.ByID("app")
+	} else {
+		root = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
+	}
+	if root.IsNull() || root.IsUndefined() {
+		return dom.Element{}
+	}
+	return root.Query(fmt.Sprintf(`[data-ref="%s"]`, name))
 }
 
 func (c *HTMLComponent) OnMount() {

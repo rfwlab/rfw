@@ -4,10 +4,10 @@ Sometimes a component needs direct access to a DOM element or child component in
 
 ## Creating a Ref
 
-Use the `ref` attribute on an element in RTML:
+Annotate an element by placing a constructor inside its start tag:
 
 ```rtml
-<input ref="nameInput">
+<input [nameInput]>
 ```
 
 In the component, call `GetRef("nameInput")` after the element mounts:
@@ -19,22 +19,5 @@ func (c *Form) OnMount() {
 }
 ```
 
-The returned `dom.Element` can be used with low-level DOM helpers for scenarios like focusing, measuring, or integrating third‑party libraries.
-
-## Component Refs
-
-Refs also work on included components. Adding `ref="child"` to an `@include` exposes the child instance via `GetComponentRef`.
-
-```rtml
-@include:Modal ref="modal"
-```
-
-```go
-func (p *Page) Open() {
-  modal := p.GetComponentRef("modal").(*Modal)
-  modal.Show()
-}
-```
-
-Template refs should be used sparingly; most interactions can be handled with events and reactive state.
+The returned `dom.Element` can be used with low-level DOM helpers for scenarios like focusing, measuring, or integrating third‑party libraries. Template refs should be used sparingly; most interactions can be handled with events and reactive state.
 They are typically accessed during `OnMount`; see [Lifecycle hooks](../api/core#lifecycle-hooks) for more on component lifecycles.
