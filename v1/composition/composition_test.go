@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	core "github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v1/dom"
+	"github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
 )
 
@@ -23,6 +25,28 @@ func TestUnwrap(t *testing.T) {
 	if c.Unwrap() != hc {
 		t.Fatalf("expected %v, got %v", hc, c.Unwrap())
 	}
+}
+
+func TestOnRegistersHandler(t *testing.T) {
+	hc := core.NewComponent("test", nil, nil)
+	c := Wrap(hc)
+	called := false
+	c.On("onTest", func() { called = true })
+	h := dom.GetHandler("onTest")
+	if h.Type() != js.TypeFunction {
+		t.Fatalf("expected function handler")
+	}
+	h.Invoke()
+	if !called {
+		t.Fatalf("expected handler to run")
+	}
+}
+
+func TestOnInvalidArgs(t *testing.T) {
+	hc := core.NewComponent("test", nil, nil)
+	c := Wrap(hc)
+	assertPanics(t, func() { c.On("", func() {}) })
+	assertPanics(t, func() { c.On("x", nil) })
 }
 
 func TestWrapNilPanics(t *testing.T) {
