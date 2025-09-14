@@ -15,7 +15,7 @@ Here is a minimal counter component:
 ```rtml
 <root>
   <button @on:click:increment>
-    Count is: {count}
+    Count is: @signal:count
   </button>
 </root>
 ```
@@ -24,28 +24,29 @@ Here is a minimal counter component:
 package counter
 
 import (
-    "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/dom"
+    "github.com/rfwlab/rfw/v1/composition"
+    core "github.com/rfwlab/rfw/v1/core"
     "github.com/rfwlab/rfw/v1/router"
+    "github.com/rfwlab/rfw/v1/state"
 )
 
 //go:embed counter.rtml
 var tpl []byte
 
 type Counter struct {
-    *core.HTMLComponent
-    Count int
+    *composition.Component
+    count *state.Signal[int]
 }
 
 func New() *Counter {
-    c := &Counter{}
-    c.HTMLComponent = core.NewComponentWith("Counter", tpl, nil, c)
-    dom.RegisterHandlerFunc("increment", func() { c.Count++ })
+    cmp := composition.Wrap(core.NewComponent("Counter", tpl, nil))
+    c := &Counter{Component: cmp, count: state.NewSignal(0)}
+    cmp.Prop("count", c.count)
+    cmp.On("increment", func() { c.count.Set(c.count.Get() + 1) })
     return c
 }
 
 func main() {
-    core.SetDevMode(true)
     router.RegisterRoute(router.Route{
         Path: "/",
         Component: func() core.Component { return New() },
