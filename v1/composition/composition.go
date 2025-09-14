@@ -76,6 +76,14 @@ func (c *Component) Prop(key string, sig signalAny) {
 	c.HTMLComponent.Props[key] = sig
 }
 
+// IDSignal exposes the component's ID as a state.Signal stored under the "id" prop.
+// Updating the returned signal does not modify the component's actual ID.
+func (c *Component) IDSignal() *state.Signal[string] {
+	s := state.NewSignal(c.ID)
+	c.Prop("id", s)
+	return s
+}
+
 // OnUnmount cleans up the composition store when the component is removed.
 func (c *Component) OnUnmount() {
 	for name := range c.createdStores {
