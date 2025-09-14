@@ -39,7 +39,7 @@ cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
 count := state.NewSignal(0)
 cmp.Prop("count", count) // Since: Unreleased
 
-other := cmp.FromProp("other", 1) // Since: Unreleased
+other := composition.FromProp[int](cmp, "other", 1) // Since: Unreleased
 other.Set(2)
 ```
 
@@ -47,7 +47,7 @@ other.Set(2)
 // Legacy prop plain -> FromProp wraps without altering Props
 hc := core.NewComponent("Counter", nil, map[string]any{"count": 5})
 cmp := composition.Wrap(hc)
-count := cmp.FromProp[int]("count", 0) // -> 5, Props["count"] remains 5 (int)
+count := composition.FromProp[int](cmp, "count", 0) // -> 5, Props["count"] remains 5 (int)
 count.Set(6)
 ```
 
@@ -69,8 +69,8 @@ cmp.On("save", func() { /* handle save */ }) // Since: Unreleased
 - `composition.Wrap(c *core.HTMLComponent) *composition.Component`
 - `(*composition.Component).Unwrap() *core.HTMLComponent`
 - `(*composition.Component).On(name string, fn func())`
-- `(*composition.Component).Prop[T any](key string, sig *state.Signal[T])`
-- `(*composition.Component).FromProp[T any](key string, def T) *state.Signal[T]`
+- `(*composition.Component).Prop(key string, sig *state.Signal[T])`
+- `composition.FromProp[T any](c *composition.Component, key string, def T) *state.Signal[T]`
 - `state.NewSignal(initial T) *state.Signal[T]`
 
 ## End-to-End Example
