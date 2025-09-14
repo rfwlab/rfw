@@ -133,7 +133,7 @@ func NewTestComponent() *core.HTMLComponent {
             <div class="flex-1 flex items-center justify-center text-4xl font-semibold tabular-nums select-none"><span>@signal:count</span></div>
             <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:inc><span class="material-symbols-outlined text-[20px]">add</span>Inc</button>
           </div>
-          <div class="mt-4 grid grid-cols-5 gap-1" id="spark"></div>
+          <div class="mt-4 grid grid-cols-5 gap-1" [spark]></div>
         </div>
         <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
           <div class="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 mb-4"><span class="material-symbols-outlined text-[22px]">hub</span><h3 class="text-lg font-semibold">SSC Backchannel</h3></div>
@@ -178,7 +178,7 @@ func NewTestComponent() *core.HTMLComponent {
               <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:undo><span class="material-symbols-outlined text-[20px]">undo</span>Undo</button>
               <button class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-4 py-3 hover:bg-white hover:text-red-600 transition" @on:click:redo><span class="material-symbols-outlined text-[20px]">redo</span>Redo</button>
             </div>
-            <div class="mt-4 grid grid-cols-2 gap-3" id="cart"></div>
+            <div class="mt-4 grid grid-cols-2 gap-3" [cart]></div>
           </div>
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a] backdrop-blur">
             <div class="flex items-center gap-2 mb-4 text-zinc-700 dark:text-zinc-300"><span class="material-symbols-outlined text-[22px]">code_blocks</span><div class="font-semibold">RTML</div></div>
