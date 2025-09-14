@@ -219,3 +219,66 @@ func (d *divNode) Group(g *Elements) *divNode {
 	}
 	return d
 }
+
+// anchorNode builds an <a> element.
+type anchorNode struct{ el dom.Element }
+
+// A creates a new <a> node builder.
+func A() *anchorNode { return &anchorNode{el: dom.Doc().CreateElement("a")} }
+
+// Element returns the underlying DOM element.
+func (a *anchorNode) Element() dom.Element { return a.el }
+
+// Class adds a class to the element.
+func (a *anchorNode) Class(name string) *anchorNode {
+	a.el.AddClass(name)
+	return a
+}
+
+// Classes adds multiple classes to the element.
+func (a *anchorNode) Classes(names ...string) *anchorNode {
+	for _, name := range names {
+		a.el.AddClass(name)
+	}
+	return a
+}
+
+// Style sets an inline style property on the element.
+func (a *anchorNode) Style(prop, value string) *anchorNode {
+	a.el.SetStyle(prop, value)
+	return a
+}
+
+// Styles adds multiple inline style properties to the element.
+func (a *anchorNode) Styles(props ...string) *anchorNode {
+	for i := 0; i < len(props); i += 2 {
+		a.el.SetStyle(props[i], props[i+1])
+	}
+	return a
+}
+
+// Attr sets an attribute on the element.
+func (a *anchorNode) Attr(name, value string) *anchorNode {
+	a.el.SetAttr(name, value)
+	return a
+}
+
+// Href sets the href attribute on the element.
+func (a *anchorNode) Href(h string) *anchorNode {
+	a.el.SetAttr("href", h)
+	return a
+}
+
+// Text sets the text content of the element.
+func (a *anchorNode) Text(t string) *anchorNode {
+	a.el.SetText(t)
+	return a
+}
+
+// Group adds the node to the provided group.
+func (a *anchorNode) Group(g *Elements) *anchorNode {
+	if g != nil {
+		g.add(a)
+	}
+	return a
+}
