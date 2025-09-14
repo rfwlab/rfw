@@ -5,8 +5,8 @@ package components
 import (
 	_ "embed"
 
+	"github.com/rfwlab/rfw/v1/composition"
 	core "github.com/rfwlab/rfw/v1/core"
-	events "github.com/rfwlab/rfw/v1/events"
 )
 
 //go:embed templates/event_listener_component.rtml
@@ -14,21 +14,22 @@ var eventListenerComponentTpl []byte
 
 func NewEventListenerComponent() *core.HTMLComponent {
 	c := core.NewComponent("EventListenerComponent", eventListenerComponentTpl, nil)
-	// Always start from zero to avoid residual persisted values.
-	c.Store.Set("clicks", float64(0))
-	c.SetOnMount(func(cmp *core.HTMLComponent) {
-		btn := cmp.GetRef("clickBtn")
-		ch := events.Listen("click", btn.Value)
-		go func() {
-			for range ch {
-				switch v := cmp.Store.Get("clicks").(type) {
-				case float64:
-					cmp.Store.Set("clicks", v+1)
-				case int:
-					cmp.Store.Set("clicks", float64(v)+1)
-				}
-			}
-		}()
+	cmp := composition.Wrap(c)
+
+	// Register event handler before mount so the template can bind it.
+	cmp.On("increment", func() {
+		switch v := c.Store.Get("clicks").(type) {
+		case float64:
+			c.Store.Set("clicks", v+1)
+		case int:
+			c.Store.Set("clicks", v+1)
+		default:
+			c.Store.Set("clicks", 1)
+		}
 	})
+
+	// Initialize store on mount.
+	cmp.SetOnMount(func(*core.HTMLComponent) { c.Store.Set("clicks", 0) })
+
 	return c
 }
