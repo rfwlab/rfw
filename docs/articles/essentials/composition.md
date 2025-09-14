@@ -61,6 +61,15 @@ cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
 cmp.On("save", func() { /* handle save */ })
 ```
 
+If the component isn't wrapped with `composition.Wrap`, attach listeners
+directly via the `dom` package:
+
+```go
+btn := dom.ByID("save")
+stop := btn.On("click", func(dom.Event) { /* handle click */ })
+defer stop()
+```
+
 ## Example
 
 ```go
