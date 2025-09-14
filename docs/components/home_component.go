@@ -19,8 +19,7 @@ var homeTpl []byte
 
 func NewHomeComponent() *core.HTMLComponent {
 	count := state.NewSignal(0)
-	c := core.NewComponent("HomeComponent", homeTpl, map[string]any{"count": count})
-	comp := composition.Wrap(c)
+	cmp := composition.Wrap(core.NewComponent("HomeComponent", homeTpl, map[string]any{"count": count}))
 
 	var sparkEl dom.Element
 	var cartEl dom.Element
@@ -77,9 +76,9 @@ func NewHomeComponent() *core.HTMLComponent {
 		}
 	}
 	cart.OnChange("items", func(_ any) { renderCart() })
-	comp.SetOnMount(func(*core.HTMLComponent) {
-		sparkEl = comp.GetRef("spark")
-		cartEl = comp.GetRef("cart")
+	cmp.SetOnMount(func(*core.HTMLComponent) {
+		sparkEl = cmp.GetRef("spark")
+		cartEl = cmp.GetRef("cart")
 		renderCart()
 		renderDx()
 		state.Effect(func() func() {
@@ -97,22 +96,22 @@ func NewHomeComponent() *core.HTMLComponent {
 		return nil
 	})
 	addHandler := state.UseAction(context.Background(), addItem)
-	dom.RegisterHandlerFunc("add", func() { _ = addHandler() })
-	dom.RegisterHandlerFunc("undo", func() { cart.Undo() })
-	dom.RegisterHandlerFunc("redo", func() { cart.Redo() })
-	dom.RegisterHandlerFunc("inc", func() { count.Set(count.Get() + 1) })
-	dom.RegisterHandlerFunc("dec", func() {
+	cmp.On("add", func() { _ = addHandler() })
+	cmp.On("undo", func() { cart.Undo() })
+	cmp.On("redo", func() { cart.Redo() })
+	cmp.On("inc", func() { count.Set(count.Get() + 1) })
+	cmp.On("dec", func() {
 		v := count.Get()
 		if v > 0 {
 			count.Set(v - 1)
 		}
 	})
 
-	dom.RegisterHandlerFunc("showRTML", func() { show("rtml") })
-	dom.RegisterHandlerFunc("showGO", func() { show("go") })
-	dom.RegisterHandlerFunc("showPreview", func() { show("preview") })
+	cmp.On("showRTML", func() { show("rtml") })
+	cmp.On("showGO", func() { show("go") })
+	cmp.On("showPreview", func() { show("preview") })
 
-	return c
+	return cmp.Unwrap()
 }
 
 func show(target string) {
