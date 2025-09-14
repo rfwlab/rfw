@@ -117,6 +117,19 @@ func (sm *StoreManager) GetStore(module, name string) *Store {
 	return nil
 }
 
+// UnregisterStore removes the store identified by module and name.
+// If the store or module does not exist, it is a no-op.
+//
+// Since: Unreleased.
+func (sm *StoreManager) UnregisterStore(module, name string) {
+	if stores, ok := sm.modules[module]; ok {
+		delete(stores, name)
+		if len(stores) == 0 {
+			delete(sm.modules, module)
+		}
+	}
+}
+
 // Snapshot returns a deep copy of all registered stores and their states.
 func (sm *StoreManager) Snapshot() map[string]map[string]map[string]any {
 	snap := make(map[string]map[string]map[string]any)
