@@ -85,5 +85,6 @@ For a full list of lifecycle helpers, see the [Lifecycle hooks](../api/core#life
 ## Composing Components
 
 Components can nest by including each other in RTML. Slots allow parents to inject markup into predefined outlets of a child component. This enables flexible layouts while keeping logic isolated.
+To wrap an existing HTML component inside a typed struct, see [Component Composition](./composition).
 
 Understanding components is key to structuring rfw apps. The following chapters build on this foundation to explore reactivity and data flow in more depth.
