@@ -32,14 +32,6 @@ path := <-ch
 0 0 0
 ```
 
-### APIs used
-
-- `pathfinding.New`
-- `(*Pathfinder).RequestGridPath`
-- `(*Pathfinder).RequestNavMeshPath`
-- `(*Pathfinder).Cancel`
-- `math.Vec2`
-
 ## Example
 
 Request a navmesh path between polygons:

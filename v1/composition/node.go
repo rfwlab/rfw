@@ -27,6 +27,106 @@ func (e elWrap) Append(nodes ...Node) {
 	}
 }
 
+// Elements groups a collection of DOM elements for bulk operations.
+type Elements struct{ els []dom.Element }
+
+// NewGroup creates an empty Elements collection.
+func NewGroup() *Elements { return &Elements{} }
+
+// Group collects provided nodes into an Elements wrapper without relying on selectors.
+func Group(nodes ...Node) *Elements {
+	if len(nodes) == 0 {
+		panic("composition.Group: no nodes")
+	}
+	g := NewGroup()
+	g.add(nodes...)
+	return g
+}
+
+// Group merges the current group with other groups.
+func (g *Elements) Group(gs ...*Elements) *Elements {
+	for _, other := range gs {
+		if other != nil {
+			g.els = append(g.els, other.els...)
+		}
+	}
+	return g
+}
+
+// ForEach invokes fn for each element in the group.
+func (g *Elements) ForEach(fn func(dom.Element)) {
+	if fn == nil {
+		panic("composition.Elements.ForEach: nil fn")
+	}
+	for _, el := range g.els {
+		fn(el)
+	}
+}
+
+// AddClass adds a class to every element in the group.
+func (g *Elements) AddClass(name string) *Elements {
+	for _, el := range g.els {
+		el.AddClass(name)
+	}
+	return g
+}
+
+// RemoveClass removes a class from every element in the group.
+func (g *Elements) RemoveClass(name string) *Elements {
+	for _, el := range g.els {
+		el.RemoveClass(name)
+	}
+	return g
+}
+
+// ToggleClass toggles a class on every element in the group.
+func (g *Elements) ToggleClass(name string) *Elements {
+	for _, el := range g.els {
+		el.ToggleClass(name)
+	}
+	return g
+}
+
+// SetAttr sets an attribute on every element in the group.
+func (g *Elements) SetAttr(name, value string) *Elements {
+	for _, el := range g.els {
+		el.SetAttr(name, value)
+	}
+	return g
+}
+
+// SetStyle sets an inline style property on every element in the group.
+func (g *Elements) SetStyle(prop, value string) *Elements {
+	for _, el := range g.els {
+		el.SetStyle(prop, value)
+	}
+	return g
+}
+
+// SetText sets the text content of every element in the group.
+func (g *Elements) SetText(t string) *Elements {
+	for _, el := range g.els {
+		el.SetText(t)
+	}
+	return g
+}
+
+// SetHTML replaces the HTML of every element in the group.
+func (g *Elements) SetHTML(html string) *Elements {
+	for _, el := range g.els {
+		el.SetHTML(html)
+	}
+	return g
+}
+
+func (g *Elements) add(nodes ...Node) {
+	for _, n := range nodes {
+		if n != nil {
+			g.els = append(g.els, n.Element())
+		}
+	}
+}
+
 // BindEl invokes fn with a wrapper exposing Clear and Append helpers for the
 // provided element.
 func BindEl(el dom.Element, fn func(El)) {
@@ -109,5 +209,13 @@ func (d *divNode) Styles(props ...string) *divNode {
 // Text sets the text content of the element.
 func (d *divNode) Text(t string) *divNode {
 	d.el.SetText(t)
+	return d
+}
+
+// Group adds the node to the provided group.
+func (d *divNode) Group(g *Elements) *divNode {
+	if g != nil {
+		g.add(d)
+	}
 	return d
 }
