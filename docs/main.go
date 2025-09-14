@@ -214,6 +214,10 @@ func main() {
 		Path:      "/examples/netcode",
 		Component: func() core.Component { return excomponents.NewNetcodeComponent() },
 	})
+	router.RegisterRoute(router.Route{
+		Path:      "/examples/runtime-error",
+		Component: func() core.Component { return excomponents.NewRuntimeErrorComponent() },
+	})
 
 	router.InitRouter()
 	select {}

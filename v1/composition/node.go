@@ -2,7 +2,11 @@
 
 package composition
 
-import "github.com/rfwlab/rfw/v1/dom"
+import (
+	"fmt"
+
+	"github.com/rfwlab/rfw/v1/dom"
+)
 
 // Node represents a DOM node that can be appended to other nodes.
 type Node interface {
@@ -383,4 +387,63 @@ func (b *buttonNode) Group(g *Elements) *buttonNode {
 		g.add(b)
 	}
 	return b
+}
+
+// headingNode builds an <h1>..<h6> element.
+type headingNode struct{ el dom.Element }
+
+// H creates a new heading node builder for level 1..6 (out-of-range coerced to 1..6).
+func H(level int) *headingNode {
+	if level < 1 {
+		level = 1
+	} else if level > 6 {
+		level = 6
+	}
+	tag := fmt.Sprintf("h%d", level)
+	return &headingNode{el: dom.Doc().CreateElement(tag)}
+}
+
+// Element returns the underlying DOM element.
+func (h *headingNode) Element() dom.Element { return h.el }
+
+// Class adds a class to the element.
+func (h *headingNode) Class(name string) *headingNode {
+	h.el.AddClass(name)
+	return h
+}
+
+// Classes adds multiple classes to the element.
+func (h *headingNode) Classes(names ...string) *headingNode {
+	for _, name := range names {
+		h.el.AddClass(name)
+	}
+	return h
+}
+
+// Style sets an inline style property on the element.
+func (h *headingNode) Style(prop, value string) *headingNode {
+	h.el.SetStyle(prop, value)
+	return h
+}
+
+// Styles adds multiple inline style properties to the element.
+func (h *headingNode) Styles(props ...string) *headingNode {
+	for i := 0; i < len(props); i += 2 {
+		h.el.SetStyle(props[i], props[i+1])
+	}
+	return h
+}
+
+// Text sets the text content of the element.
+func (h *headingNode) Text(t string) *headingNode {
+	h.el.SetText(t)
+	return h
+}
+
+// Group adds the node to the provided group.
+func (h *headingNode) Group(g *Elements) *headingNode {
+	if g != nil {
+		g.add(h)
+	}
+	return h
 }

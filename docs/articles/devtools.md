@@ -10,6 +10,39 @@ RFW_DEVTOOLS=1 rfw dev --debug
 
 Avoid enabling it for production builds where the overlay is unnecessary.
 
+## Runtime error overlay
+
+### Why
+Surface uncaught panics and JavaScript errors directly in the browser.
+
+### When to use
+Available in development when `RFW_DEVTOOLS=1` is set.
+
+### How
+1. Trigger an error, e.g. `panic("boom")`.
+2. The overlay shows the message and stack trace.
+3. Use the arrow buttons to navigate multiple errors or reload the page.
+
+### API
+The overlay hooks `window` error events through the [`js` package](../api/js) and requires no application code.
+
+### Example
+```go
+func broken() {
+    panic("boom")
+}
+```
+
+@include:ExampleFrame:{code:"/examples/components/runtime_error_component.go", uri:"/examples/runtime-error"}
+
+### Notes
+- Active only in debug builds.
+- Closing the overlay clears captured errors.
+- Stores at most 15 errors per page; additional ones are ignored.
+
+### Related links
+- [js package](../api/js)
+
 ## Development Server
 
 The `rfw dev` command launches a file‑watching server that recompiles your project into WebAssembly on every change. It also serves the generated assets over an HTTP server so you can iterate quickly without leaving the terminal. Any files placed in a top-level `static/` directory are available at the root URL during development, and requests to `/static/*` are transparently served as `/*`. When a `host/` directory is present, `rfw dev` builds and runs the host binary from `build/host/host` so host components can be exercised locally.
