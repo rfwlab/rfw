@@ -27,6 +27,18 @@ func (e elWrap) Append(nodes ...Node) {
 	}
 }
 
+// BindEl invokes fn with a wrapper exposing Clear and Append helpers for the
+// provided element.
+func BindEl(el dom.Element, fn func(El)) {
+	if fn == nil {
+		panic("composition.BindEl: nil fn")
+	}
+	if el.IsNull() || el.IsUndefined() {
+		return
+	}
+	fn(elWrap{el})
+}
+
 // Bind selects the first element matching selector and invokes fn with a
 // wrapper exposing Clear and Append helpers.
 func Bind(selector string, fn func(El)) {
@@ -37,10 +49,7 @@ func Bind(selector string, fn func(El)) {
 		panic("composition.Bind: nil fn")
 	}
 	el := dom.Doc().Query(selector)
-	if el.IsNull() || el.IsUndefined() {
-		return
-	}
-	fn(elWrap{el})
+	BindEl(el, fn)
 }
 
 // For repeatedly calls fn to generate nodes and appends them to the element
