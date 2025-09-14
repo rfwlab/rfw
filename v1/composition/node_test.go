@@ -141,3 +141,17 @@ func TestGroupMutators(t *testing.T) {
 		}
 	})
 }
+
+func TestAnchorBuilder(t *testing.T) {
+	a := A().Class("c").Href("/docs").Text("docs")
+	el := a.Element()
+	if v := el.Attr("href"); v != "/docs" {
+		t.Fatalf("expected href /docs, got %q", v)
+	}
+	if el.Text() != "docs" {
+		t.Fatalf("expected text docs")
+	}
+	if !el.HasClass("c") {
+		t.Fatalf("expected class c")
+	}
+}
