@@ -1,0 +1,4 @@
+<div class="p-4">
+  <h1>Runtime Error Example</h1>
+  <p>This page triggers a JavaScript error followed by a panic.</p>
+</div>
