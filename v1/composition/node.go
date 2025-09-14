@@ -282,3 +282,105 @@ func (a *anchorNode) Group(g *Elements) *anchorNode {
 	}
 	return a
 }
+
+// spanNode builds a <span> element.
+type spanNode struct{ el dom.Element }
+
+// Span creates a new <span> node builder.
+func Span() *spanNode { return &spanNode{el: dom.Doc().CreateElement("span")} }
+
+// Element returns the underlying DOM element.
+func (s *spanNode) Element() dom.Element { return s.el }
+
+// Class adds a class to the element.
+func (s *spanNode) Class(name string) *spanNode {
+	s.el.AddClass(name)
+	return s
+}
+
+// Classes adds multiple classes to the element.
+func (s *spanNode) Classes(names ...string) *spanNode {
+	for _, name := range names {
+		s.el.AddClass(name)
+	}
+	return s
+}
+
+// Style sets an inline style property on the element.
+func (s *spanNode) Style(prop, value string) *spanNode {
+	s.el.SetStyle(prop, value)
+	return s
+}
+
+// Styles adds multiple inline style properties to the element.
+func (s *spanNode) Styles(props ...string) *spanNode {
+	for i := 0; i < len(props); i += 2 {
+		s.el.SetStyle(props[i], props[i+1])
+	}
+	return s
+}
+
+// Text sets the text content of the element.
+func (s *spanNode) Text(t string) *spanNode {
+	s.el.SetText(t)
+	return s
+}
+
+// Group adds the node to the provided group.
+func (s *spanNode) Group(g *Elements) *spanNode {
+	if g != nil {
+		g.add(s)
+	}
+	return s
+}
+
+// buttonNode builds a <button> element.
+type buttonNode struct{ el dom.Element }
+
+// Button creates a new <button> node builder.
+func Button() *buttonNode { return &buttonNode{el: dom.Doc().CreateElement("button")} }
+
+// Element returns the underlying DOM element.
+func (b *buttonNode) Element() dom.Element { return b.el }
+
+// Class adds a class to the element.
+func (b *buttonNode) Class(name string) *buttonNode {
+	b.el.AddClass(name)
+	return b
+}
+
+// Classes adds multiple classes to the element.
+func (b *buttonNode) Classes(names ...string) *buttonNode {
+	for _, name := range names {
+		b.el.AddClass(name)
+	}
+	return b
+}
+
+// Style sets an inline style property on the element.
+func (b *buttonNode) Style(prop, value string) *buttonNode {
+	b.el.SetStyle(prop, value)
+	return b
+}
+
+// Styles adds multiple inline style properties to the element.
+func (b *buttonNode) Styles(props ...string) *buttonNode {
+	for i := 0; i < len(props); i += 2 {
+		b.el.SetStyle(props[i], props[i+1])
+	}
+	return b
+}
+
+// Text sets the text content of the element.
+func (b *buttonNode) Text(t string) *buttonNode {
+	b.el.SetText(t)
+	return b
+}
+
+// Group adds the node to the provided group.
+func (b *buttonNode) Group(g *Elements) *buttonNode {
+	if g != nil {
+		g.add(b)
+	}
+	return b
+}
