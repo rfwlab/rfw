@@ -251,9 +251,9 @@ rfw dev --debug</code></pre>
         </div>
         <div class="flex items-center justify-center gap-6 text-sm">
           <a href="/docs/index" class="hover:text-red-600">Docs</a>
-          <a href="/docs/articles/guide/ssc" class="hover:text-red-600">SSC</a>
-          <a href="/docs/articles/api/index" class="hover:text-red-600">API</a>
-          <a href="/docs/articles/guide/pages-plugin" class="hover:text-red-600">Pages</a>
+          <a href="/docs/guide/ssc" class="hover:text-red-600">SSC</a>
+          <a href="/docs/api/index" class="hover:text-red-600">API</a>
+          <a href="/docs/guide/pages-plugin" class="hover:text-red-600">Pages</a>
         </div>
         <div class="flex items-center md:justify-end justify-center gap-4">
           <a href="https://github.com/rfwlab" aria-label="GitHub" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition">
