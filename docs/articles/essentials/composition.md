@@ -37,9 +37,9 @@ signal when a non-reactive value is present.
 ```go
 cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
 count := state.NewSignal(0)
-cmp.Prop("count", count) // Since: Unreleased
+cmp.Prop("count", count)
 
-other := composition.FromProp[int](cmp, "other", 1) // Since: Unreleased
+other := composition.FromProp[int](cmp, "other", 1)
 other.Set(2)
 ```
 
@@ -51,8 +51,6 @@ count := composition.FromProp[int](cmp, "count", 0) // -> 5, Props["count"] rema
 count.Set(6)
 ```
 
-Both helpers are available since *Unreleased*.
-
 ## Event Handlers
 
 Attach functions to DOM events by name. The wrapper forwards handlers to the
@@ -60,20 +58,10 @@ Attach functions to DOM events by name. The wrapper forwards handlers to the
 
 ```go
 cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
-cmp.On("save", func() { /* handle save */ }) // Since: Unreleased
+cmp.On("save", func() { /* handle save */ })
 ```
 
-## APIs Used
-
-- `core.NewComponent(name string, templateFS []byte, props map[string]any) *core.HTMLComponent`
-- `composition.Wrap(c *core.HTMLComponent) *composition.Component`
-- `(*composition.Component).Unwrap() *core.HTMLComponent`
-- `(*composition.Component).On(name string, fn func())`
-- `(*composition.Component).Prop(key string, sig *state.Signal[T])`
-- `composition.FromProp[T any](c *composition.Component, key string, def T) *state.Signal[T]`
-- `state.NewSignal(initial T) *state.Signal[T]`
-
-## End-to-End Example
+## Example
 
 ```go
 hc := core.NewComponent("Hello", nil, nil)
@@ -206,4 +194,3 @@ Undo/redo handlers work only when the store was created with `state.WithHistory`
 
 - [State history](../api/state#history)
 - [DOM handlers](../api/dom#usage)
-

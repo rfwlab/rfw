@@ -35,8 +35,6 @@ func Wrap(c *core.HTMLComponent) *Component {
 func (c *Component) Unwrap() *core.HTMLComponent { return c.HTMLComponent }
 
 // On registers fn under name in the DOM handler registry.
-//
-// Since: Unreleased.
 func (c *Component) On(name string, fn func()) {
 	if name == "" {
 		panic("composition.On: empty name")
@@ -50,8 +48,6 @@ func (c *Component) On(name string, fn func()) {
 // Prop associates a reactive signal with the component under the provided key.
 // The signal is stored in the "composition" state namespace and added to the
 // component's props.
-//
-// Since: Unreleased.
 func (c *Component) Prop(key string, sig signalAny) {
 	if key == "" {
 		panic("composition.Prop: empty key")
@@ -81,8 +77,6 @@ func (c *Component) Prop(key string, sig signalAny) {
 }
 
 // OnUnmount cleans up the composition store when the component is removed.
-//
-// Since: Unreleased.
 func (c *Component) OnUnmount() {
 	for name := range c.createdStores {
 		state.GlobalStoreManager.UnregisterStore(c.ID, name)
@@ -98,8 +92,6 @@ func (c *Component) OnUnmount() {
 // holds a plain value matching T, the value is wrapped in a new signal. If the
 // value type is incompatible, FromProp panics. When the prop is missing, a new
 // signal seeded with def is created.
-//
-// Since: Unreleased.
 func FromProp[T any](c *Component, key string, def T) *state.Signal[T] {
 	if key == "" {
 		panic("composition.FromProp: empty key")
