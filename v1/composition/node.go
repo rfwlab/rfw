@@ -75,9 +75,25 @@ func (d *divNode) Class(name string) *divNode {
 	return d
 }
 
+// Classes adds multiple classes to the element.
+func (d *divNode) Classes(names ...string) *divNode {
+	for _, name := range names {
+		d.el.AddClass(name)
+	}
+	return d
+}
+
 // Style sets an inline style property on the element.
 func (d *divNode) Style(prop, value string) *divNode {
 	d.el.SetStyle(prop, value)
+	return d
+}
+
+// Styles adds multiple inline style properties to the element.
+func (d *divNode) Styles(props ...string) *divNode {
+	for i := 0; i < len(props); i += 2 {
+		d.el.SetStyle(props[i], props[i+1])
+	}
 	return d
 }
 

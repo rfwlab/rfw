@@ -132,7 +132,7 @@ func TestFromPropRoundTrip(t *testing.T) {
 	hc := core.NewComponent("test", nil, map[string]any{"count": 5})
 	c := Wrap(hc)
 
-	sig := c.FromProp[int]("count", 0)
+	sig := FromProp[int](c, "count", 0)
 	if sig.Get() != 5 {
 		t.Fatalf("expected initial value 5, got %d", sig.Get())
 	}
@@ -146,13 +146,13 @@ func TestFromPropRoundTrip(t *testing.T) {
 		t.Fatalf("expected signal stored in state store")
 	}
 	// FromProp should return the same signal on subsequent calls
-	sigAgain := c.FromProp[int]("count", 0)
+	sigAgain := FromProp[int](c, "count", 0)
 	if sigAgain != sig {
 		t.Fatalf("expected FromProp to return the same signal instance")
 	}
 
 	// Create a new signal for a missing key
-	sig2 := c.FromProp[int]("other", 7)
+	sig2 := FromProp[int](c, "other", 7)
 	if sig2.Get() != 7 {
 		t.Fatalf("expected default value 7")
 	}
@@ -167,13 +167,13 @@ func TestFromPropRoundTrip(t *testing.T) {
 func TestFromPropEmptyKeyPanics(t *testing.T) {
 	hc := core.NewComponent("test", nil, nil)
 	c := Wrap(hc)
-	assertPanics(t, func() { c.FromProp[int]("", 0) })
+	assertPanics(t, func() { FromProp[int](c, "", 0) })
 }
 
 func TestFromPropIncompatibleTypePanics(t *testing.T) {
 	hc := core.NewComponent("test", nil, map[string]any{"count": "x"})
 	c := Wrap(hc)
-	assertPanics(t, func() { c.FromProp[int]("count", 0) })
+	assertPanics(t, func() { FromProp[int](c, "count", 0) })
 }
 
 func TestStoreNamespaced(t *testing.T) {

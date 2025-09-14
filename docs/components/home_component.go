@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/rfwlab/rfw/v1/composition"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
 	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
@@ -19,6 +20,7 @@ var homeTpl []byte
 func NewHomeComponent() *core.HTMLComponent {
 	count := state.NewSignal(0)
 	c := core.NewComponent("HomeComponent", homeTpl, map[string]any{"count": count})
+	comp := composition.Wrap(c)
 
 	cart := state.NewStore("cart", state.WithHistory(20))
 	if cart.Get("items") == nil {
@@ -32,62 +34,50 @@ func NewHomeComponent() *core.HTMLComponent {
 			return
 		}
 		for i := 0; i < 48; i++ {
-			d := dom.CreateElement("div")
-			d.AddClass("h-3")
-			d.AddClass("outlined")
-			d.AddClass("bg-zinc-200/60")
-			d.AddClass("dark:bg-zinc-800")
+			classes := []string{"h-3", "outlined", "bg-zinc-200/60", "dark:bg-zinc-800"}
 			if i%7 == 0 {
-				d.AddClass("animate-pulse")
+				classes = append(classes, "animate-pulse")
 			}
-			dx.AppendChild(d)
+			div := composition.Div().Classes(classes...)
+			dx.AppendChild(div.Element())
 		}
 	}
 
 	drawSpark := func(v int) {
-		spark := dom.Doc().ByID("spark")
-		if !spark.Truthy() {
-			return
-		}
-		spark.SetHTML("")
-
-		for i := 0; i < v; i++ {
-			dot := dom.CreateElement("div")
-			dot.AddClass("w-4")
-			dot.AddClass("h-4")
-			dot.AddClass("m-auto")
-			dot.AddClass("rounded-full")
-			dot.AddClass("outlined")
-			dot.SetStyle("background", "linear-gradient(90deg, #972b2b, #6e347e)")
-			dot.SetStyle("opacity", "0.7")
-			dot.SetStyle("display", "inline-block")
-			spark.AppendChild(dot)
-		}
+		composition.Bind("#spark", func(e composition.El) { e.Clear() })
+		i := 0
+		composition.For("#spark", func() composition.Node {
+			if i >= v {
+				return nil
+			}
+			i++
+			return composition.Div().
+				Classes("w-4", "h-4", "m-auto", "rounded-full", "outlined").
+				Styles(
+					"background", "linear-gradient(90deg, #972b2b, #6e347e)",
+					"opacity", "0.7",
+					"display", "inline-block",
+				)
+		})
 	}
 
 	renderCart := func() {
-		cartEl := dom.Doc().ByID("cart")
-		if !cartEl.Truthy() {
-			return
-		}
-		cartEl.SetHTML("")
-		if items, ok := cart.Get("items").([]string); ok {
-			for _, item := range items {
-				d := dom.CreateElement("div")
-				d.AddClass("outlined-xl")
-				d.AddClass("border")
-				d.AddClass("border-zinc-200")
-				d.AddClass("dark:border-zinc-700")
-				d.AddClass("p-3")
-				d.AddClass("bg-white/70")
-				d.AddClass("dark:bg-[#111111]")
-				d.SetText(item)
-				cartEl.AppendChild(d)
+		items, _ := cart.Get("items").([]string)
+		composition.Bind("#cart", func(e composition.El) { e.Clear() })
+		i := 0
+		composition.For("#cart", func() composition.Node {
+			if i >= len(items) {
+				return nil
 			}
-		}
+			item := items[i]
+			i++
+			return composition.Div().
+				Classes("outlined-xl", "border", "border-zinc-200", "dark:border-zinc-700", "p-3", "bg-white/70", "dark:bg-[#111111]").
+				Text(item)
+		})
 	}
 	cart.OnChange("items", func(_ any) { renderCart() })
-	c.SetOnMount(func(*core.HTMLComponent) {
+	comp.SetOnMount(func(*core.HTMLComponent) {
 		renderCart()
 		renderDx()
 		state.Effect(func() func() {

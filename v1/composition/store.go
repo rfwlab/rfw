@@ -15,12 +15,10 @@ func (c *Component) Store(name string, opts ...state.StoreOption) *state.Store {
 		panic("composition.Store: empty name")
 	}
 	if s := state.GlobalStoreManager.GetStore(c.ID, name); s != nil {
-		c.createdStores[name] = struct{}{}
 		return s
 	}
 	opts = append(opts, state.WithModule(c.ID))
 	s := state.NewStore(name, opts...)
-	state.GlobalStoreManager.RegisterStore(c.ID, name, s)
 	c.createdStores[name] = struct{}{}
 	return s
 }
