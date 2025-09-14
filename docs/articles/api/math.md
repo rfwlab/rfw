@@ -44,13 +44,6 @@ Use when performing 2D or 3D transformations in WebGL components.
 3. Combine them via `Mat4.Mul`.
 4. Convert the matrix to a typed array with `js.Float32Array().New(len(mvp))` and upload it via `Context.Call("uniformMatrix4fv", ...)`.
 
-### APIs used
-
-- `Vec2`, `Vec3`
-- `Mat4`, `Identity`, `Translation`, `Scale`, `Perspective`, `Orthographic`
-- `webgl.Context.Call`
-- `js.Float32Array`
-
 ### Notes and Limitations
 
 - Matrices are column-major and use `float32` precision.

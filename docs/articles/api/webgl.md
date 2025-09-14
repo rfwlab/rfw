@@ -120,16 +120,6 @@ if !ctx.Get("createVertexArray").IsUndefined() {
 ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 ```
 
-#### APIs used
-
-- `Context.Viewport`
-- `Context.Enable`
-- `Context.DepthFunc`
-- `Context.CreateVertexArray`
-- `Context.BindVertexArray`
-- `Context.DrawElements`
-- constants `ELEMENT_ARRAY_BUFFER`, `DEPTH_TEST`, `UNSIGNED_SHORT`, `NEVER`, `LESS`, `EQUAL`, `LEQUAL`, `GREATER`, `NOTEQUAL`, `GEQUAL`, `ALWAYS`
-
 #### Limitations
 
 - `Context.CreateVertexArray` and `Context.BindVertexArray` require WebGL2 or
