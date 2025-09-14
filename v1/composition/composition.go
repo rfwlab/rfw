@@ -6,6 +6,7 @@ package composition
 
 import (
         core "github.com/rfwlab/rfw/v1/core"
+        "github.com/rfwlab/rfw/v1/dom"
         "github.com/rfwlab/rfw/v1/state"
 )
 
@@ -29,6 +30,19 @@ func Wrap(c *core.HTMLComponent) *Component {
 
 // Unwrap returns the underlying *core.HTMLComponent.
 func (c *Component) Unwrap() *core.HTMLComponent { return c.HTMLComponent }
+
+// On registers fn under name in the DOM handler registry.
+//
+// Since: Unreleased.
+func (c *Component) On(name string, fn func()) {
+        if name == "" {
+                panic("composition.On: empty name")
+        }
+        if fn == nil {
+                panic("composition.On: nil handler")
+        }
+        dom.RegisterHandlerFunc(name, fn)
+}
 
 // Prop associates a reactive signal with the component under the provided key.
 // The signal is stored in the "composition" state namespace and added to the

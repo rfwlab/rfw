@@ -53,7 +53,7 @@ delegate to the wrappers for backward compatibility:
 ## Usage
 
 Besides the methods shown, the package exposes `RegisterHandlerFunc` to bind
-Go functions to named DOM events.
+Go functions to named DOM events and `GetHandler` to retrieve them.
 
 > **Note**
 > Prefer these helpers over the low-level `js` package, which centralizes

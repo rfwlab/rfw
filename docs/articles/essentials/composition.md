@@ -53,11 +53,22 @@ count.Set(6)
 
 Both helpers are available since *Unreleased*.
 
+## Event Handlers
+
+Attach functions to DOM events by name. The wrapper forwards handlers to the
+`dom` package:
+
+```go
+cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
+cmp.On("save", func() { /* handle save */ }) // Since: Unreleased
+```
+
 ## APIs Used
 
 - `core.NewComponent(name string, templateFS []byte, props map[string]any) *core.HTMLComponent`
 - `composition.Wrap(c *core.HTMLComponent) *composition.Component`
 - `(*composition.Component).Unwrap() *core.HTMLComponent`
+- `(*composition.Component).On(name string, fn func())`
 - `(*composition.Component).Prop[T any](key string, sig *state.Signal[T])`
 - `(*composition.Component).FromProp[T any](key string, def T) *state.Signal[T]`
 - `state.NewSignal(initial T) *state.Signal[T]`
