@@ -5,6 +5,7 @@ Helpers for making HTTP requests in the browser using the JavaScript `fetch` API
 | Function | Description |
 | --- | --- |
 | `FetchJSON(url, v)` | Fetches JSON from `url` into `v`. Results are cached by URL and the function returns `ErrPending` while the request is in flight. |
+| `FetchText(url) (string, error)` | Fetches text from `url`. Results are cached by URL and the function returns `ErrPending` while the request is in flight. |
 | `ClearCache(url)` | Removes the cached response for `url`. |
 | `RegisterHTTPHook(fn)` | Adds a callback invoked on request start and completion. |
 
@@ -18,6 +19,15 @@ var todo struct {
         Title string `json:"title"`
 }
 err := http.FetchJSON("https://jsonplaceholder.typicode.com/todos/1", &todo)
+if err != nil {
+        if errors.Is(err, http.ErrPending) {
+                // show loading state
+        } else {
+                // handle fetch error
+        }
+}
+
+txt, err := http.FetchText("/static/sample.go")
 if err != nil {
         if errors.Is(err, http.ErrPending) {
                 // show loading state
