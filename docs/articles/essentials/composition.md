@@ -89,3 +89,56 @@ _ = wrapped.Unwrap().Render()
 
 - [Component Basics](./components-basics)
 
+## Stores and History
+
+### Context / Why
+
+Some composed components need isolated state. `Store` creates a namespaced
+`state.Store` tied to the component, while `History` exposes undo/redo handlers
+for that store.
+
+### Prerequisites / When
+
+Use when component logic requires local state with optional mutation history.
+
+### How
+
+1. Call `Store` with a name to create a component-scoped store.
+2. Enable history via `state.WithHistory` if undo/redo is needed.
+3. Register undo and redo handlers with `History`, scoping handler names with the component ID to avoid collisions, and reference them in the template.
+
+```go
+cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
+s := cmp.Store("count", state.WithHistory(10))
+s.Set("v", 1)
+cmp.History(s, cmp.ID+":undo", cmp.ID+":redo")
+```
+
+### APIs Used
+
+- `(*composition.Component).Store(name string, opts ...state.StoreOption) *state.Store`
+- `(*composition.Component).History(s *state.Store, undo, redo string)`
+- `state.WithHistory(limit int) state.StoreOption`
+- `dom.RegisterHandlerFunc(name string, fn func())`
+
+### End-to-End Example
+
+```go
+cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
+s := cmp.Store("count", state.WithHistory(5))
+s.Set("v", 1)
+s.Set("v", 2)
+cmp.History(s, cmp.ID+":undo", cmp.ID+":redo")
+dom.GetHandler(cmp.ID + ":undo").Invoke() // -> v = 1
+dom.GetHandler(cmp.ID + ":redo").Invoke() // -> v = 2
+```
+
+### Notes and Limitations
+
+Undo/redo handlers work only when the store was created with `state.WithHistory`. Handler names live in a global registry; prefix them with the component ID to prevent collisions.
+
+### Related Links
+
+- [State history](../api/state#history)
+- [DOM handlers](../api/dom#usage)
+

@@ -15,6 +15,7 @@ const compositionModule = "composition"
 // Component wraps a *core.HTMLComponent for composition purposes.
 type Component struct {
         *core.HTMLComponent
+        createdStores map[string]struct{}
 }
 
 // Wrap returns a composition.Component around c.
@@ -23,7 +24,7 @@ func Wrap(c *core.HTMLComponent) *Component {
         if c == nil {
                 panic("composition.Wrap: nil HTMLComponent")
         }
-        comp := &Component{HTMLComponent: c}
+        comp := &Component{HTMLComponent: c, createdStores: make(map[string]struct{})}
         c.SetComponent(comp)
         return comp
 }
@@ -81,8 +82,13 @@ func (c *Component) Prop[T any](key string, sig *state.Signal[T]) {
 //
 // Since: Unreleased.
 func (c *Component) OnUnmount() {
+        for name := range c.createdStores {
+                state.GlobalStoreManager.UnregisterStore(c.ID, name)
+        }
         state.GlobalStoreManager.UnregisterStore(compositionModule, c.ID)
-        c.HTMLComponent.OnUnmount()
+       // DOM handlers registered with On or History remain in the global registry
+       // because the dom package does not provide an unregister API yet.
+       c.HTMLComponent.OnUnmount()
 }
 
 // FromProp retrieves a signal from props or creates one with a default value.

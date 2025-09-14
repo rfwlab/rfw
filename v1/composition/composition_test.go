@@ -176,6 +176,58 @@ func TestFromPropIncompatibleTypePanics(t *testing.T) {
 	assertPanics(t, func() { c.FromProp[int]("count", 0) })
 }
 
+func TestStoreNamespaced(t *testing.T) {
+	oldGSM := state.GlobalStoreManager
+	state.GlobalStoreManager = &state.StoreManager{modules: make(map[string]map[string]*state.Store)}
+	defer func() { state.GlobalStoreManager = oldGSM }()
+
+	hc := core.NewComponent("test", nil, nil)
+	c := Wrap(hc)
+	s := c.Store("local")
+	if state.GlobalStoreManager.GetStore(c.ID, "local") != s {
+		t.Fatalf("expected store namespaced by component ID")
+	}
+}
+
+func TestStoreEmptyNamePanics(t *testing.T) {
+	hc := core.NewComponent("test", nil, nil)
+	c := Wrap(hc)
+	assertPanics(t, func() { c.Store("") })
+}
+
+func TestHistoryRegistersHandlers(t *testing.T) {
+	oldGSM := state.GlobalStoreManager
+	state.GlobalStoreManager = &state.StoreManager{modules: make(map[string]map[string]*state.Store)}
+	defer func() { state.GlobalStoreManager = oldGSM }()
+
+	hc := core.NewComponent("test", nil, nil)
+	c := Wrap(hc)
+	s := c.Store("hist", state.WithHistory(5))
+	s.Set("v", 1)
+	s.Set("v", 2)
+
+	c.History(s, "u", "r")
+
+	dom.GetHandler("u").Invoke()
+	if v := s.Get("v").(int); v != 1 {
+		t.Fatalf("expected 1 after undo, got %d", v)
+	}
+
+	dom.GetHandler("r").Invoke()
+	if v := s.Get("v").(int); v != 2 {
+		t.Fatalf("expected 2 after redo, got %d", v)
+	}
+}
+
+func TestHistoryInvalidArgs(t *testing.T) {
+	hc := core.NewComponent("test", nil, nil)
+	c := Wrap(hc)
+	s := c.Store("hist")
+	assertPanics(t, func() { c.History(nil, "u", "r") })
+	assertPanics(t, func() { c.History(s, "", "r") })
+	assertPanics(t, func() { c.History(s, "u", "") })
+}
+
 func TestStoreCleanupOnUnmount(t *testing.T) {
 	oldGSM := state.GlobalStoreManager
 	state.GlobalStoreManager = &state.StoreManager{modules: make(map[string]map[string]*state.Store)}
@@ -191,6 +243,22 @@ func TestStoreCleanupOnUnmount(t *testing.T) {
 	c.Unmount()
 	if state.GlobalStoreManager.GetStore(compositionModule, c.ID) != nil {
 		t.Fatalf("store must be cleaned up")
+	}
+}
+
+func TestLocalStoreCleanupOnUnmount(t *testing.T) {
+	oldGSM := state.GlobalStoreManager
+	state.GlobalStoreManager = &state.StoreManager{modules: map[string]map[string]*state.Store{}}
+	defer func() { state.GlobalStoreManager = oldGSM }()
+
+	c := Wrap(core.NewComponent("test", nil, nil))
+	_ = c.Store("local")
+	if state.GlobalStoreManager.GetStore(c.ID, "local") == nil {
+		t.Fatalf("store must exist")
+	}
+	c.Unmount()
+	if state.GlobalStoreManager.GetStore(c.ID, "local") != nil {
+		t.Fatalf("local store must be cleaned up")
 	}
 }
 
