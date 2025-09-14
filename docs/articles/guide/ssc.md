@@ -1,5 +1,9 @@
 # Server Side Computed
 
+SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection.
+
+## How to enable
+
 The project manifest (`rfw.json`) can declare the build type. Projects scaffolded with `rfw init` set it to `ssc` by default to enable Server Side Computed builds.
 
 ```json
