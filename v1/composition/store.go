@@ -8,8 +8,6 @@ import (
 )
 
 // Store creates a new state store namespaced to the component's ID.
-//
-// Since: Unreleased.
 func (c *Component) Store(name string, opts ...state.StoreOption) *state.Store {
 	if name == "" {
 		panic("composition.Store: empty name")
@@ -25,8 +23,6 @@ func (c *Component) Store(name string, opts ...state.StoreOption) *state.Store {
 
 // History registers undo and redo handlers for the provided store.
 // `undo` and `redo` are the handler names used in the template.
-//
-// Since: Unreleased.
 func (c *Component) History(s *state.Store, undo, redo string) {
 	if s == nil {
 		panic("composition.History: nil store")
