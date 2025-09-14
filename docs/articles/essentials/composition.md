@@ -96,7 +96,7 @@ template system.
 1. Place a constructor like `[list]` on the target element in your template.
 2. Call `GetRef("list")` on the component to obtain the `dom.Element`.
 3. Clear or append children using `SetHTML` and `AppendChild` or builders like
-   `Div().Class("c").Text("hi")`.
+   `Div().Class("c").Text("hi")`, `Span().Text("hi")`, or `Button().Text("go")`.
 4. Alternatively, `Bind` and `For` accept CSS selectors and perform similar
    operations when a template ref isn't available.
 
