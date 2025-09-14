@@ -93,9 +93,10 @@ _ = wrapped.Unwrap().Render()
 
 ### Context / Why
 
-Manual components sometimes need to manipulate existing DOM nodes. `Bind` and
-`For` expose typed helpers for clearing and appending content without touching
-`syscall/js`.
+Manual components sometimes need to manipulate existing DOM nodes. Annotating a
+template element with a constructor such as `[list]` lets the component fetch it
+directly with `GetRef`. `Bind` and `For` remain available for ad‑hoc selector
+based access without touching `syscall/js`.
 
 ### Prerequisites / When
 
@@ -104,41 +105,43 @@ template system.
 
 ### How
 
-1. Call `Bind` with a CSS selector to work with the matched element.
-2. Use the provided `El` to `Clear` existing children and `Append` new `Node`
-   values.
-3. Build nodes with helpers like `Div().Class("c").Text("hi")`.
-4. `For` repeatedly invokes a generator until it returns `nil`, appending each
-   node.
+1. Place a constructor like `[list]` on the target element in your template.
+2. Call `GetRef("list")` on the component to obtain the `dom.Element`.
+3. Clear or append children using `SetHTML` and `AppendChild` or builders like
+   `Div().Class("c").Text("hi")`.
+4. Alternatively, `Bind` and `For` accept CSS selectors and perform similar
+   operations when a template ref isn't available.
 
 ```go
-doc := dom.Doc()
-doc.Body().SetHTML("<div id='list'></div>")
-composition.For("#list", func() composition.Node {
-    if len(items) == 0 {
-        return nil
+tpl := []byte("<root><div [list]></div></root>")
+cmp := composition.Wrap(core.NewComponent("List", tpl, nil))
+items := []string{"a", "b"}
+cmp.SetOnMount(func(*core.HTMLComponent) {
+    listEl := cmp.GetRef("list")
+    listEl.SetHTML("")
+    for _, item := range items {
+        listEl.AppendChild(composition.Div().Text(item).Element())
     }
-    n := composition.Div().Text(items[0])
-    items = items[1:]
-    return n
-}) // Since: Unreleased
+})
 ```
 
 ### APIs Used
 
-- `composition.Bind(selector string, fn func(El))`
-- `composition.For(selector string, fn func() Node)`
+- `(*core.HTMLComponent).GetRef(name string) dom.Element`
+- `dom.Element.SetHTML(html string)`
+- `dom.Element.AppendChild(child dom.Element)`
 - `composition.Div() *divNode`
-- `(*divNode).Class(name string) *divNode`
-- `(*divNode).Style(prop, value string) *divNode`
 - `(*divNode).Text(t string) *divNode`
 
 ### End-to-End Example
 
 ```go
-dom.Doc().Body().SetHTML("<div id='root'></div>")
-composition.Bind("#root", func(el composition.El) {
-    el.Append(composition.Div().Class("greet").Text("hello"))
+tpl := []byte("<root><div [greet]></div></root>")
+cmp := composition.Wrap(core.NewComponent("Greet", tpl, nil))
+cmp.SetOnMount(func(*core.HTMLComponent) {
+    el := cmp.GetRef("greet")
+    el.SetHTML("")
+    el.AppendChild(composition.Div().Text("hello").Element())
 })
 ```
 
