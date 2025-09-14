@@ -89,6 +89,68 @@ _ = wrapped.Unwrap().Render()
 
 - [Component Basics](./components-basics)
 
+## DOM Bindings
+
+### Context / Why
+
+Manual components sometimes need to manipulate existing DOM nodes. `Bind` and
+`For` expose typed helpers for clearing and appending content without touching
+`syscall/js`.
+
+### Prerequisites / When
+
+Use when a component must programmatically render plain nodes outside the
+template system.
+
+### How
+
+1. Call `Bind` with a CSS selector to work with the matched element.
+2. Use the provided `El` to `Clear` existing children and `Append` new `Node`
+   values.
+3. Build nodes with helpers like `Div().Class("c").Text("hi")`.
+4. `For` repeatedly invokes a generator until it returns `nil`, appending each
+   node.
+
+```go
+doc := dom.Doc()
+doc.Body().SetHTML("<div id='list'></div>")
+composition.For("#list", func() composition.Node {
+    if len(items) == 0 {
+        return nil
+    }
+    n := composition.Div().Text(items[0])
+    items = items[1:]
+    return n
+}) // Since: Unreleased
+```
+
+### APIs Used
+
+- `composition.Bind(selector string, fn func(El))`
+- `composition.For(selector string, fn func() Node)`
+- `composition.Div() *divNode`
+- `(*divNode).Class(name string) *divNode`
+- `(*divNode).Style(prop, value string) *divNode`
+- `(*divNode).Text(t string) *divNode`
+
+### End-to-End Example
+
+```go
+dom.Doc().Body().SetHTML("<div id='root'></div>")
+composition.Bind("#root", func(el composition.El) {
+    el.Append(composition.Div().Class("greet").Text("hello"))
+})
+```
+
+### Notes and Limitations
+
+- `For` stops when the generator returns `nil`.
+- Missing selectors are ignored silently.
+
+### Related Links
+
+- [dom](../api/dom)
+
 ## Stores and History
 
 ### Context / Why
