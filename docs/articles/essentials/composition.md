@@ -113,15 +113,7 @@ cmp.SetOnMount(func(*core.HTMLComponent) {
 })
 ```
 
-### APIs Used
-
-- `(*core.HTMLComponent).GetRef(name string) dom.Element`
-- `dom.Element.SetHTML(html string)`
-- `dom.Element.AppendChild(child dom.Element)`
-- `composition.Div() *divNode`
-- `(*divNode).Text(t string) *divNode`
-
-### End-to-End Example
+### Example
 
 ```go
 tpl := []byte("<root><div [greet]></div></root>")
@@ -137,6 +129,59 @@ cmp.SetOnMount(func(*core.HTMLComponent) {
 
 - `For` stops when the generator returns `nil`.
 - Missing selectors are ignored silently.
+
+### Related Links
+
+- [dom](../api/dom)
+
+## Element Groups
+
+### Context / Why
+
+Handling several nodes created via the composition builders often requires
+manual loops. `Group` collects those nodes and provides helpers to mutate all
+of them at once.
+
+### Prerequisites / When
+
+Use when multiple elements created with constructors need similar updates
+outside the template system.
+
+### How
+
+1. Create an empty group with `composition.NewGroup` or collect nodes with `composition.Group`.
+2. Build nodes with constructors like `Div()` and add them to groups via the `Group` method.
+3. Merge groups with `(composition.Elements).Group` when needed.
+4. Apply bulk operations such as `AddClass`, `SetAttr`, or iterate with `ForEach`.
+
+```go
+import (
+    "github.com/rfwlab/rfw/v1/composition"
+    "github.com/rfwlab/rfw/v1/dom"
+)
+
+cards := composition.Group(
+    composition.Div().Class("card"),
+    composition.Div().Class("card"),
+)
+cards.AddClass("active").SetStyle("color", "red")
+```
+
+### Example
+
+```go
+cards := composition.Group(
+    composition.Div().Text("A"),
+    composition.Div().Text("B"),
+)
+cards.AddClass("card").SetAttr("data-role", "item")
+```
+
+### Notes and Limitations
+
+- `Group` panics when called without nodes.
+- `ForEach` panics if the callback is nil.
+- Selectors and IDs are ignored; pass nodes explicitly.
 
 ### Related Links
 
