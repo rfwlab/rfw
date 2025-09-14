@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/rfwlab/rfw/cmd/rfw/build"
@@ -24,14 +25,17 @@ import (
 var rebuilds = expvar.NewInt("rebuilds")
 
 type Server struct {
-	Port      string
-	Host      bool
-	Debug     bool
-	stopCh    chan os.Signal
-	watcher   *fsnotify.Watcher
-	hostCmd   *exec.Cmd
-	buildType string
+	Port        string
+	Host        bool
+	Debug       bool
+	stopCh      chan os.Signal
+	watcher     *fsnotify.Watcher
+	hostCmd     *exec.Cmd
+	buildType   string
+	ignoreUntil time.Time
 }
+
+const ignoreDelay = 200 * time.Millisecond
 
 func NewServer(port string, host, debug bool) *Server {
 	utils.EnableDebug(debug)
@@ -150,12 +154,34 @@ func (s *Server) addWatchers(root string) error {
 	})
 }
 
+func isGenerated(path string) bool {
+	return strings.HasPrefix(filepath.Base(path), "rfw_")
+}
+
+func (s *Server) shouldIgnore(now time.Time) bool {
+	return now.Before(s.ignoreUntil)
+}
+
+func drainWatcher(w *fsnotify.Watcher) {
+	for {
+		select {
+		case <-w.Events:
+		case <-w.Errors:
+		case <-time.After(50 * time.Millisecond):
+			return
+		}
+	}
+}
+
 func (s *Server) watchFiles() {
 	for {
 		select {
 		case event, ok := <-s.watcher.Events:
 			if !ok {
 				return
+			}
+			if s.shouldIgnore(time.Now()) {
+				continue
 			}
 			utils.Debug(fmt.Sprintf("event: %s", event))
 			if event.Op&fsnotify.Create != 0 {
@@ -169,21 +195,27 @@ func (s *Server) watchFiles() {
 					continue
 				}
 			}
-			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Rename) != 0 &&
-				(strings.HasSuffix(event.Name, ".go") ||
+			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Rename) != 0 {
+				if isGenerated(event.Name) {
+					continue
+				}
+				if strings.HasSuffix(event.Name, ".go") ||
 					strings.HasSuffix(event.Name, ".rtml") ||
 					strings.HasSuffix(event.Name, ".md") ||
-					plugins.NeedsRebuild(event.Name)) {
-				rebuilds.Add(1)
-				utils.Info("Changes detected, rebuilding...")
-				if err := build.Build(); err != nil {
-					utils.Fatal("Failed to rebuild project: ", err)
-				}
-				if s.buildType == "ssc" {
-					s.stopHost()
-					if err := s.startHost(); err != nil {
-						utils.Fatal("Failed to restart host server: ", err)
+					plugins.NeedsRebuild(event.Name) {
+					rebuilds.Add(1)
+					utils.Info("Changes detected, rebuilding...")
+					if err := build.Build(); err != nil {
+						utils.Fatal("Failed to rebuild project: ", err)
 					}
+					if s.buildType == "ssc" {
+						s.stopHost()
+						if err := s.startHost(); err != nil {
+							utils.Fatal("Failed to restart host server: ", err)
+						}
+					}
+					s.ignoreUntil = time.Now().Add(ignoreDelay)
+					drainWatcher(s.watcher)
 				}
 			}
 		case err, ok := <-s.watcher.Errors:
