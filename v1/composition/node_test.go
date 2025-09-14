@@ -23,6 +23,21 @@ func TestBind(t *testing.T) {
 	}
 }
 
+func TestBindEl(t *testing.T) {
+	doc := dom.Doc()
+	doc.Body().SetHTML("<div id='root'><span>old</span></div>")
+
+	BindEl(doc.ByID("root"), func(el El) {
+		el.Clear()
+		el.Append(Div().Text("new"))
+	})
+
+	root := doc.ByID("root")
+	if html := root.HTML(); html != "<div>new</div>" {
+		t.Fatalf("expected <div>new</div>, got %q", html)
+	}
+}
+
 func TestFor(t *testing.T) {
 	doc := dom.Doc()
 	doc.Body().SetHTML("<div id='list'></div>")
