@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rfwlab/rfw/v1/composition"
 	"github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
@@ -106,11 +107,11 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 					if !strings.Contains(strings.ToLower(title), q) {
 						continue
 					}
-					a := doc.CreateElement("a")
-					a.Set("href", "/docs/"+link)
-					a.Set("textContent", title)
-					a.Set("className", "block px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700")
-					ch := events.Listen("mousedown", a.Value)
+					a := composition.A().
+						Href("/docs/"+link).
+						Text(title).
+						Classes("block", "px-2", "py-1", "text-gray-700", "dark:text-zinc-200", "hover:bg-gray-100", "dark:hover:bg-zinc-700")
+					ch := events.Listen("mousedown", a.Element().Value)
 					go func(l string) {
 						for e := range ch {
 							if !c.mounted {
@@ -123,7 +124,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 							router.Navigate("/docs/" + l)
 						}
 					}(link)
-					results.Call("appendChild", a.Value)
+					results.AppendChild(a.Element())
 					count++
 					if count >= 5 {
 						break
@@ -199,11 +200,11 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 						id := h.Get("id").String()
 						text := h.Get("text").String()
 						depth := h.Get("depth").Int()
-						a := doc.CreateElement("a")
-						a.Set("href", "#"+id)
-						a.Set("textContent", text)
-						a.Set("className", "block py-1 pl-"+strconv.Itoa((depth-1)*4)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
-						ch := events.Listen("click", a.Value)
+						a := composition.A().
+							Href("#"+id).
+							Text(text).
+							Classes("block", "py-1", "pl-"+strconv.Itoa((depth-1)*4), "text-gray-700", "dark:text-zinc-200", "dark:hover:text-white", "hover:text-black")
+						ch := events.Listen("click", a.Element().Value)
 						go func(i string) {
 							for e := range ch {
 								e.Call("preventDefault")
@@ -212,7 +213,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 								}
 							}
 						}(id)
-						toc.Call("appendChild", a.Value)
+						toc.AppendChild(a.Element())
 					}
 				}
 			}
@@ -236,33 +237,33 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			nav.SetHTML("")
 			if idx > 0 {
 				prev := c.order[idx-1]
-				a := doc.CreateElement("a")
-				a.Set("className", "text-white")
-				a.Set("href", "/docs/"+prev)
-				a.Set("textContent", "\u2190 "+c.titleFor(prev))
-				ch := events.Listen("click", a.Value)
+				a := composition.A().
+					Classes("text-white").
+					Href("/docs/" + prev).
+					Text("\u2190 " + c.titleFor(prev))
+				ch := events.Listen("click", a.Element().Value)
 				go func(p string) {
 					for e := range ch {
 						e.Call("preventDefault")
 						router.Navigate("/docs/" + p)
 					}
 				}(prev)
-				nav.Call("appendChild", a.Value)
+				nav.AppendChild(a.Element())
 			}
 			if idx >= 0 && idx < len(c.order)-1 {
 				next := c.order[idx+1]
-				a := doc.CreateElement("a")
-				a.Set("className", "ml-auto text-white")
-				a.Set("href", "/docs/"+next)
-				a.Set("textContent", c.titleFor(next)+" \u2192")
-				ch := events.Listen("click", a.Value)
+				a := composition.A().
+					Classes("ml-auto", "text-white").
+					Href("/docs/" + next).
+					Text(c.titleFor(next) + " \u2192")
+				ch := events.Listen("click", a.Element().Value)
 				go func(n string) {
 					for e := range ch {
 						e.Call("preventDefault")
 						router.Navigate("/docs/" + n)
 					}
 				}(next)
-				nav.Call("appendChild", a.Value)
+				nav.AppendChild(a.Element())
 			}
 		}
 	}()
@@ -294,7 +295,6 @@ func (c *DocsComponent) unmount(hc *core.HTMLComponent) {
 }
 
 func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level int) {
-	doc := dom.Doc()
 	length := items.Length()
 	for i := 0; i < length; i++ {
 		item := items.Index(i)
@@ -307,11 +307,11 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level 
 			link := strings.TrimSuffix(path.String(), ".md")
 			c.meta[link] = struct{ Title, Description string }{Title: title, Description: desc}
 			c.order = append(c.order, link)
-			a := doc.CreateElement("a")
-			a.Set("href", "/docs/"+link)
-			a.Set("textContent", title)
-			a.Set("className", "block py-1 pl-"+strconv.Itoa(4*level)+" text-gray-700 dark:text-zinc-200 dark:hover:text-white hover:text-black")
-			ch := events.Listen("click", a.Value)
+			a := composition.A().
+				Href("/docs/"+link).
+				Text(title).
+				Classes("block", "py-1", "pl-"+strconv.Itoa(4*level), "text-gray-700", "dark:text-zinc-200", "dark:hover:text-white", "hover:text-black")
+			ch := events.Listen("click", a.Element().Value)
 			go func(l string) {
 				for evt := range ch {
 					if !c.mounted {
@@ -321,14 +321,14 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level 
 					router.Navigate("/docs/" + l)
 				}
 			}(link)
-			parent.Call("appendChild", a.Value)
+			parent.AppendChild(a.Element())
 		}
 		if children := item.Get("children"); children.Truthy() {
 			if !item.Get("path").Truthy() && title != "" {
-				h := doc.CreateElement("div")
-				h.Set("textContent", title)
-				h.Set("className", "mt-4 mb-1 font-semibold text-gray-900 dark:text-white pl-"+strconv.Itoa(4*level))
-				parent.Call("appendChild", h.Value)
+				h := composition.Div().
+					Text(title).
+					Classes("mt-4", "mb-1", "font-semibold", "text-gray-900", "dark:text-white", "pl-"+strconv.Itoa(4*level))
+				parent.AppendChild(h.Element())
 			}
 			c.renderSidebar(children, parent, level+1)
 		}
