@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	composition "github.com/rfwlab/rfw/v1/composition"
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
@@ -47,11 +48,11 @@ var (
 )
 
 // NewWebGLComponent returns a component demonstrating WebGL via a snake game.
-func NewWebGLComponent() *core.HTMLComponent {
-	c := core.NewComponent("WebGLComponent", webglComponentTpl, nil)
-	dom.RegisterHandlerFunc("webglStart", func() { startGame() })
-	dom.RegisterHandlerFunc("webglFullscreen", fullscreen)
-	return c
+func NewWebGLComponent() *composition.Component {
+	cmp := composition.Wrap(core.NewComponent("WebGLComponent", webglComponentTpl, nil))
+	cmp.On("webglStart", startGame)
+	cmp.On("webglFullscreen", fullscreen)
+	return cmp
 }
 
 func init() {
