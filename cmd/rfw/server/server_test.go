@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // TestIncrementPort verifies port arithmetic.
@@ -37,5 +38,32 @@ func TestReadBuildType(t *testing.T) {
 	}
 	if got := readBuildType(); got != "ssc" {
 		t.Fatalf("expected 'ssc', got %q", got)
+	}
+}
+
+// TestIsGenerated ensures generated files are skipped.
+func TestIsGenerated(t *testing.T) {
+	tests := map[string]bool{
+		"rfw_devtools.go":       true,
+		"some/rfw_generated.go": true,
+		"rfw.go":                false,
+		"cmd/rfw/server.go":     false,
+	}
+	for path, want := range tests {
+		if got := isGenerated(path); got != want {
+			t.Fatalf("isGenerated(%q) = %v, want %v", path, got, want)
+		}
+	}
+}
+
+// TestShouldIgnore verifies the ignore window logic.
+func TestShouldIgnore(t *testing.T) {
+	s := &Server{}
+	if s.shouldIgnore(time.Now()) {
+		t.Fatalf("expected no ignore by default")
+	}
+	s.ignoreUntil = time.Now().Add(time.Second)
+	if !s.shouldIgnore(time.Now()) {
+		t.Fatalf("expected ignore within window")
 	}
 }
