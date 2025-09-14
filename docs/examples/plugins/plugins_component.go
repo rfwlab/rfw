@@ -5,29 +5,19 @@ package plugins
 import (
 	_ "embed"
 
+	"github.com/rfwlab/rfw/v1/composition"
 	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/plugins/i18n"
 )
 
 //go:embed templates/plugins_component.rtml
 var pluginsComponentTpl []byte
 
-type PluginsComponent struct{ *core.HTMLComponent }
-
-func NewPluginsComponent() *PluginsComponent {
+func NewPluginsComponent() *core.HTMLComponent {
 	hello := i18n.Signal("hello")
-	c := &PluginsComponent{}
-	c.HTMLComponent = core.NewComponentWith(
-		"PluginsComponent",
-		pluginsComponentTpl,
-		map[string]any{"hello": hello},
-		c,
-	)
-	dom.RegisterHandlerFunc("setEN", c.SetEN)
-	dom.RegisterHandlerFunc("setIT", c.SetIT)
-	return c
+	cmp := composition.Wrap(core.NewComponent("PluginsComponent", pluginsComponentTpl, nil))
+	cmp.Prop("hello", hello)
+	cmp.On("setEN", func() { i18n.SetLang("en") })
+	cmp.On("setIT", func() { i18n.SetLang("it") })
+	return cmp.Unwrap()
 }
-
-func (c *PluginsComponent) SetEN() { i18n.SetLang("en") }
-func (c *PluginsComponent) SetIT() { i18n.SetLang("it") }
