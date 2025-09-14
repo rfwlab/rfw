@@ -115,7 +115,18 @@ Example:
 <button @on:click.once:launch>Launch once</button>
 ```
 
-Event handlers are registered with `dom.RegisterHandlerFunc` on the Go side.
+Event handlers are registered on the Go side. When a component is wrapped
+with the Composition API (`composition.Wrap`), register them by name using
+`cmp.On`. Plain `*core.HTMLComponent`s attach listeners directly through the
+`dom` package:
+
+```go
+btn := dom.ByID("save")
+stop := btn.On("click", func(dom.Event) {
+    // handle click
+})
+defer stop()
+```
 
 ## Conditionals
 
