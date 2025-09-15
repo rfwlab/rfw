@@ -1,42 +1,48 @@
 # Plugins
 
-Plugins extend the rfw toolchain. They can contribute work before, during or after the CLI build and modify the runtime application.
+Plugins extend the **rfw** toolchain. They can add work before, during, or after a build, and they can also extend runtime behavior inside the app.
 
-## Lifecycle hooks
+---
 
-Plugins may define any combination of lifecycle methods. The CLI discovers
-hooks by name and invokes them automatically when present:
+## Lifecycle Hooks
+
+A plugin may implement any combination of lifecycle methods. The CLI discovers hooks by name and invokes them automatically:
 
 ```go
-func (p *Plugin) PreBuild(cfg json.RawMessage) error { /* optional */ }
-func (p *Plugin) Build(cfg json.RawMessage) error    { /* optional */ }
+func (p *Plugin) PreBuild(cfg json.RawMessage) error  { /* optional */ }
+func (p *Plugin) Build(cfg json.RawMessage) error     { /* optional */ }
 func (p *Plugin) PostBuild(cfg json.RawMessage) error { /* optional */ }
-func (p *Plugin) Install(a *core.App)                { /* optional */ }
-func (p *Plugin) Uninstall(a *core.App)              { /* optional */ }
+func (p *Plugin) Install(a *core.App)                 { /* optional */ }
+func (p *Plugin) Uninstall(a *core.App)               { /* optional */ }
 ```
 
-Build plugins also need a `Name`, `ShouldRebuild` and `Priority` method so the
-CLI can register them and trigger rebuilds.
+Plugins that participate in builds also implement `Name`, `ShouldRebuild`, and `Priority` so the CLI can register and order them.
 
 ### PreBuild
-`PreBuild` executes before the CLI starts compiling. Use it to prepare input files or read configuration. For example, a plugin could download an external schema or generate source code that the subsequent build step consumes.
+
+Runs before compilation. Use it to prepare inputs or fetch resources. Example: download a schema or generate code consumed later in the build.
 
 ### Build
-`Build` runs while the CLI is producing the wasm bundle. Typical implementations compile assets, copy files or emit additional artifacts. It receives any plugin specific configuration as raw JSON.
+
+Runs while producing the Wasm bundle. Often compiles assets, copies files, or emits artifacts.
 
 ### PostBuild
-`PostBuild` fires after the bundle is ready. It is a good place to minify output, verify hashes or remove temporary files created earlier.
+
+Fires after the bundle is ready. Useful for minification, hash verification, or cleaning up temporary files.
 
 ### Install
-`Install` runs when the application bootstraps. The plugin receives a `*core.App` and can register routes, components or inject scripts. This is where runtime behaviour is extended.
+
+Called at app startup. Use it to register routes, add components, or inject scripts—this extends runtime behavior.
 
 ### Uninstall
-`Uninstall` is invoked when tearing down the app or removing the plugin. Use it to detach watchers, delete generated files or undo registrations made in `Install`.
 
-## Priority and ordering
-Plugins may implement `Priority() int` to control execution order. Lower numbers run first, so a plugin returning `0` will precede one returning `10`. This matters when one plugin depends on the output of another.
+Runs when the app shuts down or the plugin is removed. Use it to detach watchers or undo `Install` changes.
 
-The CLI sorts registered plugins by priority:
+---
+
+## Priority and Ordering
+
+Plugins can control execution order with `Priority() int`. Lower numbers run first.
 
 ```go
 type first struct{}
@@ -47,55 +53,39 @@ func (p *second) Priority() int { return 10 }
 
 plugins.Register(&second{})
 plugins.Register(&first{})
-// During the build step "first" runs before "second" despite registration order.
+// "first" runs before "second" despite registration order.
 ```
 
-## Writing a plugin
-A minimal plugin defines a type, implements the desired hooks and registers itself:
+---
+
+## Writing a Plugin
+
+A minimal plugin defines a type, implements hooks, and registers itself:
+
 ```go
 package analytics
 
 import (
     "encoding/json"
-
     "github.com/rfwlab/rfw/v1/core"
 )
 
 type Plugin struct{}
 
 func New() *Plugin { return &Plugin{} }
-
-func (p *Plugin) Priority() int { return 0 }
-
-func (p *Plugin) Name() string { return "analytics" }
-
+func (p *Plugin) Name() string           { return "analytics" }
+func (p *Plugin) Priority() int          { return 0 }
 func (p *Plugin) ShouldRebuild(path string) bool { return false }
 
-func (p *Plugin) PreBuild(cfg json.RawMessage) error {
-    // e.g. generate tracking configuration
-    return nil
-}
+func (p *Plugin) PreBuild(cfg json.RawMessage) error { return nil }
+func (p *Plugin) Build(cfg json.RawMessage) error    { return nil }
+func (p *Plugin) PostBuild(cfg json.RawMessage) error { return nil }
 
-func (p *Plugin) Build(cfg json.RawMessage) error {
-    // compile assets or copy files
-    return nil
-}
-
-func (p *Plugin) PostBuild(cfg json.RawMessage) error {
-    // cleanup temporary files
-    return nil
-}
-
-func (p *Plugin) Install(a *core.App) {
-    // inject analytics script into pages
-}
-
-func (p *Plugin) Uninstall(a *core.App) {
-    // remove analytics script
-}
+func (p *Plugin) Install(a *core.App)   {}
+func (p *Plugin) Uninstall(a *core.App) {}
 ```
 
-Register the plugin in `main.go`:
+Register in `main.go`:
 
 ```go
 func main() {
@@ -103,10 +93,11 @@ func main() {
 }
 ```
 
-## Official plugins
+---
 
-rfw ships with a few ready-made plugins. The `i18n` package adds
-basic string translation helpers:
+## Official Plugins
+
+rfw ships with several plugins. Example: the `i18n` plugin for translations:
 
 ```go
 import "github.com/rfwlab/rfw/v1/plugins/i18n"
@@ -117,7 +108,17 @@ core.RegisterPlugin(i18n.New(map[string]map[string]string{
 }))
 ```
 
-## Use cases
-Plugins excel at tasks such as analytics integration, asset processing, internationalization or feature flagging. By choosing which hooks to implement, a plugin can focus on build-time concerns, runtime behaviour or both.
+---
 
-@include:ExampleFrame:{code:"/examples/plugins/plugins_component.go", uri:"/examples/plugins"}
+## Use Cases
+
+Plugins are ideal for:
+
+* Analytics integration
+* Asset processing
+* Internationalization
+* Feature flags
+
+By choosing hooks carefully, a plugin can focus on build-time, runtime, or both.
+
+@include\:ExampleFrame:{code:"/examples/plugins/plugins\_component.go", uri:"/examples/plugins"}

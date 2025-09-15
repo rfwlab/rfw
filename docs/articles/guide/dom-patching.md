@@ -1,44 +1,33 @@
 # Selective DOM Patching
 
-rfw updates the page through **Selective DOM Patching**, a minimal diffing
-routine that works directly on real DOM nodes. When a component renders, the
-framework parses the new markup into a fragment and walks it alongside the
-existing subtree:
+**rfw** updates the page using *Selective DOM Patching*, a minimal diffing routine that works directly on real DOM nodes. When a component renders, the framework parses the new markup into a fragment and walks it alongside the existing subtree:
 
-- elements annotated with `[key {expr}]` are matched and moved if necessary;
-- text and attributes are updated in place;
-- missing nodes are created and obsolete ones removed.
+* Elements annotated with `[key {expr}]` are matched and moved if needed
+* Text and attributes are updated in place
+* Missing nodes are created and obsolete nodes removed
 
-Because the browser's DOM is the only source of truth, there is no virtual
-tree to allocate or reconcile. The patcher simply mutates what is already in
-the document.
+The browser’s DOM is the single source of truth—there’s no virtual tree to allocate or reconcile. The patcher simply mutates what already exists.
 
-## Benefits of skipping a virtual DOM
+## Benefits of Skipping a Virtual DOM
 
-- **Lower memory use** – no second representation of the interface.
-- **Smaller runtime** – the patcher fits in a handful of functions.
-- **Immediate feedback** – updates hit the real nodes without an extra
-  abstraction layer.
+* **Lower memory use**: no duplicate representation of the interface
+* **Smaller runtime**: patcher fits in a handful of functions
+* **Immediate feedback**: updates apply directly to nodes
 
-## Comparison with other frameworks
+## Comparisons
 
 ### Virtual DOM libraries (React, Vue)
-These frameworks build a mirror tree in JavaScript and run a diff algorithm to
-produce patches. The approach is flexible but introduces memory churn and an
-additional abstraction layer.
+
+Maintain a mirror tree in JavaScript and diff it to compute patches. Powerful but adds memory churn and abstraction overhead.
 
 ### Compile-time DOM generation (Svelte)
-Svelte analyzes templates ahead of time and emits imperative DOM operations.
-There is no diffing at runtime, but the generated code is tied to the compiler
-and less suited for dynamic structures. rfw keeps templates declarative and
-uses the same patcher regardless of component complexity.
+
+Compiles templates into imperative DOM instructions. Fast at runtime but tightly bound to compiler output and less flexible for dynamic structures. rfw keeps templates declarative and relies on the same patcher for any complexity.
 
 ### Change-detection systems (Angular)
-Angular traverses component trees on every tick, checking bindings for changes.
-This works without a virtual DOM but can trigger more work than necessary and
-relies on zone-based heuristics.
 
-rfw's Selective DOM Patching combines the directness of hand-written DOM code
-with the convenience of declarative templates. Together with its explicit
-store-driven reactivity model, it offers a unique, minimal and solid approach
-that has no direct counterpart in other frameworks.
+Walk component trees on every tick, checking bindings. No virtual DOM, but often more work than necessary and relies on zone-based heuristics.
+
+## rfw’s Approach
+
+Selective DOM Patching combines the efficiency of direct DOM updates with declarative templates. Together with explicit, store-driven reactivity, it offers a minimal, solid model without a direct counterpart in other frameworks.

@@ -1,16 +1,18 @@
 # Creating an Application
 
-This guide walks through the structure of a basic rfw application and explains how Go components, RTML templates, and the router come together to mount an interface in the browser.
+This guide explains the structure of an **rfw** project and how Go components, RTML templates, and the router combine to render your application in the browser.
+
+---
 
 ## Project Layout
 
-An rfw project pairs each Go component with an `.rtml` template and ships with a host folder for server components. The `rfw init` command scaffolds this layout for you:
+Running `rfw init` scaffolds a project like this:
 
 ```
 hello-rfw/
 ├── main.go
 ├── components/
-│   └── app_component.go
+│   ├── app_component.go
 │   └── templates/
 │       └── app_component.rtml
 ├── host/
@@ -22,11 +24,16 @@ hello-rfw/
 └── rfw.json
 ```
 
-Files in `static/` are copied into `build/static/` and served from the root path. During development, requests to `/static/*` are mapped to `/*` so assets work without changing URLs.
+* `components/` contains Go components and their `.rtml` templates.
+* `host/` holds optional server‑side components.
+* `static/` files are copied into `build/static/` and served at `/`. During `rfw dev`, `/static/*` resolves to `/*` so you don’t need to adjust URLs.
+* `rfw.json` defines build configuration.
+
+---
 
 ## Bootstrapping
 
-The entry point registers the root component with the router and starts it. Development mode enables helpful logging.
+The entry point registers a root component with the router and starts it. In development mode, logging and debug helpers are enabled.
 
 ```go
 package main
@@ -40,7 +47,7 @@ import (
 func main() {
     core.SetDevMode(true)
     router.RegisterRoute(router.Route{
-        Path:      "/",
+        Path: "/",
         Component: func() core.Component { return components.NewAppComponent() },
     })
     router.InitRouter()
@@ -48,7 +55,7 @@ func main() {
 }
 ```
 
-The generated `main.go` compiles to WebAssembly. To run it in the browser, include the Go runtime and instantiate the module with plain JavaScript—TypeScript builds are not supported yet:
+The compiled `main.go` becomes a WebAssembly bundle. To run it, load the Go runtime and the generated module:
 
 ```html
 <script src="/wasm_exec.js"></script>
@@ -59,11 +66,13 @@ The generated `main.go` compiles to WebAssembly. To run it in the browser, inclu
 </script>
 ```
 
-A future release will expose a global `rfw` object so that rfw APIs can be accessed directly from JavaScript without importing Go helpers.
+> TypeScript support is not yet available. A future release will expose a global `rfw` object to call APIs directly from JavaScript.
+
+---
 
 ## Defining the Root Component
 
-Components embed `*core.HTMLComponent` and load their template at build time. The scaffolded root component looks like this:
+Components embed `*core.HTMLComponent` and bind to a template. The scaffolded root component looks like this:
 
 ```go
 package components
@@ -92,6 +101,14 @@ func NewAppComponent() *AppComponent {
 }
 ```
 
-`NewHTMLComponent` wires the RTML template to the component, and `SetComponent` followed by `Init` prepares it for rendering. Once the router mounts the component, updates to its exported fields automatically patch the DOM.
+* `NewHTMLComponent` links the template to the component.
+* `SetComponent` + `Init` prepare it for rendering.
+* `AddHostComponent` registers a server‑side component that can interact with the client.
 
-Continue with the [Template Syntax](./template-syntax) guide to learn how RTML templates bind DOM output to Go state.
+When mounted, changes to exported fields trigger reactive DOM updates automatically.
+
+---
+
+## Next Steps
+
+Continue with [Template Syntax](./template-syntax) to learn how RTML templates bind DOM output to Go state.
