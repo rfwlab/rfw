@@ -156,10 +156,6 @@
         "path": "guide/twitch-oauth.md"
       },
       {
-        "title": "Debugging",
-        "path": "guide/debugging.md"
-      },
-      {
         "title": "Pathfinding",
         "path": "guide/pathfinding.md"
       },
@@ -172,17 +168,63 @@
   {
     "title": "Plugins",
     "children": [
-      { "title": "Assets", "path": "plugins/assets.md" },
-      { "title": "Bundler", "path": "plugins/bundler.md" },
-      { "title": "Copy", "path": "plugins/copy.md" },
-      { "title": "Docs", "path": "plugins/docs.md" },
-      { "title": "Env", "path": "plugins/env.md" },
-      { "title": "Highlight", "path": "plugins/highlight.md" },
-      { "title": "i18n", "path": "plugins/i18n.md" },
-      { "title": "Pages", "path": "plugins/pages.md" },
-      { "title": "SEO", "path": "plugins/seo.md" },
-      { "title": "Tailwind", "path": "plugins/tailwind.md" },
-      { "title": "Toast", "path": "plugins/toast.md" }
+      {
+        "title": "Assets",
+        "path": "plugins/assets.md"
+      },
+      {
+        "title": "Bundler",
+        "path": "plugins/bundler.md"
+      },
+      {
+        "title": "Copy",
+        "path": "plugins/copy.md"
+      },
+      {
+        "title": "Docs",
+        "path": "plugins/docs.md"
+      },
+      {
+        "title": "Env",
+        "path": "plugins/env.md"
+      },
+      {
+        "title": "Highlight",
+        "path": "plugins/highlight.md"
+      },
+      {
+        "title": "i18n",
+        "path": "plugins/i18n.md"
+      },
+      {
+        "title": "Pages",
+        "path": "plugins/pages.md"
+      },
+      {
+        "title": "SEO",
+        "path": "plugins/seo.md"
+      },
+      {
+        "title": "Tailwind",
+        "path": "plugins/tailwind.md"
+      },
+      {
+        "title": "Toast",
+        "path": "plugins/toast.md"
+      }
+    ]
+  },
+  {
+    "title": "Developer Goodies",
+    "children": [
+      {
+        "title": "Devtools",
+        "path": "goodies/devtools.md"
+      },
+      {
+        "title": "Debugging",
+        "path": "goodies/debugging.md"
+      }
     ]
   },
   {
@@ -197,8 +239,32 @@
         "path": "api/core.md"
       },
       {
-        "title": "components",
-        "path": "api/components.md"
+        "title": "core component",
+        "path": "api/component.md"
+      },
+      {
+        "title": "core error-boundary",
+        "path": "api/error-boundary.md"
+      },
+      {
+        "title": "core logger",
+        "path": "api/logger.md"
+      },
+      {
+        "title": "core plugin",
+        "path": "api/plugin.md"
+      },
+      {
+        "title": "core rtml",
+        "path": "api/rtml.md"
+      },
+      {
+        "title": "core suspense",
+        "path": "api/suspense.md"
+      },
+      {
+        "title": "composition",
+        "path": "api/composition.md"
       },
       {
         "title": "dom",
@@ -257,8 +323,8 @@
         "path": "api/cinema.md"
       },
       {
-        "title": "plugins",
-        "path": "api/plugins.md"
+        "title": "devtools",
+        "path": "api/devtools.md"
       },
       {
         "title": "math",
@@ -269,12 +335,20 @@
         "path": "api/game-loop.md"
       },
       {
+        "title": "scene",
+        "path": "api/scene.md"
+      },
+      {
         "title": "netcode",
         "path": "api/netcode.md"
       },
       {
         "title": "pathfinding",
         "path": "api/pathfinding.md"
+      },
+      {
+        "title": "wasmloader",
+        "path": "api/wasmloader.md"
       },
       {
         "title": "shortcut",
@@ -285,9 +359,5 @@
         "path": "api/webgl.md"
       }
     ]
-  },
-  {
-    "title": "Devtools",
-    "path": "devtools.md"
   }
 ]

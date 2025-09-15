@@ -15,27 +15,3 @@ Utilities for handling browser events and observing DOM changes.
 | `ObserveMutations(selector)` | Watches DOM mutations, skipping elements marked with `data-rfw-ignore`. |
 | `ObserveIntersections(selector, opts)` | Streams `IntersectionObserverEntry` values. |
 
-`On` registers callbacks directly and returns a function to remove the
-listener when no longer needed. `Listen` converts native DOM events into
-Go channels. For application state changes use reactive stores which
-emit their own notifications – a separate mechanism from DOM events.
-
-## Usage
-
-`On` attaches a handler and provides a cleanup function:
-
-```go
-doc := dom.Doc()
-stop := events.OnClick(doc.ByID("btn").Value, func(evt js.Value) {
-        js.Console().Call("log", "clicked")
-})
-// ...
-stop()
-```
-
-`Listen` turns browser events into Go channels when you prefer to range
-over events concurrently.
-
-This example listens for browser events and reacts in Go.
-
-@include:ExampleFrame:{code:"/examples/components/event_listener_component.go", uri:"/examples/event/listener"}
