@@ -17,7 +17,7 @@ communication with servers, JavaScript interop and markdown rendering.
 
 rfw is designed to run in multiple environments. The [host](host) and
 [hostclient](hostclient) packages integrate the runtime with external
-systems, and [plugins](plugins) lets developers extend the framework
+systems, and [plugins](core/plugin) lets developers extend the framework
 with custom features. The [docs plugin](docs-plugin) powers this site
 by loading markdown files and emitting events for navigation. The
 [bundler plugin](bundler-plugin) bundles and minifies JavaScript and
@@ -31,11 +31,18 @@ rendering using the same reactive model.
 
 The full set of API references is listed below:
 
+- [core](core)
+  - [component](core/component)
+  - [error-boundary](core/error-boundary)
+  - [logger](core/logger)
+  - [plugin](core/plugin)
+  - [rtml](core/rtml)
+  - [suspense](core/suspense)
+
 - [animation](animation)
 - [assets](assets)
 - [cinema](cinema)
-- [core](core)
-- [components](components)
+- [composition](composition)
 - [dom](dom)
 - [events](events)
 - [host](host)
@@ -45,8 +52,8 @@ The full set of API references is listed below:
 - [js](js)
 - [markdown](markdown)
 - [shims](shims)
-- [plugins](plugins)
 - [docs plugin](docs-plugin)
+- [devtools](devtools)
 - [highlight](highlight)
 - [bundler plugin](bundler-plugin)
 - [i18n](i18n)
@@ -57,5 +64,7 @@ The full set of API references is listed below:
 - [webgl](webgl)
 - [math](math)
 - [game loop](game-loop)
+- [scene](scene)
 - [netcode](netcode)
 - [pathfinding](pathfinding)
+- [wasmloader](wasmloader)
