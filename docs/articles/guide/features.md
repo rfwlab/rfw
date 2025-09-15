@@ -41,6 +41,6 @@ This keeps the core lean but flexible.
 
 ## When to Use rfw
 
-Use rfw when you want control over output, prefer Go, or need to share code between client and server. While still in beta, it shows how a simple reactive model can build interactive UIs without a large JavaScript framework.
+Use **rfw** when you want full control over output, prefer Go, or need to share code seamlessly between client and server. It demonstrates how a simple reactive model can power interactive UIs without relying on a heavy JavaScript framework.
 
 @include\:ExampleFrame:{code:"/examples/components/main\_component.go", uri:"/examples/main"}
