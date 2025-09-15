@@ -1,23 +1,30 @@
 # API Integration
 
-## Why
-Applications often need to communicate with external services. The [HTTP API](../api/http) provides helpers that cache responses and surface loading states.
+Most applications need to communicate with external services. In **rfw**, the [HTTP API](../api/http) provides helpers to fetch JSON, handle loading states, and cache responses.
+
+## Fetching JSON
+
+Use `FetchJSON` to retrieve data and unmarshal it into a Go struct:
 
 ```go
 var todo struct {
     Title string `json:"title"`
 }
+
 if err := http.FetchJSON("https://jsonplaceholder.typicode.com/todos/1", &todo); err != nil {
     if errors.Is(err, http.ErrPending) {
-        // display loading UI
+        // show loading UI
     } else {
         // handle fetch error
     }
 }
 ```
 
-## When to Use
-Use `http.FetchJSON` when retrieving remote data to populate stores or render components.
+If the request is pending, `ErrPending` is returned so you can display a loading state. On success, the struct is populated with the response.
+
+## Updating State from a Request
+
+A common pattern is to fetch asynchronously and update a store:
 
 ```go
 go func() {
@@ -32,13 +39,20 @@ go func() {
 }()
 ```
 
+This updates the `apiData` store with either the title or an error string.
+
 ## When Not to Use
-Skip network requests for static data bundled with the application or when offline support is required.
+
+Skip network calls when:
+
+* The data is static and bundled in your app.
+* You need offline-first behavior.
 
 ```go
 data := loadFromLocalFile()
 store.Set("apiData", data)
 ```
 
-## Interactive Demo
-@include:ExampleFrame:{code:"/examples/components/api_integration_component.go", uri:"/examples/api"}
+## Interactive Example
+
+@include\:ExampleFrame:{code:"/examples/components/api\_integration\_component.go", uri:"/examples/api"}

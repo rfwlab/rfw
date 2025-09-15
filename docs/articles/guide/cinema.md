@@ -1,7 +1,8 @@
 # Cinema
 
-## Why
-The Cinema builder orchestrates keyframes, video, and audio to produce rich presentations. The [Cinema API](../api/cinema) provides chainable methods for scenes and media.
+The **Cinema builder** orchestrates complex sequences of keyframes, video, and audio. It is powered by the [Cinema API](../api/cinema), which exposes chainable methods to define scenes and media playback.
+
+## Example: Fade In
 
 ```go
 cin := animation.NewCinemaBuilder("#root").
@@ -10,27 +11,42 @@ cin := animation.NewCinemaBuilder("#root").
     AddKeyFrame(animation.NewKeyFrame().Add("opacity", "1"), 1)
 ```
 
-## When to Use
-Use Cinema when several elements must animate in sequence or when video and audio playback need to stay in sync.
+This scene fades the element `#box` from transparent to visible.
+
+## Coordinating Media
+
+Chain video, audio, and pauses to create synced experiences:
 
 ```go
-cin.PlayVideo().AddPause(time.Second).PlayAudio()
+cin.PlayVideo().
+    AddPause(time.Second).
+    PlayAudio()
 ```
 
-## When Not to Use
-Skip Cinema for single animations that CSS or the basic [Animation API](../api/animation) can handle.
+## When to Use
+
+* Animate multiple elements in sequence
+* Keep video and audio playback in sync
+* Build rich presentations or interactive tutorials
+
+## When to Prefer Simpler Tools
+
+Use CSS or the [Animation API](../api/animation) for simple, single effects:
 
 ```css
 .fade-in { transition: opacity .5s; }
 ```
 
-## Interactive Demo
-@include:ExampleFrame:{code:"/examples/components/cinema_component.go", uri:"/examples/cinema"}
+## Interactive Example
 
-## Notes and Limitations
-- Tracks only one audio element; call `AddAudio` again for different sounds.
-- Requires browser environments with video and audio support.
+@include\:ExampleFrame:{code:"/examples/components/cinema\_component.go", uri:"/examples/cinema"}
+
+## Notes
+
+* Only one audio element is tracked at a time; call `AddAudio` again for different sounds.
+* Requires a browser with video and audio support.
 
 ## Related
-- [Animation API](../api/animation)
-- [DOM API](../api/dom)
+
+* [Animation API](../api/animation)
+* [DOM API](../api/dom)

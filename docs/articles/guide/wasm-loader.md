@@ -1,14 +1,18 @@
 # WASM Loader
 
-The default project template ships with a Go-powered loader that exposes a global `WasmLoader` helper. The loader displays a red progress bar while the WebAssembly bundle downloads and initializes.
+The default project template includes a Go-powered loader that exposes a global `WasmLoader` helper. By default, it shows a red progress bar while the WebAssembly bundle downloads and initializes.
 
-## Why a loader?
+---
 
-Even though WASM files are optimized for delivery, large applications can still take noticeable time to load. The loader provides immediate visual feedback, letting users know that the application is starting up.
+## Why a Loader?
 
-## Customizing the loader
+WASM files are optimized, but large applications may still take noticeable time to load. A loader provides immediate visual feedback so users know the app is starting.
 
-Include the bundled `wasm_loader.js` script and invoke `WasmLoader.load` with your `Go` runtime and styling options:
+---
+
+## Customizing the Loader
+
+Add the bundled script and call `WasmLoader.load` with the `Go` runtime and your style options:
 
 ```html
 <script src="/wasm_loader.js"></script>
@@ -23,9 +27,13 @@ Include the bundled `wasm_loader.js` script and invoke `WasmLoader.load` with yo
 </script>
 ```
 
-## Using your own loader
+You can change the color, size, and glow to match your branding.
 
-If you prefer to implement a different loading experience, set `skipLoader` to `true` and provide your own UI while waiting for the module:
+---
+
+## Using Your Own Loader
+
+Disable the built-in UI with `skipLoader: true` and implement a custom one:
 
 ```html
 <script src="/wasm_loader.js"></script>
@@ -37,4 +45,8 @@ If you prefer to implement a different loading experience, set `skipLoader` to `
 </script>
 ```
 
-Alternatively, you can remove the loader script entirely and handle WASM loading manually.
+You can also remove the loader script entirely and handle WASM loading manually if you need full control.
+
+---
+
+The default loader is simple and functional, but it’s flexible enough to be styled or replaced as your application grows.
