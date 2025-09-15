@@ -53,7 +53,7 @@ rfw dev --port 3000 --host --debug
 Output:
 
 ```text
-rfw v0.2.0-beta.1
+rfw v0.2.0-beta.2
 
 ➜ Local: http://localhost:3000/
 ➜ Network: http://192.168.1.10:3000/
