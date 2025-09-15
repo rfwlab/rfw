@@ -120,22 +120,6 @@
         "path": "guide/plugin-directives.md"
       },
       {
-        "title": "Pages Plugin",
-        "path": "guide/pages-plugin.md"
-      },
-      {
-        "title": "Assets Plugin",
-        "path": "guide/assets-plugin.md"
-      },
-      {
-        "title": "Copy Plugin",
-        "path": "guide/copy-plugin.md"
-      },
-      {
-        "title": "docs plugin",
-        "path": "guide/docs-plugin.md"
-      },
-      {
         "title": "Assets",
         "path": "guide/assets.md"
       },
@@ -186,6 +170,22 @@
     ]
   },
   {
+    "title": "Plugins",
+    "children": [
+      { "title": "Assets", "path": "plugins/assets.md" },
+      { "title": "Bundler", "path": "plugins/bundler.md" },
+      { "title": "Copy", "path": "plugins/copy.md" },
+      { "title": "Docs", "path": "plugins/docs.md" },
+      { "title": "Env", "path": "plugins/env.md" },
+      { "title": "Highlight", "path": "plugins/highlight.md" },
+      { "title": "i18n", "path": "plugins/i18n.md" },
+      { "title": "Pages", "path": "plugins/pages.md" },
+      { "title": "SEO", "path": "plugins/seo.md" },
+      { "title": "Tailwind", "path": "plugins/tailwind.md" },
+      { "title": "Toast", "path": "plugins/toast.md" }
+    ]
+  },
+  {
     "title": "API",
     "children": [
       {
@@ -215,16 +215,6 @@
       {
         "title": "markdown",
         "path": "api/markdown.md"
-      },
-      {
-        "title": "shims",
-        "path": "api/shims/index.md",
-        "children": [
-          {
-            "title": "highlightjs",
-            "path": "api/shims/highlightjs.md"
-          }
-        ]
       },
       {
         "title": "http",
@@ -269,18 +259,6 @@
       {
         "title": "plugins",
         "path": "api/plugins.md"
-      },
-      {
-        "title": "highlight",
-        "path": "api/highlight.md"
-      },
-      {
-        "title": "i18n",
-        "path": "api/i18n.md"
-      },
-      {
-        "title": "toast",
-        "path": "api/toast.md"
       },
       {
         "title": "math",
