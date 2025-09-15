@@ -1,8 +1,8 @@
 # Architecture
 
-rfw's goal is to let developers build reactive web interfaces in pure Go. The runtime runs Go in the browser via WebAssembly while templates are written in **RTML**, an HTML-like language that binds directly to Go state. The framework wires data, events and rendering into a single reactive loop so that UI updates automatically follow changes in Go variables.
+rfw lets you build reactive web interfaces entirely in **Go**. The runtime executes Go in the browser via WebAssembly, while templates are written in **RTML**, an HTML-like language that binds directly to Go state. Data, events, and rendering flow together in a single reactive loop—UI updates follow automatically when variables change.
 
-By compiling to WebAssembly, the same Go code can run on both the client and the server, enabling shared types and business logic. Components are small, reusable units that encapsulate state and behaviour; the router simply mounts them without extra glue code.
+By compiling to WebAssembly, the same Go code can run on both client and server, enabling shared types and business logic. Components are small reusable units that encapsulate state and behaviour, mounted by the router without extra glue code.
 
 ## Minimal counter example
 
@@ -32,12 +32,15 @@ func New() *core.HTMLComponent {
 }
 ```
 
-The `@on:click` directive binds the `increment` handler to the button. When the button is pressed, the Go value is increased and the DOM is patched automatically—no manual manipulation is required. RTML placeholders such as `{count}` are resolved against the component's `Props` map on every re-render.
+Clicking the button calls the `increment` handler. The Go value updates and the DOM is patched—no manual manipulation required. RTML placeholders like `{count}` resolve against the component’s props on every render.
 
-For larger components consider updating state through stores to avoid race conditions. The Go WASM runtime is single threaded; heavy computations should be offloaded to web workers or handled asynchronously to prevent UI freezing.
+For larger components, prefer **stores** to manage state and avoid race conditions. Since Go’s WASM runtime is single-threaded, offload heavy work to web workers or async tasks to keep the UI responsive.
 
 ## Prerequisites
 
-You should be comfortable with basic HTML, CSS, JavaScript and Go before using rfw. Familiarity with concepts such as reactivity and the Go module system helps in structuring larger applications.
+Before using rfw, you should know basic HTML, CSS, JavaScript, and Go. Familiarity with reactivity and the Go module system helps when structuring bigger projects.
 
-Because Go's WebAssembly runtime does not support preemptive multitasking, avoid long blocking calls in handlers. JavaScript integration currently uses plain JavaScript; TypeScript is not yet supported, so wrappers may be required in mixed projects.
+Notes:
+
+* Avoid long blocking calls in handlers—Go’s WebAssembly runtime lacks preemptive multitasking.
+* JavaScript integration uses plain JS; TypeScript is not yet supported.

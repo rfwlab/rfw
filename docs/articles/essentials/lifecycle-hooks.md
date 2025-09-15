@@ -1,10 +1,25 @@
 # Lifecycle Hooks
 
-Each component moves through a predictable set of stages. Lifecycle hooks let you run code at key moments without scattering logic across the application.
+Components in **rfw** pass through well-defined stages. Lifecycle hooks let you run code at these key moments without scattering logic around. They are essential for data fetching, side effects, and cleanup.
 
-## Mount
+---
 
-When a component is first rendered, its template is converted to DOM and inserted into the page. The optional `OnMount` hook fires afterward:
+## Lifecycle Flow
+
+```
+Create → Mount → Update (repeat) → Unmount
+```
+
+1. **Create**: the component instance is constructed.
+2. **Mount**: template is converted to DOM and inserted into the page.
+3. **Update**: reactive state changes trigger DOM patches.
+4. **Unmount**: the component is removed from the DOM.
+
+---
+
+## OnMount
+
+Runs after the component is inserted into the DOM:
 
 ```go
 func (c *Widget) OnMount() {
@@ -12,11 +27,19 @@ func (c *Widget) OnMount() {
 }
 ```
 
-Start timers, fetch remote data, or access refs here. The component is fully present in the DOM.
+Use this to:
 
-## Update
+* Start timers
+* Fetch remote data
+* Access refs (`GetRef`) or manipulate child nodes
 
-Whenever reactive state changes, the component re-renders. After the patch is applied, `OnUpdate` runs:
+At this point, the component is fully available in the DOM.
+
+---
+
+## OnUpdate
+
+Runs after each reactive update:
 
 ```go
 func (c *Widget) OnUpdate() {
@@ -24,11 +47,13 @@ func (c *Widget) OnUpdate() {
 }
 ```
 
-Use this hook for side effects that must occur after every render.
+Use this for side effects that must occur after every render, such as syncing with external APIs or libraries.
 
-## Unmount
+---
 
-Before a component is removed, `OnUnmount` executes. Clean up any external resources to avoid leaks:
+## OnUnmount
+
+Runs before the component is removed:
 
 ```go
 func (c *Widget) OnUnmount() {
@@ -36,4 +61,37 @@ func (c *Widget) OnUnmount() {
 }
 ```
 
-Hooks can be registered by implementing the methods directly or by calling `SetOnMount`, `SetOnUpdate`, and `SetOnUnmount` on the underlying `HTMLComponent`. Lifecycle hooks provide structured entry points for augmenting component behavior. See the [API reference](../api/core#lifecycle-hooks) for available helpers.
+Use this to:
+
+* Stop timers
+* Cancel goroutines
+* Release watchers or subscriptions
+
+Ensures resources are cleaned up before the component disappears.
+
+---
+
+## Registering Hooks
+
+You can provide hooks by either:
+
+* Implementing the methods directly (`OnMount`, `OnUpdate`, `OnUnmount`), or
+* Registering callbacks dynamically:
+
+```go
+cmp.SetOnMount(func(*core.HTMLComponent) { ... })
+cmp.SetOnUpdate(func(*core.HTMLComponent) { ... })
+cmp.SetOnUnmount(func(*core.HTMLComponent) { ... })
+```
+
+---
+
+## Why Lifecycle Hooks Matter
+
+Lifecycle hooks are the structured entry points for side effects in rfw. They keep logic predictable:
+
+* **Mount** for setup
+* **Update** for reactive side effects
+* **Unmount** for teardown
+
+See the [API reference](../api/core#lifecycle-hooks) for all available helpers.

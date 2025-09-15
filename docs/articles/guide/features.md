@@ -1,51 +1,46 @@
 # Why rfw?
 
-rfw focuses on delivering a productive Go‑first workflow for the web.
-Instead of layering a virtual DOM over browser APIs, the framework maps
-state changes directly to the real DOM. A lightweight routine named
-**Selective DOM Patching** compares new markup with existing nodes and
-mutates them in place. Below are some of the ideas that make it stand out.
+**rfw** focuses on delivering a productive, Go-first workflow for the web. Instead of layering a virtual DOM over browser APIs, it updates the real DOM directly with **Selective DOM Patching**, a lightweight routine that mutates only what changed.
 
-## Direct DOM binding
+## Direct DOM Binding
 
-Every component renders straight into real DOM nodes. When a piece of
-state changes rfw applies Selective DOM Patching to update only the
-affected elements. No separate virtual tree is created, keeping the
-runtime small, predictable and easy to reason about.
+Components render directly into DOM nodes. When state changes, rfw patches only the affected elements. No virtual tree is created, keeping the runtime small and predictable.
 
-## Go‑centric development
+## Go-centric Development
 
-Both application logic and templates live in Go modules. You can reuse
-existing packages, benefit from static types and leverage the standard
-toolchain. The `rfw` command wraps common tasks like project
-scaffolding and building WebAssembly binaries.
+Both logic and templates live in Go modules:
 
-## Reactive stores
+* Reuse existing Go packages
+* Benefit from static typing
+* Use the standard Go toolchain
 
-State is organised in named stores. Components subscribe to keys and are
-automatically re‑rendered when values change. Stores support **computed
-values** derived from other keys and **watchers** that react to
-mutations, enabling complex data flows with minimal boilerplate.
+The `rfw` CLI handles scaffolding and WebAssembly builds.
 
-## Minimal runtime
+## Reactive Stores
 
-Only the framework pieces you import end up in the bundle. The generated
-JavaScript glue code is tiny and the majority of your logic remains in
-Go, shipped as WebAssembly.
+State lives in named stores. Components subscribe to keys and re-render automatically:
 
-## Extensible pipeline
+* **Computed values**: derive data from other keys
+* **Watchers**: trigger side effects on mutation
 
-Plugins can augment both the compiler and runtime. They allow custom
-build steps, additional code generation or integrations with browser
-APIs. The plugin system keeps the core lightweight while still enabling
-advanced use cases.
+This supports complex flows with minimal boilerplate.
 
-## When to use rfw
+## Minimal Runtime
 
-rfw shines when you want tight control over the generated output, prefer
-writing in Go or need to share code between client and server. While the
-project is in beta, it demonstrates how a simple reactive model can
-produce interactive interfaces without a large JavaScript framework.
-The main component highlights several core features.
+Only the parts you import are included. The JavaScript glue is tiny—most logic stays in Go, shipped as WebAssembly.
 
-@include:ExampleFrame:{code:"/examples/components/main_component.go", uri:"/examples/main"}
+## Extensible Pipeline
+
+Plugins extend the compiler and runtime for:
+
+* Custom build steps
+* Code generation
+* Browser API integrations
+
+This keeps the core lean but flexible.
+
+## When to Use rfw
+
+Use rfw when you want control over output, prefer Go, or need to share code between client and server. While still in beta, it shows how a simple reactive model can build interactive UIs without a large JavaScript framework.
+
+@include\:ExampleFrame:{code:"/examples/components/main\_component.go", uri:"/examples/main"}

@@ -1,16 +1,18 @@
 # Template Syntax
 
-RTML is rfw's declarative, HTML-like language for describing user interfaces. It extends standard markup with directives that connect the DOM to Go data and events. Templates are compiled to Go code so no parser runs in the browser. Browser integration currently relies on plain JavaScript; TypeScript builds are not supported yet, though a future release will expose a global `rfw` object to interact with rfw APIs directly.
+RTML is rfw’s declarative, HTML‑like language for authoring UIs. It extends markup with **variables**, **commands**, and **constructors** that connect the DOM to Go data and events. Templates are compiled to Go—no runtime parser in the browser. (Today integration uses plain JavaScript; a future release will expose a global `rfw` object.)
 
-## Variables, Commands and Constructors
+---
 
-RTML distinguishes three constructs:
+## Building Blocks
 
-- **Variables**: placeholders wrapped in `{}` that insert reactive values.
-- **Commands**: directives starting with `@` that drive logic or register behavior.
-- **Constructors**: square‑bracket annotations inside a start tag. `[name]` on an element adds a reference, while `[key {expr}]` injects a list key for efficient diffing.
+RTML distinguishes three constructs, each with a specific role:
 
-Each construct has its own responsibility and they should not be intermixed. Example:
+* **Variables** — `{expression}` placeholders that insert reactive values.
+* **Commands** — directives starting with `@` that control logic or behavior.
+* **Constructors** — square‑bracket annotations placed in a start tag to attach metadata to that element.
+
+Example:
 
 ```rtml
 <div [userCard]>
@@ -19,47 +21,83 @@ Each construct has its own responsibility and they should not be intermixed. Exa
 </div>
 ```
 
-`[userCard]` registers the `<div>` for later lookup with `GetRef`, `{user.Name}` prints data, and `@on:click:save` attaches an event handler.
+Here `[userCard]` marks the element for lookup via `GetRef` (see **Template Refs**), `{user.Name}` interpolates data, and `@on:click:save` attaches an event handler.
+
+> Keep roles separate: variables render values, commands control flow/behavior, constructors annotate elements.
+
+---
 
 ## Text Interpolation
 
-Place `{expression}` inside markup to insert reactive data:
+Insert reactive values with `{expression}`:
 
 ```rtml
 <p>Count: {count}</p>
 ```
 
-Changing the `count` field on the component automatically updates the rendered text.
+Changing `count` (field, signal, or store‑backed prop) patches only the affected text node.
 
 ### Calling Functions
 
-Expressions can invoke methods that are exposed on the component:
+Expressions can call methods exposed by the component:
 
 ```rtml
 <time>{formatDate(createdAt)}</time>
 ```
 
-Functions are evaluated every render so they should be side-effect free.
+Functions run on render; keep them pure (no side effects) and inexpensive.
 
-## Attribute and Store Bindings
+---
 
-Attributes may also contain expressions:
+## Attribute Bindings
+
+Attributes accept expressions too:
 
 ```rtml
 <img src="{user.Avatar}" alt="{user.Name}">
 ```
 
-For global state, use the `@store` command to bind a value to an attribute. The optional `:w` suffix enables two‑way binding for form controls. A `:r` suffix is not recognized; omit the suffix for read‑only bindings:
+### Boolean Attributes
+
+If an expression evaluates to a boolean, the attribute is present only when truthy:
 
 ```rtml
+<button disabled="{isDisabled}">Save</button>
+```
+
+When `isDisabled` is `false`, the `disabled` attribute is removed.
+
+---
+
+## State Bindings (Stores & Signals)
+
+RTML offers dedicated commands to bind **global stores** and **local signals**.
+
+### Store bindings
+
+```
+@store:MODULE.STORE.KEY[:w]
+```
+
+* `MODULE` — module namespace (often `default` or `app`).
+* `STORE` — store name.
+* `KEY` — field in the store.
+* `:w` — optional; enables two‑way binding **on form controls** (read‑only elsewhere). There is **no `:r`** suffix—omit for read‑only.
+
+Examples:
+
+```rtml
+<p>Shared: @store:default.counter.count</p>
 <input value="@store:default.counter.count:w">
 <input type="checkbox" checked="@store:default.counter.enabled:w">
 <textarea>@store:default.counter.notes:w</textarea>
 ```
 
-Updating the `count` key in the `counter` store reflects in the input, and editing the input writes back to the store.
+Editing a writable control updates the store key; other bindings update automatically.
 
-Local signals may be bound similarly using `@signal:name` and `@signal:name:w` for two‑way bindings:
+### Signal bindings
+
+Bind local reactive state with `@signal:name`:
 
 ```rtml
 <p>@signal:message</p>
@@ -68,69 +106,15 @@ Local signals may be bound similarly using `@signal:name` and `@signal:name:w` f
 <textarea>@signal:bio:w</textarea>
 ```
 
-### Boolean Attributes
+Use `:w` on form elements to write back to the signal.
 
-When an expression resolves to a boolean, the attribute is included only if the value is truthy:
+> Tip: Inside `{}` expressions you can reference a signal by its prop name, e.g. `{count}`; for text‑only positions, `@signal:count` is equivalent. Prefer the `{}` form for consistency across bindings.
 
-```rtml
-<button disabled="{isDisabled}">Save</button>
-```
-
-If `isDisabled` is `false`, the `disabled` attribute is removed from the element.
-
-### Keyed Bindings
-
-Lists often need stable identity for efficient updates. Use the `[key {expr}]` constructor inside the looped element so rfw can patch DOM nodes selectively:
-
-```rtml
-@for:item in items
-  <li [key {item.ID}]>{item.Text}</li>
-@endfor
-```
-
-Without a key, list items are recreated when their order changes.
-
-## Event Handling
-
-Events are bound with the `@on:` prefix followed by the event name and handler:
-
-```rtml
-<button @on:click:increment>Increment</button>
-```
-
-### Event Modifiers
-
-Modifiers may be appended after the event name to adjust behavior:
-
-| Modifier | Description |
-|----------|-------------|
-| `stop` | Calls `event.stopPropagation()` to prevent bubbling. |
-| `prevent` | Calls `event.preventDefault()` to stop the browser's default action. |
-| `once` | Removes the listener after the first invocation. |
-
-Example:
-
-```rtml
-<form @on:submit.prevent.stop:onSubmit>
-<button @on:click.once:launch>Launch once</button>
-```
-
-Event handlers are registered on the Go side. When a component is wrapped
-with the Composition API (`composition.Wrap`), register them by name using
-`cmp.On`. Plain `*core.HTMLComponent`s attach listeners directly through the
-`dom` package:
-
-```go
-btn := dom.ByID("save")
-stop := btn.On("click", func(dom.Event) {
-    // handle click
-})
-defer stop()
-```
+---
 
 ## Conditionals
 
-`@if`, `@else-if`, and `@else` conditionally render blocks:
+Render blocks conditionally with `@if`, `@else-if`, and `@else`:
 
 ```rtml
 @if:count > 0
@@ -140,124 +124,155 @@ defer stop()
 @endif
 ```
 
-Conditional blocks may contain any valid RTML, including loops or components.
+Branches may contain any valid RTML, including loops and component includes.
+
+---
 
 ## Lists
 
 Iterate collections with `@for`:
 
 ```rtml
-@for:item in store:default.todos.items
-  <li>{item.text}</li>
+@for:item in items
+  <li>{item.Text}</li>
 @endfor
 ```
 
-`@for` also supports key/value pairs and numeric ranges:
+* **Ranges**:
+
+  ```rtml
+  @for:i in 0..n
+    <span>{i}</span>
+  @endfor
+  ```
+* **Maps**:
+
+  ```rtml
+  @for:key,val in obj
+    <p>{key}: {val}</p>
+  @endfor
+  ```
+
+### Keyed items
+
+Give items a stable identity with the `[key {expr}]` constructor to enable efficient reorders:
 
 ```rtml
-@for:key,val in obj
-  <p>{key}: {val}</p>
-@endfor
-
-@for:i in 0..n
-  <span>{i}</span>
+@for:todo in todos
+  <li [key {todo.ID}]>{todo.Text}</li>
 @endfor
 ```
 
-When a signal's `Read` method returns a slice or map, `@foreach` can iterate it:
+Without keys, elements may be recreated when order changes.
+
+---
+
+## Events
+
+Bind DOM events with `@on:event:handler`:
 
 ```rtml
-@foreach:items as it
-  <li>@it</li>
-@endforeach
+<button @on:click:increment>Increment</button>
 ```
 
-## Components, Props and Slots
+You can also use the shorthand `@click:increment`—it’s **equivalent**, but `@on:` is more explicit and recommended for consistency.
 
-Bring in child components with `@include:Name`, optionally passing props, and expose content placeholders with `@slot`:
+### Modifiers
+
+Append modifiers after the event name:
+
+| Modifier  | Effect                                           |
+| --------- | ------------------------------------------------ |
+| `stop`    | `event.stopPropagation()` prevents bubbling      |
+| `prevent` | `event.preventDefault()` blocks default behavior |
+| `once`    | Removes the listener after the first call        |
+
+Examples:
+
+```rtml
+<form @on:submit.prevent.stop:onSubmit>
+<button @on:click.once:launch>Launch once</button>
+```
+
+Register handlers in Go. With Composition API, use `cmp.On("increment", fn)`; with plain `*core.HTMLComponent` use the `dom` / `events` helpers.
+
+---
+
+## Constructors & Template Refs
+
+Constructors annotate elements with extra semantics. Two common patterns:
+
+* **Template refs** — `[name]` marks the element for lookup via `GetRef("name")`.
+* **List keys** — `[key {expr}]` supplies a stable key inside loops.
+
+See **[Template Refs](./template-refs)** for details on refs and when to prefer them over DOM queries.
+
+---
+
+## Components, Props & Slots
+
+Include a child component and pass props:
 
 ```rtml
 @include:Card:{title:"Hello"}
-
-@slot:Card.body
-  <p>Content from parent</p>
-@endslot
 ```
 
-Properties on the included component are accessed with `@prop`:
+Inside the child, read props with `@prop:name` and expose slots:
 
 ```rtml
 <card>
   <h2>@prop:title</h2>
+  @slot:body
+    <p>Injected by parent</p>
+  @endslot
 </card>
 ```
 
-Slots can receive markup or even other components, allowing parents to control portions of a child component's template.
+Parents can fill named slots using `@slot:Child.slotName` from their own templates.
+
+---
 
 ## Dynamic Components
 
-Use `rt-is` to switch components at runtime based on a store value or prop:
+Switch components at runtime with the `rt-is` attribute:
 
 ```rtml
 <div rt-is="{current}"></div>
 ```
 
-The element is replaced with the component whose name matches `current`.
+The placeholder is replaced with the component whose name matches `current`.
 
-## Using Expressions
+---
 
-RTML evaluates JavaScript-like expressions within `{}` and in directive values:
+## Expressions
+
+RTML evaluates JavaScript‑like expressions in `{}` and directive values:
 
 ```rtml
 <p>{user.First + " " + user.Last}</p>
 <div class="btn-{variant}"></div>
 ```
 
-Expressions must resolve to a value; statements like `if` or `var` are invalid. Only a restricted set of global functions is available, such as `Math` and `Date`.
-
-## Directives Summary
-
-RTML ships with a small set of built-in directives:
-
-- `@on:event:handler` – attach event handlers.
-- `@if`, `@else-if`, `@else` – conditional rendering.
-- `@for` – iterate over collections or ranges.
-- `@include:Component` – render another component.
-- `@slot:name` / `@endslot` – declare named slots inside a component.
-- `@prop:name` – read a property passed to a component.
-- `@store:module.store.key[:w]` – bind to global state.
-- `@signal:name[:w]` – bind to a local signal.
-- `rt-is` – render a component dynamically.
-
-Commands may accept parameters or modifiers; see individual sections above for details. Plugins can also contribute `{plugin:NAME.var}` variables, `@plugin:NAME.cmd` commands and `[plugin:NAME.ref]` constructors. See the [Plugin API](../api/plugins.md#rtml-directives) and the [Plugin Directives](../guide/plugin-directives.md) guide for details and examples.
-
-## Stores
-
-Access global state using the `@store` directive. This command binds an element to a value stored in the global state manager and optionally writes changes back.
-
-```
-@store:MODULE.STORE.KEY[:w]
-```
-
-- `MODULE` selects the module namespace (commonly `app` or `default`).
-- `STORE` chooses the store within that module.
-- `KEY` is the field to read.
-- `:w` is optional and enables two‑way bindings for form controls.
-- `:r` is not supported; omit the suffix for read‑only bindings.
-
-Example:
-
-```rtml
-<p>Shared: @store:app.default.sharedState</p>
-<input value="@store:app.default.sharedState:w">
-```
-
-Outside of form elements the `:w` suffix has no effect and the value is read‑only. There is no `:r` suffix.
-
-## Security Notes
-
-Interpolated data is escaped by default to prevent XSS vulnerabilities. Only include trusted content and avoid attempting to render arbitrary HTML. Prefer components and slots for rich markup.
+Expressions must produce a value. Statements (e.g. `if`, `var`) are not allowed. Only a restricted set of globals (e.g. `Math`, `Date`) is available.
 
 ---
 
-These building blocks cover most of RTML's template syntax. Combine them with Go logic to create dynamic components. Templates compile to Go, which registers dependencies and subscribes to updates, ensuring the DOM stays in sync with your data.
+## Plugins & Extensibility
+
+Plugins may introduce custom variables, commands, and constructors:
+
+* `{plugin:NAME.var}`
+* `@plugin:NAME.cmd`
+* `[plugin:NAME.ref]`
+
+See the **Plugin API** for details.
+
+---
+
+## Security
+
+Interpolated content is escaped by default to prevent XSS. Only render trusted data, and prefer components/slots for rich markup.
+
+---
+
+These building blocks cover RTML’s core syntax. Combine them with Go logic to build fully reactive components. The compiler records data dependencies so the runtime can patch only what actually changed.

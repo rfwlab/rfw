@@ -1,15 +1,17 @@
-# docs plugin
+# Docs Plugin
 
-The `docs` plugin powers the documentation site. It fetches the sidebar and markdown files on demand and emits browser events so components can render them.
+The **docs plugin** powers the documentation site. It loads sidebar and markdown files on demand and emits browser events so components can render them.
 
-| Event | Description |
-| --- | --- |
-| `rfwSidebar` | Fired after the sidebar HTML is loaded. |
-| `rfwDoc` | Fired when a markdown document has been fetched. The event detail contains `path`, `content` and `headings`. |
+## Events
 
-## Loading articles
+| Event        | Description                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| `rfwSidebar` | Fired after the sidebar HTML is loaded                                                                   |
+| `rfwDoc`     | Fired when a markdown document has been fetched; event detail includes `path`, `content`, and `headings` |
 
-`LoadArticle` wraps the plugin's internal loader so components can request a markdown file.
+## Loading Articles
+
+Use `LoadArticle` to request a markdown file:
 
 ```go
 import docplug "github.com/rfwlab/rfw/v1/plugins/docs"
@@ -19,46 +21,52 @@ docplug.LoadArticle("/articles/guide.md")
 
 ### API
 
-| Function | Description |
-| --- | --- |
-| `LoadArticle(path string)` | Fetches the markdown file at `path` and emits `rfwDoc` on completion. |
+| Function                   | Description                                              |
+| -------------------------- | -------------------------------------------------------- |
+| `LoadArticle(path string)` | Fetches a markdown file and emits `rfwDoc` on completion |
 
-### Notes
+**Notes**
 
-- Requires the docs plugin to be installed.
-- `path` must point to a file under `/articles/`.
+* Requires the docs plugin
+* `path` must point under `/articles/`
 
-## Meta tags
+## Meta Tags
 
-### Context
-Sets the document `<title>` and `description` meta tag from each article's entry in `sidebar.json`.
+The plugin integrates with the **seo plugin** to set `<title>` and `<meta name="description">` from entries in `sidebar.json`.
 
-### Prerequisites
-- The `seo` plugin must be registered. It is enabled by default by the `docs` plugin.
-- `sidebar.json` includes `title` and `description` for the article.
+### Requirements
 
-### How
-1. Add the article to `sidebar.json` with `title` and `description` fields.
+* `seo` plugin must be registered (enabled by default by `docs`)
+* `sidebar.json` must include `title` and `description`
+
+### Setup
+
+1. Add the article to `sidebar.json` with `title` and `description`
 2. Register the plugin:
-```go
-core.RegisterPlugin(docs.New("/articles/sidebar.json"))
-```
-3. Load an article with `LoadArticle`. The metadata in `sidebar.json` becomes the page title and description.
+
+   ```go
+   core.RegisterPlugin(docs.New("/articles/sidebar.json"))
+   ```
+3. Load an article with `LoadArticle`. Metadata is applied automatically.
 
 ### API
-- `var SetTitle func(title string)`
-- `var SetMeta func(name, content string)`
+
+* `var SetTitle func(title string)`
+* `var SetMeta func(name, content string)`
 
 ### Example
+
 ```go
 docplug.LoadArticle("/articles/guide.md")
 ```
 
 ### Notes
-- Disable SEO integration with `docs.New(path, true)`.
-- If `description` is empty, the meta tag is cleared.
 
-### Related
-- [seo plugin](../api/seo)
-- [js package](js)
-- [docs plugin events](#events)
+* Disable SEO integration with `docs.New(path, true)`
+* If `description` is empty, the meta tag is cleared
+
+## Related
+
+* [seo plugin](../api/seo)
+* [js package](js)
+* [docs plugin events](#events)

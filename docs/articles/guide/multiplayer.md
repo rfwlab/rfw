@@ -1,22 +1,20 @@
 # Multiplayer
 
-## Why
+The **netcode** package helps real-time games synchronize client and server state while hiding network jitter. It layers snapshot interpolation and command queues on top of WebSocket channels.
 
-Real-time games often need to keep client state in sync with a server while hiding network jitter. The `netcode` package layers snapshot interpolation and command queues on top of the existing WebSocket channel.
+## When to Use
 
-## When to use
-
-Use `netcode` when multiple clients interact with shared state that must stay authoritative on the server. It is not intended for large persistent worlds.
+Use `netcode` when multiple clients interact with shared state that must remain authoritative on the server. It’s intended for small to medium games, not large persistent worlds.
 
 ## Setup
 
-1. Register a `netcode.Server` as a host component and start broadcasting snapshots.
-2. Create a `netcode.Client` inside your Wasm component to enqueue commands and interpolate snapshots. The handler registration opens the WebSocket and subscribes to server snapshots automatically.
-3. Call `Flush` on a fixed interval to send queued commands before reading the interpolated state.
+1. Register a `netcode.Server` as a host component and broadcast snapshots.
+2. Create a `netcode.Client` in your Wasm component to enqueue commands and interpolate snapshots. The client connects automatically and subscribes to updates.
+3. Call `Flush` on a fixed interval to send commands and update state.
 
-## Message formats
+## Message Formats
 
-### Commands → server
+### Commands → Server
 
 ```json
 {
@@ -25,7 +23,7 @@ Use `netcode` when multiple clients interact with shared state that must stay au
 }
 ```
 
-### Snapshots → clients
+### Snapshots → Clients
 
 ```json
 {
@@ -34,19 +32,19 @@ Use `netcode` when multiple clients interact with shared state that must stay au
 }
 ```
 
-## API used
+## API Reference
 
-- `netcode.NewServer(name, initial, apply)`
-- `(*Server).Broadcast(tick)`
-- `netcode.NewClient[T](name, decode, interp)`
-- `(*Client).Enqueue(cmd)`
-- `(*Client).Flush(tick)`
-- `(*Client).State(now)`
-- `host.Broadcast(name, payload)`
-- `hostclient.Send(name, payload)`
-- `hostclient.RegisterHandler(name, handler)`
+* `netcode.NewServer(name, initial, apply)`
+* `(*Server).Broadcast(tick)`
+* `netcode.NewClient[T](name, decode, interp)`
+* `(*Client).Enqueue(cmd)`
+* `(*Client).Flush(tick)`
+* `(*Client).State(now)`
+* `host.Broadcast(name, payload)`
+* `hostclient.Send(name, payload)`
+* `hostclient.RegisterHandler(name, handler)`
 
-## Server example
+## Server Example
 
 ```go
 srv := netcode.NewServer("Game", testState{}, func(s *testState, cmd any) {
@@ -56,7 +54,7 @@ srv := netcode.NewServer("Game", testState{}, func(s *testState, cmd any) {
 host.Register(srv.HostComponent())
 ```
 
-## Client example
+## Client Example
 
 ```go
 c := netcode.NewClient[testState]("Game", decodeState, lerp)
@@ -73,13 +71,11 @@ go func() {
 c.Enqueue(map[string]any{"dx": 5.0})
 ```
 
-Explore the demo below.
-
-@include:ExampleFrame:{code:"/examples/components/netcode_component.go", uri:"/examples/netcode"}
+@include\:ExampleFrame:{code:"/examples/components/netcode\_component.go", uri:"/examples/netcode"}
 
 ## Debugging
 
-Call `hostclient.EnableDebug()` before constructing the client to log WebSocket events to the browser console:
+Enable debug logging to print WebSocket events to the browser console:
 
 ```go
 hostclient.EnableDebug()
@@ -88,11 +84,11 @@ c := netcode.NewClient[testState]("Game", decodeState, lerp)
 
 ## Limitations
 
-- No built-in entity reconciliation.
-- All payloads must be JSON serialisable.
-- Command values are decoded as float64; enqueue numbers as floats (e.g., `1.0`).
+* No built-in entity reconciliation
+* Payloads must be JSON serializable
+* Command values are decoded as `float64` (enqueue numbers as floats, e.g. `1.0`)
 
-## Related links
+## Related
 
-- [host](../api/host)
-- [hostclient](../api/hostclient)
+* [host](../api/host)
+* [hostclient](../api/hostclient)

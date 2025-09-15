@@ -1,14 +1,14 @@
 # CLI Guide
 
-The `rfw` command-line interface manages project scaffolding, development and builds.
+The `rfw` CLI manages scaffolding, development, and builds for your projects.
 
 ## `rfw init <module>`
 
-Creates a new rfw project by cloning a template and initializing a Go module.
+Create a new rfw project. This clones a template, sets up a Go module, and prepares project directories.
 
-Flags:
+**Flags**
 
-- `--skip-tidy` skip running `go mod tidy`
+* `--skip-tidy` skip running `go mod tidy`
 
 ```bash
 rfw init github.com/username/hello-rfw
@@ -16,26 +16,33 @@ rfw init github.com/username/hello-rfw
 rfw init --skip-tidy github.com/username/hello-rfw
 ```
 
-Expected output:
+After running, you’ll see:
 
 ```text
 Project 'hello-rfw' initialized successfully.
 Project initialized
 ```
 
-The directory `hello-rfw/` will contain `main.go`, a `components/` folder with `.rtml` templates, a `host/` directory with server components, and an `rfw.json` manifest preconfigured for SSC builds.
+The new directory includes:
+
+* `main.go`
+* `components/` with `.rtml` templates
+* `host/` for server components
+* `rfw.json` manifest (preconfigured for SSC builds)
 
 ## `rfw dev [--port --host --debug]`
 
-Starts the development server, compiles the project to WebAssembly and rebuilds on file changes. Files placed in `static/` are served at the root path during development, and requests to `/static/*` are transparently mapped to `/*` to mirror production builds. When a `host/` directory exists, the command builds and runs the host binary from `build/host/host`.
+Start the development server. It compiles the project to WebAssembly, watches files, and rebuilds on changes. Files in `static/` are served at the root. Requests to `/static/*` map to `/*` to mirror production.
 
-Flags:
+If a `host/` directory exists, the host binary is built and run from `build/host/host`.
 
-- `--port` choose the port (default `8080`)
-- `--host` expose the server to the local network
-- `--debug` enable verbose logs and profiling endpoints (`/debug/vars`, `/debug/pprof/`)
+**Flags**
 
-When `--debug` is used, the `bundler` plugin is skipped so assets remain unminified during development. Use `rfw build` when you need the optimized output.
+* `--port` choose port (default `8080`)
+* `--host` expose server to local network
+* `--debug` enable verbose logs and profiling (`/debug/vars`, `/debug/pprof/`)
+
+When `--debug` is enabled, the bundler plugin is skipped so assets stay unminified. Use `rfw build` for optimized output.
 
 Example:
 
@@ -43,7 +50,7 @@ Example:
 rfw dev --port 3000 --host --debug
 ```
 
-Expected output:
+Output:
 
 ```text
 rfw v0.2.0-beta.1
@@ -55,14 +62,19 @@ rfw v0.2.0-beta.1
 
 ## `rfw build`
 
-Compiles the current project into an optimized Wasm bundle ready for deployment.
-Artifacts are written to `build/client/` and a host binary is produced in `build/host/` to serve the client and optional host components. Any files placed in `static/` are copied into `build/static/` and served at the root path.
+Build the project for production. Generates an optimized Wasm bundle and host binary.
+
+Artifacts:
+
+* `build/client/` – client bundle
+* `build/host/` – host binary
+* `build/static/` – copied static files
 
 ```bash
 rfw build
 ```
 
-Expected output:
+Output:
 
 ```text
 Build completed
