@@ -1,35 +1,10 @@
 # State Management
 
-## Why
-State stores keep application data reactive and in sync across components. The [State API](../api/state) provides factories for stores, signals, and actions.
+Reactivity in **rfw** is powered by **stores** and **signals**. Stores group values under a module and key, making them available across components. Signals represent local reactive values tied to a component. Together they provide a flexible and predictable way to manage application state.
 
-```go
-s := state.NewStore("profile")
-```
+## Stores
 
-## When to Use
-Use stores when multiple components depend on shared data or when persistence is required.
-
-```go
-s.Set("first", "Ada")
-```
-
-## When Not to Use
-Avoid global stores for transient, component-local state; prefer signals.
-
-```go
-count := state.NewSignal(0)
-```
-
-## Interactive Demo
-@include:ExampleFrame:{code:"/examples/components/state_management_component.go", uri:"/examples/state"}
-
-Reactivity in rfw is driven by **stores**. A store groups values by
-module and name. Components subscribe to specific keys and are
-automatically re‑rendered when those values change. This section covers
-the primitives available to manage state.
-
-## Creating a store
+Create a store with `state.NewStore`:
 
 ```go
 import "github.com/rfwlab/rfw/v1/state"
@@ -39,14 +14,25 @@ s.Set("first", "Ada")
 s.Set("last", "Lovelace")
 ```
 
-Stores can be namespaced with `WithModule` and configured to persist to
-`localStorage` using `WithPersistence`. The global store manager keeps
-track of every registered store.
+* Namespaces: add `WithModule` to scope keys.
+* Persistence: add `WithPersistence` to store values in localStorage.
+* History: add `WithHistory` to enable undo/redo.
 
-## Computed values
+Stores automatically notify subscribed components when values change.
 
-Computed values derive new data from existing keys. They are lazily
-re‑evaluated when any dependency changes:
+## Signals
+
+Use signals for local, component-only state:
+
+```go
+count := state.NewSignal(0)
+```
+
+Signals are simple and efficient when you don’t need global access.
+
+## Computed Values
+
+Derive new values from existing keys:
 
 ```go
 state.Map2(s, "fullName", "first", "last", func(first, last string) string {
@@ -54,47 +40,23 @@ state.Map2(s, "fullName", "first", "last", func(first, last string) string {
 })
 ```
 
-Components can bind to `fullName` like any other key and the value stays
-up to date as `first` or `last` changes.
-
-For more control, `RegisterComputed` lets you derive values from any number
-of dependencies. It receives a map of the watched keys and can return any
-type:
+Or define custom computed values:
 
 ```go
-import "fmt"
-
-if s.Get("profile") == nil {
-    s.RegisterComputed(state.NewComputed(
-        "profile",
-        []string{"first", "last", "age"},
-        func(m map[string]any) any {
-            first, _ := m["first"].(string)
-            last, _ := m["last"].(string)
-            age, _ := m["age"].(int)
-            return fmt.Sprintf("%s %s (%d)", first, last, age)
-        },
-    ))
-}
+s.RegisterComputed(state.NewComputed(
+    "profile",
+    []string{"first", "last", "age"},
+    func(m map[string]any) any {
+        return fmt.Sprintf("%s %s (%d)", m["first"], m["last"], m["age"])
+    },
+))
 ```
-
-This approach is useful for advanced cases such as combining many fields or
-transforming data before exposing it to components.
 
 ## Actions
 
-Actions bundle state mutations into reusable functions executed with a `Context`.
-Define one with `state.Action` and run it immediately with `Dispatch` or bind it
-to event handlers via `UseAction`:
+Bundle mutations into reusable functions:
 
 ```go
-import (
-    "context"
-
-    "github.com/rfwlab/rfw/v1/dom"
-    "github.com/rfwlab/rfw/v1/state"
-)
-
 s := state.NewStore("counter")
 s.Set("count", 0)
 
@@ -104,19 +66,17 @@ increment := state.Action(func(ctx state.Context) error {
     return nil
 })
 
-// Run the action immediately
+// Run immediately
 _ = state.Dispatch(context.Background(), increment)
 
-// Or bind it to an event handler
+// Bind to event handler
 handler := state.UseAction(context.Background(), increment)
 dom.RegisterHandlerFunc("increment", func() { _ = handler() })
 ```
 
 ## Watchers
 
-Watchers trigger callbacks whenever a key (or set of keys) changes. Use
-them for side effects such as logging or synchronising with external
-systems:
+React to store changes with watchers:
 
 ```go
 s.Watch("age", func(v any) {
@@ -124,34 +84,25 @@ s.Watch("age", func(v any) {
 })
 ```
 
-Options like `WatcherDeep` or `WatcherImmediate` enable more advanced
-behaviour such as deep watching of nested structures or running the
-callback immediately after registration.
+Options like `WatcherDeep` and `WatcherImmediate` allow deep or immediate execution.
 
-## Undo and redo
+## Undo / Redo
 
-State stores can record a mutation history. Passing `WithHistory` when creating a store enables `Undo` and `Redo` to step backward or forward through changes:
+Enable history with `WithHistory`:
 
 ```go
 s := state.NewStore("profile", state.WithHistory(5))
 s.Set("age", 30)
 s.Set("age", 31)
-s.Undo() // age -> 30
-s.Redo() // age -> 31
+s.Undo() // -> 30
+s.Redo() // -> 31
 ```
 
 ## Suspense
 
-Use Suspense to display a fallback while asynchronous data is loading. See the [Suspense API](../api/core#suspense) for more details. It accepts a render function and shows the fallback until the function stops returning `http.ErrPending`.
+Use Suspense to show fallbacks during async loading:
 
 ```go
-import (
-    "fmt"
-
-    "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/http"
-)
-
 var todo Todo
 content := core.NewSuspense(func() (string, error) {
     if err := http.FetchJSON("/api/todo/1", &todo); err != nil {
@@ -161,22 +112,23 @@ content := core.NewSuspense(func() (string, error) {
 }, "<div>Loading...</div>")
 ```
 
-## Binding in components
+## Binding in Components
 
-When a component references `user/profile.fullName` in its template the
-framework subscribes it to that key. Any update to the store triggers a
-DOM patch that keeps the rendered output in sync.
+Referencing `user/profile.fullName` in a template subscribes the component to that key. Updates trigger automatic DOM patches.
 
-## Interacting from JavaScript
+## JavaScript Interop
 
-Call `ExposeUpdateStore()` to allow external scripts to mutate stores
-from JavaScript. Most applications can stay entirely in Go, but this hook
-is available for interoperability with existing libraries.
+Expose stores to external scripts with `ExposeUpdateStore()`. Most apps can remain pure Go, but this is available for integrations.
 
-## Debugging and persistence
+## DevTools and Persistence
 
-Enable `WithDevTools` when creating a store to log every mutation during
-development. Persistence can be toggled with `WithPersistence` to store
-state in the browser between sessions.
+* Enable `WithDevTools` to log mutations during development.
+* Enable `WithPersistence` to survive browser reloads.
 
-Stores provide reactive state management.
+---
+
+State management in rfw combines **stores** for shared, persistent data and **signals** for local state. This approach removes the need for external libraries like Pinia—everything is built in.
+
+## Related
+
+* [Store Vs Signals](/docs/store-vs-signals)

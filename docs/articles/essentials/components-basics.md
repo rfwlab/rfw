@@ -1,90 +1,176 @@
 # Components Basics
 
-Components are the building blocks of every rfw application. A component pairs a Go struct with an RTML template and exposes reactive state through exported fields. When those fields change, the DOM updates automatically.
+Components are the fundamental unit of UI in **rfw**. Each component pairs a Go implementation with an **RTML** template. Reactive data is bound into the template; when that data changes, rfw patches only the affected DOM nodes—no virtual DOM required.
 
-## Defining a Component
+---
 
-Create a struct that embeds `*core.HTMLComponent` and register its template. The `SetComponent` call wires the struct so rfw can track exported fields.
+## Two authoring styles
+
+rfw supports two ways to author components. You can mix them in the same app.
+
+### 1) Composition API (recommended)
+
+Use the `composition` helpers to define reactive state and event handlers close to the template.
 
 ```go
+//go:build js && wasm
 package components
 
 import (
-  _ "embed"
+    _ "embed"
+    core "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v1/composition"
+    "github.com/rfwlab/rfw/v1/state"
+)
 
-  "github.com/rfwlab/rfw/v1/core"
+//go:embed templates/counter.rtml
+var counterTpl []byte
+
+func NewCounter() *core.HTMLComponent {
+    cmp := composition.Wrap(core.NewComponent("Counter", counterTpl, nil))
+
+    count := state.NewSignal(0)
+    cmp.Prop("count", count)                  // expose to the template
+    cmp.On("inc", func() { count.Set(count.Get()+1) })
+    cmp.On("dec", func() { count.Set(count.Get()-1) })
+
+    return cmp.HTML()
+}
+```
+
+```rtml
+<root>
+  <button @on:click:dec>-</button>
+  <span>{count}</span>
+  <button @on:click:inc>+</button>
+</root>
+```
+
+**Key points**
+
+* `state.Signal[T]` drives fine‑grained updates.
+* `cmp.Prop(key, signal)` exposes a reactive value to RTML.
+* `@on:click:name` binds DOM events to handlers registered via `cmp.On(name, fn)`.
+
+### 2) Struct components
+
+Embed `*core.HTMLComponent` into a Go struct. Exported fields are reactive and can be referenced by name in RTML.
+
+```go
+//go:build js && wasm
+package components
+
+import (
+    _ "embed"
+    core "github.com/rfwlab/rfw/v1/core"
 )
 
 //go:embed templates/counter.rtml
 var counterTpl []byte
 
 type Counter struct {
-  *core.HTMLComponent
-  Count int
+    *core.HTMLComponent
+    Count int
 }
 
-func NewCounter() *Counter {
-  c := &Counter{HTMLComponent: core.NewHTMLComponent("Counter", counterTpl, nil)}
-  c.SetComponent(c)
-  c.Init(nil)
-  return c
+func NewCounterStruct() *Counter {
+    c := &Counter{HTMLComponent: core.NewComponent("Counter", counterTpl, nil)}
+    // If required by your setup, connect the struct instance to the component
+    // so exported fields/methods are observable by the runtime.
+    // (Exact wiring details depend on your project’s conventions.)
+    return c
 }
-```
 
-The matching `counter.rtml` template references `Count` directly and responds when it changes.
-
-```rtml
-<div>
-  <button @on:click:inc>-</button>
-  <span>{Count}</span>
-  <button @on:click:dec>+</button>
-</div>
-```
-
-## Props
-
-Child components receive data through the `Props` map passed to `NewHTMLComponent` or via `@include:Child:{prop:"value"}` in a template. Inside the component, call `GetProp("prop")` to read it. Props are immutable; to communicate back to the parent use events or shared stores.
-
-## Methods and Events
-
-Any exported method may be invoked from a template using the `@on:` directive. In the counter example, handlers can update `Count` directly:
-
-```go
 func (c *Counter) Inc() { c.Count++ }
 func (c *Counter) Dec() { c.Count-- }
 ```
 
-Exposing only the methods you want templates to call keeps encapsulation clear.
-
-## Cleanup on Unmount
-
-When a component is removed from the DOM, `OnUnmount` lets you release resources like watchers or timers. `Store.RegisterWatcher` returns a cleanup function that should be called in this hook:
-
-```go
-type Counter struct {
-  *core.HTMLComponent
-  stop func()
-}
-
-func (c *Counter) OnMount() {
-  w := state.NewWatcher([]string{"Count"}, func(m map[string]any) {
-    log.Println("count changed", m["Count"])
-  })
-  c.stop = c.Store.RegisterWatcher(w)
-}
-
-func (c *Counter) OnUnmount() {
-  c.stop()
-}
+```rtml
+<root>
+  <button @on:click:Dec>-</button>
+  <span>{Count}</span>
+  <button @on:click:Inc>+</button>
+</root>
 ```
 
-`OnUnmount` runs before the component is detached, ensuring cleanup occurs while the component still exists.
+**Key points**
 
-For a full list of lifecycle helpers, see the [Lifecycle hooks](../api/core#lifecycle-hooks) section of the API.
+* Exported fields (e.g., `Count`) are observable by the template.
+* Exported methods can be called from RTML via `@on:`.
 
-## Composing Components
+---
 
-Components can nest by including each other in RTML. Slots allow parents to inject markup into predefined outlets of a child component. This enables flexible layouts while keeping logic isolated.
-To wrap an existing HTML component inside a typed struct, see [Component Composition](./composition).
+## Props (one‑way data flow)
 
-Understanding components is key to structuring rfw apps. The following chapters build on this foundation to explore reactivity and data flow in more depth.
+Props pass data **into** a child component. In RTML:
+
+```rtml
+@include:ChildCounter:{start: 5}
+```
+
+In code (Composition API):
+
+* `Prop(key, signal)` stores a reactive value under a key.
+* `FromProp[T](key, default)` retrieves a `Signal[T]` from props; if the prop is a plain value of type `T`, it’s wrapped into a new signal.
+
+Props are immutable from the child’s perspective. To communicate back **up**, emit events (handlers registered by the parent) or use shared stores.
+
+---
+
+## Lifecycle hooks
+
+Use lifecycle hooks to wire effects, timers, or subscriptions. Ensure you clean up on unmount.
+
+```go
+cmp.SetOnMount(func(*core.HTMLComponent) {
+    stop := state.Effect(func() func() {
+        // read signals / stores here
+        return nil // return a disposer if you allocate resources
+    })
+    cmp.SetOnUnmount(func(*core.HTMLComponent) { if stop != nil { stop() } })
+})
+```
+
+* **Mount**: attach listeners, kick off async work, preload assets.
+* **Unmount**: cancel timers, dispose effects, unsubscribe from stores.
+
+---
+
+## Slots & composition
+
+Components can include other components and expose slots. Parents inject markup into named outlets without coupling logic.
+
+```rtml
+<!-- Parent -->
+@include:Panel:{title: "Dashboard"}
+  <div slot="body">…content…</div>
+@end
+```
+
+Children render slot content where appropriate. (Slot syntax and capabilities follow RTML rules.)
+
+---
+
+## Reactivity model (under the hood)
+
+* RTML binds attributes, text nodes, and event handlers to **signals** or **exported fields**.
+* When a bound value changes, rfw patches only the affected nodes.
+* No virtual DOM is used; updates are direct and localized.
+
+---
+
+## Choosing a style
+
+* **Composition API**: prefer for new code; explicit, scalable, and easy to unit test.
+* **Struct components**: convenient when you like method receivers and exported fields.
+
+Both interoperate seamlessly—pick the one that fits each component.
+
+---
+
+## See also
+
+* [Template Syntax](/docs/essentials/template-syntax)
+* [Signals & Effects](/docs/essentials/signals-and-effects)
+* [State Management](/docs/essentials/state-management)
+* [Composition](/docs/essentials/composition)

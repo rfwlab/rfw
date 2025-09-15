@@ -1,18 +1,16 @@
 # Copy Plugin
 
-## Context
+The **copy plugin** moves arbitrary files into the build output using glob patterns. It’s useful for bundling components, examples, or assets that don’t follow the default layout.
 
-The `copy` plugin moves arbitrary files into the final build output using glob patterns.
-It helps bundle example components or other assets that do not fit the default directory layout.
+## When to Use
 
-## When to use
+* Copy specific files or directories into `build/static` or another destination
+* Include examples or extra resources alongside the main bundle
+* Match nested paths with `**` wildcards
 
-Use this plugin when you need to copy specific files or directories into `build/static` or another destination during `rfw build`.
-It supports `**` wildcards to match nested paths.
+## Configuration
 
-## How to use
-
-Add a configuration block under `plugins.copy` in `rfw.json`:
+Add to `rfw.json` under `plugins.copy`:
 
 ```json
 {
@@ -26,23 +24,21 @@ Add a configuration block under `plugins.copy` in `rfw.json`:
 }
 ```
 
-## API
+## Options
 
-- `from`: source glob pattern. Uses `doublestar` syntax so `**` matches nested directories.
-- `to`: destination directory where matched files are placed.
+* **from**: source glob pattern (`doublestar` syntax, `**` matches nested directories)
+* **to**: destination directory inside the build output
 
 ## Example
 
-Suppose your project keeps reusable components under `examples/components`.
-The configuration above copies every file, including the `templates` subdirectory, into `build/static/examples/components`.
-After running `rfw build`, all matched files appear under the destination preserving their relative structure.
+With the config above, every file under `examples/components` (including subfolders like `templates/`) is copied into `build/static/examples/components`. Running `rfw build` preserves the structure at the new destination.
 
 ## Limitations
 
-- Only files are copied; directories are created as needed but empty folders are ignored.
-- Patterns are evaluated relative to the project root and follow `doublestar` rules.
+* Only files are copied; empty directories are skipped
+* Patterns are relative to the project root
 
-## Related links
+## Related
 
-- [Manifest](manifest)
-- [Assets Plugin](assets-plugin)
+* [Manifest](manifest)
+* [Assets Plugin](assets-plugin)

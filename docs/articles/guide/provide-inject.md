@@ -1,8 +1,12 @@
 # Provide & Inject
 
-Components can share arbitrary values with their descendants without passing them through props. A parent calls `Provide` to expose a value, and any nested component can retrieve it with `Inject`.
+Components can share values with their descendants without passing them explicitly through props. A parent calls `Provide` to expose a value, and nested components can access it with `Inject`.
 
-## Providing a value
+---
+
+## Providing a Value
+
+Call `Provide` inside a lifecycle hook such as `OnMount` to make a value available to child components:
 
 ```go
 func (c *ParentComponent) OnMount() {
@@ -10,11 +14,13 @@ func (c *ParentComponent) OnMount() {
 }
 ```
 
-The `OnMount` hook ensures the value is provided after the component is attached. For more on lifecycle hooks, see the [API reference](../api/core#lifecycle-hooks).
+The `OnMount` hook ensures the value is provided after the component is attached. See [lifecycle hooks](../api/core#lifecycle-hooks) for details.
 
-## Consuming a value
+---
 
-`Inject` searches up the component tree until it finds a matching key. Use the generic helper to retrieve a typed value.
+## Consuming a Value
+
+Use `Inject` to search up the component tree for a matching key. With the generic form, you get a typed result:
 
 ```go
 name, ok := core.Inject[string](c, "user")
@@ -23,7 +29,11 @@ if ok {
 }
 ```
 
-## Example
+If no provider is found, `ok` is `false`.
+
+---
+
+## Full Example
 
 ```go
 parent := core.NewComponent("Parent", parentTpl, nil)
@@ -35,4 +45,10 @@ parent.AddDependency("child", child)
 answer, _ := core.Inject[int](child, "answer") // 42
 ```
 
-This mechanism avoids verbose prop chains while keeping data flow explicit.
+---
+
+## Why Use It
+
+* Avoids prop drilling for deeply nested components
+* Keeps data flow explicit and local to the component tree
+* Useful for cross-cutting concerns like themes, localization, or user context

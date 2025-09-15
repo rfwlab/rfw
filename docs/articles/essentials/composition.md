@@ -1,182 +1,93 @@
-# Component Composition
+# Composition API
 
-## Context / Why
+The **composition package** is the foundation of the Composition API in rfw. It wraps a base `*core.HTMLComponent` and exposes helpers for props, events, DOM bindings, groups of elements, and local state.
 
-The `composition` package offers a thin wrapper around an existing `*core.HTMLComponent`.
-Use it when you need to embed that component inside a typed struct without changing its behavior.
+---
 
-## Prerequisites / When
+## Why wrap components?
 
-Use this package when you already have a `*core.HTMLComponent` created elsewhere and want to expose it as a dedicated type.
+By default, `core.NewComponent` only returns a raw HTML component. To make it usable with the Composition API, you must **wrap** it with `composition.Wrap`. The wrapper:
 
-## How
+* Adds helpers like `Prop`, `FromProp`, `On`, `GetRef`, `Group`, and `Store`.
+* Ensures the component can expose reactive values and register event handlers.
 
-1. Create or obtain a `*core.HTMLComponent`.
-2. Pass it to `composition.Wrap` to get a `*composition.Component`.
-3. Call `Unwrap` to access the original component when needed.
+It is not automatic because some developers still prefer struct components. Wrapping makes the choice explicit: if you want Composition-style features, you call `Wrap`. If not, you stick with the raw component or a struct.
+
+---
+
+## Wrapping Components
 
 ```go
-import (
-    "github.com/rfwlab/rfw/v1/composition"
-    core "github.com/rfwlab/rfw/v1/core"
-)
-
 hc := core.NewComponent("Name", nil, nil)
 cmp := composition.Wrap(hc)
 ```
 
+The wrapper does not change rendering logic—it only gives you convenient helpers. Call `Unwrap()` to access the original `*core.HTMLComponent` if needed.
+
+---
+
 ## Props
 
-Expose reactive state as component properties. `Prop` stores a `state.Signal`
-under a key, while `FromProp` retrieves an existing signal or creates a new one
-with a default value. If a prop holds a plain value matching the requested
-type, `FromProp` wraps it in a new signal; incompatible types panic. `Prop`
-never overwrites an existing plain prop—use `FromProp` to obtain a synchronized
-signal when a non-reactive value is present.
+Expose reactive state to RTML with `Prop` and consume it with `FromProp`:
 
 ```go
-cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
 count := state.NewSignal(0)
 cmp.Prop("count", count)
 
+// get an existing signal or wrap a plain prop value
 other := composition.FromProp[int](cmp, "other", 1)
 other.Set(2)
 ```
 
-```go
-// Legacy prop plain -> FromProp wraps without altering Props
-hc := core.NewComponent("Counter", nil, map[string]any{"count": 5})
-cmp := composition.Wrap(hc)
-count := composition.FromProp[int](cmp, "count", 0) // -> 5, Props["count"] remains 5 (int)
-count.Set(6)
-```
+* `Prop(key, signal)`: exports a reactive signal under a key.
+* `FromProp[T](key, default)`: retrieves a signal from props, or wraps a plain value if found.
+
+Props are immutable for the child—update via parent events or stores.
+
+---
 
 ## Event Handlers
 
-Attach functions to DOM events by name. The wrapper forwards handlers to the
-`dom` package:
+Register handlers directly on the component:
 
 ```go
-cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
 cmp.On("save", func() { /* handle save */ })
 ```
 
-If the component isn't wrapped with `composition.Wrap`, attach listeners
-directly via the `dom` package:
+Templates can call these handlers with `@on:click:save`. Internally this forwards to the `dom` package.
 
-```go
-btn := dom.ByID("save")
-stop := btn.On("click", func(dom.Event) { /* handle click */ })
-defer stop()
-```
+If you are not using `composition.Wrap`, you can attach listeners manually via `dom.ByID(...).On(...)`.
 
-## Example
-
-```go
-hc := core.NewComponent("Hello", nil, nil)
-wrapped := composition.Wrap(hc)
-_ = wrapped.Unwrap().Render()
-```
-
-## Notes and Limitations
-
-`composition.Component` adds no new features; it only encapsulates the existing HTML component.
-
-## Related Links
-
-- [Component Basics](./components-basics)
+---
 
 ## DOM Bindings
 
-### Context / Why
+Sometimes you need direct access to nodes. RTML lets you annotate elements with a constructor:
 
-Manual components sometimes need to manipulate existing DOM nodes. Annotating a
-template element with a constructor such as `[list]` lets the component fetch it
-directly with `GetRef`. `Bind` and `For` remain available for ad‑hoc selector
-based access without touching `syscall/js`.
+```rtml
+<root>
+  <div [list]></div>
+</root>
+```
 
-### Prerequisites / When
-
-Use when a component must programmatically render plain nodes outside the
-template system.
-
-### How
-
-1. Place a constructor like `[list]` on the target element in your template.
-2. Call `GetRef("list")` on the component to obtain the `dom.Element`.
-3. Clear or append children using `SetHTML` and `AppendChild` or builders like
-   `Div().Class("c").Text("hi")`, `Span().Text("hi")`, or `Button().Text("go")`.
-4. Alternatively, `Bind` and `For` accept CSS selectors and perform similar
-   operations when a template ref isn't available.
+Fetch and update it in Go:
 
 ```go
-tpl := []byte("<root><div [list]></div></root>")
-cmp := composition.Wrap(core.NewComponent("List", tpl, nil))
-items := []string{"a", "b"}
 cmp.SetOnMount(func(*core.HTMLComponent) {
     listEl := cmp.GetRef("list")
     listEl.SetHTML("")
-    for _, item := range items {
-        listEl.AppendChild(composition.Div().Text(item).Element())
-    }
+    listEl.AppendChild(composition.Div().Text("Item").Element())
 })
 ```
 
-### Example
+* `GetRef(name)`: fetches a node marked with `[name]`.
+* `Bind` / `For`: query nodes by selector when you don’t have a ref.
 
-```go
-tpl := []byte("<root><div [greet]></div></root>")
-cmp := composition.Wrap(core.NewComponent("Greet", tpl, nil))
-cmp.SetOnMount(func(*core.HTMLComponent) {
-    el := cmp.GetRef("greet")
-    el.SetHTML("")
-    el.AppendChild(composition.Div().Text("hello").Element())
-})
-```
-
-### Notes and Limitations
-
-- `For` stops when the generator returns `nil`.
-- Missing selectors are ignored silently.
-
-### Related Links
-
-- [dom](../api/dom)
+---
 
 ## Element Groups
 
-### Context / Why
-
-Handling several nodes created via the composition builders often requires
-manual loops. `Group` collects those nodes and provides helpers to mutate all
-of them at once.
-
-### Prerequisites / When
-
-Use when multiple elements created with constructors need similar updates
-outside the template system.
-
-### How
-
-1. Create an empty group with `composition.NewGroup` or collect nodes with `composition.Group`.
-2. Build nodes with constructors like `Div()` and add them to groups via the `Group` method.
-3. Merge groups with `(composition.Elements).Group` when needed.
-4. Apply bulk operations such as `AddClass`, `SetAttr`, or iterate with `ForEach`.
-
-```go
-import (
-    "github.com/rfwlab/rfw/v1/composition"
-    "github.com/rfwlab/rfw/v1/dom"
-)
-
-cards := composition.Group(
-    composition.Div().Class("card"),
-    composition.Div().Class("card"),
-)
-cards.AddClass("active").SetStyle("color", "red")
-```
-
-### Example
+When you create multiple nodes with the builders (`Div()`, `Span()`, etc.), you can group them:
 
 ```go
 cards := composition.Group(
@@ -186,65 +97,38 @@ cards := composition.Group(
 cards.AddClass("card").SetAttr("data-role", "item")
 ```
 
-### Notes and Limitations
+Groups let you:
 
-- `Group` panics when called without nodes.
-- `ForEach` panics if the callback is nil.
-- Selectors and IDs are ignored; pass nodes explicitly.
+* Apply bulk operations (`AddClass`, `SetStyle`, etc.).
+* Merge multiple groups.
+* Iterate over elements with `ForEach`.
 
-### Related Links
-
-- [dom](../api/dom)
+---
 
 ## Stores and History
 
-### Context / Why
-
-Some composed components need isolated state. `Store` creates a namespaced
-`state.Store` tied to the component, while `History` exposes undo/redo handlers
-for that store.
-
-### Prerequisites / When
-
-Use when component logic requires local state with optional mutation history.
-
-### How
-
-1. Call `Store` with a name to create a component-scoped store.
-2. Enable history via `state.WithHistory` if undo/redo is needed.
-3. Register undo and redo handlers with `History`, scoping handler names with the component ID to avoid collisions, and reference them in the template.
+Create a store scoped to a component:
 
 ```go
-cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
-s := cmp.Store("count", state.WithHistory(10))
-s.Set("v", 1)
-cmp.History(s, cmp.ID+":undo", cmp.ID+":redo")
-```
-
-### APIs Used
-
-- `(*composition.Component).Store(name string, opts ...state.StoreOption) *state.Store`
-- `(*composition.Component).History(s *state.Store, undo, redo string)`
-- `state.WithHistory(limit int) state.StoreOption`
-- `dom.RegisterHandlerFunc(name string, fn func())`
-
-### End-to-End Example
-
-```go
-cmp := composition.Wrap(core.NewComponent("Counter", nil, nil))
 s := cmp.Store("count", state.WithHistory(5))
 s.Set("v", 1)
 s.Set("v", 2)
+
 cmp.History(s, cmp.ID+":undo", cmp.ID+":redo")
-dom.GetHandler(cmp.ID + ":undo").Invoke() // -> v = 1
-dom.GetHandler(cmp.ID + ":redo").Invoke() // -> v = 2
 ```
 
-### Notes and Limitations
+* `Store(name, opts...)`: creates a component-scoped store.
+* `History`: registers undo/redo handlers tied to that store.
 
-Undo/redo handlers work only when the store was created with `state.WithHistory`. Handler names live in a global registry; prefix them with the component ID to prevent collisions.
+This lets you build isolated logic with its own undo/redo flow.
 
-### Related Links
+---
 
-- [State history](../api/state#history)
-- [DOM handlers](../api/dom#usage)
+## Summary
+
+Wrapping is explicit because rfw supports two styles:
+
+* **Struct components**: embed `*core.HTMLComponent` in a struct.
+* **Composition API**: wrap with `composition.Wrap` to get reactive helpers.
+
+Both work, but if you want fine-grained reactivity and helper methods, use the Compositio

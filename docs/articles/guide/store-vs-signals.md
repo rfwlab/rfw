@@ -1,19 +1,19 @@
 # Global Store vs Local Signals
 
-State management in rfw can be handled through two complementary mechanisms: the **global store** and **local signals**. The store provides a centralized, persistent container, ideal for data shared across multiple components, while signals offer fine-grained reactivity limited to the context in which they are created. This guide highlights the main differences and shows when to choose one over the other.
+State in **rfw** can be managed with two complementary tools: **global stores** and **local signals**. Stores act as centralized containers for shared, persistent data. Signals are lightweight reactive variables confined to a component. This guide explains the differences and when to use each.
+
+---
 
 ## Global Store
 
-The store is designed to maintain data shared throughout the application. Each key is identified by a module and a name, allowing components to subscribe only to the information they need.
+A store holds data shared across your application. Keys are identified by module and name, and components automatically subscribe to the values they use.
 
 ### Example
 
 ```go
 package main
 
-import (
-    "github.com/rfwlab/rfw/v1/state"
-)
+import "github.com/rfwlab/rfw/v1/state"
 
 var profile = state.NewStore("profile", state.WithModule("user"))
 
@@ -23,68 +23,59 @@ func init() {
 }
 ```
 
-Components can read values with `@user/profile.first` and will be automatically updated when they change. Stores also support computed values and watchers to react to updates.
+In templates, `@user/profile.first` binds directly to this store. Updates propagate automatically. Stores also support computed values, watchers, persistence, and undo/redo.
+
+---
 
 ## Local Signals
 
-Signals provide a reactive variable confined to the component that creates it. They are perfect for transient state, such as input fields or UI flags.
+A signal is a reactive variable scoped to the component that creates it. Perfect for transient or UI-only state.
 
 ### Example
 
 ```go
-package main
+count := state.NewSignal(0)
 
-import (
-    "fmt"
-    "github.com/rfwlab/rfw/v1/state"
-)
+stop := state.Effect(func() func() {
+    fmt.Println("count:", count.Get())
+    return nil
+})
+defer stop()
 
-func main() {
-    count := state.NewSignal(0)
-
-    stop := state.Effect(func() func() {
-        fmt.Println("count:", count.Get())
-        return nil
-    })
-    defer stop()
-
-    count.Set(1)
-    count.Set(2)
-}
+count.Set(1)
+count.Set(2)
 ```
 
-Each call to `Set` notifies only the functions that have read the signal, avoiding unnecessary recalculations.
+Every `Set` re-triggers only the effects that read the signal, avoiding unnecessary recalculations.
 
-## When to Use Each
+---
 
-| Scenario                                 | Global Store       | Local Signals |
-| ---------------------------------------- | ------------------ | ------------- |
-| Data shared across many parts of the app | ✅                  | ❌             |
-| Temporary state of a single component    | ❌                  | ✅             |
-| Persistence in `localStorage`            | ✅                  | ❌             |
-| Fine-grained updates                     | ⚠️ depends on keys | ✅             |
+## Choosing Between Them
 
-The store simplifies synchronization of complex data, while signals shine in handling small, isolated pieces of state.
+| Scenario                              | Use Store  | Use Signal |
+| ------------------------------------- | ---------- | ---------- |
+| Data shared across many components    | ✅          | ❌          |
+| Temporary state in a single component | ❌          | ✅          |
+| Persistence in `localStorage`         | ✅          | ❌          |
+| Fine-grained reactive updates         | ⚠️ depends | ✅          |
 
-## Combining Store and Signals
+* **Stores** simplify synchronization of complex data across the app.
+* **Signals** shine for small, isolated pieces of state.
 
-It’s common to use both. A store can provide main data, while a component creates derived signals for local interaction.
+---
+
+## Combining Stores and Signals
+
+Often you’ll use both: stores as the source of truth, signals for local interactivity.
 
 ```go
-package main
+settings := state.NewStore("settings")
+theme := state.NewSignal("light")
 
-import "github.com/rfwlab/rfw/v1/state"
-
-func example() {
-    settings := state.NewStore("settings")
-    theme := state.NewSignal("light")
-
-    state.Effect(func() func() {
-        current := theme.Get()
-        settings.Set("theme", current)
-        return nil
-    })
-}
+state.Effect(func() func() {
+    settings.Set("theme", theme.Get())
+    return nil
+})
 ```
 
-This way the store remains the single source of truth, but the signal enables local reactive flow.
+Here the store persists the theme, while the signal drives local reactivity. This pattern balances global consistency with component responsiveness.

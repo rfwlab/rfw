@@ -59,12 +59,8 @@
         "path": "essentials/event-handling.md"
       },
       {
-        "title": "Watchers",
-        "path": "essentials/watchers.md"
-      },
-      {
-        "title": "Signals & Effects",
-        "path": "essentials/signals-and-effects.md"
+        "title": "Signals, Effects & Watchers",
+        "path": "essentials/signals-effects-and-effects.md"
       },
       {
         "title": "Template Refs",
@@ -311,14 +307,6 @@
         "path": "api/webgl.md"
       }
     ]
-  },
-  {
-    "title": "Legacy Notes",
-    "path": "legacy.md"
-  },
-  {
-    "title": "Changelog",
-    "path": "changelog.md"
   },
   {
     "title": "Devtools",

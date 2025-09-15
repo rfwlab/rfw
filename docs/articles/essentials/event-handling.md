@@ -1,16 +1,18 @@
 # Event Handling
 
-Interactivity in rfw is driven by events. Templates register listeners with the `@on:` directive while Go code defines the handlers. rfw wires them together and cleans up automatically.
+Interactivity in **rfw** is driven by events. Templates register listeners with directives, and Go code defines the handlers. rfw wires them together and cleans up automatically.
+
+---
 
 ## DOM Events
 
-Attach a handler to a browser event by specifying `@on:event:method`:
+Attach a handler to a browser event with the `@on:` directive:
 
 ```rtml
 <button @on:click:save>Save</button>
 ```
 
-The corresponding method on the component receives an `events.Event` value:
+The matching Go method receives an `events.Event` value:
 
 ```go
 func (c *Form) Save(e events.Event) {
@@ -18,47 +20,76 @@ func (c *Form) Save(e events.Event) {
 }
 ```
 
-Modifiers such as `.prevent`, `.stop`, or `.once` may be appended after the event name to control default behavior or limit invocation:
+### `@click` vs `@on:click`
+
+You may also see the shorthand `@click:save`:
+
+```rtml
+<button @click:save>Save</button>
+```
+
+This is equivalent to `@on:click:save`. Both work, but `@on:click` is more explicit and recommended for readability and consistency.
+
+---
+
+## Event Modifiers
+
+Modifiers adjust how listeners behave. Append them after the event name:
 
 ```rtml
 <form @on:submit.prevent.once:onSubmit>
 ```
 
-### Event Modifiers
+Supported modifiers:
 
-rfw supports a small set of modifiers that adjust how a listener behaves:
+| Modifier  | Description                                                          |
+| --------- | -------------------------------------------------------------------- |
+| `stop`    | Calls `event.stopPropagation()` to prevent bubbling.                 |
+| `prevent` | Calls `event.preventDefault()` to stop the browser’s default action. |
+| `once`    | Removes the listener after the first invocation.                     |
 
-| Modifier | Description |
-|----------|-------------|
-| `stop` | Calls `event.stopPropagation()` to prevent the event from bubbling. |
-| `prevent` | Calls `event.preventDefault()` to stop the browser's default action. |
-| `once` | Removes the listener after the first invocation. |
-
-Example:
+Examples:
 
 ```rtml
 <button @on:click.stop.prevent:save>Save</button>
 <button @on:click.once:load>Load once</button>
 ```
 
-Handlers can also be registered from Go code using the `events` package:
+---
+
+## Registering from Go
+
+Handlers can also be attached programmatically using the `events` package:
 
 ```go
 doc := dom.Doc()
 stop := events.OnClick(doc.ByID("save").Value, func(evt js.Value) {
-        // handle click
+    // handle click
 })
 defer stop()
 ```
 
-This approach is useful when listeners need to be attached dynamically.
+This is useful for dynamically created elements or low-level control.
+
+---
 
 ## Store Events
 
-Reactive stores emit change events whenever their values update. Components can listen by registering a watcher or computed property; see the Watchers section for details. This allows components to react to global state changes without manual DOM listeners.
+Reactive stores emit events whenever their values update. Components can subscribe with **watchers** or **computed properties**. See the *Watchers* section for details. This lets components react to global state changes without manual DOM listeners.
+
+---
 
 ## Custom Events
 
-Components may expose their own events by embedding channels or calling parent callbacks passed via props. Emitters remain plain Go, keeping the API lightweight.
+Components may define their own events by exposing channels or calling callbacks passed via props. Event emitters are plain Go functions, keeping the API lightweight.
 
-Event handling unifies user input and state changes under a consistent, declarative syntax.
+---
+
+## Summary
+
+* Use `@on:event:handler` in templates to bind DOM events.
+* `@click:handler` is shorthand for `@on:click:handler`, but `@on:` is preferred for clarity.
+* Event modifiers like `.stop`, `.prevent`, and `.once` give finer control.
+* You can also attach events programmatically or react to store changes.
+
+Event handling in rfw unifies user input, state changes, and custom logic under a clear, declarative syntax.

@@ -1,10 +1,12 @@
 # List Rendering
 
-Rendering arrays or maps is common in dynamic interfaces. RTML's `@for` directive iterates over collections and keeps DOM elements in sync when the underlying data changes.
+Rendering collections is essential for dynamic interfaces. RTML’s `@for` directive iterates over slices, ranges, or maps and keeps the DOM synchronized when data changes.
 
-## Iterating Arrays
+---
 
-Use `@for:item in items` to loop through a slice:
+## Iterating Slices
+
+Loop through a slice with `@for:item in items`:
 
 ```rtml
 <ul>
@@ -14,11 +16,13 @@ Use `@for:item in items` to loop through a slice:
 </ul>
 ```
 
-When items are added or removed, rfw patches only the affected `<li>` elements.
+When items are added or removed, rfw patches only the affected `<li>` elements instead of re-rendering the whole list.
+
+---
 
 ## Keyed Updates
 
-Provide a stable key with the `[key {expr}]` constructor to reorder lists efficiently:
+Provide a stable key to reorder lists efficiently:
 
 ```rtml
 @for:todo in todos
@@ -26,11 +30,13 @@ Provide a stable key with the `[key {expr}]` constructor to reorder lists effici
 @endfor
 ```
 
-Without keys, elements are recreated when their order changes.
+Keys let rfw match DOM nodes with data items. Without them, items are recreated whenever the order changes.
+
+---
 
 ## Ranges and Maps
 
-`@for` also supports numeric ranges and key/value pairs:
+The directive also supports ranges and key/value maps:
 
 ```rtml
 @for:i in 0..count
@@ -42,4 +48,33 @@ Without keys, elements are recreated when their order changes.
 @endfor
 ```
 
-List rendering works seamlessly with conditionals and nested components to display complex data structures.
+* **Ranges**: expand from start to end (inclusive).
+* **Maps**: iterate key/value pairs in Go maps.
+
+---
+
+## Nesting and Conditions
+
+`@for` can be combined with conditionals and nested components:
+
+```rtml
+@for:todo in todos
+  @if:todo.Done
+    <li class="done">{todo.Text}</li>
+  @else
+    <li>{todo.Text}</li>
+  @endif
+@endfor
+```
+
+This makes it easy to express dynamic UIs with complex data structures.
+
+---
+
+## Summary
+
+* Use `@for` to iterate slices, ranges, or maps.
+* Add `[key {...}]` for stable, efficient updates.
+* Combine with `@if` or component includes for flexibility.
+
+List rendering ensures templates remain declarative while rfw keeps the DOM in sync with your data.

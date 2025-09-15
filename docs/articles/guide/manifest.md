@@ -1,10 +1,13 @@
 # Manifest
 
-The project manifest (`rfw.json`) defines build options and plugin configuration. `rfw init` creates this file with `build.type` set to `ssc` by default.
+The project manifest (`rfw.json`) defines build options and plugin configuration. Running `rfw init` generates this file with `build.type` set to `ssc` by default.
 
 ## build.type
 
-`build.type` toggles special build modes. Leaving it unset produces a standard Wasm build. Setting it to `ssc` enables Server Side Computed builds and compiles any host components:
+Controls the build mode:
+
+* **unset** → standard Wasm build
+* **ssc** → enables Server Side Computed builds and compiles host components
 
 ```json
 {
@@ -16,11 +19,11 @@ The project manifest (`rfw.json`) defines build options and plugin configuration
 
 ## plugins
 
-The `plugins` section lists build plugins keyed by name. Each plugin accepts its own configuration object.
+The `plugins` section lists build plugins, each with its own configuration.
 
 ### Tailwind CSS
 
-Generates a stylesheet using the Tailwind CLI.
+Generate stylesheets using the Tailwind CLI:
 
 ```json
 {
@@ -34,15 +37,14 @@ Generates a stylesheet using the Tailwind CLI.
 }
 ```
 
-- `input`: source file containing `@tailwind` directives (paths may include directories).
-- `output`: compiled CSS file (defaults to `tailwind.css`).
-- `minify`: disable minification when set to `false`.
-- `args`: additional CLI arguments passed to `tailwindcss`.
+* `input`: source file with `@tailwind` directives
+* `output`: compiled CSS file (default: `tailwind.css`)
+* `minify`: set `false` to disable minification
+* `args`: extra CLI arguments for `tailwindcss`
 
-### Environment variables
+### Environment Variables
 
-Collects environment variables prefixed with `RFW_` and exposes them through a
-generated `rfwenv` package:
+Expose variables prefixed with `RFW_` through the generated `rfwenv` package:
 
 ```go
 import rfwenv "github.com/rfwlab/rfw/docs/rfwenv"
@@ -50,8 +52,11 @@ import rfwenv "github.com/rfwlab/rfw/docs/rfwenv"
 clientID := rfwenv.Get("TWITCH_CLIENT_ID")
 ```
 
-Provide the variables when invoking `rfw` commands, e.g.
-`RFW_TWITCH_CLIENT_ID=abc rfw dev`.
+Provide them when running commands:
+
+```bash
+RFW_TWITCH_CLIENT_ID=abc rfw dev
+```
 
 ```json
 {
@@ -61,9 +66,9 @@ Provide the variables when invoking `rfw` commands, e.g.
 }
 ```
 
-### Static assets
+### Static Assets
 
-Copies files from a directory into the build output.
+Copy files from a directory into the build:
 
 ```json
 {
@@ -76,12 +81,12 @@ Copies files from a directory into the build output.
 }
 ```
 
-- `dir`: source directory to copy from (defaults to `assets`).
-- `dest`: destination folder inside the build output (`dist` by default).
+* `dir`: source directory (default: `assets`)
+* `dest`: output folder (default: `dist`)
 
-### Copy files
+### Copy Files
 
-Copies selected files into the build output based on glob patterns.
+Copy files based on glob patterns:
 
 ```json
 {
@@ -95,14 +100,12 @@ Copies selected files into the build output based on glob patterns.
 }
 ```
 
-- `from`: source glob pattern.
-- `to`: destination directory for matched files.
+* `from`: source glob pattern (`**` matches nested directories)
+* `to`: destination directory
 
-Plugins run during `rfw build` and may watch relevant files for changes while developing.
+### Documentation Content
 
-### Documentation content
-
-Bundles markdown articles and the sidebar into the static build output.
+Bundle markdown articles and sidebar into the build:
 
 ```json
 {
@@ -112,6 +115,9 @@ Bundles markdown articles and the sidebar into the static build output.
 }
 ```
 
-- `dir`: source directory containing documentation (defaults to `articles`).
-- `dest`: destination folder for static assets (`build/static` by default).
+* `dir`: source docs folder (default: `articles`)
+* `dest`: output folder (default: `build/static`)
 
+---
+
+Plugins run during `rfw build` and also watch files in development.

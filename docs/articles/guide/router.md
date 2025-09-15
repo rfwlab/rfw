@@ -1,9 +1,12 @@
 # Routing
 
-## Why
-Routing maps paths to components and keeps navigation in sync with browser history. The [Router API](../api/router) exposes registration and guard hooks.
+The **router** maps paths to components and keeps navigation in sync with browser history. It resolves both `/docs` and `/docs/` to the same component, so trailing slashes don’t matter.
 
-Paths can end with or without a trailing `/`; `/docs` and `/docs/` resolve to the same component.
+---
+
+## Registering Routes
+
+Define routes by pairing a path with a component:
 
 ```go
 router.RegisterRoute(router.Route{
@@ -12,19 +15,40 @@ router.RegisterRoute(router.Route{
 })
 ```
 
-## When to Use
-Use the router to handle in-app navigation and not-found pages.
+---
+
+## Handling Not Found Pages
+
+Assign a component to `NotFoundComponent` for unmatched paths:
 
 ```go
-router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
+router.NotFoundComponent = func() core.Component {
+    return components.NewNotFoundComponent()
+}
 ```
+
+---
+
+## When to Use
+
+* Single-page applications with multiple views
+* Navigating between dynamic content or user-generated routes
+* Providing a fallback 404 component
 
 ## When Not to Use
-Skip the router in single-view demos or when server-side routing already handles every path.
 
-```go
-// serve a static page without client-side navigation
-```
+* Very simple demos with a single view
+* Cases where server-side routing already handles all navigation
 
-## Interactive Demo
-@include:ExampleFrame:{code:"/examples/components/another_component.go", uri:"/examples/user/jane"}
+---
+
+## Demo
+
+@include\:ExampleFrame:{code:"/examples/components/another\_component.go", uri:"/examples/user/jane"}
+
+---
+
+## Related
+
+* [Router API](../api/router)
+* [Pages Plugin](../plugins/pages)

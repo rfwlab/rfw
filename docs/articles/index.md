@@ -1,12 +1,12 @@
 # Introduction
 
-You are reading the documentation for rfw v1. Use the centered search box in the top navigation for real-time results across all pages.
+Welcome to the documentation for **rfw v1**. Use the search box in the top navigation to quickly find what you need.
 
 ## What is rfw?
 
-rfw (Reactive Framework for the Web) is a framework for building user interfaces with Go and WebAssembly. It builds on standard HTML, CSS, and JavaScript and provides a declarative, component-based programming model that lets you author your UI entirely in Go. rfw binds Go data structures directly to DOM nodes, so when state changes the framework updates the page without relying on a virtual DOM.
+rfw (Reactive Framework for the Web) is a framework for building user interfaces with **Go** and **WebAssembly**. It extends standard HTML, CSS, and JavaScript with a declarative, component-based model that lets you write your UI entirely in Go. State in Go is bound directly to the DOM: when values change, rfw updates the page automatically—without a virtual DOM.
 
-Here is a minimal example:
+Here is the simplest example using the **Composition API**:
 
 ```go
 package main
@@ -16,7 +16,7 @@ import (
     "context"
 
     core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/dom"
+    "github.com/rfwlab/rfw/v1/composition"
     "github.com/rfwlab/rfw/v1/state"
 )
 
@@ -24,55 +24,56 @@ import (
 var tpl []byte
 
 func NewCounter() *core.HTMLComponent {
-    store := state.NewStore("counter")
-    store.Set("count", 0)
-    increment := state.Action(func(ctx state.Context) error {
-        current, _ := store.Get("count").(int)
-        store.Set("count", current+1)
-        return nil
+    cmp := composition.Wrap(core.NewComponent("Counter", tpl, nil))
+
+    count := state.NewSignal(0)
+    cmp.Prop("count", count)
+
+    cmp.On("increment", func() {
+        count.Set(count.Get() + 1)
     })
-    dom.RegisterHandlerFunc("increment", func() {
-        _ = state.Dispatch(context.Background(), increment)
-    })
-    c := core.NewComponent("Counter", tpl, nil)
-    c.Init(store)
-    return c
+
+    return cmp.HTML()
 }
 ```
 
-```html
+```rtml
 <root>
   <button @on:click:increment>Count is: {count}</button>
 </root>
 ```
 
-**Result**
+**Result:** clicking the button increases the counter by updating a reactive signal bound to the template.
 
-Mounting this component displays a button whose label increments with each click through a handler that dispatches an action to update the store.
+This example shows the two core features of rfw:
 
-The example highlights two core features of rfw:
+* **Declarative rendering**: RTML templates extend HTML with state placeholders and event bindings.
+* **Reactivity**: signals track state changes and trigger DOM updates automatically.
 
-- **Declarative rendering**: RTML templates extend HTML with placeholders for state and tokens for events.
-- **Reactivity**: rfw tracks store mutations and selectively patches the DOM nodes that changed.
+## A Flexible Framework
 
-## The Modern Framework
+rfw adapts to the way you want to build:
 
-rfw does not force you into a single style of development. You can start small and grow as needed, mixing approaches without rewriting your project. Depending on what you build, rfw can adapt to different roles:
+* **Progressive enhancement** – drop a component into any HTML page with no setup.
+* **Full applications** – build SPAs with routing, state, and live reload.
+* **Hybrid rendering** – pre-render on the server, hydrate in the browser.
+* **Advanced targets** – integrate with WebGL, workers, or browser APIs when needed.
 
-- **Progressive enhancement** – drop a component into an existing HTML page and it just works, no complex setup.
-- **Full applications** – build full SPAs (single-page applications) with routing, state management and live reloading during development.
-- **Hybrid rendering** – pre-render pages on the server with the host utilities, then let components hydrate and become interactive in the browser.
-- **Advanced targets** – hook into WebGL, web workers, or specialized browser APIs when you need raw performance or parallelism.
-
-rfw is designed to scale from a single reactive widget to entire applications, letting you choose the right level of complexity for your project.
+You can start with a single reactive widget and grow into a full application—without switching frameworks.
 
 ## RTML Templates
 
-Most projects author components using **RTML** (Reactive Template Markup Language). An RTML file encapsulates the component's markup while the Go file holds its logic. During builds the CLI embeds templates into your binaries so they load instantly in the browser.
+Components use **RTML** (Reactive Template Markup Language). The `.rtml` file holds markup, the Go file holds logic. At build time, templates are embedded in your binary and load instantly in the browser.
+
+Learn more about [Template Syntax](/docs/essentials/template-syntax).
 
 ## Component Styles
 
-rfw components can be written in two different styles.
+rfw supports two styles:
+
+### Composition API
+
+Define state with signals and actions inside a setup-like function, using helpers from the `composition` package. This is the recommended style for new code.
 
 ### Struct Components
 
@@ -95,28 +96,24 @@ func (c *Counter) Increment() { c.Count++ }
 
 ### Functional Components
 
-For small pieces of UI, return `*core.HTMLComponent` directly from a function:
+For very small pieces of UI, return a component directly:
 
 ```go
 func NewCounter() *core.HTMLComponent {
-    c := core.NewComponent("Counter", tpl, nil)
-    return c
+    return core.NewComponent("Counter", tpl, nil)
 }
 ```
 
 ### Which to Choose?
 
-- Use **struct components** when you need lifecycle hooks, internal state or methods.
-- Use **functional components** for simple presentational elements.
+* **Composition API**: recommended for most projects; flexible, expressive, and scales well.
+* **Struct components**: useful if you prefer method receivers and lifecycle hooks.
+* **Functional components**: best for simple presentational elements.
 
-## Still Got Questions?
+## Next Steps
 
-Read the [architecture overview](./architecture) or open an issue on GitHub if something isn't clear.
-
-## Pick Your Learning Path
-
-- [Try the Quick Start](./getting-started/quick-start) for a hands-on introduction.
-- [Read the Guide](./guide/features) to explore the framework in depth.
-- [Browse the API](../api/core) to see how rfw works under the hood.
-- [Testing](./testing) to learn how to run the test suite locally.
-- [Contributing](../../CONTRIBUTING.md) to learn how to propose changes.
+* [Quick Start](./getting-started/quick-start) – build your first component in minutes.
+* [The Guide](./guide/features) – explore rfw in depth.
+* [The Essentials](./guide/creating-application) – learn the essential basis of rfw.
+* [API Reference](../api/core) – see how everything works under the hood.
+* [Contributing](../../CONTRIBUTING.md) – help improve the framework.

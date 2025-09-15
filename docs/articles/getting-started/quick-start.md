@@ -1,62 +1,112 @@
 # Quick Start
 
-This guide walks through creating and running your first rfw application using the command‑line interface. All commands assume a Go environment configured for WebAssembly.
+This guide walks through creating and running your first **rfw** application. It assumes your environment meets the [requirements](/docs/getting-started/requirements).
 
 ## Install the CLI
 
 ```bash
 go install github.com/rfwlab/rfw/cmd/rfw@latest
+rfw --version
 ```
 
-Verify installation with `rfw -h`.
+The CLI builds, runs, and serves your project.
 
 ## Scaffold a Project
 
-Initialize a new module. The command creates a Go module with a sample component and entry point:
+Initialize a new project:
 
 ```bash
 rfw init github.com/username/hello-rfw
 cd hello-rfw
-# or skip go mod tidy using the --skip-tidy flag:
-# rfw init --skip-tidy github.com/username/hello-rfw
 ```
 
-The generated project contains `main.go`, a `components/` folder, matching `.rtml` templates, a `host/` directory with its own `components/`, and an `rfw.json` manifest enabling SSC builds.
+The generated structure includes:
+
+```
+hello-rfw/
+  main.go
+  components/
+  host/
+  rfw.json
+  go.mod
+```
+
+* `components/` holds client-side components and `.rtml` templates.
+* `host/` holds optional server-side (host) components.
+* `rfw.json` configures build options such as SSC.
+
+Use `--skip-tidy` to skip `go mod tidy` during init.
+
+## A First Component
+
+### counter.rtml
+
+```rtml
+<root>
+  <button @on:click:increment>Count is: {count}</button>
+</root>
+```
+
+### counter.go
+
+```go
+package main
+
+import (
+    "github.com/rfwlab/rfw/v1/composition"
+    core "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v1/router"
+    "github.com/rfwlab/rfw/v1/state"
+)
+
+//go:embed counter.rtml
+var tpl []byte
+
+func NewCounter() *core.HTMLComponent {
+    cmp := composition.Wrap(core.NewComponent("Counter", tpl, nil))
+    count := state.NewSignal(0)
+
+    cmp.Prop("count", count)
+    cmp.On("increment", func() { count.Set(count.Get() + 1) })
+
+    return cmp.HTML()
+}
+
+func main() {
+    router.RegisterRoute(router.Route{
+        Path: "/",
+        Component: func() core.Component { return NewCounter() },
+    })
+    router.InitRouter()
+    select {}
+}
+```
+
+Open the app in a browser and click the button—the counter increments on each click.
 
 ## Run the Development Server
 
 ```bash
-rfw dev
+rfw dev --debug
 ```
 
-`rfw dev` compiles the Go sources to `app.wasm`, serves an HTML shell, reloads the page when files change, and serves files from a top-level `static/` directory at the root path. Requests to `/static/*` resolve to the same files so URLs stay unchanged. When a `host/` directory is present, the command also builds and runs the host binary from `build/host/host`.
+Features:
 
-The server listens on port `8080` by default. Use the `--port` flag or set the
-`RFW_PORT` environment variable to change it:
+* Compiles Go sources to `app.wasm`
+* Serves static files under `/`
+* Rebuilds and reloads on file changes
+* Runs host components from `host/` if present
 
-```bash
-RFW_PORT=3000 rfw dev
-```
+Flags:
 
-Set the `RFW_LOG_LEVEL` environment variable to control log verbosity
-(`debug`, `info`, `warn`, `error`):
+* `--port` set port (default 8080)
+* `--host` expose to network
+* `--debug` enable logs and profiling endpoints
 
-```bash
-RFW_LOG_LEVEL=debug rfw dev
-```
+Environment variables:
 
-The default `index.html` mounts the Wasm module with plain JavaScript:
-
-```html
-<script src="/wasm_exec.js"></script>
-<script src="/wasm_loader.js"></script>
-<script>
-  const go = new Go();
-  WasmLoader.load('/app.wasm', { go });
-</script>
-```
-
-A global `rfw` object will be added in upcoming releases to expose high‑level APIs to JavaScript. Until then, interaction with the framework in the browser should stick to plain JS.
+* `RFW_PORT` set port
+* `RFW_LOG_LEVEL` set log level (`debug`, `info`, `warn`, `error`)
 
 ## Build for Production
 
@@ -64,7 +114,23 @@ A global `rfw` object will be added in upcoming releases to expose high‑level 
 rfw build
 ```
 
-The build command writes the Wasm bundle and supporting files to `build/client/`. Files placed in a top-level `static/` directory are copied into `build/static/` and served at the root path.
-The companion host binary, used to serve the client and optional host components, is placed under `build/host/`.
+The build command outputs:
 
-With these basics in place, dive deeper into the framework starting with [Creating an Application](../essentials/creating-application).
+* `build/client/` – Wasm bundle and assets
+* `build/static/` – copied static files
+* `build/host/` – companion host binary
+
+## What You Learned
+
+* Installing the CLI
+* Scaffolding a project
+* Creating and mounting a component
+* Running the dev server with hot reload
+* Building for production
+
+## Next Steps
+
+* [Templates](/docs/essentials/template-syntax)
+* [Signals and Stores](/docs/essentials/signals-and-effects)
+* [Components](/docs/essentials/components-basics)
+* [Architecture](/docs/architecture)
