@@ -201,6 +201,10 @@
         "path": "plugins/pages.md"
       },
       {
+        "title": "Router Analytics",
+        "path": "plugins/router-analytics.md"
+      },
+      {
         "title": "SEO",
         "path": "plugins/seo.md"
       },
