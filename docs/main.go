@@ -5,16 +5,16 @@ package main
 import (
 	"github.com/rfwlab/rfw/docs/components"
 	excomponents "github.com/rfwlab/rfw/docs/examples/components"
-	plugs "github.com/rfwlab/rfw/docs/examples/plugins"
+	"github.com/rfwlab/rfw/docs/examples/plugins"
 	"github.com/rfwlab/rfw/docs/examples/plugins/logger"
-	mon "github.com/rfwlab/rfw/docs/examples/plugins/monitor"
-	soccer "github.com/rfwlab/rfw/docs/examples/plugins/soccer"
+	"github.com/rfwlab/rfw/docs/examples/plugins/monitor"
+	"github.com/rfwlab/rfw/docs/examples/plugins/soccer"
 	_ "github.com/rfwlab/rfw/docs/pages"
 	"github.com/rfwlab/rfw/v1/core"
-	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
-	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
+	"github.com/rfwlab/rfw/v1/plugins/docs"
+	"github.com/rfwlab/rfw/v1/plugins/highlight"
 	"github.com/rfwlab/rfw/v1/plugins/i18n"
-	shortcut "github.com/rfwlab/rfw/v1/plugins/shortcut"
+	"github.com/rfwlab/rfw/v1/plugins/shortcut"
 	"github.com/rfwlab/rfw/v1/plugins/toast"
 	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
@@ -46,11 +46,11 @@ func main() {
 		"en": {"hello": "Hello"},
 		"it": {"hello": "Ciao"},
 	}))
-	core.RegisterPlugin(mon.New())
+	core.RegisterPlugin(monitor.New())
 	core.RegisterPlugin(highlight.New())
 	core.RegisterPlugin(toast.New())
 	core.RegisterPlugin(soccer.New())
-	core.RegisterPlugin(docplug.New("/articles/sidebar.json"))
+	core.RegisterPlugin(docs.New("/articles/sidebar.json"))
 	core.RegisterPlugin(shortcut.New())
 
 	router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
@@ -136,11 +136,11 @@ func main() {
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/plugins",
-		Component: func() core.Component { return plugs.NewPluginsComponent() },
+		Component: func() core.Component { return plugins.NewPluginsComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/toast",
-		Component: func() core.Component { return plugs.NewToastComponent() },
+		Component: func() core.Component { return plugins.NewToastComponent() },
 	})
 	router.RegisterRoute(router.Route{
 		Path:      "/examples/plugin-directives",
