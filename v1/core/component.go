@@ -12,7 +12,12 @@ import (
 var DevMode bool
 
 // SetDevMode toggles development mode features.
-func SetDevMode(enabled bool) { DevMode = enabled }
+func SetDevMode(enabled bool) {
+        DevMode = enabled
+        if enabled {
+                startDevTemplateWatcher()
+        }
+}
 
 type Component interface {
 	Render() string
