@@ -39,6 +39,15 @@ func RegisterBindings(id, name, template string) {
 	compiledBindings[id] = bs
 }
 
+// OverrideBindings replaces the cached bindings for a component name.
+func OverrideBindings(name, template string) {
+	bs, err := parseTemplate(template)
+	if err != nil {
+		return
+	}
+	precompiledByName[name] = bs
+}
+
 func parseTemplate(tpl string) ([]binding, error) {
 	processed := replaceEventHandlers(tpl)
 	node, err := html.Parse(strings.NewReader(processed))
