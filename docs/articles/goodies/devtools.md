@@ -63,6 +63,8 @@ Use `--host` to test on real devices. Avoid `--debug` in production—it serves 
 
 Changes to Go, RTML, Markdown and plugin assets trigger automatic rebuilds and refreshes. The watcher only recompiles what changed, keeping feedback loops short.
 
+The browser keeps an `EventSource` connection to the development server. Whenever a rebuild completes for Go, RTML, Markdown, or plugin-managed assets, the server notifies connected tabs to reload automatically. Changes appear immediately without needing to refresh manually.
+
 Some network file systems may miss events—restart the server or switch to polling in those cases.
 
 ## Profiling
