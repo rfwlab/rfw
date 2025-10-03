@@ -4,9 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 func readPort() int {
+	if override := strings.TrimSpace(os.Getenv("RFW_HOST_PORT")); override != "" {
+		if p, err := strconv.Atoi(override); err == nil && p > 0 {
+			return p
+		}
+	}
 	var manifest struct {
 		Port int `json:"port"`
 	}

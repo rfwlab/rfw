@@ -6,12 +6,15 @@ import (
 	"expvar"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,7 +35,10 @@ type Server struct {
 	watcher     *fsnotify.Watcher
 	hostCmd     *exec.Cmd
 	buildType   string
+	hostPort    string
 	ignoreUntil time.Time
+	hmrMu       sync.Mutex
+	hmrClients  map[chan []byte]struct{}
 }
 
 const ignoreDelay = 200 * time.Millisecond
@@ -40,10 +46,11 @@ const ignoreDelay = 200 * time.Millisecond
 func NewServer(port string, host, debug bool) *Server {
 	utils.EnableDebug(debug)
 	return &Server{
-		Port:   port,
-		Host:   host,
-		Debug:  debug,
-		stopCh: make(chan os.Signal, 1),
+		Port:       port,
+		Host:       host,
+		Debug:      debug,
+		stopCh:     make(chan os.Signal, 1),
+		hmrClients: make(map[chan []byte]struct{}),
 	}
 }
 
@@ -57,19 +64,36 @@ func (s *Server) Start() error {
 	var mux *http.ServeMux
 	httpsPort := incrementPort(s.Port)
 	if s.buildType == "ssc" {
+		s.hostPort = incrementPort(httpsPort)
 		if err := s.startHost(); err != nil {
 			return err
 		}
-	} else {
-		root := filepath.Join("build", "client")
-		mux = hostpkg.NewMux(root)
+		target := &url.URL{Scheme: "http", Host: fmt.Sprintf("localhost:%s", s.hostPort)}
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		mux = http.NewServeMux()
+		mux.HandleFunc("/__rfw/hmr", s.handleHMR)
+		mux.Handle("/", proxy)
 		go func() {
 			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
 				utils.Fatal("Server failed: ", err)
 			}
 		}()
 		go func() {
-			if err := hostpkg.ListenAndServeTLS(":"+httpsPort, root); err != nil {
+			if err := hostpkg.ListenAndServeTLSWithMux(":"+httpsPort, mux); err != nil {
+				utils.Fatal("HTTPS server failed: ", err)
+			}
+		}()
+	} else {
+		root := filepath.Join("build", "client")
+		mux = hostpkg.NewMux(root)
+		mux.HandleFunc("/__rfw/hmr", s.handleHMR)
+		go func() {
+			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
+				utils.Fatal("Server failed: ", err)
+			}
+		}()
+		go func() {
+			if err := hostpkg.ListenAndServeTLSWithMux(":"+httpsPort, mux); err != nil {
 				utils.Fatal("HTTPS server failed: ", err)
 			}
 		}()
@@ -208,6 +232,31 @@ func (s *Server) watchFiles() {
 					if err := build.Build(); err != nil {
 						utils.Fatal("Failed to rebuild project: ", err)
 					}
+					if strings.HasSuffix(event.Name, ".rtml") {
+						markup, err := os.ReadFile(event.Name)
+						if err == nil {
+							if comps := componentNamesForTemplate(event.Name); len(comps) > 0 {
+								for _, name := range comps {
+									if err := s.broadcastTemplateUpdate(event.Name, name, string(markup)); err != nil {
+										utils.Debug(fmt.Sprintf("template broadcast failed: %v", err))
+									}
+								}
+							} else {
+								if err := s.broadcastReload(event.Name); err != nil {
+									utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
+								}
+							}
+						} else {
+							utils.Debug(fmt.Sprintf("failed reading template %s: %v", event.Name, err))
+							if err := s.broadcastReload(event.Name); err != nil {
+								utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
+							}
+						}
+					} else {
+						if err := s.broadcastReload(event.Name); err != nil {
+							utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
+						}
+					}
 					if s.buildType == "ssc" {
 						s.stopHost()
 						if err := s.startHost(); err != nil {
@@ -256,6 +305,11 @@ func (s *Server) startHost() error {
 	s.hostCmd = exec.Command(path)
 	s.hostCmd.Stdout = os.Stdout
 	s.hostCmd.Stderr = os.Stderr
+	if s.hostPort != "" {
+		env := os.Environ()
+		env = append(env, fmt.Sprintf("RFW_HOST_PORT=%s", s.hostPort))
+		s.hostCmd.Env = env
+	}
 	return s.hostCmd.Start()
 }
 

@@ -82,8 +82,10 @@ func (c *HTMLComponent) Init(store *state.Store) {
 	if err != nil {
 		panic(fmt.Sprintf("Error loading template for component %s: %v", c.Name, err))
 	}
+	template = devOverrideTemplate(c, template)
 	c.Template = template
 	dom.RegisterBindings(c.ID, c.Name, template)
+	devRegisterComponent(c)
 
 	if store != nil {
 		c.Store = store
@@ -224,6 +226,7 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 }
 
 func (c *HTMLComponent) Unmount() {
+	devUnregisterComponent(c)
 	if c.component != nil {
 		c.component.OnUnmount()
 	}
