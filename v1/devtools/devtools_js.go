@@ -24,6 +24,7 @@ var (
 func (plugin) Build(json.RawMessage) error { return nil }
 func (plugin) Install(a *core.App) {
 	a.RegisterLifecycle(func(c core.Component) {
+		appendLifecycle(c.GetID(), "mount", time.Now())
 		if root == nil {
 			root = c
 		}
@@ -34,6 +35,7 @@ func (plugin) Install(a *core.App) {
 			}
 		}
 	}, func(c core.Component) {
+		appendLifecycle(c.GetID(), "unmount", time.Now())
 		if root == c {
 			resetTree()
 			root = nil
@@ -43,6 +45,7 @@ func (plugin) Install(a *core.App) {
 				fn.Invoke()
 			}
 		}
+		dropLifecycle(c.GetID())
 	})
 	a.RegisterRouter(func(_ string) {
 		if root != nil {
