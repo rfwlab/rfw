@@ -55,7 +55,7 @@ const markup = `
 .node .meta{margin-left:auto; display:flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums; color:var(--rose-300)}
 .node .meta span{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; border:1px solid var(--tile-border); background:var(--tile-bg)}
 
-.rfw-detail{flex:1;background:var(--chip-bg);display:flex;flex-direction:column}
+.rfw-detail{overflow-y:auto; flex:1;background:var(--chip-bg);display:flex;flex-direction:column}
 .rfw-detail .rfw-subheader{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
 .kv{display:grid; grid-template-columns:160px 1fr; gap:8px 12px; padding:12px}
 .kv div{padding:6px 8px; background:var(--tile-bg); border:1px solid var(--tile-border); border-radius:10px; overflow:auto}
@@ -458,7 +458,8 @@ function selectNode(n) {
   detailKind.textContent = n.kind;
   const rows = [];
   rows.push(renderRow("Path", n.path || ""));
-  if (typeof n.updates === "number") rows.push(renderRow("Updates", String(n.updates)));
+  if (typeof n.updates === "number")
+    rows.push(renderRow("Updates", String(n.updates)));
   if (typeof n.average === "number" && Number.isFinite(n.average))
     rows.push(renderRow("Average render", formatMs(n.average)));
   if (typeof n.time === "number" && Number.isFinite(n.time))
@@ -474,9 +475,8 @@ function selectNode(n) {
   if (n.signals && Object.keys(n.signals).length)
     rows.push(renderJSONRow("Signals", n.signals));
   if (n.store) {
-    const storeLabel = [n.store.module, n.store.name]
-      .filter(Boolean)
-      .join("/") || "-";
+    const storeLabel =
+      [n.store.module, n.store.name].filter(Boolean).join("/") || "-";
     rows.push(renderRow("Store", storeLabel));
     if (n.store.state && Object.keys(n.store.state).length) {
       rows.push(renderJSONRow("Store state", n.store.state));
@@ -487,7 +487,8 @@ function selectNode(n) {
   }
   if (Array.isArray(n.timeline) && n.timeline.length)
     rows.push(renderTimelineRow("Timeline", n.timeline));
-  detailKV.innerHTML = rows.join("") || renderRow("Info", "No metadata available");
+  detailKV.innerHTML =
+    rows.join("") || renderRow("Info", "No metadata available");
 }
 
 function escapeHTML(s) {
@@ -525,14 +526,14 @@ function renderTimelineRow(label, events) {
 function renderStoreBindingsRow(label, bindings) {
   const items = bindings
     .map((binding) => {
-      const storeLabel = [binding.module, binding.name]
-        .filter(Boolean)
-        .join("/") || "-";
-      const keys = Array.isArray(binding.keys) && binding.keys.length
-        ? binding.keys
-            .map((key) => `<span class="store-key">${escapeHTML(key)}</span>`)
-            .join("")
-        : '<span class="store-key muted">(all keys)</span>';
+      const storeLabel =
+        [binding.module, binding.name].filter(Boolean).join("/") || "-";
+      const keys =
+        Array.isArray(binding.keys) && binding.keys.length
+          ? binding.keys
+              .map((key) => `<span class="store-key">${escapeHTML(key)}</span>`)
+              .join("")
+          : '<span class="store-key muted">(all keys)</span>';
       return `<div class="store-binding"><span class="store-badge">${escapeHTML(
         storeLabel,
       )}</span><div class="store-keys">${keys}</div></div>`;
@@ -551,7 +552,7 @@ function formatJSON(value) {
 
 function renderRow(label, value, isMono = false) {
   const content = escapeHTML(value == null ? "" : value);
-  const cls = isMono ? " class=\"mono\" style=\"white-space:pre-wrap\"" : "";
+  const cls = isMono ? ' class="mono" style="white-space:pre-wrap"' : "";
   return `<b>${escapeHTML(label)}</b><div${cls}>${content}</div>`;
 }
 
