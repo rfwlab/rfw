@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	events "github.com/rfwlab/rfw/v1/events"
 	js "github.com/rfwlab/rfw/v1/js"
@@ -15,22 +16,47 @@ import (
 )
 
 // componentSignals tracks signals associated with each component instance.
-var componentSignals = make(map[string]map[string]any)
+var (
+	componentSignals   = make(map[string]map[string]any)
+	componentSignalsMu sync.RWMutex
+)
 
 // RegisterSignal associates a signal with a component so inputs can bind to it.
 func RegisterSignal(componentID, name string, sig any) {
+	componentSignalsMu.Lock()
 	if componentSignals[componentID] == nil {
 		componentSignals[componentID] = make(map[string]any)
 	}
 	componentSignals[componentID][name] = sig
+	componentSignalsMu.Unlock()
 }
 
 // RemoveComponentSignals cleans up signals for a component on unmount.
-func RemoveComponentSignals(componentID string) { delete(componentSignals, componentID) }
+func RemoveComponentSignals(componentID string) {
+	componentSignalsMu.Lock()
+	delete(componentSignals, componentID)
+	componentSignalsMu.Unlock()
+}
 
 func getSignal(componentID, name string) any {
+	componentSignalsMu.RLock()
+	defer componentSignalsMu.RUnlock()
 	if m, ok := componentSignals[componentID]; ok {
 		return m[name]
+	}
+	return nil
+}
+
+// SnapshotComponentSignals returns a copy of the signals registered for a component.
+func SnapshotComponentSignals(componentID string) map[string]any {
+	componentSignalsMu.RLock()
+	defer componentSignalsMu.RUnlock()
+	if signals, ok := componentSignals[componentID]; ok {
+		clone := make(map[string]any, len(signals))
+		for k, v := range signals {
+			clone[k] = v
+		}
+		return clone
 	}
 	return nil
 }

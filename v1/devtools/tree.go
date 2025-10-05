@@ -6,12 +6,25 @@ import (
 )
 
 type node struct {
-	ID       int     `json:"id"`
-	Kind     string  `json:"kind"`
-	Name     string  `json:"name"`
-	Time     float64 `json:"time"`
-	Path     string  `json:"path"`
-	Children []*node `json:"children,omitempty"`
+	ID       int            `json:"id"`
+	Kind     string         `json:"kind"`
+	Name     string         `json:"name"`
+	Time     float64        `json:"time"`
+	Path     string         `json:"path"`
+	Owner    string         `json:"owner,omitempty"`
+	Host     string         `json:"hostComponent,omitempty"`
+	Updates  int            `json:"updates,omitempty"`
+	Props    map[string]any `json:"props,omitempty"`
+	Slots    map[string]any `json:"slots,omitempty"`
+	Signals  map[string]any `json:"signals,omitempty"`
+	Store    *storeSnapshot `json:"store,omitempty"`
+	Children []*node        `json:"children,omitempty"`
+}
+
+type storeSnapshot struct {
+	Module string         `json:"module"`
+	Name   string         `json:"name"`
+	State  map[string]any `json:"state,omitempty"`
 }
 
 var (
@@ -21,7 +34,7 @@ var (
 	nextID int
 )
 
-func addComponent(id, kind, name, parentID string) {
+func addComponent(id, kind, name, parentID string) *node {
 	mu.Lock()
 	defer mu.Unlock()
 	n := &node{ID: nextID, Kind: kind, Name: name, Path: "/" + name}
@@ -30,11 +43,13 @@ func addComponent(id, kind, name, parentID string) {
 	if parentID != "" {
 		if p, ok := nodes[parentID]; ok {
 			n.Path = p.Path + "/" + name
+			n.Owner = p.Name
 			p.Children = append(p.Children, n)
-			return
+			return n
 		}
 	}
 	roots = append(roots, n)
+	return n
 }
 
 func removeComponent(id string) {
