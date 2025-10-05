@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rfwlab/rfw/v1/dom"
 	hostclient "github.com/rfwlab/rfw/v1/hostclient"
@@ -58,6 +59,27 @@ type HTMLComponent struct {
 	provides          map[string]any
 	cache             map[string]string
 	lastCacheKey      string
+	metricsMu         sync.Mutex
+	renderCount       int
+	totalRender       time.Duration
+	lastRender        time.Duration
+	timeline          []ComponentTimelineEntry
+}
+
+// ComponentStats contains aggregated render metrics for an HTML component.
+type ComponentStats struct {
+	RenderCount   int
+	TotalRender   time.Duration
+	LastRender    time.Duration
+	AverageRender time.Duration
+	Timeline      []ComponentTimelineEntry
+}
+
+// ComponentTimelineEntry represents a point-in-time event collected for diagnostics.
+type ComponentTimelineEntry struct {
+	Kind      string
+	Timestamp time.Time
+	Duration  time.Duration
 }
 
 func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTMLComponent {
@@ -98,10 +120,13 @@ func (c *HTMLComponent) Init(store *state.Store) {
 }
 
 func (c *HTMLComponent) Render() (renderedTemplate string) {
+	start := time.Now()
+	defer c.recordRender(time.Since(start))
 	key := c.cacheKey()
 	if c.cache != nil {
 		if val, ok := c.cache[key]; ok {
-			return val
+			renderedTemplate = val
+			return
 		}
 		if c.lastCacheKey != "" && c.lastCacheKey != key {
 			delete(c.cache, c.lastCacheKey)
@@ -185,6 +210,55 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	c.cache[key] = renderedTemplate
 	c.lastCacheKey = key
 	return renderedTemplate
+}
+
+const componentTimelineLimit = 64
+
+func (c *HTMLComponent) recordRender(duration time.Duration) {
+	if c == nil {
+		return
+	}
+	c.metricsMu.Lock()
+	c.renderCount++
+	c.totalRender += duration
+	c.lastRender = duration
+	c.appendTimelineLocked(ComponentTimelineEntry{
+		Kind:      "render",
+		Timestamp: time.Now(),
+		Duration:  duration,
+	})
+	c.metricsMu.Unlock()
+}
+
+func (c *HTMLComponent) appendTimelineLocked(entry ComponentTimelineEntry) {
+	if entry.Kind == "" {
+		return
+	}
+	if c.timeline == nil {
+		c.timeline = make([]ComponentTimelineEntry, 0, 8)
+	}
+	c.timeline = append(c.timeline, entry)
+	if len(c.timeline) > componentTimelineLimit {
+		c.timeline = append([]ComponentTimelineEntry(nil), c.timeline[len(c.timeline)-componentTimelineLimit:]...)
+	}
+}
+
+// Stats returns a snapshot of the component's render metrics.
+func (c *HTMLComponent) Stats() ComponentStats {
+	c.metricsMu.Lock()
+	defer c.metricsMu.Unlock()
+	stats := ComponentStats{
+		RenderCount: c.renderCount,
+		TotalRender: c.totalRender,
+		LastRender:  c.lastRender,
+	}
+	if c.renderCount > 0 {
+		stats.AverageRender = c.totalRender / time.Duration(c.renderCount)
+	}
+	if len(c.timeline) > 0 {
+		stats.Timeline = append(stats.Timeline, c.timeline...)
+	}
+	return stats
 }
 
 var (

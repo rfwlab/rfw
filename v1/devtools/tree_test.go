@@ -1,7 +1,9 @@
 package devtools
 
 import (
+	"math"
 	"testing"
+	"time"
 
 	"github.com/rfwlab/rfw/v1/core"
 )
@@ -16,13 +18,18 @@ type mockComponent struct {
 	Store         storeInspector
 	HostComponent string
 	Updates       int
+	stats         core.ComponentStats
 }
 
 func (m *mockComponent) Render() string  { return "" }
 func (m *mockComponent) GetName() string { return m.name }
 func (m *mockComponent) GetID() string   { return m.id }
+func (m *mockComponent) Stats() core.ComponentStats {
+	return m.stats
+}
 
 func TestCaptureTree(t *testing.T) {
+	resetLifecycles()
 	child := &mockComponent{name: "Child", id: "child"}
 	root := &mockComponent{name: "Root", id: "root", Dependencies: map[string]core.Component{"child": child}}
 
@@ -34,6 +41,7 @@ func TestCaptureTree(t *testing.T) {
 }
 
 func TestTreeJSON(t *testing.T) {
+	resetLifecycles()
 	root := &mockComponent{name: "A", id: "a"}
 	captureTree(root)
 	js := treeJSON()
@@ -43,6 +51,7 @@ func TestTreeJSON(t *testing.T) {
 }
 
 func TestCaptureTreeNested(t *testing.T) {
+	resetLifecycles()
 	grand := &mockComponent{name: "Grand", id: "grand"}
 	child := &mockComponent{name: "Child", id: "child", Dependencies: map[string]core.Component{"grand": grand}}
 	root := &mockComponent{name: "Root", id: "root", Dependencies: map[string]core.Component{"child": child}}
@@ -72,6 +81,7 @@ func (s *fakeStore) Module() string { return s.module }
 func (s *fakeStore) Name() string   { return s.name }
 
 func TestCaptureTreeMetadata(t *testing.T) {
+	resetLifecycles()
 	child := &mockComponent{name: "Child", id: "child", Updates: 2}
 	root := &mockComponent{
 		name: "Root",
@@ -128,5 +138,53 @@ func TestCaptureTreeMetadata(t *testing.T) {
 	}
 	if childNode.Updates != 2 {
 		t.Fatalf("expected child updates, got %d", childNode.Updates)
+	}
+}
+
+func TestCaptureTreeStatsAndTimeline(t *testing.T) {
+	resetLifecycles()
+	now := time.Now()
+	appendLifecycle("root", "mount", now)
+	appendLifecycle("root", "unmount", now.Add(15*time.Millisecond))
+	root := &mockComponent{
+		name: "Root",
+		id:   "root",
+		stats: core.ComponentStats{
+			RenderCount:   3,
+			TotalRender:   30 * time.Millisecond,
+			LastRender:    12 * time.Millisecond,
+			AverageRender: 10 * time.Millisecond,
+			Timeline: []core.ComponentTimelineEntry{
+				{Kind: "render", Timestamp: now.Add(5 * time.Millisecond), Duration: 8 * time.Millisecond},
+			},
+		},
+	}
+
+	captureTree(root)
+
+	if len(roots) != 1 {
+		t.Fatalf("expected single root, got %+v", roots)
+	}
+	got := roots[0]
+	if got.Updates != 3 {
+		t.Fatalf("expected render count propagated, got %d", got.Updates)
+	}
+	if math.Abs(got.Average-10) > 0.01 {
+		t.Fatalf("expected average 10ms, got %.2f", got.Average)
+	}
+	if math.Abs(got.Time-12) > 0.01 {
+		t.Fatalf("expected last render 12ms, got %.2f", got.Time)
+	}
+	if math.Abs(got.Total-30) > 0.01 {
+		t.Fatalf("expected total 30ms, got %.2f", got.Total)
+	}
+	if len(got.Timeline) != 3 {
+		t.Fatalf("expected merged timeline, got %+v", got.Timeline)
+	}
+	if got.Timeline[0].Kind != "mount" {
+		t.Fatalf("expected mount first, got %+v", got.Timeline)
+	}
+	if got.Timeline[len(got.Timeline)-1].Kind != "unmount" {
+		t.Fatalf("expected unmount last, got %+v", got.Timeline)
 	}
 }
