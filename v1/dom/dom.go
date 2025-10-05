@@ -65,6 +65,11 @@ func SnapshotComponentSignals(componentID string) map[string]any {
 // custom processing of the rendered HTML.
 var TemplateHook func(componentID, html string)
 
+// StoreBindingHook, when set, is invoked for each @store binding associated with
+// a component. It receives the component identifier along with the store module,
+// store name, and key that are bound in the DOM.
+var StoreBindingHook func(componentID, module, store, key string)
+
 // UpdateDOM patches the DOM of the specified component with the provided
 // HTML string, resolving the target via typed Document/Element wrappers.
 func UpdateDOM(componentID string, html string) {
@@ -98,14 +103,15 @@ func UpdateDOM(componentID string, html string) {
 		TemplateHook(componentID, html)
 	}
 
-	BindStoreInputs(element.Value)
+	BindStoreInputsForComponent(componentID, element.Value)
 	BindSignalInputs(componentID, element.Value)
 
 	BindEventListeners(componentID, element.Value)
 }
 
-// BindStoreInputs binds input elements to store variables.
-func BindStoreInputs(element js.Value) {
+// BindStoreInputsForComponent binds input elements to store variables while
+// providing the component context for runtime hooks.
+func BindStoreInputsForComponent(componentID string, element js.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
@@ -135,6 +141,11 @@ func BindStoreInputs(element js.Value) {
 		if store == nil {
 			continue
 		}
+
+		if StoreBindingHook != nil && componentID != "" {
+			StoreBindingHook(componentID, module, storeName, key)
+		}
+
 		storeValue := store.Get(key)
 
 		if usesChecked {
@@ -160,6 +171,11 @@ func BindStoreInputs(element js.Value) {
 			}
 		}(input, store, key)
 	}
+}
+
+// BindStoreInputs binds input elements to store variables.
+func BindStoreInputs(element js.Value) {
+	BindStoreInputsForComponent("", element)
 }
 
 // BindSignalInputs binds input elements to local component signals.
