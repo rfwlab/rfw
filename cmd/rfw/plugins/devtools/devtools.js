@@ -60,6 +60,12 @@ const markup = `
 .kv{display:grid; grid-template-columns:160px 1fr; gap:8px 12px; padding:12px}
 .kv div{padding:6px 8px; background:var(--tile-bg); border:1px solid var(--tile-border); border-radius:10px; overflow:auto}
 .kv b{color:var(--rose-200)}
+.store-bindings{display:flex; flex-direction:column; gap:6px}
+.store-binding{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.store-badge{padding:2px 8px; border-radius:999px; border:1px solid var(--tile-border); background:var(--tile-bg); color:var(--rose-200)}
+.store-keys{display:flex; flex-wrap:wrap; gap:6px}
+.store-key{padding:2px 6px; border-radius:6px; border:1px solid var(--tile-border); background:var(--bg-2); font-size:12px; color:var(--rose-100)}
+.store-key.muted{opacity:.65}
 
 .mono{font-variant-numeric:tabular-nums}
 .timeline{display:flex; flex-direction:column; gap:6px; font-variant-numeric:tabular-nums}
@@ -416,6 +422,10 @@ function renderTree(list, root = true) {
     if (typeof node.updates === "number" && node.updates > 0) {
       metrics.push(`${node.updates}×`);
     }
+    if (Array.isArray(node.storeBindings) && node.storeBindings.length) {
+      const total = node.storeBindings.length;
+      metrics.push(`${total} store${total > 1 ? "s" : ""}`);
+    }
     const meta = metrics.length
       ? `<span class="meta">${metrics
           .map((txt) => `<span>${escapeHTML(txt)}</span>`)
@@ -472,6 +482,9 @@ function selectNode(n) {
       rows.push(renderJSONRow("Store state", n.store.state));
     }
   }
+  if (Array.isArray(n.storeBindings) && n.storeBindings.length) {
+    rows.push(renderStoreBindingsRow("Store bindings", n.storeBindings));
+  }
   if (Array.isArray(n.timeline) && n.timeline.length)
     rows.push(renderTimelineRow("Timeline", n.timeline));
   detailKV.innerHTML = rows.join("") || renderRow("Info", "No metadata available");
@@ -507,6 +520,25 @@ function renderTimelineRow(label, events) {
     })
     .join("");
   return `<b>${escapeHTML(label)}</b><div class="timeline">${items}</div>`;
+}
+
+function renderStoreBindingsRow(label, bindings) {
+  const items = bindings
+    .map((binding) => {
+      const storeLabel = [binding.module, binding.name]
+        .filter(Boolean)
+        .join("/") || "-";
+      const keys = Array.isArray(binding.keys) && binding.keys.length
+        ? binding.keys
+            .map((key) => `<span class="store-key">${escapeHTML(key)}</span>`)
+            .join("")
+        : '<span class="store-key muted">(all keys)</span>';
+      return `<div class="store-binding"><span class="store-badge">${escapeHTML(
+        storeLabel,
+      )}</span><div class="store-keys">${keys}</div></div>`;
+    })
+    .join("");
+  return `<b>${escapeHTML(label)}</b><div class="store-bindings">${items}</div>`;
 }
 
 function formatJSON(value) {

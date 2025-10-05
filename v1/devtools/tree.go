@@ -6,22 +6,23 @@ import (
 )
 
 type node struct {
-	ID       int             `json:"id"`
-	Kind     string          `json:"kind"`
-	Name     string          `json:"name"`
-	Time     float64         `json:"time"`
-	Average  float64         `json:"average,omitempty"`
-	Total    float64         `json:"total,omitempty"`
-	Path     string          `json:"path"`
-	Owner    string          `json:"owner,omitempty"`
-	Host     string          `json:"hostComponent,omitempty"`
-	Updates  int             `json:"updates,omitempty"`
-	Props    map[string]any  `json:"props,omitempty"`
-	Slots    map[string]any  `json:"slots,omitempty"`
-	Signals  map[string]any  `json:"signals,omitempty"`
-	Store    *storeSnapshot  `json:"store,omitempty"`
-	Children []*node         `json:"children,omitempty"`
-	Timeline []timelineEntry `json:"timeline,omitempty"`
+	ID            int             `json:"id"`
+	Kind          string          `json:"kind"`
+	Name          string          `json:"name"`
+	Time          float64         `json:"time"`
+	Average       float64         `json:"average,omitempty"`
+	Total         float64         `json:"total,omitempty"`
+	Path          string          `json:"path"`
+	Owner         string          `json:"owner,omitempty"`
+	Host          string          `json:"hostComponent,omitempty"`
+	Updates       int             `json:"updates,omitempty"`
+	Props         map[string]any  `json:"props,omitempty"`
+	Slots         map[string]any  `json:"slots,omitempty"`
+	Signals       map[string]any  `json:"signals,omitempty"`
+	StoreBindings []storeBinding  `json:"storeBindings,omitempty"`
+	Store         *storeSnapshot  `json:"store,omitempty"`
+	Children      []*node         `json:"children,omitempty"`
+	Timeline      []timelineEntry `json:"timeline,omitempty"`
 }
 
 type timelineEntry struct {
