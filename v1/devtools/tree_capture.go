@@ -144,6 +144,7 @@ func populateMetadata(n *node, c core.Component) {
 			n.Signals = m
 		}
 	}
+	applyStoreBindings(n, c.GetID())
 }
 
 type statsProvider interface {
@@ -205,6 +206,15 @@ func applyStats(n *node, id string, stats core.ComponentStats) {
 	timeline := combineTimelines(stats.Timeline, snapshotLifecycle(id))
 	if len(timeline) > 0 {
 		n.Timeline = timeline
+	}
+}
+
+func applyStoreBindings(n *node, componentID string) {
+	if n == nil || componentID == "" {
+		return
+	}
+	if bindings := snapshotStoreBindings(componentID); len(bindings) > 0 {
+		n.StoreBindings = bindings
 	}
 }
 

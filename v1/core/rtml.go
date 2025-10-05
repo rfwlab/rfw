@@ -1055,7 +1055,7 @@ func updateForeachBindings(c *HTMLComponent, foreachID string) {
 	cfg := c.foreachContents[foreachID]
 	newContent := renderForeachLoop(c, cfg.Expr, cfg.ItemAlias, cfg.Content)
 	node.Set("innerHTML", newContent)
-	dom.BindStoreInputs(node)
+	dom.BindStoreInputsForComponent(c.ID, node)
 	dom.BindSignalInputs(c.ID, node)
 }
 
@@ -1095,7 +1095,7 @@ func updateConditionBindings(c *HTMLComponent, conditionID string) {
 
 	node.Set("innerHTML", newContent)
 
-	dom.BindStoreInputs(node)
+	dom.BindStoreInputsForComponent(c.ID, node)
 	dom.BindSignalInputs(c.ID, node)
 }
 
