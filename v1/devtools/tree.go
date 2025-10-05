@@ -6,19 +6,28 @@ import (
 )
 
 type node struct {
-	ID       int            `json:"id"`
-	Kind     string         `json:"kind"`
-	Name     string         `json:"name"`
-	Time     float64        `json:"time"`
-	Path     string         `json:"path"`
-	Owner    string         `json:"owner,omitempty"`
-	Host     string         `json:"hostComponent,omitempty"`
-	Updates  int            `json:"updates,omitempty"`
-	Props    map[string]any `json:"props,omitempty"`
-	Slots    map[string]any `json:"slots,omitempty"`
-	Signals  map[string]any `json:"signals,omitempty"`
-	Store    *storeSnapshot `json:"store,omitempty"`
-	Children []*node        `json:"children,omitempty"`
+	ID       int             `json:"id"`
+	Kind     string          `json:"kind"`
+	Name     string          `json:"name"`
+	Time     float64         `json:"time"`
+	Average  float64         `json:"average,omitempty"`
+	Total    float64         `json:"total,omitempty"`
+	Path     string          `json:"path"`
+	Owner    string          `json:"owner,omitempty"`
+	Host     string          `json:"hostComponent,omitempty"`
+	Updates  int             `json:"updates,omitempty"`
+	Props    map[string]any  `json:"props,omitempty"`
+	Slots    map[string]any  `json:"slots,omitempty"`
+	Signals  map[string]any  `json:"signals,omitempty"`
+	Store    *storeSnapshot  `json:"store,omitempty"`
+	Children []*node         `json:"children,omitempty"`
+	Timeline []timelineEntry `json:"timeline,omitempty"`
+}
+
+type timelineEntry struct {
+	Kind     string  `json:"kind"`
+	At       int64   `json:"at"`
+	Duration float64 `json:"duration,omitempty"`
 }
 
 type storeSnapshot struct {
@@ -64,6 +73,7 @@ func removeComponent(id string) {
 			if ch == n {
 				p.Children = append(p.Children[:i], p.Children[i+1:]...)
 				delete(nodes, id)
+				dropLifecycle(id)
 				return
 			}
 		}
@@ -75,6 +85,7 @@ func removeComponent(id string) {
 		}
 	}
 	delete(nodes, id)
+	dropLifecycle(id)
 }
 
 func resetTree() {
