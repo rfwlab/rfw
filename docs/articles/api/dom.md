@@ -32,4 +32,5 @@ Low level DOM helpers used by the framework. Most applications interact with the
 | `BindSignalInputs(id, el)` | Binds inputs to local `@signal` directives. |
 | `(Element).On(event, handler)` | Attaches an event listener and returns a stop function. |
 | `(Element).OnClick(handler)` | Convenience wrapper for click events. |
+| `SnapshotComponentSignals(id)` | Copy of signals registered for a component. |
 
