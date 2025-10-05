@@ -27,7 +27,6 @@ func NewRuntimeErrorComponent() *core.HTMLComponent {
 		panicFn = js.FuncOf(func(this js.Value, args []js.Value) any {
 			panicFn.Release()
 			panic("example panic")
-			return nil
 		})
 		js.Window().Call("setTimeout", panicFn, 100)
 	})
