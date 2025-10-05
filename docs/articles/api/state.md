@@ -13,6 +13,9 @@ Centralized reactive data stores.
 | `Map2(store, key, depA, depB, fn)` | Map two keys into a derived value. |
 | `RegisterWatcher(w)` | Run a callback after changes and return a cleanup function. |
 | `StoreManager.Snapshot()` | Deep copy of all stores and their current state. |
+| `(Store).Module()` | Current module namespace for the store. |
+| `(Store).Name()` | Store identifier within its module. |
+| `(Store).Snapshot()` | Copy of the store's current key/value state. |
 | `StoreManager.UnregisterStore(module, name)` | Remove a store from the manager. |
 | `WithHistory(limit)` | Enable mutation history for `Undo`/`Redo` up to `limit` steps. |
 | `Undo()` | Revert the last mutation when history is enabled. |

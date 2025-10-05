@@ -427,14 +427,28 @@ function selectNode(n) {
   if (!detailTitle || !detailKind || !detailKV) return;
   detailTitle.textContent = n.name;
   detailKind.textContent = n.kind;
-  detailKV.innerHTML = `
-    <b>Path</b><div>${n.path || ""}</div>
-    <b>Props</b><div>${escapeHTML(JSON.stringify(n.props || {}))}</div>
-    <b>Signals</b><div>${escapeHTML(JSON.stringify(n.signals || {}))}</div>
-    <b>Render time</b><div>${(n.time || 0).toFixed(2)} ms</div>
-    <b>Updates</b><div>${n.updates || 0}</div>
-    <b>Owner</b><div>${n.owner || ""}</div>
-  `;
+  const rows = [];
+  rows.push(renderRow("Path", n.path || ""));
+  rows.push(renderRow("Render time", `${(n.time || 0).toFixed(2)} ms`));
+  if (n.owner) rows.push(renderRow("Owner", n.owner));
+  if (n.hostComponent) rows.push(renderRow("Host component", n.hostComponent));
+  if (typeof n.updates === "number") rows.push(renderRow("Updates", String(n.updates)));
+  if (n.props && Object.keys(n.props).length)
+    rows.push(renderJSONRow("Props", n.props));
+  if (n.slots && Object.keys(n.slots).length)
+    rows.push(renderJSONRow("Slots", n.slots));
+  if (n.signals && Object.keys(n.signals).length)
+    rows.push(renderJSONRow("Signals", n.signals));
+  if (n.store) {
+    const storeLabel = [n.store.module, n.store.name]
+      .filter(Boolean)
+      .join("/") || "-";
+    rows.push(renderRow("Store", storeLabel));
+    if (n.store.state && Object.keys(n.store.state).length) {
+      rows.push(renderJSONRow("Store state", n.store.state));
+    }
+  }
+  detailKV.innerHTML = rows.join("") || renderRow("Info", "No metadata available");
 }
 
 function escapeHTML(s) {
@@ -445,6 +459,24 @@ function escapeHTML(s) {
         m
       ],
   );
+}
+
+function formatJSON(value) {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (err) {
+    return String(value);
+  }
+}
+
+function renderRow(label, value, isMono = false) {
+  const content = escapeHTML(value == null ? "" : value);
+  const cls = isMono ? " class=\"mono\" style=\"white-space:pre-wrap\"" : "";
+  return `<b>${escapeHTML(label)}</b><div${cls}>${content}</div>`;
+}
+
+function renderJSONRow(label, value) {
+  return renderRow(label, formatJSON(value), true);
 }
 
 $("#treeFilter")?.addEventListener("input", (e) => {
