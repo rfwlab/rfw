@@ -39,8 +39,8 @@ func NewPathfindingComponent() *core.HTMLComponent {
 				{0, 1, 0, 0, 0},
 				{0, 1, 0, 1, 0},
 			}
-			start := m.Vec2{0, 0}
-			goal := m.Vec2{4, 4}
+			start := m.Vec2{X: 0, Y: 0}
+			goal := m.Vec2{X: 4, Y: 4}
 
 			ctx := context.Background()
 			id, ch := pf.RequestGridPath(ctx, grid, start, goal)

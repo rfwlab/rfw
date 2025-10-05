@@ -277,7 +277,7 @@ func drawSquare(n *scene.Node, color [4]float32) {
 	x := -1 + cellSize*float32(n.Transform.X) + cellSize/2
 	y := -1 + cellSize*float32(n.Transform.Y) + cellSize/2
 
-	model := m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize * 1.4, cellSize * 1.4, 1}))
+	model := m.Translation(m.Vec3{X: x, Y: y, Z: 0}).Mul(m.Scale(m.Vec3{X: cellSize * 1.4, Y: cellSize * 1.4, Z: 1}))
 	mvp := proj.Mul(model)
 	arr := js.Float32Array().New(len(mvp))
 	for i, v := range mvp {
@@ -287,7 +287,7 @@ func drawSquare(n *scene.Node, color [4]float32) {
 	ctx.Uniform4f(colorLoc, color[0], color[1], color[2], color[3]*0.3)
 	ctx.DrawElements(webgl.TRIANGLES, 6, webgl.UNSIGNED_SHORT, 0)
 
-	model = m.Translation(m.Vec3{x, y, 0}).Mul(m.Scale(m.Vec3{cellSize, cellSize, 1}))
+	model = m.Translation(m.Vec3{X: x, Y: y, Z: 0}).Mul(m.Scale(m.Vec3{X: cellSize, Y: cellSize, Z: 1}))
 	mvp = proj.Mul(model)
 	arr = js.Float32Array().New(len(mvp))
 	for i, v := range mvp {

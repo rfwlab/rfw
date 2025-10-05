@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/url"
 
-	rfwenv "github.com/rfwlab/rfw/docs/rfwenv"
+	"github.com/rfwlab/rfw/docs/rfwenv"
 	core "github.com/rfwlab/rfw/v1/core"
 )
 
