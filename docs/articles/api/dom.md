@@ -29,6 +29,7 @@ Low level DOM helpers used by the framework. Most applications interact with the
 | `UpdateDOM(id, html)` | Patches a component's DOM with raw HTML. |
 | `TemplateHook` | Callback invoked after `UpdateDOM`. |
 | `BindStoreInputs(el)` | Binds inputs to `@store` directives. |
+| `BindStoreInputsForComponent(id, el)` | Binds `@store` directives while reporting the component context. |
 | `BindSignalInputs(id, el)` | Binds inputs to local `@signal` directives. |
 | `(Element).On(event, handler)` | Attaches an event listener and returns a stop function. |
 | `(Element).OnClick(handler)` | Convenience wrapper for click events. |

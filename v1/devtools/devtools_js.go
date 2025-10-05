@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/http"
 	"github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/state"
@@ -23,6 +24,8 @@ var (
 
 func (plugin) Build(json.RawMessage) error { return nil }
 func (plugin) Install(a *core.App) {
+	resetStoreUsage()
+	dom.StoreBindingHook = recordStoreBinding
 	a.RegisterLifecycle(func(c core.Component) {
 		appendLifecycle(c.GetID(), "mount", time.Now())
 		if root == nil {
@@ -46,6 +49,7 @@ func (plugin) Install(a *core.App) {
 			}
 		}
 		dropLifecycle(c.GetID())
+		dropStoreBindings(c.GetID())
 	})
 	a.RegisterRouter(func(_ string) {
 		if root != nil {

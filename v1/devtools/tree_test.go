@@ -82,6 +82,8 @@ func (s *fakeStore) Name() string   { return s.name }
 
 func TestCaptureTreeMetadata(t *testing.T) {
 	resetLifecycles()
+	resetStoreUsage()
+	t.Cleanup(resetStoreUsage)
 	child := &mockComponent{name: "Child", id: "child", Updates: 2}
 	root := &mockComponent{
 		name: "Root",
@@ -104,6 +106,10 @@ func TestCaptureTreeMetadata(t *testing.T) {
 		HostComponent: "Widget",
 		Updates:       5,
 	}
+
+	recordStoreBinding("root", "app", "main", "count")
+	recordStoreBinding("root", "app", "main", "title")
+	recordStoreBinding("child", "app", "child", "ready")
 
 	captureTree(root)
 
@@ -138,6 +144,47 @@ func TestCaptureTreeMetadata(t *testing.T) {
 	}
 	if childNode.Updates != 2 {
 		t.Fatalf("expected child updates, got %d", childNode.Updates)
+	}
+	if len(gotRoot.StoreBindings) != 1 {
+		t.Fatalf("expected single store binding for root, got %+v", gotRoot.StoreBindings)
+	}
+	rootBinding := gotRoot.StoreBindings[0]
+	if rootBinding.Module != "app" || rootBinding.Name != "main" {
+		t.Fatalf("unexpected root binding metadata: %+v", rootBinding)
+	}
+	if len(rootBinding.Keys) != 2 || rootBinding.Keys[0] != "count" || rootBinding.Keys[1] != "title" {
+		t.Fatalf("unexpected root binding keys: %+v", rootBinding.Keys)
+	}
+	if len(childNode.StoreBindings) != 1 {
+		t.Fatalf("expected child binding, got %+v", childNode.StoreBindings)
+	}
+	if childNode.StoreBindings[0].Keys[0] != "ready" {
+		t.Fatalf("unexpected child binding keys: %+v", childNode.StoreBindings[0].Keys)
+	}
+}
+
+func TestStoreBindingSnapshot(t *testing.T) {
+	resetStoreUsage()
+	recordStoreBinding("cmp", "app", "main", "count")
+	recordStoreBinding("cmp", "app", "main", "count")
+	recordStoreBinding("cmp", "app", "main", "title")
+	recordStoreBinding("cmp", "admin", "users", "list")
+	got := snapshotStoreBindings("cmp")
+	if len(got) != 2 {
+		t.Fatalf("expected two store bindings, got %+v", got)
+	}
+	if got[0].Module != "admin" || got[0].Name != "users" {
+		t.Fatalf("unexpected ordering: %+v", got)
+	}
+	if len(got[0].Keys) != 1 || got[0].Keys[0] != "list" {
+		t.Fatalf("unexpected admin keys: %+v", got[0].Keys)
+	}
+	if len(got[1].Keys) != 2 || got[1].Keys[0] != "count" || got[1].Keys[1] != "title" {
+		t.Fatalf("unexpected app keys: %+v", got[1].Keys)
+	}
+	dropStoreBindings("cmp")
+	if bindings := snapshotStoreBindings("cmp"); bindings != nil {
+		t.Fatalf("expected bindings cleared, got %+v", bindings)
 	}
 }
 
