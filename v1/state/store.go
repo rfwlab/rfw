@@ -145,6 +145,21 @@ func (sm *StoreManager) Snapshot() map[string]map[string]map[string]any {
 	return snap
 }
 
+// Module reports the module namespace of the store.
+func (s *Store) Module() string { return s.module }
+
+// Name returns the store name within its module namespace.
+func (s *Store) Name() string { return s.name }
+
+// Snapshot copies the current state of the store.
+func (s *Store) Snapshot() map[string]any {
+	snap := make(map[string]any, len(s.state))
+	for k, v := range s.state {
+		snap[k] = v
+	}
+	return snap
+}
+
 func (s *Store) storageKey() string { return s.module + ":" + s.name }
 
 func (s *Store) Set(key string, value any) {
