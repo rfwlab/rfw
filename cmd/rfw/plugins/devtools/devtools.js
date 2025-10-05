@@ -52,7 +52,8 @@ const markup = `
 .node:hover{background:var(--tile-hover)}
 .node .kind{font-size:11px; color:var(--accent-2); padding:2px 6px; border:1px solid var(--border-2); border-radius:999px; background:var(--tile-bg)}
 .node .name{font-weight:600}
-.node .time{margin-left:auto; font-variant-numeric:tabular-nums; color:var(--rose-300)}
+.node .meta{margin-left:auto; display:flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums; color:var(--rose-300)}
+.node .meta span{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; border:1px solid var(--tile-border); background:var(--tile-bg)}
 
 .rfw-detail{flex:1;background:var(--chip-bg);display:flex;flex-direction:column}
 .rfw-detail .rfw-subheader{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
@@ -61,6 +62,10 @@ const markup = `
 .kv b{color:var(--rose-200)}
 
 .mono{font-variant-numeric:tabular-nums}
+.timeline{display:flex; flex-direction:column; gap:6px; font-variant-numeric:tabular-nums}
+.timeline-item{display:flex; align-items:center; gap:8px}
+.timeline-item .mono{background:var(--tile-bg); border:1px solid var(--tile-border); padding:2px 6px; border-radius:6px}
+.timeline-item .duration{opacity:.75}
 
 /* Network panel */
 .net-list{flex:1; overflow:auto; padding:8px}
@@ -402,10 +407,24 @@ function renderTree(list, root = true) {
     const el = document.createElement("div");
     el.className = "node";
     el.dataset.id = node.id;
+    const metrics = [];
+    if (typeof node.average === "number" && Number.isFinite(node.average)) {
+      metrics.push(`${node.average.toFixed(1)} ms avg`);
+    } else if (typeof node.time === "number" && Number.isFinite(node.time)) {
+      metrics.push(`${node.time.toFixed(1)} ms`);
+    }
+    if (typeof node.updates === "number" && node.updates > 0) {
+      metrics.push(`${node.updates}×`);
+    }
+    const meta = metrics.length
+      ? `<span class="meta">${metrics
+          .map((txt) => `<span>${escapeHTML(txt)}</span>`)
+          .join("")}</span>`
+      : "";
     el.innerHTML = `
-      <span class="kind">${node.kind}</span>
-      <span class="name">${node.name}</span>
-      <span class="time">${(node.time || 0).toFixed(1)} ms</span>
+      <span class="kind">${escapeHTML(node.kind || "")}</span>
+      <span class="name">${escapeHTML(node.name || "")}</span>
+      ${meta}
     `;
     el.addEventListener("click", () => selectNode(node));
     frag.appendChild(el);
@@ -429,10 +448,15 @@ function selectNode(n) {
   detailKind.textContent = n.kind;
   const rows = [];
   rows.push(renderRow("Path", n.path || ""));
-  rows.push(renderRow("Render time", `${(n.time || 0).toFixed(2)} ms`));
+  if (typeof n.updates === "number") rows.push(renderRow("Updates", String(n.updates)));
+  if (typeof n.average === "number" && Number.isFinite(n.average))
+    rows.push(renderRow("Average render", formatMs(n.average)));
+  if (typeof n.time === "number" && Number.isFinite(n.time))
+    rows.push(renderRow("Last render", formatMs(n.time)));
+  if (typeof n.total === "number" && Number.isFinite(n.total))
+    rows.push(renderRow("Total render", formatMs(n.total)));
   if (n.owner) rows.push(renderRow("Owner", n.owner));
   if (n.hostComponent) rows.push(renderRow("Host component", n.hostComponent));
-  if (typeof n.updates === "number") rows.push(renderRow("Updates", String(n.updates)));
   if (n.props && Object.keys(n.props).length)
     rows.push(renderJSONRow("Props", n.props));
   if (n.slots && Object.keys(n.slots).length)
@@ -448,6 +472,8 @@ function selectNode(n) {
       rows.push(renderJSONRow("Store state", n.store.state));
     }
   }
+  if (Array.isArray(n.timeline) && n.timeline.length)
+    rows.push(renderTimelineRow("Timeline", n.timeline));
   detailKV.innerHTML = rows.join("") || renderRow("Info", "No metadata available");
 }
 
@@ -459,6 +485,28 @@ function escapeHTML(s) {
         m
       ],
   );
+}
+
+function formatMs(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "0.00 ms";
+  const digits = value >= 100 ? 0 : 2;
+  return `${value.toFixed(digits)} ms`;
+}
+
+function renderTimelineRow(label, events) {
+  const items = events
+    .map((ev) => {
+      const offset = formatMs(ev.at ?? 0);
+      const duration =
+        typeof ev.duration === "number" && ev.duration > 0
+          ? `<span class="mono duration">${formatMs(ev.duration)}</span>`
+          : "";
+      return `<div class="timeline-item"><span class="mono">${offset}</span><span>${escapeHTML(
+        ev.kind || "",
+      )}</span>${duration}</div>`;
+    })
+    .join("");
+  return `<b>${escapeHTML(label)}</b><div class="timeline">${items}</div>`;
 }
 
 function formatJSON(value) {
@@ -501,6 +549,27 @@ function countNodes(list) {
   return total;
 }
 
+function aggregateRenderAverage(list) {
+  let total = 0;
+  let count = 0;
+  const walk = (nodes) => {
+    nodes.forEach((n) => {
+      if (
+        typeof n.total === "number" &&
+        typeof n.updates === "number" &&
+        n.updates > 0
+      ) {
+        total += n.total;
+        count += n.updates;
+      }
+      if (Array.isArray(n.children) && n.children.length) walk(n.children);
+    });
+  };
+  walk(list);
+  if (!count) return null;
+  return total / count;
+}
+
 function refreshTree() {
   try {
     if (typeof globalThis.RFW_DEVTOOLS_TREE === "function") {
@@ -508,12 +577,17 @@ function refreshTree() {
       renderTree(data);
       const k = $("#kpiNodes");
       if (k) k.textContent = String(countNodes(data));
+      const avg = aggregateRenderAverage(data);
+      const r = $("#kpiRender");
+      if (r) r.textContent = avg == null ? "n/a" : formatMs(avg);
       return;
     }
   } catch {}
   if (treeContainer) treeContainer.textContent = "";
   const k = $("#kpiNodes");
   if (k) k.textContent = "0";
+  const r = $("#kpiRender");
+  if (r) r.textContent = "n/a";
 }
 
 let fpsSample = 0,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"time"
 
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/dom"
@@ -121,6 +122,9 @@ func populateMetadata(n *node, c core.Component) {
 	if updates := extractInt(v, "Updates"); updates > 0 {
 		n.Updates = updates
 	}
+	if stats, ok := statsFromComponent(c); ok {
+		applyStats(n, c.GetID(), stats)
+	}
 	if owner := extractString(v, "Owner"); owner != "" {
 		n.Owner = owner
 	}
@@ -140,6 +144,123 @@ func populateMetadata(n *node, c core.Component) {
 			n.Signals = m
 		}
 	}
+}
+
+type statsProvider interface {
+	Stats() core.ComponentStats
+}
+
+func statsFromComponent(c core.Component) (core.ComponentStats, bool) {
+	if c == nil {
+		return core.ComponentStats{}, false
+	}
+	if provider, ok := any(c).(statsProvider); ok {
+		return provider.Stats(), true
+	}
+	if html := unwrapHTMLComponentValue(c); html.IsValid() {
+		return statsFromValue(html)
+	}
+	return core.ComponentStats{}, false
+}
+
+func statsFromValue(v reflect.Value) (core.ComponentStats, bool) {
+	if !v.IsValid() {
+		return core.ComponentStats{}, false
+	}
+	if v.Kind() == reflect.Pointer && v.IsNil() {
+		return core.ComponentStats{}, false
+	}
+	if v.Kind() != reflect.Pointer {
+		if v.CanAddr() {
+			v = v.Addr()
+		} else {
+			return core.ComponentStats{}, false
+		}
+	}
+	if !v.CanInterface() {
+		return core.ComponentStats{}, false
+	}
+	if provider, ok := v.Interface().(statsProvider); ok {
+		return provider.Stats(), true
+	}
+	return core.ComponentStats{}, false
+}
+
+func applyStats(n *node, id string, stats core.ComponentStats) {
+	if n == nil {
+		return
+	}
+	if stats.LastRender > 0 {
+		n.Time = durationToMillis(stats.LastRender)
+	}
+	if stats.AverageRender > 0 {
+		n.Average = durationToMillis(stats.AverageRender)
+	}
+	if stats.TotalRender > 0 {
+		n.Total = durationToMillis(stats.TotalRender)
+	}
+	if stats.RenderCount > n.Updates {
+		n.Updates = stats.RenderCount
+	}
+	timeline := combineTimelines(stats.Timeline, snapshotLifecycle(id))
+	if len(timeline) > 0 {
+		n.Timeline = timeline
+	}
+}
+
+func durationToMillis(d time.Duration) float64 {
+	if d <= 0 {
+		return 0
+	}
+	return float64(d) / float64(time.Millisecond)
+}
+
+func combineTimelines(render []core.ComponentTimelineEntry, lifecycle []lifecycleEvent) []timelineEntry {
+	total := len(render) + len(lifecycle)
+	if total == 0 {
+		return nil
+	}
+	merged := make([]timelineEntry, 0, total)
+	for _, ev := range render {
+		if ev.Kind == "" {
+			continue
+		}
+		at := ev.Timestamp.UnixNano() / int64(time.Millisecond)
+		merged = append(merged, timelineEntry{
+			Kind:     ev.Kind,
+			At:       at,
+			Duration: durationToMillis(ev.Duration),
+		})
+	}
+	for _, ev := range lifecycle {
+		if ev.Kind == "" {
+			continue
+		}
+		merged = append(merged, timelineEntry{
+			Kind: ev.Kind,
+			At:   ev.At.UnixNano() / int64(time.Millisecond),
+		})
+	}
+	if len(merged) == 0 {
+		return nil
+	}
+	sort.SliceStable(merged, func(i, j int) bool {
+		if merged[i].At == merged[j].At {
+			if merged[i].Duration == merged[j].Duration {
+				return merged[i].Kind < merged[j].Kind
+			}
+			return merged[i].Duration < merged[j].Duration
+		}
+		return merged[i].At < merged[j].At
+	})
+	base := merged[0].At
+	for i := range merged {
+		merged[i].At -= base
+		if merged[i].At < 0 {
+			merged[i].At = 0
+		}
+	}
+	return merged
 }
 
 func assignMaps(n *node, v reflect.Value) {
