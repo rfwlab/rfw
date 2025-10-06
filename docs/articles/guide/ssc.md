@@ -129,7 +129,6 @@ func main() {
 
 **Avoid mismatches:** ensure the data that renders on the server is consistent with what the client expects on first paint (e.g., avoid random values and time‑zone‑dependent formatting during initial render). If divergence is unavoidable, render those parts client‑only after mount.
 
-> Hydration mismatch behavior / auto‑recovery details are **not specified in documentation**.
 
 ---
 

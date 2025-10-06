@@ -82,8 +82,19 @@ func wsHandler(ws *websocket.Conn) {
 			connMu.Unlock()
 			resp := hc.HandleWithSession(session, msg.Payload)
 			if resp != nil {
-				sendToConn(ws, outbound{Component: msg.Component, Payload: resp, Session: session.ID()})
-				continue
+				switch v := resp.(type) {
+				case *InitSnapshot:
+					if v != nil {
+						sendToConn(ws, outbound{Component: msg.Component, Payload: map[string]any{"initSnapshot": v}, Session: session.ID()})
+					}
+					continue
+				case InitSnapshot:
+					sendToConn(ws, outbound{Component: msg.Component, Payload: map[string]any{"initSnapshot": v}, Session: session.ID()})
+					continue
+				default:
+					sendToConn(ws, outbound{Component: msg.Component, Payload: resp, Session: session.ID()})
+					continue
+				}
 			}
 			if msg.Payload != nil && msg.Payload["init"] == true {
 				sendToConn(ws, outbound{
