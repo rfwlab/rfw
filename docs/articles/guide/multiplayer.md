@@ -36,6 +36,7 @@ Use `netcode` when multiple clients interact with shared state that must remain 
 
 * `netcode.NewServer(name, initial, apply)`
 * `(*Server).Broadcast(tick)`
+* `(*Server).Update(func(*State))`
 * `netcode.NewClient[T](name, decode, interp)`
 * `(*Client).Enqueue(cmd)`
 * `(*Client).Flush(tick)`
@@ -72,6 +73,10 @@ c.Enqueue(map[string]any{"dx": 5.0})
 ```
 
 @include\:ExampleFrame:{code:"/examples/components/netcode\_component.go", uri:"/examples/netcode"}
+
+The following game demonstrates the use of the netcode component:
+
+@include\:ExampleFrame:{code:"/examples/components/multiplayer\_component.go", uri:"/examples/multiplayer"}
 
 ## Debugging
 

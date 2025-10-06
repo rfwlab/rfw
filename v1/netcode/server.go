@@ -47,3 +47,15 @@ func (s *Server[T]) Broadcast(tick int64) {
 	s.mu.Unlock()
 	host.Broadcast(s.name, map[string]any{"tick": tick, "state": state})
 }
+
+// Update acquires the server lock and invokes fn with the current state.
+// It can be used to apply deterministic updates outside of command handlers,
+// such as running fixed-step simulation loops before broadcasting snapshots.
+func (s *Server[T]) Update(fn func(*T)) {
+	if fn == nil {
+		return
+	}
+	s.mu.Lock()
+	fn(&s.state)
+	s.mu.Unlock()
+}

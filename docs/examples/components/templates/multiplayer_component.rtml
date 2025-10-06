@@ -1,0 +1,32 @@
+<div class="space-y-6">
+    <div class="space-y-1">
+        <h2 class="text-2xl font-semibold">Multiplayer Arena</h2>
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+            Use <span class="font-semibold">WASD</span> or the arrow keys to move and press
+            <span class="font-semibold">SPACE</span> to shoot. Each hit on an opponent reduces their lives:
+            after three hits it’s <span class="font-semibold">game over</span>.
+        </p>
+    </div>
+    <div class="flex flex-col items-center gap-4">
+        <canvas
+            id="mp-canvas"
+            class="w-full max-w-3xl rounded-xl border border-slate-700 bg-slate-900 shadow-lg"
+            width="800"
+            height="520"
+        ></canvas>
+    </div>
+    <div class="grid gap-6 md:grid-cols-2">
+        <div>
+            <h3 class="text-lg font-semibold">Players</h3>
+            <div id="mp-lives" class="mt-3 text-sm text-slate-100"></div>
+        </div>
+        <div>
+            <h3 class="text-lg font-semibold">Game Status</h3>
+            <p id="mp-status" class="mt-3 text-sm text-amber-200"></p>
+            <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                The last player standing wins. Shots are white spheres: dodge your opponents’ and strike at
+                the right moment!
+            </p>
+        </div>
+    </div>
+</div>
