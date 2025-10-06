@@ -28,6 +28,9 @@ var (
 	pending  []message
 	handlers = map[string]func(map[string]any){}
 	debug    bool
+
+	sessionMu sync.RWMutex
+	sessionID string
 )
 
 type message struct {
@@ -124,6 +127,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 		var msg struct {
 			Component string         `json:"component"`
 			Payload   map[string]any `json:"payload"`
+			Session   string         `json:"session"`
 		}
 		if err := wsjson.Read(ctx, c, &msg); err != nil {
 			return err
@@ -131,8 +135,20 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 		if debug {
 			log.Printf("hostclient: recv %s %v", msg.Component, msg.Payload)
 		}
+		if msg.Session != "" {
+			sessionMu.Lock()
+			sessionID = msg.Session
+			sessionMu.Unlock()
+		}
 		if h, ok := handlers[msg.Component]; ok {
-			h(msg.Payload)
+			payload := msg.Payload
+			if payload == nil {
+				payload = make(map[string]any)
+			}
+			if msg.Session != "" {
+				payload["_session"] = msg.Session
+			}
+			h(payload)
 			continue
 		}
 		if b, ok := bindings[msg.Component]; ok {
@@ -179,6 +195,13 @@ func RegisterHandler(name string, h func(map[string]any)) {
 	mu.Unlock()
 	connect()
 	Send(name, map[string]any{"init": true})
+}
+
+// SessionID returns the current WebSocket session identifier assigned by the host.
+func SessionID() string {
+	sessionMu.RLock()
+	defer sessionMu.RUnlock()
+	return sessionID
 }
 
 func sendMessage(c *websocket.Conn, msg message) {

@@ -24,6 +24,33 @@ func TestHostComponent(t *testing.T) {
 	}
 }
 
+func TestHostComponentWithSession(t *testing.T) {
+	hc := NewHostComponentWithSession("withSession", func(session *Session, payload map[string]any) any {
+		if session == nil {
+			t.Fatalf("session should not be nil")
+		}
+		store := session.StoreManager().NewStore("test")
+		store.Set("value", payload["v"])
+		return store.Snapshot()
+	})
+
+	sess := newSession("abc")
+	resp := hc.HandleWithSession(sess, map[string]any{"v": 42})
+	snap, ok := resp.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected response type %T", resp)
+	}
+	if snap["value"] != 42 {
+		t.Fatalf("unexpected store snapshot: %v", snap)
+	}
+	if !hc.SessionAware() {
+		t.Fatalf("expected session aware component")
+	}
+	if hc.StoreManager(sess) != sess.StoreManager() {
+		t.Fatalf("StoreManager helper mismatch")
+	}
+}
+
 // TestLogLevel checks environment variable parsing.
 func TestLogLevel(t *testing.T) {
 	t.Setenv("RFW_LOG_LEVEL", "debug")
