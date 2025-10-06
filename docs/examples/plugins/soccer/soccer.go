@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 
 	core "github.com/rfwlab/rfw/v1/core"
-	js "github.com/rfwlab/rfw/v1/js"
+	dom "github.com/rfwlab/rfw/v1/dom"
 )
 
 // Plugin exposes sample soccer data through plugin directives.
@@ -22,20 +22,16 @@ func (Plugin) Build(json.RawMessage) error { return nil }
 func (Plugin) Install(a *core.App) {
 	core.RegisterPluginVar("soccer", "team", "Lions")
 	a.RegisterTemplate(func(componentID, html string) {
-		doc := js.Document()
-		badges := doc.Call("querySelectorAll", "[data-plugin=\"soccer.badge\"]")
-		for i := 0; i < badges.Get("length").Int(); i++ {
-			el := badges.Index(i)
-			el.Set("textContent", "⚽ Lions FC")
+		doc := dom.Doc()
+		badges := doc.QueryAll("[data-plugin=\"soccer.badge\"]")
+		for i := 0; i < badges.Length(); i++ {
+			badges.Index(i).SetText("⚽ Lions FC")
 		}
-		cmds := doc.Call("querySelectorAll", "[data-plugin-cmd=\"soccer.log\"]")
-		for i := 0; i < cmds.Get("length").Int(); i++ {
-			el := cmds.Index(i)
-			handler := js.FuncOf(func(this js.Value, args []js.Value) any {
-				js.Console().Call("log", "Go Lions!")
-				return nil
+		cmds := doc.QueryAll("[data-plugin-cmd=\"soccer.log\"]")
+		for i := 0; i < cmds.Length(); i++ {
+			cmds.Index(i).OnClick(func(dom.Event) {
+				core.Log().Info("Go Lions!")
 			})
-			el.Call("addEventListener", "click", handler)
 		}
 	})
 }
