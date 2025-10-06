@@ -25,23 +25,20 @@ Scan rendered templates to handle plugin directives:
 
 ```go
 a.RegisterTemplate(func(componentID, html string) {
-    doc := js.Document()
+    doc := dom.Doc()
 
     // [plugin:soccer.badge] → data-plugin="soccer.badge"
-    badges := doc.Call("querySelectorAll", "[data-plugin=\"soccer.badge\"]")
-    for i := 0; i < badges.Get("length").Int(); i++ {
-        el := badges.Index(i)
-        el.Set("textContent", "⚽ Lions FC")
+    badges := doc.QueryAll("[data-plugin=\"soccer.badge\"]")
+    for i := 0; i < badges.Length(); i++ {
+        badges.Index(i).SetText("⚽ Lions FC")
     }
 
     // @plugin:soccer.log → data-plugin-cmd="soccer.log"
-    cmds := doc.Call("querySelectorAll", "[data-plugin-cmd=\"soccer.log\"]")
-    handler := js.FuncOf(func(this js.Value, args []js.Value) any {
-        js.Console().Call("log", "Go Lions!")
-        return nil
-    })
-    for i := 0; i < cmds.Get("length").Int(); i++ {
-        cmds.Index(i).Call("addEventListener", "click", handler)
+    cmds := doc.QueryAll("[data-plugin-cmd=\"soccer.log\"]")
+    for i := 0; i < cmds.Length(); i++ {
+        cmds.Index(i).OnClick(func(dom.Event) {
+            core.Log().Info("Go Lions!")
+        })
     }
 })
 ```
@@ -50,9 +47,13 @@ a.RegisterTemplate(func(componentID, html string) {
 
 * `core.RegisterPluginVar(plugin, name, val)`
 * `(*core.App).RegisterTemplate(func(componentID, html string))`
-* `js.Document()`
-* `js.FuncOf(...)`
-* `js.Console()`
+* `dom.Doc()`
+* `(dom.Document).QueryAll(selector string) dom.Element`
+* `(dom.Element).Length() int`
+* `(dom.Element).Index(i int) dom.Element`
+* `(dom.Element).SetText(text string)`
+* `(dom.Element).OnClick(handler func(dom.Event))`
+* `core.Log().Info(format string, v ...any)`
 
 ## Example
 
