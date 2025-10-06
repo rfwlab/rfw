@@ -16,6 +16,14 @@ type Route struct {
 	Children  []Route
 }
 
+// RegisteredRoute describes a registered route in stub builds.
+type RegisteredRoute struct {
+	Template string
+	Path     string
+	Params   []string
+	Children []RegisteredRoute
+}
+
 // NotFoundComponent is ignored in stub builds.
 var NotFoundComponent func() core.Component
 
@@ -30,6 +38,9 @@ func RegisterRoute(r Route) {}
 
 // Navigate is a no-op in stub builds.
 func Navigate(fullPath string) {}
+
+// RegisteredRoutes returns nil in stub builds.
+func RegisteredRoutes() []RegisteredRoute { return nil }
 
 // ExposeNavigate is a no-op in stub builds.
 func ExposeNavigate() {}
