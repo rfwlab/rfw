@@ -152,14 +152,27 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			continue
 		}
 		if b, ok := bindings[msg.Component]; ok {
-			root := dom.Doc().Query(fmt.Sprintf("[data-component-id='%s']", b.id))
-			if root.Truthy() {
-				for k, v := range msg.Payload {
-					el := root.Call("querySelector", fmt.Sprintf(`[data-host-var="%s"]`, k))
-					if el.Truthy() {
-						el.Set("textContent", fmt.Sprintf("%v", v))
-					}
+			rootEl := dom.Doc().Query(fmt.Sprintf("[data-component-id='%s']", b.id))
+			if !rootEl.Truthy() {
+				continue
+			}
+			root := newComponentRoot(rootEl)
+
+			if snap := decodeInitSnapshotPayload(msg.Payload["initSnapshot"]); snap != nil {
+				applyInitSnapshot(root, snap)
+				if len(snap.Vars) > 0 {
+					b.vars = append([]string(nil), snap.Vars...)
+					bindings[msg.Component] = b
 				}
+				continue
+			}
+
+			mismatches := handleHostPayload(root, msg.Payload)
+			if len(mismatches) > 0 {
+				for _, m := range mismatches {
+					log.Printf("hostclient: hydration mismatch component=%s var=%s expected=%s actualHash=%s actual=%q", msg.Component, m.VarName, m.Expected, m.ActualHash, m.Actual)
+				}
+				Send(msg.Component, buildResyncPayload(mismatches))
 			}
 		}
 	}
