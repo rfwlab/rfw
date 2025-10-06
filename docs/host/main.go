@@ -11,5 +11,6 @@ func main() {
 	components.RegisterSSCHost()
 	components.RegisterTwitchOAuthHost()
 	components.RegisterNetcodeHost()
+	components.RegisterMultiplayerHost()
 	log.Fatal(host.Start("client"))
 }
