@@ -4,6 +4,7 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 type Logger interface {
@@ -69,6 +70,7 @@ type mutation struct {
 }
 
 type StoreManager struct {
+	mu      sync.RWMutex
 	modules map[string]map[string]*Store
 }
 
@@ -76,9 +78,18 @@ var GlobalStoreManager = &StoreManager{
 	modules: make(map[string]map[string]*Store),
 }
 
+// NewStoreManager creates a standalone manager for isolating store instances.
+func NewStoreManager() *StoreManager {
+	return &StoreManager{modules: make(map[string]map[string]*Store)}
+}
+
 // NewStore creates a new store with the given name and optional configuration.
 // By default stores are registered under the "default" module.
 func NewStore(name string, opts ...StoreOption) *Store {
+	return GlobalStoreManager.NewStore(name, opts...)
+}
+
+func (sm *StoreManager) NewStore(name string, opts ...StoreOption) *Store {
 	store := &Store{
 		module:    "default",
 		name:      name,
@@ -90,7 +101,7 @@ func NewStore(name string, opts ...StoreOption) *Store {
 		opt(store)
 	}
 
-	GlobalStoreManager.RegisterStore(store.module, name, store)
+	sm.RegisterStore(store.module, name, store)
 
 	if store.persist {
 		if state := loadPersistedState(store.storageKey()); state != nil {
@@ -103,6 +114,9 @@ func NewStore(name string, opts ...StoreOption) *Store {
 
 func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
 
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
 	if sm.modules[module] == nil {
 		sm.modules[module] = make(map[string]*Store)
 	}
@@ -110,6 +124,9 @@ func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
 }
 
 func (sm *StoreManager) GetStore(module, name string) *Store {
+
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
 
 	if stores, ok := sm.modules[module]; ok {
 		return stores[name]
@@ -120,6 +137,8 @@ func (sm *StoreManager) GetStore(module, name string) *Store {
 // UnregisterStore removes the store identified by module and name.
 // If the store or module does not exist, it is a no-op.
 func (sm *StoreManager) UnregisterStore(module, name string) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
 	if stores, ok := sm.modules[module]; ok {
 		delete(stores, name)
 		if len(stores) == 0 {
@@ -131,6 +150,9 @@ func (sm *StoreManager) UnregisterStore(module, name string) {
 // Snapshot returns a deep copy of all registered stores and their states.
 func (sm *StoreManager) Snapshot() map[string]map[string]map[string]any {
 	snap := make(map[string]map[string]map[string]any)
+
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
 
 	for module, stores := range sm.modules {
 		snap[module] = make(map[string]map[string]any)
