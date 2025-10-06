@@ -80,3 +80,30 @@ func TestSync(t *testing.T) {
 		t.Fatalf("expected ~7.5 got %v", mid.X)
 	}
 }
+
+func TestServerUpdate(t *testing.T) {
+	srv := NewServer("Game", testState{}, func(s *testState, cmd any) {
+		if dx, ok := cmd.(float64); ok {
+			s.X += dx
+		}
+	})
+
+	srv.Update(func(s *testState) {
+		s.X = 5
+	})
+	if srv.Snapshot().X != 5 {
+		t.Fatalf("expected update to set X to 5")
+	}
+
+	srv.Update(func(s *testState) {
+		s.X *= 2
+	})
+	if srv.Snapshot().X != 10 {
+		t.Fatalf("expected chained updates to run under lock")
+	}
+
+	srv.apply(&srv.state, 1.0)
+	if srv.Snapshot().X != 11 {
+		t.Fatalf("expected command application to still work, got %v", srv.Snapshot().X)
+	}
+}
