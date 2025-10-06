@@ -64,6 +64,7 @@ The full set of API references is listed below:
 - [webgl](webgl)
 - [math](math)
 - [game loop](game-loop)
+- [game draw](game-draw)
 - [scene](scene)
 - [netcode](netcode)
 - [pathfinding](pathfinding)

@@ -14,6 +14,7 @@ import (
 	core "github.com/rfwlab/rfw/v1/core"
 	dom "github.com/rfwlab/rfw/v1/dom"
 	events "github.com/rfwlab/rfw/v1/events"
+	draw "github.com/rfwlab/rfw/v1/game/draw"
 	hostclient "github.com/rfwlab/rfw/v1/hostclient"
 	js "github.com/rfwlab/rfw/v1/js"
 	"github.com/rfwlab/rfw/v1/netcode"
@@ -62,8 +63,7 @@ type multiplayerComponent struct {
 	cancelFuncs  []func()
 	stop         chan struct{}
 	sessionID    string
-	canvas       js.Value
-	ctx          js.Value
+	surface      draw.Canvas
 }
 
 // NewMultiplayerComponent renders the multiplayer arena example page.
@@ -82,11 +82,12 @@ func (c *multiplayerComponent) OnMount() {
 	doc := dom.Doc()
 	canvas := doc.ByID("mp-canvas")
 	if !canvas.IsNull() && !canvas.IsUndefined() {
-		canvas.Set("width", int(arenaWidth))
-		canvas.Set("height", int(arenaHeight))
-		c.canvas = canvas.Value
-		c.ctx = canvas.Call("getContext", "2d")
-		c.ctx.Set("lineWidth", 2)
+		if surface, ok := draw.NewCanvas(canvas); ok {
+			surface.SetSize(arenaWidth, arenaHeight)
+			c.surface = surface
+		} else {
+			c.surface = draw.Canvas{}
+		}
 	}
 
 	c.cancelFuncs = []func(){
@@ -109,6 +110,7 @@ func (c *multiplayerComponent) OnUnmount() {
 	}
 	c.cancelFuncs = nil
 	c.client = nil
+	c.surface = draw.Canvas{}
 }
 
 func (c *multiplayerComponent) loop() {
@@ -222,38 +224,32 @@ func (c *multiplayerComponent) consumeShoot() bool {
 }
 
 func (c *multiplayerComponent) render(state mpSnapshot) {
-	if !c.ctx.Truthy() {
+	if !c.surface.Valid() {
 		return
 	}
-	c.ctx.Set("fillStyle", "#0f172a")
-	c.ctx.Call("fillRect", 0, 0, arenaWidth, arenaHeight)
 
-	c.ctx.Set("fillStyle", "#f8fafc")
+	commands := make([]draw.Command, 0, 1+len(state.Bullets)+len(state.Players)*3)
+	commands = append(commands, draw.Rectangle(0, 0, arenaWidth, arenaHeight).Fill(arenaBackground))
+
 	for _, bullet := range state.Bullets {
-		c.ctx.Call("beginPath")
-		c.ctx.Call("arc", bullet.X, bullet.Y, bulletRadius, 0, math.Pi*2, false)
-		c.ctx.Call("fill")
+		commands = append(commands, draw.Disc(bullet.X, bullet.Y, bulletRadius).Fill(bulletColor))
 	}
 
 	for id, player := range state.Players {
-		c.ctx.Set("fillStyle", player.Color)
-		c.ctx.Call("beginPath")
-		c.ctx.Call("arc", player.X, player.Y, playerRadius, 0, math.Pi*2, false)
-		c.ctx.Call("fill")
+		marker := draw.Disc(player.X, player.Y, playerRadius).Fill(player.Color)
 		if id == c.sessionID {
-			c.ctx.Set("strokeStyle", "#ffffff")
-			c.ctx.Call("stroke")
+			marker.Stroke(activePlayerStroke, outlineWidth)
 		}
+		commands = append(commands, marker)
 		if !player.Alive {
-			c.ctx.Set("strokeStyle", "rgba(15, 23, 42, 0.7)")
-			c.ctx.Call("beginPath")
-			c.ctx.Call("moveTo", player.X-playerRadius, player.Y-playerRadius)
-			c.ctx.Call("lineTo", player.X+playerRadius, player.Y+playerRadius)
-			c.ctx.Call("moveTo", player.X-playerRadius, player.Y+playerRadius)
-			c.ctx.Call("lineTo", player.X+playerRadius, player.Y-playerRadius)
-			c.ctx.Call("stroke")
+			commands = append(commands,
+				draw.Segment(player.X-playerRadius, player.Y-playerRadius, player.X+playerRadius, player.Y+playerRadius).Stroke(eliminatedStroke, outlineWidth),
+				draw.Segment(player.X-playerRadius, player.Y+playerRadius, player.X+playerRadius, player.Y-playerRadius).Stroke(eliminatedStroke, outlineWidth),
+			)
 		}
 	}
+
+	c.surface.Draw(commands...)
 
 	c.updateHUD(state)
 }
@@ -301,14 +297,14 @@ func (c *multiplayerComponent) updateHUD(state mpSnapshot) {
 	message := ""
 	if state.Winner != "" {
 		if state.Winner == c.sessionID {
-			message = "Hai vinto! Ultimo in piedi."
+			message = "You won! Last player standing."
 		} else if winner, ok := state.Players[state.Winner]; ok {
-			message = fmt.Sprintf("Vince il giocatore %s", shortID(winner.ID))
+			message = fmt.Sprintf("Player %s wins", shortID(winner.ID))
 		} else {
-			message = "Partita conclusa."
+			message = "Match finished."
 		}
 	} else if player, ok := state.Players[c.sessionID]; ok && !player.Alive {
-		message = "Game over! Premi WASD per muoverti quando inizia un nuovo round."
+		message = "Game over! Press WASD to move when the next round starts."
 	}
 	statusEl.SetText(message)
 }
@@ -330,8 +326,13 @@ func shortID(id string) string {
 }
 
 const (
-	bulletRadius = 6.0
-	playerRadius = 18.0
-	arenaWidth   = 800.0
-	arenaHeight  = 520.0
+	bulletRadius       = 6.0
+	playerRadius       = 18.0
+	arenaWidth         = 800.0
+	arenaHeight        = 520.0
+	outlineWidth       = 2.0
+	arenaBackground    = "#0f172a"
+	bulletColor        = "#f8fafc"
+	activePlayerStroke = "#ffffff"
+	eliminatedStroke   = "rgba(15, 23, 42, 0.7)"
 )
