@@ -39,6 +39,20 @@ type route struct {
 	guards     []Guard
 }
 
+// RegisteredRoute describes a registered route in a navigable tree form.
+type RegisteredRoute struct {
+	// Template is the path exactly as registered (can be relative for nested
+	// routes).
+	Template string `json:"template"`
+	// Path is the fully qualified route path derived from the registration
+	// hierarchy.
+	Path string `json:"path"`
+	// Params lists the dynamic parameters extracted from the template.
+	Params []string `json:"params"`
+	// Children contains nested routes.
+	Children []RegisteredRoute `json:"children"`
+}
+
 var (
 	routes             []route
 	currentComponent   core.Component
@@ -101,6 +115,52 @@ func buildRoute(r Route) route {
 	}
 
 	return rt
+}
+
+// RegisteredRoutes returns the registered routes including nested children and
+// resolved full paths. The data can be used for tooling and diagnostics.
+func RegisteredRoutes() []RegisteredRoute {
+	out := make([]RegisteredRoute, 0, len(routes))
+	for i := range routes {
+		out = append(out, snapshotRoute(&routes[i], ""))
+	}
+	return out
+}
+
+func snapshotRoute(r *route, parent string) RegisteredRoute {
+	params := make([]string, len(r.paramNames))
+	copy(params, r.paramNames)
+	full := resolveRoutePath(parent, r.pattern)
+	children := make([]RegisteredRoute, len(r.children))
+	for i := range r.children {
+		children[i] = snapshotRoute(&r.children[i], full)
+	}
+	return RegisteredRoute{
+		Template: r.pattern,
+		Path:     full,
+		Params:   params,
+		Children: children,
+	}
+}
+
+func resolveRoutePath(parent, path string) string {
+	if path == "" {
+		if parent == "" {
+			return "/"
+		}
+		return parent
+	}
+	if strings.HasPrefix(path, "/") {
+		return path
+	}
+	trimmed := strings.TrimPrefix(path, "/")
+	if parent == "" || parent == "/" {
+		return "/" + trimmed
+	}
+	if strings.HasSuffix(parent, "/") {
+		return parent + trimmed
+	}
+	return parent + "/" + trimmed
 }
 
 type routeParamReceiver interface {

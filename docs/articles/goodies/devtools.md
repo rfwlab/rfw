@@ -99,6 +99,15 @@ globalThis.RFW_DEVTOOLS_REFRESH();
 * Active only in debug builds.
 * Components added dynamically must be registered with [`AddDependency`](../api/core#dependency-injection) or use `rt-is`.
 
+## Routes explorer
+
+Browse every registered route under the **Routes** tab. The list comes from [`router.RegisteredRoutes`](../api/router#router) so nested children and dynamic parameters are included.
+
+1. Open the DevTools overlay.
+2. Switch to **Routes**.
+3. Click **Open** to navigate to a path.
+4. When the route defines parameters, a popup asks for each value before launching navigation via `goNavigate`.
+
 ## Store inspection
 
 Browse global stores under the **Store** tab.
