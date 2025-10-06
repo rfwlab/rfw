@@ -362,7 +362,21 @@ func replaceHostPlaceholders(template string, c *HTMLComponent) string {
 	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
 		name := varRegex.FindStringSubmatch(match)[1]
 		c.hostVars = append(c.hostVars, name)
-		return fmt.Sprintf(`<span data-host-var="%s"></span>`, name)
+
+		expectedVal := ""
+		if c.Props != nil {
+			if v, ok := c.Props[name]; ok {
+				expectedVal = fmt.Sprintf("%v", v)
+			} else if v, ok := c.Props["h:"+name]; ok {
+				expectedVal = fmt.Sprintf("%v", v)
+			}
+		}
+
+		hash := sha1.Sum([]byte(expectedVal))
+		expectedAttr := fmt.Sprintf("sha1:%x", hash)
+
+		return fmt.Sprintf(`<span data-host-var="%s" data-host-expected="%s">%s</span>`,
+			name, expectedAttr, html.EscapeString(expectedVal))
 	})
 	cmdRegex := regexp.MustCompile(`@h:(\w+)`)
 	template = cmdRegex.ReplaceAllStringFunc(template, func(match string) string {

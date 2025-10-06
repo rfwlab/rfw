@@ -15,6 +15,13 @@ type HostComponent struct {
 	name           string
 	handler        Handler
 	sessionHandler HandlerWithSession
+	initSnapshot   func(*Session, map[string]any) *InitSnapshot
+}
+
+// InitSnapshot represents markup the host can send to force the client to repaint a fragment.
+type InitSnapshot struct {
+	HTML string   `json:"html"`
+	Vars []string `json:"vars,omitempty"`
 }
 
 // NewHostComponent registers a handler for the given component name.
@@ -25,6 +32,12 @@ func NewHostComponent(name string, handler Handler) *HostComponent {
 			return handler(payload)
 		}
 	}
+	return hc
+}
+
+// WithInitSnapshot registers a callback that produces an InitSnapshot when a resync is requested.
+func (hc *HostComponent) WithInitSnapshot(fn func(*Session, map[string]any) *InitSnapshot) *HostComponent {
+	hc.initSnapshot = fn
 	return hc
 }
 
@@ -45,6 +58,13 @@ func NewHostComponentWithSession(name string, handler HandlerWithSession) *HostC
 
 // HandleWithSession executes the session-aware handler when available.
 func (hc *HostComponent) HandleWithSession(session *Session, payload map[string]any) any {
+	if payload != nil {
+		if _, ok := payload["resync"]; ok && hc.initSnapshot != nil {
+			if snap := hc.initSnapshot(session, payload); snap != nil {
+				return snap
+			}
+		}
+	}
 	if hc.sessionHandler != nil {
 		return hc.sessionHandler(session, payload)
 	}
