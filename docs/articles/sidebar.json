@@ -339,6 +339,10 @@
         "path": "api/game-loop.md"
       },
       {
+        "title": "game draw",
+        "path": "api/game-draw.md"
+      },
+      {
         "title": "scene",
         "path": "api/scene.md"
       },
