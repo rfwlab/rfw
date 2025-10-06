@@ -50,10 +50,26 @@ const markup = `
 .tree-scroll{overflow:auto; padding:8px}
 .node{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; color:var(--rose-100)}
 .node:hover{background:var(--tile-hover)}
+.node.active{background:var(--tile-hover)}
 .node .kind{font-size:11px; color:var(--accent-2); padding:2px 6px; border:1px solid var(--border-2); border-radius:999px; background:var(--tile-bg)}
 .node .name{font-weight:600}
 .node .meta{margin-left:auto; display:flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums; color:var(--rose-300)}
 .node .meta span{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; border:1px solid var(--tile-border); background:var(--tile-bg)}
+.route-action{padding:4px 10px; border-radius:8px; border:1px solid var(--tile-border); background:var(--tile-bg); color:var(--rose-50); font-size:12px; cursor:pointer; transition:background .12s ease, border-color .12s ease}
+.route-action:hover{background:var(--tile-hover); border-color:var(--border-2)}
+.rfw-route-popup{position:absolute; right:18px; bottom:70px; width:280px; background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); display:flex; flex-direction:column; padding:12px; gap:12px; z-index:2147483650}
+.rfw-route-popup.hidden{display:none !important}
+.rfw-route-popup h3{margin:0; font-size:16px; color:var(--rose-50)}
+.rfw-route-popup p{margin:0; font-size:12px; color:var(--rose-200)}
+.route-fields{display:flex; flex-direction:column; gap:8px}
+.route-field{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--rose-200)}
+.route-field input{padding:6px 8px; border-radius:8px; border:1px solid var(--tile-border); background:var(--bg-2); color:var(--rose-50); font:inherit; outline:none}
+.route-actions{display:flex; gap:8px; justify-content:flex-end}
+.route-actions button{padding:6px 12px; border-radius:8px; border:1px solid var(--tile-border); background:var(--tile-bg); color:var(--rose-50); cursor:pointer; font:inherit}
+.route-actions button.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.route-actions button.primary:hover{background:var(--accent-2); border-color:var(--accent-2)}
+.route-actions button:hover{background:var(--tile-hover)}
+.route-error{color:var(--bad); font-size:12px; min-height:16px}
 
 .rfw-detail{overflow-y:auto; flex:1;background:var(--chip-bg);display:flex;flex-direction:column}
 .rfw-detail .rfw-subheader{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border)}
@@ -129,6 +145,7 @@ const markup = `
 
     <nav class="rfw-tabs" role="tablist" aria-label="Tabs">
     <button class="rfw-button rfw-tab" role="tab" aria-selected="true" aria-controls="tab-components" id="tabbtn-components">Components</button>
+    <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-routes" id="tabbtn-routes">Routes</button>
     <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-store" id="tabbtn-store">Store</button>
       <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-signals" id="tabbtn-signals">Signals</button>
       <button class="rfw-button rfw-tab" role="tab" aria-selected="false" aria-controls="tab-plugins" id="tabbtn-plugins">Plugins</button>
@@ -160,6 +177,29 @@ const markup = `
             <span class="rfw-spacer"></span>
           </div>
           <div class="kv" id="detailKV"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Routes -->
+    <section id="tab-routes" role="tabpanel" aria-labelledby="tabbtn-routes" class="hidden" style="display:flex;flex:1">
+      <div class="rfw-split">
+        <aside class="rfw-tree">
+          <div class="rfw-search">
+            <input id="routeFilter" class="rfw-input" type="search" placeholder="Filter routes…" />
+            <button class="rfw-button rfw-iconbtn" id="refreshRoutes" title="Refresh routes">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0 1 14-7M19 5a9 9 0 0 0-14 7" stroke="var(--rose-400)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="tree-scroll" id="routeTree"></div>
+        </aside>
+        <article class="rfw-detail">
+          <div class="rfw-subheader">
+            <span style="font-weight:600" id="routeTitle">Select a route</span>
+            <span class="rfw-spacer"></span>
+            <button class="rfw-button route-action" id="routeDetailGo" title="Navigate to route">Open</button>
+          </div>
+          <div class="kv" id="routeDetail"></div>
         </article>
       </div>
     </section>
@@ -295,6 +335,16 @@ const markup = `
     </section>
 
   </div>
+  <div id="routePopup" class="rfw-route-popup hidden" data-rfw-ignore role="dialog" aria-modal="false" aria-labelledby="routePopupTitle">
+    <h3 id="routePopupTitle">Configure route</h3>
+    <p id="routePopupInfo">Provide values for dynamic parameters.</p>
+    <div class="route-fields" id="routePopupFields"></div>
+    <div class="route-error" id="routePopupError"></div>
+    <div class="route-actions">
+      <button class="rfw-button" id="routePopupCancel" type="button">Cancel</button>
+      <button class="rfw-button primary" id="routePopupConfirm" type="button">Navigate</button>
+    </div>
+  </div>
 </section>
 `;
 
@@ -309,9 +359,31 @@ const fab = $("#rfwDevtoolsToggle");
 const minBtn = $("#minBtn");
 const closeBtn = $("#closeBtn");
 const hHandle = $('[data-resize="h"]');
+const routeTree = $("#routeTree");
+const routeTitle = $("#routeTitle");
+const routeDetail = $("#routeDetail");
+const routeDetailGo = $("#routeDetailGo");
+const routeFilter = $("#routeFilter");
+const routePopup = $("#routePopup");
+const routePopupTitle = $("#routePopupTitle");
+const routePopupInfo = $("#routePopupInfo");
+const routePopupFields = $("#routePopupFields");
+const routePopupError = $("#routePopupError");
+const routePopupConfirm = $("#routePopupConfirm");
+const routePopupCancel = $("#routePopupCancel");
+let routeSnapshot = [];
+let selectedRoutePath = "";
+let selectedRoute = null;
+let popupRoute = null;
+routeDetailGo?.setAttribute("disabled", "true");
 
 const tabs = [
   { btn: $("#tabbtn-components"), panel: $("#tab-components") },
+  {
+    btn: $("#tabbtn-routes"),
+    panel: $("#tab-routes"),
+    onShow: refreshRoutes,
+  },
   { btn: $("#tabbtn-store"), panel: $("#tab-store"), onShow: refreshStore },
   {
     btn: $("#tabbtn-signals"),
@@ -354,12 +426,14 @@ function openDevtools() {
     setTimeout(() => (fab.style.transform = ""), 120);
   }
   refreshTree();
+  refreshRoutes();
   refreshStore();
   refreshSignals();
   refreshPlugins();
 }
 function closeDevtools() {
   overlay?.classList.add("hidden");
+  closeRoutePopup();
 }
 function toggleDevtools() {
   overlay?.classList.contains("hidden") ? openDevtools() : closeDevtools();
@@ -376,6 +450,11 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") {
     e.preventDefault();
     toggleDevtools();
+    return;
+  }
+  if (e.key === "Escape" && !routePopup?.classList.contains("hidden")) {
+    e.preventDefault();
+    closeRoutePopup();
   }
 });
 
@@ -559,6 +638,232 @@ function renderRow(label, value, isMono = false) {
 function renderJSONRow(label, value) {
   return renderRow(label, formatJSON(value), true);
 }
+
+function renderRoutes(list) {
+  if (!routeTree) return;
+  routeTree.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  const walk = (nodes, depth) => {
+    nodes.forEach((route) => {
+      const el = document.createElement("div");
+      el.className = "node";
+      if (depth) el.style.paddingLeft = `${depth * 12}px`;
+      const kind = document.createElement("span");
+      kind.className = "kind";
+      const dynamic = Array.isArray(route.params) && route.params.length > 0;
+      kind.textContent = dynamic ? "dynamic" : "static";
+      el.appendChild(kind);
+
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = route.path || route.template || "/";
+      el.appendChild(name);
+
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      if (dynamic) {
+        const badge = document.createElement("span");
+        const count = route.params.length;
+        badge.textContent = `${count} param${count > 1 ? "s" : ""}`;
+        meta.appendChild(badge);
+      }
+      const btn = document.createElement("button");
+      btn.className = "route-action";
+      btn.type = "button";
+      btn.textContent = "Open";
+      btn.title = `Navigate to ${route.path || route.template || "/"}`;
+      btn.addEventListener("click", (evt) => {
+        evt.stopPropagation();
+        navigateRoute(route);
+      });
+      meta.appendChild(btn);
+      el.appendChild(meta);
+
+      el.dataset.path = (route.path || route.template || "/").toLowerCase();
+      el.addEventListener("click", () => selectRoute(route));
+      frag.appendChild(el);
+      if (Array.isArray(route.children) && route.children.length) {
+        walk(route.children, depth + 1);
+      }
+    });
+  };
+  walk(list, 0);
+  routeTree.replaceChildren(frag);
+  highlightSelectedRoute();
+}
+
+function highlightSelectedRoute() {
+  if (!routeTree) return;
+  const nodes = $$(".node", routeTree);
+  nodes.forEach((n) => {
+    if (selectedRoutePath) {
+      n.classList.toggle(
+        "active",
+        n.dataset.path === selectedRoutePath.toLowerCase(),
+      );
+    } else {
+      n.classList.remove("active");
+    }
+  });
+}
+
+function selectRoute(route) {
+  selectedRoute = route;
+  selectedRoutePath = route?.path || route?.template || "";
+  highlightSelectedRoute();
+  if (!routeTitle || !routeDetail || !routeDetailGo) return;
+  if (!route) {
+    routeTitle.textContent = "Select a route";
+    routeDetail.innerHTML = "";
+    routeDetailGo.setAttribute("disabled", "true");
+    return;
+  }
+  routeTitle.textContent = route.path || route.template || "/";
+  const rows = [];
+  rows.push(renderRow("Path", route.path || "/"));
+  if (route.template && route.template !== route.path)
+    rows.push(renderRow("Template", route.template));
+  if (Array.isArray(route.params) && route.params.length) {
+    rows.push(
+      renderRow(
+        "Parameters",
+        route.params.join(", ") || "-",
+      ),
+    );
+  }
+  rows.push(
+    renderRow(
+      "Children",
+      Array.isArray(route.children) ? String(route.children.length) : "0",
+    ),
+  );
+  routeDetail.innerHTML = rows.join("");
+  routeDetailGo.removeAttribute("disabled");
+}
+
+function findRouteByPath(path, nodes) {
+  for (const route of nodes) {
+    const value = route.path || route.template || "";
+    if (value === path) return route;
+    if (Array.isArray(route.children)) {
+      const found = findRouteByPath(path, route.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function refreshRoutes() {
+  if (!routeTree) return;
+  try {
+    if (typeof globalThis.RFW_DEVTOOLS_ROUTES === "function") {
+      const data = JSON.parse(globalThis.RFW_DEVTOOLS_ROUTES());
+      routeSnapshot = Array.isArray(data) ? data : [];
+      renderRoutes(routeSnapshot);
+      if (selectedRoutePath) {
+        const current = findRouteByPath(selectedRoutePath, routeSnapshot);
+        selectRoute(current);
+      }
+      return;
+    }
+  } catch (err) {
+    console.warn("DevTools routes refresh error", err);
+  }
+  routeSnapshot = [];
+  if (routeTree) routeTree.textContent = "";
+  selectRoute(null);
+}
+
+function navigateRoute(route) {
+  if (!route) return;
+  const dynamic = Array.isArray(route.params) && route.params.length > 0;
+  if (dynamic) {
+    openRoutePopup(route);
+    return;
+  }
+  goToPath(route.path || route.template || "/");
+}
+
+function goToPath(path) {
+  if (!path) return;
+  if (typeof globalThis.goNavigate === "function") {
+    globalThis.goNavigate(path);
+  } else {
+    window.location.assign(path);
+  }
+}
+
+function openRoutePopup(route) {
+  if (!routePopup || !routePopupFields) return;
+  popupRoute = route;
+  routePopup.classList.remove("hidden");
+  if (routePopupTitle) routePopupTitle.textContent = route.path || route.template || "/";
+  if (routePopupInfo) {
+    const template = route.template && route.template !== route.path ? route.template : "Provide values for dynamic parameters.";
+    routePopupInfo.textContent = template;
+  }
+  routePopupFields.innerHTML = "";
+  (route.params || []).forEach((name) => {
+    const field = document.createElement("label");
+    field.className = "route-field";
+    field.innerHTML = `<span>${escapeHTML(name)}</span>`;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.dataset.key = name;
+    input.placeholder = name;
+    field.appendChild(input);
+    routePopupFields.appendChild(field);
+  });
+  if (routePopupError) routePopupError.textContent = "";
+  const first = routePopupFields.querySelector("input");
+  if (first) first.focus();
+}
+
+function closeRoutePopup() {
+  if (!routePopup) return;
+  routePopup.classList.add("hidden");
+  popupRoute = null;
+  routePopupFields?.replaceChildren();
+  if (routePopupError) routePopupError.textContent = "";
+}
+
+function confirmRoutePopup() {
+  if (!popupRoute || !routePopupFields) return;
+  let target = popupRoute.path || popupRoute.template || "/";
+  const inputs = Array.from(routePopupFields.querySelectorAll("input[data-key]"));
+  for (const input of inputs) {
+    const key = input.dataset.key;
+    const value = input.value.trim();
+    if (!value) {
+      if (routePopupError) {
+        routePopupError.textContent = `Missing value for ${key}`;
+      }
+      input.focus();
+      return;
+    }
+    const encoded = encodeURIComponent(value);
+    const pattern = new RegExp(`:${key}(?=/|$)`, "g");
+    target = target.replace(pattern, encoded);
+  }
+  closeRoutePopup();
+  goToPath(target);
+}
+
+$("#refreshRoutes")?.addEventListener("click", refreshRoutes);
+routeFilter?.addEventListener("input", (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const nodes = $$(".node", routeTree);
+  nodes.forEach((n) => {
+    const text = n.textContent.toLowerCase();
+    n.style.display = text.includes(q) ? "" : "none";
+  });
+});
+routeDetailGo?.addEventListener("click", () => {
+  const current = selectedRoute || findRouteByPath(selectedRoutePath, routeSnapshot);
+  navigateRoute(current);
+});
+routePopupCancel?.addEventListener("click", closeRoutePopup);
+routePopupConfirm?.addEventListener("click", confirmRoutePopup);
 
 $("#treeFilter")?.addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
@@ -872,6 +1177,7 @@ $("#pluginFilter")?.addEventListener("input", (e) => {
 window.RFW_DEVTOOLS_REFRESH_STORES = refreshStore;
 window.RFW_DEVTOOLS_REFRESH_SIGNALS = refreshSignals;
 window.RFW_DEVTOOLS_REFRESH_PLUGINS = refreshPlugins;
+window.RFW_DEVTOOLS_REFRESH_ROUTES = refreshRoutes;
 
 const varsTree = $("#varsTree");
 const varsTitle = $("#varsTitle");
