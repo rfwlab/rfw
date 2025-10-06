@@ -8,4 +8,7 @@ The `hostclient` runtime runs inside the WebAssembly bundle and maintains a WebS
 | `Send(name string, payload any)` | Serialise and write a payload to the socket. |
 | `RegisterHandler(name string, h func(map[string]any))` | Attach a callback for inbound payloads. |
 | `EnableDebug()` | Log WebSocket connection and message events. |
+| `SessionID() string` | Returns the last session identifier received from the host (also injected as `_session` in handler payloads). |
+
+See the [SSC guide](../guide/ssc.md#session-scoped-hydration-data) for session-aware patterns.
 

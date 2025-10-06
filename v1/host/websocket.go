@@ -14,12 +14,33 @@ type inbound struct {
 	Payload   map[string]any `json:"payload"`
 }
 
+type outbound struct {
+	Component string `json:"component"`
+	Payload   any    `json:"payload,omitempty"`
+	Session   string `json:"session"`
+}
+
+type broadcastOptions struct {
+	session string
+}
+
+// BroadcastOption configures a broadcast call.
+type BroadcastOption func(*broadcastOptions)
+
+// WithSessionTarget limits a broadcast to a specific session ID.
+func WithSessionTarget(sessionID string) BroadcastOption {
+	return func(opts *broadcastOptions) {
+		opts.session = sessionID
+	}
+}
+
 var (
-	connections = make(map[string]map[*websocket.Conn]struct{})
-	connMu      sync.Mutex
+	connections = make(map[string]map[*websocket.Conn]*Session)
+	connMu      sync.RWMutex
 )
 
 func wsHandler(ws *websocket.Conn) {
+	session := allocateSession()
 	var subscribed []string
 	defer func() {
 		connMu.Lock()
@@ -32,6 +53,7 @@ func wsHandler(ws *websocket.Conn) {
 			}
 		}
 		connMu.Unlock()
+		releaseSession(session)
 		ws.Close()
 	}()
 	for {
@@ -51,46 +73,57 @@ func wsHandler(ws *websocket.Conn) {
 		if hc, ok := Get(msg.Component); ok {
 			connMu.Lock()
 			if _, ok := connections[msg.Component]; !ok {
-				connections[msg.Component] = make(map[*websocket.Conn]struct{})
+				connections[msg.Component] = make(map[*websocket.Conn]*Session)
 			}
-			connections[msg.Component][ws] = struct{}{}
-			subscribed = append(subscribed, msg.Component)
+			if _, tracked := connections[msg.Component][ws]; !tracked {
+				connections[msg.Component][ws] = session
+				subscribed = append(subscribed, msg.Component)
+			}
 			connMu.Unlock()
-			if resp := hc.Handle(msg.Payload); resp != nil {
-				out := struct {
-					Component string `json:"component"`
-					Payload   any    `json:"payload"`
-				}{Component: msg.Component, Payload: resp}
-				b, err := json.Marshal(out)
-				if err == nil {
-					if err := websocket.Message.Send(ws, b); err != nil {
-						log.Printf("send: %v", err)
-					}
-				}
+			resp := hc.HandleWithSession(session, msg.Payload)
+			if resp != nil {
+				sendToConn(ws, outbound{Component: msg.Component, Payload: resp, Session: session.ID()})
+				continue
+			}
+			if msg.Payload != nil && msg.Payload["init"] == true {
+				sendToConn(ws, outbound{
+					Component: msg.Component,
+					Session:   session.ID(),
+					Payload:   map[string]any{"session": session.ID()},
+				})
 			}
 		}
 	}
 }
 
 // Broadcast sends the given payload to all connections subscribed to the component name.
-func Broadcast(name string, payload any) {
-	connMu.Lock()
+func Broadcast(name string, payload any, opts ...BroadcastOption) {
+	var options broadcastOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	connMu.RLock()
 	conns := connections[name]
-	connMu.Unlock()
+	connMu.RUnlock()
 	if len(conns) == 0 {
 		return
 	}
-	out := struct {
-		Component string `json:"component"`
-		Payload   any    `json:"payload"`
-	}{Component: name, Payload: payload}
+
+	for ws, session := range conns {
+		if options.session != "" && session.ID() != options.session {
+			continue
+		}
+		sendToConn(ws, outbound{Component: name, Payload: payload, Session: session.ID()})
+	}
+}
+
+func sendToConn(ws *websocket.Conn, out outbound) {
 	b, err := json.Marshal(out)
 	if err != nil {
 		return
 	}
-	for ws := range conns {
-		if err := websocket.Message.Send(ws, b); err != nil {
-			log.Printf("send: %v", err)
-		}
+	if err := websocket.Message.Send(ws, b); err != nil {
+		log.Printf("send: %v", err)
 	}
 }
