@@ -9,6 +9,7 @@ import (
 	"github.com/rfwlab/rfw/v1/dom"
 	"github.com/rfwlab/rfw/v1/http"
 	"github.com/rfwlab/rfw/v1/js"
+	"github.com/rfwlab/rfw/v1/router"
 	"github.com/rfwlab/rfw/v1/state"
 	"time"
 )
@@ -20,6 +21,7 @@ var (
 	treeFn   js.Func
 	storeFn  js.Func
 	signalFn js.Func
+	routesFn js.Func
 )
 
 func (plugin) Build(json.RawMessage) error { return nil }
@@ -76,6 +78,9 @@ func (plugin) Install(a *core.App) {
 			}
 		}
 	})
+	if fn := js.Get("RFW_DEVTOOLS_REFRESH_ROUTES"); fn.Type() == js.TypeFunction {
+		fn.Invoke()
+	}
 }
 
 func init() {
@@ -94,7 +99,12 @@ func init() {
 		b, _ := json.Marshal(state.SnapshotSignals())
 		return string(b)
 	})
+	routesFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+		b, _ := json.Marshal(router.RegisteredRoutes())
+		return string(b)
+	})
 	js.Set("RFW_DEVTOOLS_TREE", treeFn)
 	js.Set("RFW_DEVTOOLS_STORES", storeFn)
 	js.Set("RFW_DEVTOOLS_SIGNALS", signalFn)
+	js.Set("RFW_DEVTOOLS_ROUTES", routesFn)
 }
