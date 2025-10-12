@@ -23,6 +23,30 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 
+type buildOptions struct {
+	Devtools     bool
+	DevBuild     bool
+	SkipOptimize bool
+}
+
+func goBuildArgs(opts buildOptions) []string {
+	args := []string{"build"}
+	var tags []string
+	if opts.Devtools {
+		tags = append(tags, "devtools")
+	}
+	if opts.DevBuild {
+		tags = append(tags, "rfwdev")
+	}
+	if len(tags) > 0 {
+		args = append(args, "-tags="+strings.Join(tags, ","))
+	}
+	if !opts.SkipOptimize {
+		args = append(args, "-trimpath", "-ldflags=-s -w")
+	}
+	return args
+}
+
 func Build() error {
 	var manifest struct {
 		Build struct {
@@ -65,13 +89,11 @@ func Build() error {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	args := []string{"build"}
-	if os.Getenv("RFW_DEVTOOLS") == "1" {
-		args = append(args, "-tags=devtools")
-	}
-	if !utils.IsDebug() {
-		args = append(args, "-trimpath", "-ldflags=-s -w")
-	}
+	args := goBuildArgs(buildOptions{
+		Devtools:     os.Getenv("RFW_DEVTOOLS") == "1",
+		DevBuild:     os.Getenv("RFW_DEV_BUILD") == "1",
+		SkipOptimize: utils.IsDebug() || os.Getenv("RFW_SKIP_STRIP") == "1",
+	})
 	wasmPath := filepath.Join(clientDir, "app.wasm")
 	args = append(args, "-o", wasmPath, ".")
 	cmd := exec.Command("go", args...)

@@ -39,6 +39,7 @@ func runDev(cmd *command.Command, _ *command.RootFlags, _ []string) error {
 	if debug {
 		os.Setenv("RFW_DEVTOOLS", "1")
 	}
+	os.Setenv("RFW_DEV_BUILD", "1")
 	srv := server.NewServer(port, host, debug)
 	return srv.Start()
 }
