@@ -20,6 +20,7 @@ import (
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/seo"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
+	"github.com/rfwlab/rfw/cmd/rfw/utils"
 )
 
 func Build() error {
@@ -68,12 +69,30 @@ func Build() error {
 	if os.Getenv("RFW_DEVTOOLS") == "1" {
 		args = append(args, "-tags=devtools")
 	}
-	args = append(args, "-o", filepath.Join(clientDir, "app.wasm"), ".")
+	if !utils.IsDebug() {
+		args = append(args, "-trimpath", "-ldflags=-s -w")
+	}
+	wasmPath := filepath.Join(clientDir, "app.wasm")
+	args = append(args, "-o", wasmPath, ".")
 	cmd := exec.Command("go", args...)
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
+	}
+	if os.Getenv("RFW_SKIP_WASM_OPT") != "1" {
+		if _, err := exec.LookPath("wasm-opt"); err == nil {
+			tmpPath := filepath.Join(clientDir, "app.tmp.wasm")
+			optCmd := exec.Command("wasm-opt", "-Oz", "--strip-debug", "-o", tmpPath, wasmPath)
+			if optOutput, err := optCmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("failed to optimize wasm: %s: %w", optOutput, err)
+			}
+			if err := os.Rename(tmpPath, wasmPath); err != nil {
+				return fmt.Errorf("failed to finalize optimized wasm: %w", err)
+			}
+		} else {
+			utils.Info("warning: wasm-opt not found; skipping Wasm optimization")
+		}
 	}
 
 	if err := os.MkdirAll(hostDir, 0o755); err != nil {
