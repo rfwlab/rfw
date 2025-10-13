@@ -120,7 +120,7 @@ The build command outputs:
 * `build/static/` – copied static files
 * `build/host/` – companion host binary
 
-Outside of debug mode the build uses Go's `-trimpath` and `-ldflags="-s -w"` flags to strip debug information from the generated WebAssembly module. When [`wasm-opt`](https://github.com/WebAssembly/binaryen) is on your `PATH`, the CLI also runs `wasm-opt -Oz --strip-debug` to further shrink `app.wasm`. Set `RFW_SKIP_WASM_OPT=1` in the environment before invoking `rfw build` to skip the optimization step when troubleshooting or comparing unoptimized binaries.
+Outside of debug mode the build uses Go's `-trimpath` and `-ldflags="-s -w"` flags to strip debug information from the generated WebAssembly module.
 
 Need to inspect symbols instead? Export `RFW_SKIP_STRIP=1` so `go build` keeps debug metadata intact. During development `rfw dev` automatically sets `RFW_DEV_BUILD=1`, enabling the `rfwdev` build tag and development helpers without affecting production builds.
 
