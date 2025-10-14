@@ -92,7 +92,7 @@ rfw dev --debug
 
 Features:
 
-* Compiles Go sources to `app.wasm`
+* Compiles Go sources to `app.wasm` (served as the Brotli-compressed `app.wasm.br` bundle)
 * Serves static files under `/`
 * Rebuilds and reloads on file changes
 * Runs host components from `host/` if present

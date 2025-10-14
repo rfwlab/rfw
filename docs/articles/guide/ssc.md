@@ -123,7 +123,7 @@ func main() {
 ## Hydration: how the page becomes interactive
 
 1. The host responds with **fully rendered HTML**.
-2. The browser downloads `app.wasm` and initializes rfw.
+2. The browser downloads the Brotli-compressed `app.wasm.br` (falling back to `app.wasm` when necessary) and initializes rfw.
 3. rfw **hydrates** the server markup: attaches event handlers and reactive bindings.
 4. A WebSocket connects; `h:` values and commands synchronize with the host.
 
