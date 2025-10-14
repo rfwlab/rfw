@@ -12,6 +12,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"golang.org/x/net/websocket"
@@ -42,18 +43,23 @@ func NewMux(root string) *http.ServeMux {
 		sfs = http.FileServer(http.Dir(staticRoot))
 	}
 	if sfs != nil {
-		mux.Handle("/static/", http.StripPrefix("/static", sfs))
+		mux.Handle("/static/", http.StripPrefix("/static", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			setWasmEncodingHeaders(w, r.URL.Path)
+			sfs.ServeHTTP(w, r)
+		})))
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if sfs != nil {
 			spath := filepath.Join(staticRoot, r.URL.Path)
 			if st, err := os.Stat(spath); err == nil && !st.IsDir() {
+				setWasmEncodingHeaders(w, spath)
 				sfs.ServeHTTP(w, r)
 				return
 			}
 		}
 		path := filepath.Join(root, r.URL.Path)
 		if st, err := os.Stat(path); err == nil && !st.IsDir() {
+			setWasmEncodingHeaders(w, path)
 			fs.ServeHTTP(w, r)
 			return
 		}
@@ -114,6 +120,20 @@ func ListenAndServeTLSWithMux(addr string, mux *http.ServeMux) error {
 	}
 	logger.Info("serving HTTPS", "addr", addr)
 	return srv.ListenAndServeTLS("", "")
+}
+
+func setWasmEncodingHeaders(w http.ResponseWriter, path string) {
+	if !strings.HasSuffix(path, ".wasm.br") {
+		return
+	}
+	header := w.Header()
+	header.Set("Content-Encoding", "br")
+	header.Set("Content-Type", "application/wasm")
+	if vary := header.Get("Vary"); vary == "" {
+		header.Set("Vary", "Accept-Encoding")
+	} else if !strings.Contains(vary, "Accept-Encoding") {
+		header.Set("Vary", vary+", Accept-Encoding")
+	}
 }
 
 func generateSelfSignedCert() (tls.Certificate, error) {

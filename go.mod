@@ -3,7 +3,8 @@ module github.com/rfwlab/rfw
 go 1.24.3
 
 require (
-	github.com/bmatcuk/doublestar/v4 v4.9.1
+        github.com/andybalholm/brotli v1.0.6
+        github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/fatih/color v1.17.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/mirkobrombin/go-cli-builder v1.0.0

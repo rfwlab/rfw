@@ -2,6 +2,8 @@
 
 The default project template includes a Go-powered loader that exposes a global `WasmLoader` helper. By default, it shows a red progress bar while the WebAssembly bundle downloads and initializes.
 
+> **Note:** When the build pipeline emits a Brotli-compressed bundle (e.g. `app.wasm.br`), the loader automatically tries the `.wasm.br` asset before falling back to the plain `.wasm` file, so existing calls don’t need to change.
+
 ---
 
 ## Why a Loader?

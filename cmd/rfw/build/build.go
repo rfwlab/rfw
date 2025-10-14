@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/andybalholm/brotli"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/bundler"
@@ -103,6 +104,10 @@ func Build() error {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
 	}
 
+	if err := compressWasmBrotli(wasmPath); err != nil {
+		return fmt.Errorf("failed to brotli-compress wasm: %w", err)
+	}
+
 	if err := os.MkdirAll(hostDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create host build directory: %w", err)
 	}
@@ -169,4 +174,44 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func compressWasmBrotli(src string) (err error) {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	dst := src + ".br"
+	tmp, err := os.CreateTemp(filepath.Dir(dst), filepath.Base(dst)+".*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		if tmp != nil {
+			tmp.Close()
+		}
+		if err != nil {
+			_ = os.Remove(tmpName)
+		}
+	}()
+
+	writer := brotli.NewWriterLevel(tmp, brotli.BestCompression)
+	if _, err := io.Copy(writer, in); err != nil {
+		writer.Close()
+		return err
+	}
+	if err := writer.Close(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	tmp = nil
+	if err := os.Rename(tmpName, dst); err != nil {
+		return err
+	}
+	return nil
 }

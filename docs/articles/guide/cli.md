@@ -66,7 +66,7 @@ Build the project for production. Generates an optimized Wasm bundle and host bi
 
 Artifacts:
 
-* `build/client/` – client bundle
+* `build/client/` – client bundle (`app.wasm` and the Brotli variant `app.wasm.br`)
 * `build/host/` – host binary
 * `build/static/` – copied static files
 
