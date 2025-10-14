@@ -4,6 +4,7 @@ package wasmloader
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/rfwlab/rfw/v1/js"
 )
@@ -14,6 +15,27 @@ type Options struct {
 	Height     string
 	Blur       string
 	SkipLoader bool
+}
+
+func candidateURLs(url string) []string {
+	trimmed := strings.TrimSpace(url)
+	if trimmed == "" {
+		return nil
+	}
+
+	base := trimmed
+	query := ""
+	if idx := strings.Index(trimmed, "?"); idx != -1 {
+		base = trimmed[:idx]
+		query = trimmed[idx:]
+	}
+
+	var urls []string
+	if strings.HasSuffix(base, ".wasm") && !strings.HasSuffix(base, ".wasm.br") {
+		urls = append(urls, base+".br"+query)
+	}
+	urls = append(urls, trimmed)
+	return urls
 }
 
 func createBar(opts Options) (js.Value, js.Value, js.Func) {
@@ -56,6 +78,50 @@ func createBar(opts Options) (js.Value, js.Value, js.Func) {
 	return bar, intervalID, intervalFn
 }
 
+func finishBar(bar, intervalID js.Value, intervalFn js.Func) {
+	if !bar.Truthy() {
+		return
+	}
+	js.Call("clearInterval", intervalID)
+	intervalFn.Release()
+	bar.Get("style").Set("width", "100%")
+	removeFn := js.Func{}
+	removeFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+		bar.Call("remove")
+		removeFn.Release()
+		return nil
+	})
+	js.Call("setTimeout", removeFn, 300)
+}
+
+func removeBar(bar, intervalID js.Value, intervalFn js.Func) {
+	if !bar.Truthy() {
+		return
+	}
+	js.Call("clearInterval", intervalID)
+	intervalFn.Release()
+	bar.Call("remove")
+}
+
+func instantiate(resp js.Value, opts Options, bar, intervalID js.Value, intervalFn js.Func) {
+	arrayBufFn := js.FuncOf(func(this js.Value, args []js.Value) any {
+		bytes := args[0]
+		finishBar(bar, intervalID, intervalFn)
+		wasm := js.WebAssembly()
+		instantiateFn := js.Func{}
+		instantiateFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+			inst := args[0].Get("instance")
+			opts.Go.Call("run", inst)
+			instantiateFn.Release()
+			return nil
+		})
+		wasm.Call("instantiate", bytes, opts.Go.Get("importObject")).Call("then", instantiateFn)
+		arrayBufFn.Release()
+		return nil
+	})
+	resp.Call("arrayBuffer").Call("then", arrayBufFn)
+}
+
 func Load(url string, opts Options) {
 	var bar js.Value
 	var intervalID js.Value
@@ -64,28 +130,48 @@ func Load(url string, opts Options) {
 		bar, intervalID, intervalFn = createBar(opts)
 	}
 
-	js.Fetch(url).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
-		resp := args[0]
-		return resp.Call("arrayBuffer").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
-			bytes := args[0]
-			if bar.Truthy() {
-				js.Call("clearInterval", intervalID)
-				intervalFn.Release()
-				bar.Get("style").Set("width", "100%")
-				js.Call("setTimeout", js.FuncOf(func(this js.Value, args []js.Value) any {
-					bar.Call("remove")
-					return nil
-				}), 300)
-			}
-			wasm := js.WebAssembly()
-			wasm.Call("instantiate", bytes, opts.Go.Get("importObject")).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
-				inst := args[0].Get("instance")
-				opts.Go.Call("run", inst)
+	urls := candidateURLs(url)
+	if len(urls) == 0 {
+		return
+	}
+
+	var tryFetch func(int)
+	tryFetch = func(idx int) {
+		if idx >= len(urls) {
+			removeBar(bar, intervalID, intervalFn)
+			js.Console().Call("error", fmt.Sprintf("failed to load wasm bundle from candidates: %s", strings.Join(urls, ", ")))
+			return
+		}
+
+		current := urls[idx]
+		success := js.Func{}
+		failure := js.Func{}
+
+		success = js.FuncOf(func(this js.Value, args []js.Value) any {
+			resp := args[0]
+			if !resp.Get("ok").Bool() {
+				success.Release()
+				failure.Release()
+				tryFetch(idx + 1)
 				return nil
-			}))
+			}
+			success.Release()
+			failure.Release()
+			instantiate(resp, opts, bar, intervalID, intervalFn)
 			return nil
-		}))
-	}))
+		})
+
+		failure = js.FuncOf(func(this js.Value, args []js.Value) any {
+			success.Release()
+			failure.Release()
+			tryFetch(idx + 1)
+			return nil
+		})
+
+		js.Fetch(current).Call("then", success, failure)
+	}
+
+	tryFetch(0)
 }
 
 func loadFunc(this js.Value, args []js.Value) any {
