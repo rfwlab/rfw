@@ -191,14 +191,6 @@ func main() {
 		Component: func() core.Component { return excomponents.NewFetchJSONComponent() },
 	})
 	router.RegisterRoute(router.Route{
-		Path:      "/examples/twitch/login",
-		Component: func() core.Component { return excomponents.NewTwitchLoginComponent() },
-	})
-	router.RegisterRoute(router.Route{
-		Path:      "/examples/twitch/callback",
-		Component: func() core.Component { return excomponents.NewTwitchCallbackComponent() },
-	})
-	router.RegisterRoute(router.Route{
 		Path:      "/examples/signal-bindings",
 		Component: func() core.Component { return excomponents.NewSignalBindingsComponent() },
 	})

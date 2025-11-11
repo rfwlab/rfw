@@ -152,10 +152,6 @@
         "path": "guide/ssc.md"
       },
       {
-        "title": "Twitch OAuth",
-        "path": "guide/twitch-oauth.md"
-      },
-      {
         "title": "Pathfinding",
         "path": "guide/pathfinding.md"
       },
