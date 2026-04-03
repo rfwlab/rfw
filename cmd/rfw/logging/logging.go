@@ -2,7 +2,6 @@ package logging
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/mirkobrombin/go-logger/pkg/logger"
 )
@@ -10,8 +9,7 @@ import (
 var Log logger.Logger
 
 func init() {
-	sink := logger.NewConsoleSink(os.Stdout)
-	Log = logger.New(logger.WithSink(sink))
+	Log = logger.New()
 }
 
 func F(key string, value any) logger.Field {
