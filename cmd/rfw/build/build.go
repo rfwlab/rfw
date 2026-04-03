@@ -81,11 +81,10 @@ func Build() error {
 		return fmt.Errorf("failed to create static build directory: %w", err)
 	}
 
-	goroot, err := exec.Command("go", "env", "GOROOT").Output()
+	wasmExec, err := findWasmExec()
 	if err != nil {
-		return fmt.Errorf("failed to get GOROOT: %w", err)
+		return err
 	}
-	wasmExec := filepath.Join(strings.TrimSpace(string(goroot)), "lib", "wasm", "wasm_exec.js")
 	if err := copyFile(wasmExec, filepath.Join(clientDir, "wasm_exec.js")); err != nil {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
@@ -157,6 +156,31 @@ func Build() error {
 	}
 
 	return nil
+}
+
+// findWasmExec locates wasm_exec.js from the active Go toolchain.
+// It tries the canonical Go 1.21+ path ($GOROOT/lib/wasm/), then the
+// legacy path ($GOROOT/misc/wasm/), and finally a project-local copy.
+func findWasmExec() (string, error) {
+	goroot, err := exec.Command("go", "env", "GOROOT").Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get GOROOT: %w", err)
+	}
+	root := strings.TrimSpace(string(goroot))
+	candidates := []string{
+		filepath.Join(root, "lib", "wasm", "wasm_exec.js"),
+		filepath.Join(root, "misc", "wasm", "wasm_exec.js"),
+		"wasm_exec.js",
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
+		}
+	}
+	return "", fmt.Errorf(
+		"wasm_exec.js not found in GOROOT (%s) or project root; reinstall Go or run 'rfw init'",
+		root,
+	)
 }
 
 func copyFile(src, dst string) error {

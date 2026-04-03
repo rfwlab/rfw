@@ -82,9 +82,22 @@ func copyWasmExec(projectDir string) error {
 	}
 	goRoot := strings.TrimSpace(string(output))
 
-	srcPath := filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js")
-	destPath := filepath.Join(projectDir, "wasm_exec.js")
+	candidates := []string{
+		filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js"),
+		filepath.Join(goRoot, "misc", "wasm", "wasm_exec.js"),
+	}
+	var srcPath string
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			srcPath = p
+			break
+		}
+	}
+	if srcPath == "" {
+		return fmt.Errorf("wasm_exec.js not found in GOROOT (%s); ensure Go is properly installed", goRoot)
+	}
 
+	destPath := filepath.Join(projectDir, "wasm_exec.js")
 	input, err := os.ReadFile(srcPath)
 	if err != nil {
 		return fmt.Errorf("failed to read wasm_exec.js: %w", err)
