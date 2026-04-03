@@ -3,11 +3,11 @@ package copy
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/bmatcuk/doublestar/v4"
+	"github.com/rfwlab/rfw/cmd/rfw/logging"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 )
 
@@ -63,7 +63,7 @@ func (p *plugin) Build(raw json.RawMessage) error {
 			if err := copyFile(path, dst); err != nil {
 				return err
 			}
-			log.Printf("copy: copied %s", dst)
+			logging.Log.Info("copied file", logging.F("plugin", "copy"), logging.F("path", dst))
 		}
 	}
 	return nil

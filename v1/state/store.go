@@ -7,6 +7,29 @@ import (
 	"sync"
 )
 
+func valEqual(a, b any) bool {
+	if a == nil && b == nil { return true }
+	if a == nil || b == nil { return false }
+	switch av := a.(type) {
+	case string: if bv, ok := b.(string); ok { return av == bv }
+	case int: if bv, ok := b.(int); ok { return av == bv }
+	case float64: if bv, ok := b.(float64); ok { return av == bv }
+	case bool: if bv, ok := b.(bool); ok { return av == bv }
+	case int64: if bv, ok := b.(int64); ok { return av == bv }
+	case float32: if bv, ok := b.(float32); ok { return av == bv }
+	}
+	return reflect.DeepEqual(a, b)
+}
+
+func depsChanged(current, last map[string]any) bool {
+	if len(current) != len(last) { return true }
+	for k, v := range current {
+		if lv, ok := last[k]; !ok || !valEqual(v, lv) { return true }
+	}
+	return false
+}
+
+
 type Logger interface {
 	Debug(format string, args ...any)
 }
@@ -256,16 +279,7 @@ func (s *Store) OnChange(key string, listener func(any)) func() {
 	s.listeners[key][id] = listener
 
 	if s.devTools {
-		logger.Debug("------")
-		for moduleName, stores := range GlobalStoreManager.modules {
-			for storeName, store := range stores {
-				logger.Debug("Store: %s/%s", moduleName, storeName)
-				for key, value := range store.state {
-					logger.Debug("  %s: %v", key, value)
-				}
-			}
-		}
-		logger.Debug("------")
+		logger.Debug("[rfw] store %s.%s: listener registered for key %s", s.module, s.name, key)
 	}
 
 	return func() {
@@ -340,7 +354,7 @@ func (s *Store) evaluateDependents(key string) {
 	for _, c := range s.computeds {
 		if contains(c.Deps(), key) {
 			current := snapshotDeps(s.state, c.Deps())
-			if c.lastDeps == nil || !reflect.DeepEqual(current, c.lastDeps) {
+			if c.lastDeps == nil || depsChanged(current, c.lastDeps) {
 				val := c.Evaluate(s.state)
 				s.state[c.Key()] = val
 				c.lastDeps = current
@@ -404,4 +418,13 @@ func snapshotDeps(state map[string]any, deps []string) map[string]any {
 		snap[d] = state[d]
 	}
 	return snap
+}
+
+func (sm *StoreManager) DumpState() {
+	sm.mu.RLock(); defer sm.mu.RUnlock()
+	for mod, stores := range sm.modules {
+		for name, st := range stores {
+			logger.Debug("[rfw] DumpState %s/%s: %v", mod, name, st.state)
+		}
+	}
 }

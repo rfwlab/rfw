@@ -3,21 +3,24 @@ package plugins
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"sort"
 )
 
 // Plugin defines the minimal interface that build plugins must implement.
-// Lifecycle hooks like PreBuild, Build and PostBuild are detected
-// automatically via reflection when present.
 type Plugin interface {
-	// Name returns a unique identifier for the plugin.
 	Name() string
-	// ShouldRebuild reports whether a change at the given path requires a rebuild.
 	ShouldRebuild(path string) bool
-	// Priority determines execution order; lower values run earlier.
 	Priority() int
 }
+
+// PreBuilder is implemented by plugins that run before the build.
+type PreBuilder interface{ PreBuild(json.RawMessage) error }
+
+// Builder is implemented by plugins that participate in the build step.
+type Builder interface{ Build(json.RawMessage) error }
+
+// PostBuilder is implemented by plugins that run after the build completes.
+type PostBuilder interface{ PostBuild(json.RawMessage) error }
 
 type entry struct {
 	Plugin Plugin
@@ -47,7 +50,7 @@ func Active() []Info {
 // Register adds a plugin to the registry.
 func Register(p Plugin) { registry[p.Name()] = p }
 
-// Install builds and activates a single plugin by name.
+// Install activates a single plugin by name.
 func Install(name string, raw json.RawMessage) error {
 	if p, ok := registry[name]; ok {
 		active = append(active, entry{Plugin: p, cfg: raw})
@@ -56,7 +59,7 @@ func Install(name string, raw json.RawMessage) error {
 	return fmt.Errorf("plugin %s not found", name)
 }
 
-// Configure installs plugins listed in the provided configuration map.
+// Configure installs plugins from the provided configuration map.
 func Configure(cfg map[string]json.RawMessage) error {
 	active = active[:0]
 	for name, raw := range cfg {
@@ -70,50 +73,6 @@ func Configure(cfg map[string]json.RawMessage) error {
 	return nil
 }
 
-// invoke executes the named lifecycle hook on the plugin if it exists.
-func invoke(e entry, name string) error {
-	m := reflect.ValueOf(e.Plugin).MethodByName(name)
-	if !m.IsValid() {
-		return nil
-	}
-	typ := m.Type()
-	if typ.NumIn() != 1 || typ.In(0) != reflect.TypeOf(json.RawMessage{}) || typ.NumOut() != 1 || typ.Out(0) != reflect.TypeOf((*error)(nil)).Elem() {
-		return fmt.Errorf("%s has invalid signature for %s", e.Plugin.Name(), name)
-	}
-	out := m.Call([]reflect.Value{reflect.ValueOf(e.cfg)})
-	if err, _ := out[0].Interface().(error); err != nil {
-		return err
-	}
-	return nil
-}
-
-func PreBuild() error {
-	for _, e := range active {
-		if err := invoke(e, "PreBuild"); err != nil {
-			return fmt.Errorf("%s prebuild failed: %w", e.Plugin.Name(), err)
-		}
-	}
-	return nil
-}
-
-func Build() error {
-	for _, e := range active {
-		if err := invoke(e, "Build"); err != nil {
-			return fmt.Errorf("%s build failed: %w", e.Plugin.Name(), err)
-		}
-	}
-	return nil
-}
-
-func PostBuild() error {
-	for _, e := range active {
-		if err := invoke(e, "PostBuild"); err != nil {
-			return fmt.Errorf("%s postbuild failed: %w", e.Plugin.Name(), err)
-		}
-	}
-	return nil
-}
-
 // NeedsRebuild reports whether any active plugin requires a rebuild for the given path.
 func NeedsRebuild(path string) bool {
 	for _, e := range active {
@@ -122,4 +81,40 @@ func NeedsRebuild(path string) bool {
 		}
 	}
 	return false
+}
+
+// PreBuild calls PreBuild on all plugins that implement PreBuilder.
+func PreBuild() error {
+	for _, e := range active {
+		if pb, ok := e.Plugin.(PreBuilder); ok {
+			if err := pb.PreBuild(e.cfg); err != nil {
+				return fmt.Errorf("%s prebuild: %w", e.Plugin.Name(), err)
+			}
+		}
+	}
+	return nil
+}
+
+// Build calls Build on all plugins that implement Builder.
+func Build() error {
+	for _, e := range active {
+		if b, ok := e.Plugin.(Builder); ok {
+			if err := b.Build(e.cfg); err != nil {
+				return fmt.Errorf("%s build: %w", e.Plugin.Name(), err)
+			}
+		}
+	}
+	return nil
+}
+
+// PostBuild calls PostBuild on all plugins that implement PostBuilder.
+func PostBuild() error {
+	for _, e := range active {
+		if pb, ok := e.Plugin.(PostBuilder); ok {
+			if err := pb.PostBuild(e.cfg); err != nil {
+				return fmt.Errorf("%s postbuild: %w", e.Plugin.Name(), err)
+			}
+		}
+	}
+	return nil
 }

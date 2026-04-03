@@ -3,10 +3,10 @@ package tailwind
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os/exec"
 	"strings"
 
+	"github.com/rfwlab/rfw/cmd/rfw/logging"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 )
 
@@ -23,10 +23,10 @@ func (p *plugin) Name() string { return "tailwind" }
 func (p *plugin) Priority() int { return 0 }
 
 func (p *plugin) Build(raw json.RawMessage) error {
-	log.Printf("tailwind: starting build")
+	logging.Log.Info("starting build", logging.F("plugin", "tailwind"))
 	bin, err := exec.LookPath("tailwindcss")
 	if err != nil {
-		log.Printf("tailwind: tailwindcss not found, please install it manually")
+		logging.Log.Warn("tailwindcss not found, please install it manually", logging.F("plugin", "tailwind"))
 		return err
 	}
 
@@ -53,22 +53,22 @@ func (p *plugin) Build(raw json.RawMessage) error {
 		args = append(args, cfg.Args...)
 	}
 
-	log.Printf("tailwind: running %s %s", bin, strings.Join(args, " "))
+	logging.Log.Info("running command", logging.F("plugin", "tailwind"), logging.F("bin", bin), logging.F("args", strings.Join(args, " ")))
 	cmd := exec.Command(bin, args...)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("tailwind build failed: %s: %w", strings.TrimSpace(string(output)), err)
 	}
-	log.Printf("tailwind: build complete")
+	logging.Log.Info("build complete", logging.F("plugin", "tailwind"))
 	return nil
 }
 
 func (p *plugin) ShouldRebuild(path string) bool {
 	if strings.HasSuffix(path, ".css") && !strings.HasSuffix(path, p.output) {
-		log.Printf("tailwind: rebuild triggered by %s", path)
+		logging.Log.Info("rebuild triggered", logging.F("plugin", "tailwind"), logging.F("path", path))
 		return true
 	}
 	if strings.HasSuffix(path, ".rtml") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".go") {
-		log.Printf("tailwind: rebuild triggered by %s", path)
+		logging.Log.Info("rebuild triggered", logging.F("plugin", "tailwind"), logging.F("path", path))
 		return true
 	}
 	return false

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"expvar"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	signalbus "github.com/mirkobrombin/go-signal/v2/pkg/bus"
 	"github.com/rfwlab/rfw/cmd/rfw/build"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
@@ -230,7 +232,13 @@ func (s *Server) watchFiles() {
 					rebuilds.Add(1)
 					utils.Info("Changes detected, rebuilding...")
 					if err := build.Build(); err != nil {
+						if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: false, Error: err.Error()}); emitErr != nil {
+							utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
+						}
 						utils.Fatal("Failed to rebuild project: ", err)
+					}
+					if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: true}); emitErr != nil {
+						utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
 					}
 					if strings.HasSuffix(event.Name, ".rtml") {
 						markup, err := os.ReadFile(event.Name)

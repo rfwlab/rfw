@@ -2,11 +2,11 @@ package bundler
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/rfwlab/rfw/cmd/rfw/logging"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
 	"github.com/tdewolff/minify/v2"
@@ -25,7 +25,7 @@ func (p *plugin) Priority() int { return 10 }
 
 func (p *plugin) PostBuild(raw json.RawMessage) error {
 	if utils.IsDebug() {
-		log.Printf("bundler: skipped in debug mode")
+		logging.Log.Info("skipped in debug mode", logging.F("plugin", "bundler"))
 		return nil
 	}
 
@@ -49,7 +49,7 @@ func (p *plugin) PostBuild(raw json.RawMessage) error {
 			media = "text/javascript"
 		case ".css":
 			if isTailwindCSS(path) {
-				log.Printf("bundler: skipping tailwind css %s", path)
+				logging.Log.Info("skipping tailwind css", logging.F("plugin", "bundler"), logging.F("path", path))
 				return nil
 			}
 			media = "text/css"
@@ -73,7 +73,7 @@ func (p *plugin) PostBuild(raw json.RawMessage) error {
 	}); err != nil {
 		return err
 	}
-	log.Printf("bundler: build complete")
+	logging.Log.Info("build complete", logging.F("plugin", "bundler"))
 	return nil
 }
 

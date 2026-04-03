@@ -2,10 +2,10 @@ package test
 
 import (
 	"encoding/json"
-	"log"
 	"os/exec"
 	"strings"
 
+	"github.com/rfwlab/rfw/cmd/rfw/logging"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 )
 
@@ -27,8 +27,13 @@ func (p *plugin) Build(raw json.RawMessage) error {
 	args := append([]string{"test"}, cfg.Packages...)
 	cmd := exec.Command("go", args...)
 	output, err := cmd.CombinedOutput()
-	log.Printf("test: %s", strings.TrimSpace(string(output)))
-	return err
+	out := strings.TrimSpace(string(output))
+	if err != nil {
+		logging.Log.Error("go test failed", logging.F("plugin", "test"), logging.F("output", out), logging.F("error", err.Error()))
+		return err
+	}
+	logging.Log.Info("go test ok", logging.F("plugin", "test"), logging.F("output", out))
+	return nil
 }
 
 func (p *plugin) ShouldRebuild(path string) bool {
