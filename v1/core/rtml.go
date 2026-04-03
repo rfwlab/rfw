@@ -16,6 +16,27 @@ import (
 	"github.com/rfwlab/rfw/v1/state"
 )
 
+var (
+	reInclude         = regexp.MustCompile(`@include:([\w-]+)`)
+	rePropKV          = regexp.MustCompile(`(\w+):"([^"]*)"`)
+	reSlotNamed       = regexp.MustCompile(`@slot:(\w+)(?:\.(\w+))?([\s\S]*?)@endslot`)
+	reSlotDefault     = regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
+	reStore           = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
+	reSignal          = regexp.MustCompile(`@signal:(\w+)(:w)?`)
+	reProp            = regexp.MustCompile(`@prop:(\w+)`)
+	rePluginVar       = regexp.MustCompile(`\{plugin:(\w+)\.(\w+)\}`)
+	rePluginCmd       = regexp.MustCompile(`@plugin:(\w+)\.(\w+)([\s>/])`)
+	reHelperVar       = regexp.MustCompile(`\{h:(\w+)\}`)
+	reHelperCmd       = regexp.MustCompile(`@h:(\w+)`)
+	reEvent           = regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)([\s>/])`)
+	reRtIs            = regexp.MustCompile(`<([a-zA-Z0-9]+)([^>]*)rt-is="([^"]+)"[^>]*/?>`)
+	reTagName         = regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
+	reConditionalAttr = regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
+	reFor             = regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
+	reForeach         = regexp.MustCompile(`@foreach:(\S+)\s+as\s+(\w+)([\s\S]*?)@endforeach`)
+)
+
+
 // AST structures for template parsing
 type Node interface {
 	Render(c *HTMLComponent) string
@@ -116,7 +137,7 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
-	includeRegex := regexp.MustCompile(`@include:([\w-]+)`)
+	includeRegex := reInclude
 	return includeRegex.ReplaceAllStringFunc(renderedTemplate, func(match string) string {
 		name := includeRegex.FindStringSubmatch(match)[1]
 		if dep, ok := c.Dependencies[name]; ok {
@@ -160,7 +181,7 @@ func replaceComponentIncludes(template string, c *HTMLComponent) string {
 				return match
 			}
 			props := map[string]any{}
-			propRe := regexp.MustCompile(`(\w+):"([^"]*)"`)
+			propRe := rePropKV
 			for _, m := range propRe.FindAllStringSubmatch(propStr, -1) {
 				props[m[1]] = m[2]
 			}
@@ -179,7 +200,7 @@ func replaceComponentIncludes(template string, c *HTMLComponent) string {
 }
 
 func extractSlotContents(template string, c *HTMLComponent) string {
-	slotRegex := regexp.MustCompile(`@slot:(\w+)(?:\.(\w+))?([\s\S]*?)@endslot`)
+	slotRegex := reSlotNamed
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := slotRegex.FindStringSubmatch(match)
 		if len(parts) < 4 {
@@ -203,7 +224,7 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 }
 
 func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
-	slotRegex := regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
+	slotRegex := reSlotNamed
 	idx := 0
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := slotRegex.FindStringSubmatch(match)
@@ -233,7 +254,7 @@ func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceStorePlaceholders(template string, c *HTMLComponent) string {
-	storeRegex := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
+	storeRegex := reStore
 	return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := storeRegex.FindStringSubmatch(match)
 		if len(parts) < 4 {
@@ -271,7 +292,7 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
-	sigRegex := regexp.MustCompile(`@signal:(\w+)(:w)?`)
+	sigRegex := reSignal
 	return sigRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := sigRegex.FindStringSubmatch(match)
 		if len(parts) < 2 {
@@ -303,7 +324,7 @@ func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replacePropPlaceholders(template string, c *HTMLComponent) string {
-	propRegex := regexp.MustCompile(`@prop:(\w+)`)
+	propRegex := reProp
 	idx := 0
 	return propRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := propRegex.FindStringSubmatch(match)
@@ -330,7 +351,7 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replacePluginPlaceholders(template string) string {
-	varRegex := regexp.MustCompile(`\{plugin:(\w+)\.(\w+)\}`)
+	varRegex := rePluginVar
 	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := varRegex.FindStringSubmatch(match)
 		if len(parts) != 3 {
@@ -345,7 +366,7 @@ func replacePluginPlaceholders(template string) string {
 		}
 		return match
 	})
-	cmdRegex := regexp.MustCompile(`@plugin:(\w+)\.(\w+)([\s>/])`)
+	cmdRegex := rePluginCmd
 	template = cmdRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := cmdRegex.FindStringSubmatch(match)
 		if len(parts) != 4 {
@@ -358,7 +379,7 @@ func replacePluginPlaceholders(template string) string {
 }
 
 func replaceHostPlaceholders(template string, c *HTMLComponent) string {
-	varRegex := regexp.MustCompile(`\{h:(\w+)\}`)
+	varRegex := reHelperVar
 	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
 		name := varRegex.FindStringSubmatch(match)[1]
 		c.hostVars = append(c.hostVars, name)
@@ -378,7 +399,7 @@ func replaceHostPlaceholders(template string, c *HTMLComponent) string {
 		return fmt.Sprintf(`<span data-host-var="%s" data-host-expected="%s">%s</span>`,
 			name, expectedAttr, html.EscapeString(expectedVal))
 	})
-	cmdRegex := regexp.MustCompile(`@h:(\w+)`)
+	cmdRegex := reHelperCmd
 	template = cmdRegex.ReplaceAllStringFunc(template, func(match string) string {
 		name := cmdRegex.FindStringSubmatch(match)[1]
 		c.hostCmds = append(c.hostCmds, name)
@@ -391,7 +412,7 @@ func replaceEventHandlers(template string) string {
 	// Match event directives ensuring they are terminated by whitespace,
 	// a self-closing slash or the end of the tag. The terminating
 	// character is captured so it can be preserved in the replacement.
-	eventRegex := regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)([\s>/])`)
+	eventRegex := reEvent
 	return eventRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := eventRegex.FindStringSubmatch(match)
 		if len(parts) != 5 {
@@ -420,7 +441,7 @@ func replaceEventHandlers(template string) string {
 // placeholder so standard include processing can render the referenced
 // component and manage its lifecycle.
 func replaceRtIsAttributes(template string, c *HTMLComponent) string {
-	re := regexp.MustCompile(`<([a-zA-Z0-9]+)([^>]*)rt-is="([^"]+)"[^>]*/?>`)
+	re := reRtIs
 	idx := 0
 	return re.ReplaceAllStringFunc(template, func(match string) string {
 		parts := re.FindStringSubmatch(match)
@@ -694,7 +715,7 @@ func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
 }
 
 func insertDataKey(content string, key any) string {
-	tagRegex := regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
+	tagRegex := reTagName
 	loc := tagRegex.FindStringSubmatchIndex(content)
 	if loc == nil {
 		return content
@@ -711,7 +732,7 @@ func insertDataKey(content string, key any) string {
 //
 // Only a single constructor per element is handled.
 func replaceConstructors(template string) string {
-	re := regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
+	re := reConditionalAttr
 	return re.ReplaceAllStringFunc(template, func(match string) string {
 		parts := re.FindStringSubmatch(match)
 		if len(parts) < 6 {
@@ -775,7 +796,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 }
 
 func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
-	forRegex := regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
+	forRegex := reFor
 	return forRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := forRegex.FindStringSubmatch(match)
 		if len(parts) < 4 {
@@ -902,7 +923,7 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 func replaceForeachPlaceholders(template string, c *HTMLComponent) string {
-	foreachRegex := regexp.MustCompile(`@foreach:(\S+)\s+as\s+(\w+)([\s\S]*?)@endforeach`)
+	foreachRegex := reForeach
 	return foreachRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := foreachRegex.FindStringSubmatch(match)
 		if len(parts) < 4 {

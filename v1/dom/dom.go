@@ -21,6 +21,11 @@ var (
 	componentSignalsMu sync.RWMutex
 )
 
+var (
+	reStoreWrite  = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+):w`)
+	reSignalWrite = regexp.MustCompile(`@signal:(\w+):w`)
+)
+
 // RegisterSignal associates a signal with a component so inputs can bind to it.
 func RegisterSignal(componentID, name string, sig any) {
 	componentSignalsMu.Lock()
@@ -122,7 +127,7 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 			checkedAttr = input.Call("getAttribute", "checked").String()
 		}
 
-		re := regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+):w`)
+		re := reStoreWrite
 		valueMatch := re.FindStringSubmatch(valueAttr)
 		checkedMatch := re.FindStringSubmatch(checkedAttr)
 
@@ -190,7 +195,7 @@ func BindSignalInputs(componentID string, element js.Value) {
 			checkedAttr = input.Call("getAttribute", "checked").String()
 		}
 
-		re := regexp.MustCompile(`@signal:(\w+):w`)
+		re := reSignalWrite
 		valueMatch := re.FindStringSubmatch(valueAttr)
 		checkedMatch := re.FindStringSubmatch(checkedAttr)
 

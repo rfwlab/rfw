@@ -3,11 +3,11 @@ package assets
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/rfwlab/rfw/cmd/rfw/logging"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 )
 
@@ -66,7 +66,7 @@ func (p *plugin) Build(raw json.RawMessage) error {
 		if err := out.Close(); err != nil {
 			return err
 		}
-		log.Printf("assets: copied %s", target)
+		logging.Log.Info("copied file", logging.F("plugin", "assets"), logging.F("path", target))
 		return nil
 	})
 }
