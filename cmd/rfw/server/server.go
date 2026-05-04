@@ -24,19 +24,18 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/build"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
-	hostpkg "github.com/rfwlab/rfw/v1/host"
+	hostpkg "github.com/rfwlab/rfw/v2/host"
 )
 
 var rebuilds = expvar.NewInt("rebuilds")
 
 type Server struct {
-	Port        string
-	Host        bool
-	Debug       bool
-	stopCh      chan os.Signal
-	watcher     *fsnotify.Watcher
-	hostCmd     *exec.Cmd
-	buildType   string
+	Port      string
+	Host      bool
+	stopCh    chan os.Signal
+	watcher   *fsnotify.Watcher
+	hostCmd   *exec.Cmd
+	buildType string
 	hostPort    string
 	ignoreUntil time.Time
 	hmrMu       sync.Mutex
@@ -45,13 +44,11 @@ type Server struct {
 
 const ignoreDelay = 200 * time.Millisecond
 
-func NewServer(port string, host, debug bool) *Server {
-	utils.EnableDebug(debug)
+func NewServer(port string, host bool) *Server {
 	return &Server{
-		Port:       port,
-		Host:       host,
-		Debug:      debug,
-		stopCh:     make(chan os.Signal, 1),
+		Port:     port,
+		Host:     host,
+		stopCh:   make(chan os.Signal, 1),
 		hmrClients: make(map[chan []byte]struct{}),
 	}
 }

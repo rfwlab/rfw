@@ -1,6 +1,6 @@
 # Conditional Rendering
 
-Many UIs need to show or hide content depending on state. RTML supports this directly with the `@if`, `@else-if`, and `@else` directives, so you can declare conditions without writing manual DOM updates.
+Many UIs need to show or hide content depending on state. RTML supports this directly with `@if:`, `@else-if:`, `@else`, and `@endif` directives, no manual DOM updates needed.
 
 ---
 
@@ -14,7 +14,7 @@ Wrap markup with `@if:expression` to render only when the expression is truthy:
 @endif
 ```
 
-When `loggedIn` is false, the `<p>` is removed from the DOM. Expressions can reference component fields, props, signals, or store values.
+When `loggedIn` is falsy, the `<p>` is removed from the DOM. Expressions can reference component fields, props, signals, or store values.
 
 ---
 
@@ -23,9 +23,9 @@ When `loggedIn` is false, the `<p>` is removed from the DOM. Expressions can ref
 Use `@else` and `@else-if` to add alternate branches:
 
 ```rtml
-@if:status == 'loading'
+@if:status == "loading"
   <p>Loading...</p>
-@else-if:status == 'error'
+@else-if:status == "error"
   <p>Failed to load.</p>
 @else
   <p>Ready!</p>
@@ -38,24 +38,73 @@ Each branch can contain any valid RTML, including loops and nested components.
 
 ## Signals in Conditions
 
-Conditions can check reactive signals as well:
+Use `@signal:Name` inside conditions to check reactive values:
 
 ```rtml
-@if:signal:count == "3"
+@if:signal:Count == "3"
   <p>Three!</p>
 @endif
 ```
 
-The block updates automatically whenever the `count` signal changes.
+The block updates automatically whenever the `Count` signal changes. The comparison uses string coercion, signal values are compared as strings in `@if:` expressions.
+
+---
+
+## @expr: in Conditions
+
+For computed or numeric comparisons, use `@expr:` expressions:
+
+```rtml
+@if:@expr:Count.Get > 5
+  <p>More than five!</p>
+@endif
+
+@if:@expr:Count.Get == 0
+  <p>Zero!</p>
+@else
+  <p>Non-zero</p>
+@endif
+```
+
+`@expr:` supports arithmetic (`+`, `-`, `*`, `/`), comparisons (`==`, `!=`, `<`, `>`, `<=`, `>=`), and logical operators (`&&`, `||`, `!`). Field access like `.Get` resolves the signal's current value.
+
+---
+
+## Negation
+
+Use `!` to invert a condition:
+
+```rtml
+@if:!loggedIn
+  <p>Please sign in.</p>
+@endif
+```
 
 ---
 
 ## Combining with Loops
 
-Conditionals and loops can be nested in either order. This makes it easy to render complex structures while keeping templates declarative and readable.
+Conditionals and loops can be nested in either order:
+
+```rtml
+@for:item in signal:Items
+  @if:item.Done
+    <li class="done">{item.Text}</li>
+  @else
+    <li>{item.Text}</li>
+  @endif
+@endfor
+```
 
 ---
 
-## Why It Matters
+## Summary
 
-Conditional rendering keeps your business logic in Go, while templates handle visual states. This separation leads to cleaner code and UI that adapts automatically to reactive state.
+| Directive        | Purpose                          |
+| ---------------- | -------------------------------- |
+| `@if:expr`       | Render block when expr is truthy |
+| `@else-if:expr`  | Alternate branch                  |
+| `@else`          | Fallback branch                   |
+| `@endif`         | Close the conditional block       |
+
+Signal-based conditions with `@signal:` update reactively. Computed conditions with `@expr:` support full arithmetic and comparison expressions.

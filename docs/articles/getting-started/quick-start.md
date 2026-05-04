@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide walks through creating and running your first **rfw** application. It assumes your environment meets the [requirements](/docs/getting-started/requirements).
+Walk through creating and running your first **rfw v2** application. Assumes your environment meets the [requirements](/docs/getting-started/requirements).
 
 ## Install the CLI
 
@@ -9,18 +9,14 @@ go install github.com/rfwlab/rfw/cmd/rfw@latest
 rfw --version
 ```
 
-The CLI builds, runs, and serves your project.
-
 ## Scaffold a Project
-
-Initialize a new project:
 
 ```bash
 rfw init github.com/username/hello-rfw
 cd hello-rfw
 ```
 
-The generated structure includes:
+Generated structure:
 
 ```
 hello-rfw/
@@ -31,58 +27,85 @@ hello-rfw/
   go.mod
 ```
 
-* `components/` holds client-side components and `.rtml` templates.
-* `host/` holds optional server-side (host) components.
-* `rfw.json` configures build options such as SSC.
+- `components/`, client-side components and `.rtml` templates
+- `host/`, server-side host components (SSC)
+- `rfw.json`, build config (SSC enabled by default)
 
 Use `--skip-tidy` to skip `go mod tidy` during init.
 
 ## A First Component
 
-### counter.rtml
+In v2, `composition.New(&struct{})` auto-wires everything from struct tags. No manual template embedding, no `Prop()` calls, no `On()` registration.
+
+### Counter.rtml
+
+Templates are discovered by convention: the struct name maps to `StructName.rtml`. Place the template alongside your Go file or in any registered `embed.FS`.
 
 ```rtml
 <root>
-  <button @on:click:increment>Count is: {count}</button>
+  <button @on:click:Increment>Count: {@expr:count}</button>
 </root>
 ```
 
-### counter.go
+- `@on:click:Increment` fires the `Increment` method on the component
+- `@expr:count` reads the `count` signal reactively
+
+### Counter.go
 
 ```go
+//go:build js && wasm
+
 package main
 
 import (
-    "github.com/rfwlab/rfw/v1/composition"
-    core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/router"
-    "github.com/rfwlab/rfw/v1/state"
+    "embed"
+
+    "github.com/rfwlab/rfw/v2/composition"
+    "github.com/rfwlab/rfw/v2/router"
+    "github.com/rfwlab/rfw/v2/types"
 )
 
-//go:embed counter.rtml
-var tpl []byte
+//go:embed Counter.rtml
+var fs embed.FS
 
-func NewCounter() *core.HTMLComponent {
-    cmp := composition.Wrap(core.NewComponent("Counter", tpl, nil))
-    count := state.NewSignal(0)
+func init() {
+    composition.RegisterFS(&fs)
+}
 
-    cmp.Prop("count", count)
-    cmp.On("increment", func() { count.Set(count.Get() + 1) })
+type Counter struct {
+    composition.Component
 
-    return cmp.HTML()
+    Count *types.Int `rfw:"signal"`
+}
+
+func (c *Counter) Increment() {
+    c.Count.Set(c.Count.Get() + 1)
+}
+
+func (c *Counter) OnMount() {
+    c.Count.Set(0)
 }
 
 func main() {
-    router.RegisterRoute(router.Route{
-        Path: "/",
-        Component: func() core.Component { return NewCounter() },
+    router.Page("/", func() *types.View {
+        return composition.New(&Counter{})
     })
     router.InitRouter()
     select {}
 }
 ```
 
-Open the app in a browser and click the button—the counter increments on each click.
+### What happened
+
+| Tag | Effect |
+|-----|--------|
+| `rfw:"signal"` | Creates a `*types.Int` signal, registers it as prop `Count`, auto-wires reactivity |
+| `Increment()` method | Auto-registered as DOM event handler, no `On()` call needed |
+| `OnMount()` | Auto-discovered lifecycle hook, called when component mounts |
+| `Counter.rtml` | Auto-found by struct name convention via `composition.RegisterFS` |
+| `composition.Component` embed | Provides `Store()`, `History()`, and other composition helpers |
+
+No `Template` field. No `WithTemplate()`. No `//go:embed` for template bytes. Tags do the work.
 
 ## Run the Development Server
 
@@ -90,23 +113,21 @@ Open the app in a browser and click the button—the counter increments on each 
 rfw dev --debug
 ```
 
-Features:
-
-* Compiles Go sources to `app.wasm` (served as the Brotli-compressed `app.wasm.br` bundle)
-* Serves static files under `/`
-* Rebuilds and reloads on file changes
-* Runs host components from `host/` if present
+- Compiles Go to `app.wasm` (served as Brotli-compressed `app.wasm.br`)
+- Serves static files under `/`
+- Rebuilds and reloads on file changes
+- Builds and runs host binary from `host/` when present
 
 Flags:
 
-* `--port` set port (default 8080)
-* `--host` expose to network
-* `--debug` enable logs and profiling endpoints
+- `--port`, set port (default 8080)
+- `--host`, expose to network
+- `--debug`, enable logs and profiling endpoints
 
 Environment variables:
 
-* `RFW_PORT` set port
-* `RFW_LOG_LEVEL` set log level (`debug`, `info`, `warn`, `error`)
+- `RFW_PORT`, set port
+- `RFW_LOG_LEVEL`, set log level (`debug`, `info`, `warn`, `error`)
 
 ## Build for Production
 
@@ -114,27 +135,24 @@ Environment variables:
 rfw build
 ```
 
-The build command outputs:
+Outputs:
 
-* `build/client/` – Wasm bundle and assets
-* `build/static/` – copied static files
-* `build/host/` – companion host binary
+- `build/client/`, Wasm bundle and assets
+- `build/static/`, copied static files
+- `build/host/`, host binary for SSC
 
-Outside of debug mode the build uses Go's `-trimpath` and `-ldflags="-s -w"` flags to strip debug information from the generated WebAssembly module.
-
-Need to inspect symbols instead? Export `RFW_SKIP_STRIP=1` so `go build` keeps debug metadata intact. During development `rfw dev` automatically sets `RFW_DEV_BUILD=1`, enabling the `rfwdev` build tag and development helpers without affecting production builds.
+Production builds use `-trimpath` and `-ldflags="-s -w"` to strip debug info. Export `RFW_SKIP_STRIP=1` to keep symbols. During development, `rfw dev` sets `RFW_DEV_BUILD=1`, enabling the `rfwdev` build tag.
 
 ## What You Learned
 
-* Installing the CLI
-* Scaffolding a project
-* Creating and mounting a component
-* Running the dev server with hot reload
-* Building for production
+- Installing the CLI and scaffolding a project
+- Creating a component with tag-driven composition
+- Templates found by convention (`StructName.rtml`)
+- Registering routes with `router.Page()`
+- Running the dev server and building for production
 
 ## Next Steps
 
-* [Templates](/docs/essentials/template-syntax)
-* [Signals and Stores](/docs/essentials/signals-and-effects)
-* [Components](/docs/essentials/components-basics)
-* [Architecture](/docs/architecture)
+- [Router](/docs/guide/router)
+- [Signals and Stores](/docs/guide/store-vs-signals)
+- [SSC](/docs/guide/ssc)

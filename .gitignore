@@ -16,3 +16,5 @@ docs/build
 
 routes_gen.go
 rfw_*.go
+
+demo/build/

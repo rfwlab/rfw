@@ -7,7 +7,7 @@ The project manifest (`rfw.json`) defines build options and plugin configuration
 Controls the build mode:
 
 * **unset** → standard Wasm build
-* **ssc** → enables Server Side Computed builds and compiles host components
+* **ssc** → enables Server-Side Computed builds and compiles host components
 
 ```json
 {
@@ -29,34 +29,22 @@ Generate stylesheets using the Tailwind CLI:
 {
   "plugins": {
     "tailwind": {
-      "input": "static/input.css",
-      "output": "static/tailwind.css",
+      "input": "input.css",
+      "output": "tailwind.css",
       "minify": true
     }
   }
 }
 ```
 
-* `input`: source file with `@tailwind` directives
+* `input`: source file with `@import "tailwindcss"` directives (Tailwind v4)
 * `output`: compiled CSS file (default: `tailwind.css`)
 * `minify`: set `false` to disable minification
 * `args`: extra CLI arguments for `tailwindcss`
 
 ### Environment Variables
 
-Expose variables prefixed with `RFW_` through the generated `rfwenv` package:
-
-```go
-import rfwenv "github.com/rfwlab/rfw/docs/rfwenv"
-
-clientID := rfwenv.Get("TWITCH_CLIENT_ID")
-```
-
-Provide them when running commands:
-
-```bash
-RFW_TWITCH_CLIENT_ID=abc rfw dev
-```
+Expose variables prefixed with `RFW_` through the generated `rfwenv` package.
 
 ```json
 {
@@ -93,31 +81,11 @@ Copy files based on glob patterns:
   "plugins": {
     "copy": {
       "files": [
-        { "from": "examples/components/**/*", "to": "build/static/examples/components" }
+        { "from": "examples/**/*", "to": "build/static/examples" }
       ]
     }
   }
 }
 ```
-
-* `from`: source glob pattern (`**` matches nested directories)
-* `to`: destination directory
-
-### Documentation Content
-
-Bundle markdown articles and sidebar into the build:
-
-```json
-{
-  "plugins": {
-    "docs": {}
-  }
-}
-```
-
-* `dir`: source docs folder (default: `articles`)
-* `dest`: output folder (default: `build/static`)
-
----
 
 Plugins run during `rfw build` and also watch files in development.

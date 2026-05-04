@@ -11,6 +11,7 @@ require (
 	github.com/mirkobrombin/go-logger v0.2.0
 	github.com/mirkobrombin/go-signal/v2 v2.0.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+	github.com/rfwlab/rfw/v2 v2.0.0-alpha.1
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/tdewolff/minify/v2 v2.24.3
 	golang.org/x/net v0.33.0
@@ -20,10 +21,10 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mirkobrombin/go-foundation v0.2.1 // indirect
+	github.com/mirkobrombin/go-foundation v1.0.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.3 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 
-replace github.com/mirkobrombin/go-signal/v2 => ../go-signal
+replace github.com/rfwlab/rfw/v2 v2.0.0-alpha.1 => ./v2

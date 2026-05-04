@@ -1,6 +1,6 @@
 # List Rendering
 
-Rendering collections is essential for dynamic interfaces. RTML’s `@for` directive iterates over slices, ranges, or maps and keeps the DOM synchronized when data changes.
+Rendering collections is essential for dynamic interfaces. RTML's `@for:` directive iterates over slices, maps, and ranges, and keeps the DOM synchronized when data changes.
 
 ---
 
@@ -10,9 +10,9 @@ Loop through a slice with `@for:item in items`:
 
 ```rtml
 <ul>
-@for:todo in todos
-  <li>{todo.Text}</li>
-@endfor
+  @for:todo in todos
+    <li>{todo.Text}</li>
+  @endfor
 </ul>
 ```
 
@@ -22,7 +22,7 @@ When items are added or removed, rfw patches only the affected `<li>` elements i
 
 ## Keyed Updates
 
-Provide a stable key to reorder lists efficiently:
+Provide a stable key with `[key {expr}]` for efficient reordering:
 
 ```rtml
 @for:todo in todos
@@ -34,31 +34,40 @@ Keys let rfw match DOM nodes with data items. Without them, items are recreated 
 
 ---
 
-## Ranges and Maps
+## Iterating Maps
 
-The directive also supports ranges and key/value maps:
+Use `@for:key,val in obj` to iterate key/value pairs in a Go map:
 
 ```rtml
-@for:i in 0..count
-  <span>{i}</span>
-@endfor
-
-@for:key,val in dict
-  <p>{key}: {val}</p>
+@for:name,age in ages
+  <p>{name}: {age}</p>
 @endfor
 ```
 
-* **Ranges**: expand from start to end (inclusive).
-* **Maps**: iterate key/value pairs in Go maps.
+Map iteration order follows Go's map iteration semantics.
+
+---
+
+## Signals in Loops
+
+When iterating a signal-backed collection, use the `signal:` prefix:
+
+```rtml
+@for:item in signal:Items
+  <li [key {item.ID}]>{item.Name}</li>
+@endfor
+```
+
+Changes to the `Items` signal patch only the affected DOM nodes.
 
 ---
 
 ## Nesting and Conditions
 
-`@for` can be combined with conditionals and nested components:
+`@for` can be combined with `@if:` and nested components:
 
 ```rtml
-@for:todo in todos
+@for:todo in signal:Todos
   @if:todo.Done
     <li class="done">{todo.Text}</li>
   @else
@@ -67,14 +76,31 @@ The directive also supports ranges and key/value maps:
 @endfor
 ```
 
-This makes it easy to express dynamic UIs with complex data structures.
+---
+
+## @endforeach
+
+The `@endforeach` directive is an alias for `@endfor`, supporting the alternative `@foreach:` syntax:
+
+```rtml
+@foreach:items as item
+  <li>{item}</li>
+@endforeach
+```
+
+This is equivalent to `@for:item in items ... @endfor`.
 
 ---
 
 ## Summary
 
-* Use `@for` to iterate slices, ranges, or maps.
-* Add `[key {...}]` for stable, efficient updates.
-* Combine with `@if` or component includes for flexibility.
+| Syntax                        | Purpose                          |
+| ----------------------------- | -------------------------------- |
+| `@for:item in items`          | Iterate a slice                  |
+| `@for:key,val in obj`        | Iterate a map's key/value pairs  |
+| `[key {expr}]`                | Stable key for efficient updates |
+| `@for:item in signal:Items`  | Iterate a signal-backed collection |
+| `@foreach:items as item`      | Alternative loop syntax          |
+| `@endfor` / `@endforeach`     | Close the loop block              |
 
 List rendering ensures templates remain declarative while rfw keeps the DOM in sync with your data.

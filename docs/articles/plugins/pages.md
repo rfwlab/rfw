@@ -84,7 +84,7 @@ Enable the plugin in `rfw.json` (you can customize the scanned directory via `di
 }
 ```
 
-* **dir** — source directory that contains page files (default: `pages`).
+* **dir**, source directory that contains page files (default: `pages`).
 
 ## Best practices
 
