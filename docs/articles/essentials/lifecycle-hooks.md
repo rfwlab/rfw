@@ -1,6 +1,6 @@
 # Lifecycle Hooks
 
-Components in **rfw** pass through well-defined stages. Lifecycle hooks let you run code at these key moments without scattering logic around. They are essential for data fetching, side effects, and cleanup.
+Components in **rfw v2** pass through well-defined stages. Lifecycle hooks let you run code at these key moments, data fetching, timers, cleanup, and other side effects.
 
 ---
 
@@ -10,88 +10,123 @@ Components in **rfw** pass through well-defined stages. Lifecycle hooks let you 
 Create → Mount → Update (repeat) → Unmount
 ```
 
-1. **Create**: the component instance is constructed.
+1. **Create**: `composition.New(&struct{})` constructs and auto-wires the component.
 2. **Mount**: template is converted to DOM and inserted into the page.
-3. **Update**: reactive state changes trigger DOM patches.
+3. **Update**: signal changes trigger reactive DOM patches.
 4. **Unmount**: the component is removed from the DOM.
 
 ---
 
 ## OnMount
 
-Runs after the component is inserted into the DOM:
+Runs after the component is inserted into the DOM. Define it as a **no-argument exported method** on your struct:
 
 ```go
-func (c *Widget) OnMount() {
-  go c.loadData()
+package main
+
+import (
+    "github.com/rfwlab/rfw/v2/composition"
+    t "github.com/rfwlab/rfw/v2/types"
+)
+
+type Widget struct {
+    composition.Component
+    Items *t.Int `rfw:"signal"`
+}
+
+func (w *Widget) OnMount() {
+    w.Items.Set(10)
 }
 ```
 
-Use this to:
+`composition.New` auto-discovers `OnMount()` and registers it, no manual wiring needed.
 
-* Start timers
+Use `OnMount` to:
+
+* Start timers or intervals
 * Fetch remote data
-* Access refs (`GetRef`) or manipulate child nodes
+* Access refs or manipulate child nodes
 
-At this point, the component is fully available in the DOM.
-
----
-
-## OnUpdate
-
-Runs after each reactive update:
-
-```go
-func (c *Widget) OnUpdate() {
-  log.Println("widget updated")
-}
-```
-
-Use this for side effects that must occur after every render, such as syncing with external APIs or libraries.
+At this point the component is fully available in the DOM.
 
 ---
 
 ## OnUnmount
 
-Runs before the component is removed:
+Runs before the component is removed from the DOM. Define it the same way, a no-argument exported method:
 
 ```go
-func (c *Widget) OnUnmount() {
-  close(c.done)
+func (w *Widget) OnUnmount() {
+    close(w.done)
 }
 ```
 
-Use this to:
+Auto-discovered by `composition.New`. Use `OnUnmount` to:
 
 * Stop timers
 * Cancel goroutines
-* Release watchers or subscriptions
-
-Ensures resources are cleaned up before the component disappears.
+* Release subscriptions or watchers
 
 ---
 
-## Registering Hooks
+## SetOnMount / SetOnUnmount
 
-You can provide hooks by either:
-
-* Implementing the methods directly (`OnMount`, `OnUpdate`, `OnUnmount`), or
-* Registering callbacks dynamically:
+For advanced cases where you need to register hooks dynamically (e.g., in a function-based setup rather than a struct), use `SetOnMount` and `SetOnUnmount` on the underlying `*core.HTMLComponent`:
 
 ```go
-cmp.SetOnMount(func(*core.HTMLComponent) { ... })
-cmp.SetOnUpdate(func(*core.HTMLComponent) { ... })
-cmp.SetOnUnmount(func(*core.HTMLComponent) { ... })
+view := composition.New(&Widget{})
+view.SetOnMount(func(_ *core.HTMLComponent) {
+    log.Println("mounted")
+})
+view.SetOnUnmount(func(_ *core.HTMLComponent) {
+    log.Println("unmounted")
+})
 ```
+
+This is useful when the hook logic doesn't belong on the struct itself, for example, in layout wrappers or middleware-style components.
 
 ---
 
-## Why Lifecycle Hooks Matter
+## Complete Example
 
-Lifecycle hooks are the structured entry points for side effects in rfw. They keep logic predictable:
+```go
+type Timer struct {
+    composition.Component
+    Count *t.Int    `rfw:"signal"`
+    done  chan struct{}
+}
 
-* **Mount** for setup
-* **Update** for reactive side effects
-* **Unmount** for teardown
+func (t *Timer) OnMount() {
+    ticker := time.NewTicker(time.Second)
+    go func() {
+        for {
+            select {
+            case <-ticker.C:
+                t.Count.Set(t.Count.Get() + 1)
+            case <-t.done:
+                ticker.Stop()
+                return
+            }
+        }
+    }()
+}
 
-See the [API reference](../api/core#lifecycle-hooks) for all available helpers.
+func (t *Timer) OnUnmount() {
+    close(t.done)
+}
+```
+
+The framework calls `OnMount` after DOM insertion and `OnUnmount` before removal, guaranteeing cleanup.
+
+---
+
+## Summary
+
+| Hook         | When          | How to register                      |
+| ------------ | ------------- | ------------------------------------- |
+| `OnMount`    | After DOM insert | `func (c *T) OnMount()`, auto-discovered |
+| `OnUnmount`  | Before DOM remove | `func (c *T) OnUnmount()`, auto-discovered |
+| `SetOnMount` | After DOM insert | `view.SetOnMount(fn)`, manual        |
+| `SetOnUnmount` | Before DOM remove | `view.SetOnUnmount(fn)`, manual     |
+
+Prefer struct methods, `composition.New` discovers them automatically. Use `SetOnMount`/`SetOnUnmount` only when you need dynamic registration.

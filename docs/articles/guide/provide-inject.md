@@ -14,13 +14,11 @@ func (c *ParentComponent) OnMount() {
 }
 ```
 
-The `OnMount` hook ensures the value is provided after the component is attached. See [lifecycle hooks](../api/core#lifecycle-hooks) for details.
-
 ---
 
-## Consuming a Value
+## Injecting a Value
 
-Use `Inject` to search up the component tree for a matching key. With the generic form, you get a typed result:
+Use `Inject` to search up the component tree for a matching key:
 
 ```go
 name, ok := core.Inject[string](c, "user")
@@ -30,6 +28,26 @@ if ok {
 ```
 
 If no provider is found, `ok` is `false`.
+
+---
+
+## DI Container Injection
+
+rfw v2 also supports dependency injection via the `composition.Container()` and the `rfw:"inject"` tag:
+
+```go
+// Register a dependency globally
+composition.Container().Provide("logger", myLogger)
+
+// Inject into a struct field
+type MyPage struct {
+    composition.Component
+    Logger *Logger `rfw:"inject"`        // key defaults to "Logger"
+    Config *Config  `rfw:"inject:config"` // explicit key
+}
+```
+
+When `composition.New(&MyPage{})` is called, nil pointer fields tagged with `rfw:"inject"` are automatically resolved from the container.
 
 ---
 
@@ -47,8 +65,7 @@ answer, _ := core.Inject[int](child, "answer") // 42
 
 ---
 
-## Why Use It
+## When to Use
 
-* Avoids prop drilling for deeply nested components
-* Keeps data flow explicit and local to the component tree
-* Useful for cross-cutting concerns like themes, localization, or user context
+* **Provide/Inject** for values that flow down the component tree (parent → child).
+* **rfw:"inject" tag** for global singletons and services registered in the container.

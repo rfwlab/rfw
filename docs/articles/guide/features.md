@@ -2,11 +2,30 @@
 
 **rfw** focuses on delivering a productive, Go-first workflow for the web. Instead of layering a virtual DOM over browser APIs, it updates the real DOM directly with **Selective DOM Patching**, a lightweight routine that mutates only what changed.
 
+## Tag-Driven Composition
+
+rfw v2 auto-wires your components from struct tags. No manual `Prop()` calls, no `AddDependency()`, no `SetOnMount()` boilerplate:
+
+```go
+type HomePage struct {
+    composition.Component
+    Count *t.Int  `rfw:"signal"`
+    Name  *t.String `rfw:"inject"`
+}
+
+func (h *HomePage) Increment() { h.Count.Set(h.Count.Get() + 1) }
+func (h *HomePage) OnMount()   { h.Count.Set(0) }
+```
+
+## Convention Over Configuration
+
+Templates are found by struct name, `HomePage` → `HomePage.rtml`. Override with `rfw:"template:path"` when needed.
+
 ## Direct DOM Binding
 
 Components render directly into DOM nodes. When state changes, rfw patches only the affected elements. No virtual tree is created, keeping the runtime small and predictable.
 
-## Go-centric Development
+## Go-Centric Development
 
 Both logic and templates live in Go modules:
 
@@ -16,31 +35,26 @@ Both logic and templates live in Go modules:
 
 The `rfw` CLI handles scaffolding and WebAssembly builds.
 
-## Reactive Stores
+## Reactive Signals & Stores
 
-State lives in named stores. Components subscribe to keys and re-render automatically:
+Fine-grained reactivity without the overhead:
 
-* **Computed values**: derive data from other keys
-* **Watchers**: trigger side effects on mutation
+* **Signals**: local component state via `rfw:"signal"` tags
+* **Stores**: shared state across components via `rfw:"store:name"` tags
+* **@expr:**: computed values inline in templates
 
-This supports complex flows with minimal boilerplate.
+## SSC (Server-Side Computed)
+
+Render HTML on the server, hydrate in the browser. Faster time-to-content, better SEO, tighter security. Secrets stay on the server.
 
 ## Minimal Runtime
 
-Only the parts you import are included. The JavaScript glue is tiny—most logic stays in Go, shipped as WebAssembly.
+Only the parts you import are included. The JavaScript glue is tiny, most logic stays in Go, shipped as WebAssembly.
 
 ## Extensible Pipeline
 
-Plugins extend the compiler and runtime for:
-
-* Custom build steps
-* Code generation
-* Browser API integrations
-
-This keeps the core lean but flexible.
+Plugins extend the compiler and runtime for custom build steps, code generation, and browser API integrations.
 
 ## When to Use rfw
 
-Use **rfw** when you want full control over output, prefer Go, or need to share code seamlessly between client and server. It demonstrates how a simple reactive model can power interactive UIs without relying on a heavy JavaScript framework.
-
-@include\:ExampleFrame:{code:"/examples/components/main\_component.go", uri:"/examples/main"}
+Use **rfw** when you want full control over output, prefer Go, or need to share code seamlessly between client and server.

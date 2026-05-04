@@ -1,59 +1,70 @@
 # Computed Properties
 
-Computed properties let you derive new values from existing reactive state. They automatically update when their dependencies change and cache the result until then. This ensures you avoid redundant recalculations.
+v2 replaces most standalone computed properties with `@expr:` in RTML templates. For complex logic, use Go methods.
 
 ---
 
-## Defining a Computed Value
+## @expr: in Templates
 
-Use `state.NewComputed` to declare a computation. It runs once, and reruns only when any of its dependencies change:
-
-```go
-var double = state.NewComputed(func() any {
-  return store.Get("count").(int) * 2
-})
-```
-
-In RTML you can bind it like any other field:
+Inline computed expressions that re-evaluate when their signal dependencies change:
 
 ```rtml
-<p>Doubled: {double.Value()}</p>
+<p>Doubled: @expr:Count.Get * 2</p>
+<p>Positive: @expr:Count.Get > 0</p>
+<p>Greeting: @expr:Name.Get + "!"</p>
+<p>Label: @expr:Active.Get ? "on" : "off"</p>
 ```
 
-The call to `Value()` reads the cached result. When `count` changes, the cache is invalidated and the function recomputes on next access.
+Any `Get()` call inside `@expr:` creates a dependency. When the signal updates, only the affected expression re-renders.
 
 ---
 
-## Using Computed in Components
+## Complex Logic in Go Methods
 
-You can define computed values inside components and expose them as fields:
+When `@expr:` isn't enough, define a method on the struct:
 
 ```go
 type Stats struct {
-  *core.HTMLComponent
-  Count int
-  Even  state.Computed
+    *core.HTMLComponent
+    Scores *composition.String `rfw:"signal"`
 }
 
-func NewStats() *Stats {
-  s := &Stats{HTMLComponent: core.NewComponent("Stats", tpl, nil)}
-  s.Even = state.NewComputed(func() any { return s.Count%2 == 0 })
-  s.SetComponent(s)
-  s.Init(nil)
-  return s
+func (s *Stats) Average() string {
+    // complex logic here
+    return result
 }
 ```
+
+In RTML:
 
 ```rtml
-<p>Is even? {Even.Value()}</p>
+<p>Average: {Average}</p>
 ```
+
+The `{Method}` syntax calls the method and injects the result.
 
 ---
 
-## Why Use Computed
+## When to Use What
 
-* Keep templates simple by moving logic into Go functions.
-* Ensure derived values are always in sync with their dependencies.
-* Avoid repeating expensive calculations on every render.
+| Approach | Use for |
+| --- | --- |
+| `@expr:` | Simple arithmetic, comparisons, string concatenation |
+| Go method + `{Method}` | Multi-step logic, loops, error handling |
+| `state.Effect` | Side effects that react to signal changes |
 
-Computed properties are especially useful for data transformations, formatting, or combining multiple signals/stores into one reactive output.
+---
+
+## Effects for Derived State
+
+When you need to react to changes with side effects (logging, syncing, DOM manipulation), use `state.Effect`:
+
+```go
+state.Effect(func() func() {
+    val := count.Get()
+    fmt.Println("count changed to", val)
+    return nil
+})
+```
+
+Effects re-run when any signal read inside them changes. Return a cleanup function if needed.

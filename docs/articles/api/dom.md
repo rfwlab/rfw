@@ -1,37 +1,57 @@
 # dom
 
-Low level DOM helpers used by the framework. Most applications interact with the DOM indirectly through components.
+```go
+import "github.com/rfwlab/rfw/v2/dom"
+```
+
+Low-level DOM helpers. Most apps interact with DOM indirectly via components.
+
+## Accessors
 
 | Function | Description |
 | --- | --- |
-| `Doc()` | Returns the global `Document`. |
-| `Document.Head()` | Returns the `<head>` element. |
-| `Document.Body()` | Returns the `<body>` element. |
-| `CreateElement(tag)` | Returns a new element. |
-| `ByID(id)` | Fetches an element by id. |
-| `Query(sel)` | Returns the first element matching the CSS selector. |
-| `QueryAll(sel)` | Returns all elements matching the CSS selector. |
-| `ByClass(name)` | Returns elements with the given class name. |
-| `ByTag(tag)` | Returns elements with the given tag name. |
-| `SetInnerHTML(el, html)` | Replaces an element's children with raw HTML. |
-| `Element.AppendChild(child)` | Appends a child to an element. |
-| `Text(el)` | Returns an element's text content. |
-| `SetText(el, text)` | Sets an element's text content. |
-| `Attr(el, name)` | Retrieves the value of an attribute. |
-| `SetAttr(el, name, value)` | Sets the value of an attribute. |
-| `SetStyle(el, prop, value)` | Sets an inline style property. |
-| `StyleInline(map)` | Builds a style string from CSS properties. |
-| `AddClass(el, name)` | Adds a class to an element. |
-| `RemoveClass(el, name)` | Removes a class from an element. |
-| `HasClass(el, name)` | Reports whether an element has a class. |
-| `ToggleClass(el, name)` | Toggles a class on an element. |
-| `ScheduleRender(id, html, delay)` | Updates a component after a delay. |
-| `UpdateDOM(id, html)` | Patches a component's DOM with raw HTML. |
-| `TemplateHook` | Callback invoked after `UpdateDOM`. |
-| `BindStoreInputs(el)` | Binds inputs to `@store` directives. |
-| `BindStoreInputsForComponent(id, el)` | Binds `@store` directives while reporting the component context. |
-| `BindSignalInputs(id, el)` | Binds inputs to local `@signal` directives. |
-| `(Element).On(event, handler)` | Attaches an event listener and returns a stop function. |
-| `(Element).OnClick(handler)` | Convenience wrapper for click events. |
-| `SnapshotComponentSignals(id)` | Copy of signals registered for a component. |
+| `Doc() *Document` | Returns the global document. |
+| `Window() *Window` | Returns the global window. |
+| `Document.Head()` *Element | Returns `<head>`. |
+| `Document.Body()` *Element | Returns `<body>`. |
 
+## Queries
+
+| Function | Description |
+| --- | --- |
+| `ByID(id string) *Element` | Fetch element by id. |
+| `Query(sel string) *Element` | First element matching selector. |
+| `QueryAll(sel string) []*Element` | All elements matching selector. |
+| `ByClass(name string) []*Element` | Elements with given class. |
+| `ByTag(tag string) []*Element` | Elements with given tag. |
+
+## Events
+
+| Function | Description |
+| --- | --- |
+| `DelegateEvents(root *Element)` | Set up event delegation from root. |
+| `RegisterHandlerFunc(name string, fn func(*Event))` | Register a named handler. |
+| `GetHandler(name string) func(*Event)` | Retrieve a named handler. |
+
+## Mutation
+
+| Function | Description |
+| --- | --- |
+| `UpdateDOM(id, html string)` | Patch a component's DOM with raw HTML. |
+| `CreateElement(tag string) *Element` | Create a new element. |
+
+## Element Methods
+
+| Method | Description |
+| --- | --- |
+| `SetHTML(html string)` | Replace children with raw HTML. |
+| `SetText(text string)` | Set text content. |
+| `AddClass(name string)` | Add a CSS class. |
+| `RemoveClass(name string)` | Remove a CSS class. |
+| `HasClass(name string) bool` | Check for a CSS class. |
+| `ToggleClass(name string)` | Toggle a CSS class. |
+| `SetAttr(name, value string)` | Set an attribute. |
+| `Attr(name string) string` | Get attribute value. |
+| `SetStyle(prop, value string)` | Set inline style property. |
+| `AppendChild(child *Element)` | Append a child element. |
+| `On(event string, handler func(*Event)) func()` | Attach listener; returns cleanup. |

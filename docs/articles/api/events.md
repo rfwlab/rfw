@@ -1,17 +1,27 @@
 # events
 
-Utilities for handling browser events and observing DOM changes.
+```go
+import "github.com/rfwlab/rfw/v2/events"
+```
+
+Browser event handling and DOM observation.
+
+## On-family
 
 | Function | Description |
 | --- | --- |
-| `On(event, target, handler, opts...)` | Attaches a listener and returns a cleanup function. |
-| `OnClick(target, handler)` | Convenience wrapper for `click` events. |
-| `OnScroll(target, handler)` | Convenience wrapper for `scroll` events. |
-| `OnInput(target, handler)` | Convenience wrapper for `input` events. |
-| `OnTimeUpdate(target, handler)` | Convenience wrapper for `timeupdate` events. |
-| `OnKeyDown(handler)` | Registers a `keydown` handler on `window`. |
-| `OnKeyUp(handler)` | Registers a `keyup` handler on `window`. |
-| `Listen(event, target)` | Returns a channel that receives the event's first argument. |
-| `ObserveMutations(selector)` | Watches DOM mutations, skipping elements marked with `data-rfw-ignore`. |
-| `ObserveIntersections(selector, opts)` | Streams `IntersectionObserverEntry` values. |
+| `On(event string, target *Element, handler func(*Event), opts ...EventOption) func()` | Attach listener; returns cleanup. |
+| `OnClick(target *Element, handler func(*Event)) func()` | Click event shorthand. |
+| `OnInput(target *Element, handler func(*Event)) func()` | Input event shorthand. |
+| `OnKeyDown(handler func(*Event)) func()` | Keydown on window. |
+| `OnKeyUp(handler func(*Event)) func()` | Keyup on window. |
+| `OnScroll(target *Element, handler func(*Event)) func()` | Scroll event shorthand. |
+| `OnTimeUpdate(target *Element, handler func(*Event)) func()` | Timeupdate event shorthand. |
 
+## Observation
+
+| Function | Description |
+| --- | --- |
+| `Listen(event string, target *Element) <-chan any` | Channel that receives event payloads. |
+| `ObserveMutations(selector string) <-chan MutationRecord` | Watch DOM mutations (skips `data-rfw-ignore`). |
+| `ObserveIntersections(selector string, opts IntersectionObserverInit) <-chan IntersectionObserverEntry` | Stream intersection entries. |

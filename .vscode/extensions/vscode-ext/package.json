@@ -2,7 +2,7 @@
   "name": "rtml-syntax-highlighting",
   "displayName": "RTML Syntax Highlighting",
   "description": "Syntax highlighting for RTML (rfw Template Markup Language)",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "publisher": "fabricatorsltd",
   "engines": {
     "vscode": "^1.50.0"

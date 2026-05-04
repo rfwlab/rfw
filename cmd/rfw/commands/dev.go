@@ -19,7 +19,6 @@ func NewDevCommand() *command.Command {
 	}
 	cmd.AddFlag("port", "p", "Port to serve on", "", true)
 	cmd.AddBoolFlag("host", "", "Expose the server to the network", false, false)
-	cmd.AddBoolFlag("debug", "", "Enable debug logs, profiling and overlay", false, false)
 	return cmd
 }
 
@@ -35,12 +34,8 @@ func runDev(cmd *command.Command, _ *command.RootFlags, _ []string) error {
 		}
 	}
 	host := cmd.GetFlagBool("host")
-	debug := cmd.GetFlagBool("debug")
-	if debug {
-		os.Setenv("RFW_DEVTOOLS", "1")
-	}
 	os.Setenv("RFW_DEV_BUILD", "1")
-	srv := server.NewServer(port, host, debug)
+	srv := server.NewServer(port, host)
 	return srv.Start()
 }
 

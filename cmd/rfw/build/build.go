@@ -14,7 +14,6 @@ import (
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/bundler"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/copy"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/devtools"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
 	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/pages"
@@ -25,7 +24,6 @@ import (
 )
 
 type buildOptions struct {
-	Devtools     bool
 	DevBuild     bool
 	SkipOptimize bool
 }
@@ -33,9 +31,6 @@ type buildOptions struct {
 func goBuildArgs(opts buildOptions) []string {
 	args := []string{"build"}
 	var tags []string
-	if opts.Devtools {
-		tags = append(tags, "devtools")
-	}
 	if opts.DevBuild {
 		tags = append(tags, "rfwdev")
 	}
@@ -57,12 +52,6 @@ func Build() error {
 	}
 	if data, err := os.ReadFile("rfw.json"); err == nil {
 		_ = json.Unmarshal(data, &manifest)
-	}
-	if os.Getenv("RFW_DEVTOOLS") == "1" {
-		if manifest.Plugins == nil {
-			manifest.Plugins = map[string]json.RawMessage{}
-		}
-		manifest.Plugins["devtools"] = nil
 	}
 	if err := plugins.Configure(manifest.Plugins); err != nil {
 		return fmt.Errorf("failed to configure plugins: %w", err)
@@ -90,9 +79,8 @@ func Build() error {
 	}
 
 	args := goBuildArgs(buildOptions{
-		Devtools:     os.Getenv("RFW_DEVTOOLS") == "1",
 		DevBuild:     os.Getenv("RFW_DEV_BUILD") == "1",
-		SkipOptimize: utils.IsDebug() || os.Getenv("RFW_SKIP_STRIP") == "1",
+		SkipOptimize: os.Getenv("RFW_DEV_BUILD") == "1" || utils.IsDebug() || os.Getenv("RFW_SKIP_STRIP") == "1",
 	})
 	wasmPath := filepath.Join(clientDir, "app.wasm")
 	args = append(args, "-o", wasmPath, ".")
@@ -103,19 +91,41 @@ func Build() error {
 		return fmt.Errorf("failed to build project: %s: %w", output, err)
 	}
 
-	if err := compressWasmBrotli(wasmPath); err != nil {
-		return fmt.Errorf("failed to brotli-compress wasm: %w", err)
+	isDev := utils.IsDebug() || os.Getenv("RFW_DEV_BUILD") == "1"
+	if !isDev {
+		if err := compressWasmBrotli(wasmPath); err != nil {
+			return fmt.Errorf("failed to brotli-compress wasm: %w", err)
+		}
 	}
 
-	if err := os.MkdirAll(hostDir, 0o755); err != nil {
-		return fmt.Errorf("failed to create host build directory: %w", err)
-	}
-	hostCmd := exec.Command("go", "build", "-o", filepath.Join(hostDir, "host"), "./host")
-	if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
+	// Always build host binary if host directory exists (SSC mode).
+	if _, err := os.Stat("host"); err == nil {
+		if err := os.MkdirAll(hostDir, 0o755); err != nil {
+			return fmt.Errorf("failed to create host build directory: %w", err)
+		}
+		hostArgs := []string{"build", "-o", filepath.Join(hostDir, "host"), "./host"}
+		if isDev {
+			hostArgs = []string{"build", "-o", filepath.Join(hostDir, "host"), "./host"}
+		}
+		hostCmd := exec.Command("go", hostArgs...)
+		if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
+			if !isDev {
+				return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
+			}
+			fmt.Fprintf(os.Stderr, "warning: host build failed (dev mode, continuing): %s\n", hostOutput)
+		}
 	}
 	if err := plugins.Build(); err != nil {
 		return fmt.Errorf("failed to run plugins: %w", err)
+	}
+
+	// Copy plugin-generated assets (e.g. tailwind.css) to client build dir.
+	for _, name := range []string{"tailwind.css", "input.css"} {
+		if data, err := os.ReadFile(name); err == nil {
+			if err := os.WriteFile(filepath.Join(clientDir, name), data, 0o644); err != nil {
+				return fmt.Errorf("failed to copy %s to client dir: %w", name, err)
+			}
+		}
 	}
 	if _, err := os.Stat("index.html"); err == nil {
 		if err := copyFile("index.html", filepath.Join(clientDir, "index.html")); err != nil {

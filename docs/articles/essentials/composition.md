@@ -1,134 +1,260 @@
-# Composition API
+# Composition
 
-The **composition package** is the foundation of the Composition API in rfw. It wraps a base `*core.HTMLComponent` and exposes helpers for props, events, DOM bindings, groups of elements, and local state.
-
----
-
-## Why wrap components?
-
-By default, `core.NewComponent` only returns a raw HTML component. To make it usable with the Composition API, you must **wrap** it with `composition.Wrap`. The wrapper:
-
-* Adds helpers like `Prop`, `FromProp`, `On`, `GetRef`, `Group`, and `Store`.
-* Ensures the component can expose reactive values and register event handlers.
-
-It is not automatic because some developers still prefer struct components. Wrapping makes the choice explicit: if you want Composition-style features, you call `Wrap`. If not, you stick with the raw component or a struct.
+The `composition` package is the core of rfw v2's component system. `composition.New` replaces v1's manual wiring with tag-driven auto-composition.
 
 ---
 
-## Wrapping Components
+## How `composition.New` Works
+
+`composition.New(&MyStruct{})` performs these steps:
+
+1. **Scan struct tags**, Uses the `scan` package to parse all `rfw:` tags on the struct fields.
+2. **Resolve template**, Checks for `rfw:"template:path"`, then falls back to convention (struct name → `Name.rtml`).
+3. **Create HTML component**, Calls `core.NewHTMLComponent` with the resolved template.
+4. **Wrap as Component**, `Wrap(hc)` creates a `composition.Component` providing `Prop`, `On`, `Store`, and `History` methods.
+5. **Initialize default store**, Creates or reuses the `"default"` store under the `"app"` module.
+6. **Wire signals**, For each `rfw:"signal"` field: if non-nil, registers it as a prop; if nil, creates a zero-value signal, sets the field, and registers as prop.
+7. **Wire props**, Creates nil `Signal[any]` props for any `rfw:"prop"` fields not already in the component's props map.
+8. **Register event handlers**, For `rfw:"event:domEvent:handler"` tags, looks up the method by name and calls `comp.On(handler, fn)`.
+9. **Auto-discover zero-arg methods**, Any exported no-argument, no-return method on the struct (excluding `Component` methods) is auto-registered as a handler under its method name.
+10. **Wire lifecycle**, If `OnMount()` or `OnUnmount()` exist as no-arg methods, they are wired into the component's mount/unmount callbacks.
+11. **Create stores**, For each `rfw:"store"` tag, calls `comp.Store(name)`.
+12. **Register hosts**, For `rfw:"host"` tags, calls `AddHostComponent(name)`.
+13. **Wire histories**, For `rfw:"history:store:undo:redo"` tags, retrieves the store and calls `comp.History(store, undo, redo)`.
+14. **Wire includes**, For `rfw:"include:slotname"` on `*View` fields, calls `AddDependency(slotName, view)`.
+15. **Resolve injects**, For `rfw:"inject"` fields, resolves from the DI container and sets the field.
+16. **Validate**, Checks signal fields are pointer types and event handlers exist on the struct.
+
+Returns the underlying `*core.HTMLComponent` (typed as `*View`).
+
+---
+
+## The Component Wrapper
+
+`Component` wraps `*core.HTMLComponent` and exposes composition helpers:
 
 ```go
-hc := core.NewComponent("Name", nil, nil)
-cmp := composition.Wrap(hc)
+type Component struct {
+    *core.HTMLComponent
+}
 ```
 
-The wrapper does not change rendering logic—it only gives you convenient helpers. Call `Unwrap()` to access the original `*core.HTMLComponent` if needed.
+### Prop
+
+Registers a reactive signal under a key, making it available in the template:
+
+```go
+comp.Prop("count", composition.NewInt(0))
+```
+
+### On
+
+Registers a handler function callable from the template via `@on:event:name`:
+
+```go
+comp.On("increment", func() { count.Set(count.Get() + 1) })
+```
+
+### Store
+
+Creates or retrieves a store scoped to the component's ID:
+
+```go
+s := comp.Store("local", state.WithHistory(10))
+s.Set("key", "value")
+```
+
+### History
+
+Registers undo/redo handlers for a store:
+
+```go
+comp.History(s, "undo", "redo")
+```
+
+The handlers are registered in the DOM and can be used from templates with `@on:click:undo` / `@on:click:redo`.
+
+### Unwrap
+
+Access the underlying `*core.HTMLComponent` when needed:
+
+```go
+hc := comp.Unwrap()
+```
 
 ---
 
-## Props
+## NewFrom\[T]()
 
-Expose reactive state to RTML with `Prop` and consume it with `FromProp`:
+Generic factory for zero-value struct types:
 
 ```go
-count := state.NewSignal(0)
-cmp.Prop("count", count)
-
-// get an existing signal or wrap a plain prop value
-other := composition.FromProp[int](cmp, "other", 1)
-other.Set(2)
+view := composition.NewFrom[Counter]()
 ```
 
-* `Prop(key, signal)`: exports a reactive signal under a key.
-* `FromProp[T](key, default)`: retrieves a signal from props, or wraps a plain value if found.
+Equivalent to:
 
-Props are immutable for the child—update via parent events or stores.
+```go
+view := composition.New(&Counter{})
+```
+
+Use it when you don't need custom field values during construction.
 
 ---
 
-## Event Handlers
+## FromProp\[T]
 
-Register handlers directly on the component:
-
-```go
-cmp.On("save", func() { /* handle save */ })
-```
-
-Templates can call these handlers with `@on:click:save`. Internally this forwards to the `dom` package.
-
-If you are not using `composition.Wrap`, you can attach listeners manually via `dom.ByID(...).On(...)`.
-
----
-
-## DOM Bindings
-
-Sometimes you need direct access to nodes. RTML lets you annotate elements with a constructor:
-
-```rtml
-<root>
-  <div [list]></div>
-</root>
-```
-
-Fetch and update it in Go:
+`FromProp` retrieves a signal from a component's props. If the prop is a plain value of type `T`, it wraps it into a new signal. If the prop is already a `Signal[T]`, it returns that signal directly.
 
 ```go
-cmp.SetOnMount(func(*core.HTMLComponent) {
-    listEl := cmp.GetRef("list")
-    listEl.SetHTML("")
-    listEl.AppendChild(composition.Div().Text("Item").Element())
-})
+comp := composition.Wrap(core.NewHTMLComponent("card", tpl, map[string]any{"start": 5}))
+sig := composition.FromProp[int](comp, "start", 0)
+sig.Set(sig.Get() + 1) // start is now 6
 ```
 
-* `GetRef(name)`: fetches a node marked with `[name]`.
-* `Bind` / `For`: query nodes by selector when you don’t have a ref.
+If the prop key doesn't exist, a new signal with the default value is created and stored.
 
 ---
 
 ## Element Groups
 
-When you create multiple nodes with the builders (`Div()`, `Span()`, etc.), you can group them:
+Group multiple DOM elements for bulk operations:
 
 ```go
 cards := composition.Group(
-    composition.Div().Text("A"),
-    composition.Div().Text("B"),
+    composition.Div().Text("Card A"),
+    composition.Div().Text("Card B"),
 )
 cards.AddClass("card").SetAttr("data-role", "item")
 ```
 
-Groups let you:
+### Group Operations
 
-* Apply bulk operations (`AddClass`, `SetStyle`, etc.).
-* Merge multiple groups.
-* Iterate over elements with `ForEach`.
+| Method | Effect |
+|--------|--------|
+| `AddClass(name)` | Add a CSS class to all elements |
+| `RemoveClass(name)` | Remove a CSS class |
+| `ToggleClass(name)` | Toggle a CSS class |
+| `SetAttr(name, value)` | Set an attribute |
+| `SetStyle(prop, value)` | Set an inline style |
+| `SetText(text)` | Set text content |
+| `SetHTML(html)` | Replace inner HTML |
+| `ForEach(fn)` | Iterate over elements |
+| `Group(gs...)` | Merge with other groups |
 
----
+### Node Builders
 
-## Stores and History
-
-Create a store scoped to a component:
+Create DOM elements programmatically:
 
 ```go
-s := cmp.Store("count", state.WithHistory(5))
-s.Set("v", 1)
-s.Set("v", 2)
-
-cmp.History(s, cmp.ID+":undo", cmp.ID+":redo")
+div := composition.Div().Class("box").Text("Hello")
+span := composition.Span().Text("world")
+btn := composition.Button().Text("Click me")
+heading := composition.H(2).Text("Title")
+link := composition.A().Href("/home").Text("Home")
 ```
 
-* `Store(name, opts...)`: creates a component-scoped store.
-* `History`: registers undo/redo handlers tied to that store.
-
-This lets you build isolated logic with its own undo/redo flow.
+All builders support `Class`, `Classes`, `Style`, `Styles`, `Text`, and `Group` methods. `A` adds `Href` and `Attr`.
 
 ---
 
-## Summary
+## Bind and For
 
-Wrapping is explicit because rfw supports two styles:
+### Bind
 
-* **Struct components**: embed `*core.HTMLComponent` in a struct.
-* **Composition API**: wrap with `composition.Wrap` to get reactive helpers.
+Select an element by CSS selector and manipulate it:
 
-Both work, but if you want fine-grained reactivity and helper methods, use the Compositio
+```go
+composition.Bind("#output", func(el composition.El) {
+    el.Clear()
+    el.Append(composition.Div().Text("Updated"))
+})
+```
+
+### BindEl
+
+Same as `Bind` but with a pre-selected element:
+
+```go
+composition.BindEl(domElement, func(el composition.El) {
+    el.Append(composition.Span().Text("child"))
+})
+```
+
+### For
+
+Repeatedly call a function to generate nodes until it returns `nil`:
+
+```go
+composition.For("#list", func() composition.Node {
+    if done {
+        return nil
+    }
+    return composition.Div().Text("item")
+})
+```
+
+---
+
+## Includes
+
+When a struct field is tagged `rfw:"include:slotname"` and holds a `*types.View`, `composition.New` automatically calls `AddDependency(slotname, view)` on the component. This wires the child view into the template at the `@include:slotname` position.
+
+```go
+type Page struct {
+    composition.Component
+    Header  *types.View `rfw:"include:header"`
+    Content *types.View `rfw:"include:content"`
+}
+```
+
+Set the fields before or after creating the view:
+
+```go
+page := &Page{}
+page.Header = composition.New(&Header{})
+page.Content = composition.New(&Content{})
+view := composition.New(page)
+```
+
+If the field is `nil` at `composition.New` time, the include is skipped (no panic). Set it later and call `AddDependency` manually if needed.
+
+---
+
+## NewRaw
+
+For layout or wrapper components that don't use `rfw` tags:
+
+```go
+view := composition.NewRaw("wrapper", tplBytes, map[string]any{"title": "Hello"})
+```
+
+`NewRaw` skips tag scanning entirely, it only initializes the HTMLComponent and default store.
+
+---
+
+## Type Aliases
+
+The composition package re-exports signal and core types for convenience:
+
+```go
+type Int    = types.Int       // *state.Signal[int]
+type String = types.String    // *state.Signal[string]
+type Bool   = types.Bool       // *state.Signal[bool]
+type Float  = types.Float     // *state.Signal[float64]
+type Store  = types.Store     // *state.Store
+type View   = types.View      // *core.HTMLComponent
+
+var NewInt   = types.NewInt
+var NewString = types.NewString
+var NewBool  = types.NewBool
+var NewFloat = types.NewFloat
+```
+
+---
+
+## See Also
+
+- [Components Basics](./components-basics), struct tags and component definition
+- [Template Syntax](./template-syntax), RTML directives
+- [Signals & Effects](./signals-effects-and-watchers), reactive state primitives

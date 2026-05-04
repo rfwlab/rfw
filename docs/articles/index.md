@@ -1,119 +1,122 @@
 # Introduction
 
-Welcome to the documentation for **rfw v1**. Use the search box in the top navigation to quickly find what you need.
+Welcome to the documentation for **rfw v2**. Use the search box in the top navigation to quickly find what you need.
 
 ## What is rfw?
 
-rfw (Reactive Framework for the Web) is a framework for building user interfaces with **Go** and **WebAssembly**. It extends standard HTML, CSS, and JavaScript with a declarative, component-based model that lets you write your UI entirely in Go. State in Go is bound directly to the DOM: when values change, rfw updates the page automatically—without a virtual DOM.
+rfw (Reactive Framework for the Web) is a framework for building user interfaces with **Go** and **WebAssembly**. It extends standard HTML with a declarative, component-based model that lets you write your UI entirely in Go. State in Go is bound directly to the DOM: when values change, rfw updates the page automatically—without a virtual DOM.
 
-Here is the simplest example using the **Composition API**:
+Here is the simplest example:
 
 ```go
+//go:build js && wasm
+
 package main
 
 import (
-    _ "embed"
-    "context"
+    "embed"
 
-    core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/composition"
-    "github.com/rfwlab/rfw/v1/state"
+    "github.com/rfwlab/rfw/v2/composition"
+    t "github.com/rfwlab/rfw/v2/types"
 )
 
-//go:embed counter.rtml
-var tpl []byte
+//go:embed templates
+var templates embed.FS
 
-func NewCounter() *core.HTMLComponent {
-    cmp := composition.Wrap(core.NewComponent("Counter", tpl, nil))
+func init() {
+    composition.RegisterFS(&templates)
+}
 
-    count := state.NewSignal(0)
-    cmp.Prop("count", count)
+type Counter struct {
+    composition.Component
+    Count *t.Int `rfw:"signal"`
+}
 
-    cmp.On("increment", func() {
-        count.Set(count.Get() + 1)
-    })
+func (c *Counter) Increment() { c.Count.Set(c.Count.Get() + 1) }
 
-    return cmp.HTML()
+func NewCounter() *t.View {
+    return composition.New(&Counter{Count: t.NewInt(0)})
 }
 ```
 
 ```rtml
 <root>
-  <button @on:click:increment>Count is: {count}</button>
+  <button @on:click:Increment>Count: @signal:Count</button>
+  <p>@expr:Count.Get * 2 doubled</p>
 </root>
 ```
 
-**Result:** clicking the button increases the counter by updating a reactive signal bound to the template.
+**Result:** clicking the button increases the counter. The `@expr:` directive computes derived values inline.
 
-This example shows the two core features of rfw:
+This example shows the core features of rfw v2:
 
-* **Declarative rendering**: RTML templates extend HTML with state placeholders and event bindings.
-* **Reactivity**: signals track state changes and trigger DOM updates automatically.
+* **Tag-driven composition**, `rfw:"signal"` on struct fields auto-wires reactivity
+* **Convention over configuration**, templates found by struct name (`Counter` → `Counter.rtml`)
+* **Auto-discovered lifecycle**, `OnMount()`/`OnUnmount()` methods detected automatically
+* **Declarative RTML**, `@signal:`, `@on:click:`, `@expr:` bind state and events
 
-## A Flexible Framework
+## Key Concepts
 
-rfw adapts to the way you want to build:
-
-* **Progressive enhancement** – drop a component into any HTML page with no setup.
-* **Full applications** – build SPAs with routing, state, and live reload.
-* **Hybrid rendering** – pre-render on the server, hydrate in the browser.
-* **Advanced targets** – integrate with WebGL, workers, or browser APIs when needed.
-
-You can start with a single reactive widget and grow into a full application—without switching frameworks.
-
-## RTML Templates
-
-Components use **RTML** (Reactive Template Markup Language). The `.rtml` file holds markup, the Go file holds logic. At build time, templates are embedded in your binary and load instantly in the browser.
-
-Learn more about [Template Syntax](/docs/essentials/template-syntax).
-
-## Component Styles
-
-rfw supports two styles:
-
-### Composition API
-
-Define state with signals and actions inside a setup-like function, using helpers from the `composition` package. This is the recommended style for new code.
-
-### Struct Components
-
-Embed `*core.HTMLComponent` in a struct to manage state via exported fields and methods:
-
-```go
-type Counter struct {
-    *core.HTMLComponent
-    Count int
-}
-
-func New() *Counter {
-    c := &Counter{}
-    c.HTMLComponent = core.NewComponentWith("Counter", tpl, nil, c)
-    return c
-}
-
-func (c *Counter) Increment() { c.Count++ }
-```
-
-### Functional Components
-
-For very small pieces of UI, return a component directly:
-
-```go
-func NewCounter() *core.HTMLComponent {
-    return core.NewComponent("Counter", tpl, nil)
-}
-```
-
-### Which to Choose?
-
-* **Composition API**: recommended for most projects; flexible, expressive, and scales well.
-* **Struct components**: useful if you prefer method receivers and lifecycle hooks.
-* **Functional components**: best for simple presentational elements.
+* **Signals**, reactive values (`*t.Int`, `*t.String`, etc.) that update the DOM when changed
+* **Stores**, shared state across components, scoped by module and name
+* **Composition**, `composition.New(&struct{})` auto-wires everything from struct tags
+* **Routing**, `router.Page()` and `router.Group()` for client-side navigation
+* **SSC**, Server-Side Computed: the host renders HTML, Wasm hydrates it
 
 ## Next Steps
 
-* [Quick Start](./getting-started/quick-start) – build your first component in minutes.
-* [The Guide](./guide/features) – explore rfw in depth.
-* [The Essentials](./guide/creating-application) – learn the essential basis of rfw.
-* [API Reference](../api/core) – see how everything works under the hood.
-* [Contributing](../../CONTRIBUTING.md) – help improve the framework.
+* [Quick Start](./getting-started/quick-start), build your first component in minutes
+* [Creating an Application](./essentials/creating-application), project structure and bootstrap
+* [Components Basics](./essentials/components-basics), components, tags, and lifecycle
+* [Template Syntax](./essentials/template-syntax), RTML directives and expressions
+* [API Reference](./api/composition), full API docs
+
+## Getting Started
+
+* [Quick Start](./getting-started/quick-start)
+* [Requirements](./getting-started/requirements)
+
+## Essentials
+
+* [Creating an Application](./essentials/creating-application)
+* [Components Basics](./essentials/components-basics)
+* [Composition](./essentials/composition)
+* [Template Syntax](./essentials/template-syntax)
+* [Reactivity Fundamentals](./essentials/reactivity-fundamentals)
+* [Signals, Effects & Watchers](./essentials/signals-effects-and-watchers)
+* [Event Handling](./essentials/event-handling)
+* [Lifecycle Hooks](./essentials/lifecycle-hooks)
+* [Conditional Rendering](./essentials/conditional-rendering)
+* [List Rendering](./essentials/list-rendering)
+* [Computed Properties](./essentials/computed-properties)
+* [Template Refs](./essentials/template-refs)
+* [Class and Style Bindings](./essentials/class-and-style-bindings)
+
+## Guides
+
+* [Router](./guide/router)
+* [SSC (Server-Side Computed)](./guide/ssc)
+* [State Management](./guide/state-management)
+* [Store vs Signals](./guide/store-vs-signals)
+* [Provide & Inject](./guide/provide-inject)
+* [Features](./guide/features)
+* [Manifest](./guide/manifest)
+* [CLI](./guide/cli)
+
+## API Reference
+
+* [composition](./api/composition)
+* [router](./api/router)
+* [state](./api/state)
+* [signal](./api/signal)
+* [rtml](./api/rtml)
+* [core](./api/core)
+* [dom](./api/dom)
+* [events](./api/events)
+
+## Migration
+
+* [From Vue](./migration/from-vue)
+* [From React](./migration/from-react)
+* [From Svelte](./migration/from-svelte)
+* [Comparison](./migration/comparison)

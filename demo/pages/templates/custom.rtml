@@ -1,0 +1,6 @@
+<root>
+    <div class="px-4 py-6 sm:px-0">
+        <h1 class="text-3xl font-bold text-gray-900">@signal:Title</h1>
+        <p class="mt-4 text-lg text-gray-600">This page uses an explicit template path override via <code class="bg-gray-200 px-1 rounded">rfw:"template:pages/templates/custom.rtml"</code> instead of convention.</p>
+    </div>
+</root>

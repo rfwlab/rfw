@@ -1,165 +1,171 @@
 # Template Syntax
 
-RTML is rfw’s declarative, HTML‑like language for authoring UIs. It extends markup with **variables**, **commands**, and **constructors** that connect the DOM to Go data and events. Templates are compiled to Go—no runtime parser in the browser. (Today integration uses plain JavaScript; a future release will expose a global `rfw` object.)
+RTML is rfw's declarative template language. It extends HTML with **variables**, **commands** (prefixed with `@`), and **constructors** (square-bracket annotations). Templates connect the DOM to Go state and events.
 
 ---
 
 ## Building Blocks
 
-RTML distinguishes three constructs, each with a specific role:
-
-* **Variables** — `{expression}` placeholders that insert reactive values.
-* **Commands** — directives starting with `@` that control logic or behavior.
-* **Constructors** — square‑bracket annotations placed in a start tag to attach metadata to that element.
-
-Example:
+| Construct | Syntax | Purpose |
+|-----------|--------|---------|
+| Variable | `{{expr}}` | Insert reactive values |
+| Command | `@directive:arg` | Control flow, events, bindings |
+| Constructor | `[name]` | Annotate elements (refs, keys) |
 
 ```rtml
 <div [userCard]>
-  <h2>{user.Name}</h2>
+  <h2>{{user.Name}}</h2>
   <button @on:click:save>Save</button>
 </div>
 ```
-
-Here `[userCard]` marks the element for lookup via `GetRef` (see **Template Refs**), `{user.Name}` interpolates data, and `@on:click:save` attaches an event handler.
-
-> Keep roles separate: variables render values, commands control flow/behavior, constructors annotate elements.
 
 ---
 
 ## Text Interpolation
 
-Insert reactive values with `{expression}`:
+Use `{{expr}}` to insert reactive values:
 
 ```rtml
-<p>Count: {count}</p>
+<p>Count: {{Count.Get}}</p>
+<p>Hello, {{Name.Get}}</p>
 ```
 
-Changing `count` (field, signal, or store‑backed prop) patches only the affected text node.
+When the bound signal or store key changes, only the affected text node updates, no virtual DOM.
 
 ### Calling Functions
 
-Expressions can call methods exposed by the component:
+Expressions can invoke component methods:
 
 ```rtml
-<time>{formatDate(createdAt)}</time>
+<time>{{FormatDate createdAt}}</time>
 ```
 
-Functions run on render; keep them pure (no side effects) and inexpensive.
+Keep expression functions pure and inexpensive.
 
 ---
 
-## Attribute Bindings
+## Template Expressions with @expr
 
-Attributes accept expressions too:
-
-```rtml
-<img src="{user.Avatar}" alt="{user.Name}">
-```
-
-### Boolean Attributes
-
-If an expression evaluates to a boolean, the attribute is present only when truthy:
+`@expr:` computes a value inline from an expression:
 
 ```rtml
-<button disabled="{isDisabled}">Save</button>
+<p>Total: @expr:Count.Get * 2</p>
+<span>@expr:Price.Get * Qty.Get</span>
 ```
 
-When `isDisabled` is `false`, the `disabled` attribute is removed.
+`@expr:` is evaluated reactively, when any referenced signal changes, the output updates.
 
 ---
 
-## State Bindings (Stores & Signals)
+## Signal Bindings
 
-RTML offers dedicated commands to bind **global stores** and **local signals**.
-
-### Store bindings
-
-```
-@store:MODULE.STORE.KEY[:w]
-```
-
-* `MODULE` — module namespace (often `default` or `app`).
-* `STORE` — store name.
-* `KEY` — field in the store.
-* `:w` — optional; enables two‑way binding **on form controls** (read‑only elsewhere). There is **no `:r`** suffix—omit for read‑only.
-
-Examples:
+`@signal:name` binds a local reactive signal:
 
 ```rtml
-<p>Shared: @store:default.counter.count</p>
-<input value="@store:default.counter.count:w">
-<input type="checkbox" checked="@store:default.counter.enabled:w">
-<textarea>@store:default.counter.notes:w</textarea>
+<p>@signal:Count</p>
+<input value="@signal:Name:w">
+<input type="checkbox" checked="@signal:Done:w">
+<textarea>@signal:Bio:w</textarea>
 ```
 
-Editing a writable control updates the store key; other bindings update automatically.
+Append `:w` on form controls for two-way binding (writes back to the signal on input). Without `:w`, the binding is read-only.
 
-### Signal bindings
+> Tip: Inside `{{}}` expressions you can reference signals by prop name: `{{Count.Get}}`. For text-only positions, `@signal:Count` is equivalent.
 
-Bind local reactive state with `@signal:name`:
+---
+
+## Store Bindings
+
+`@store:Module.Store.Key` reads from a global store:
 
 ```rtml
-<p>@signal:message</p>
-<input value="@signal:message:w">
-<input type="checkbox" checked="@signal:agree:w">
-<textarea>@signal:bio:w</textarea>
+<p>Shared: @store:app.default.count</p>
+<input value="@store:app.default.count:w">
 ```
 
-Use `:w` on form elements to write back to the signal.
+Append `:w` on form controls for two-way binding. Other components reading the same store key update automatically.
 
-> Tip: Inside `{}` expressions you can reference a signal by its prop name, e.g. `{count}`; for text‑only positions, `@signal:count` is equivalent. Prefer the `{}` form for consistency across bindings.
+---
+
+## Event Bindings
+
+`@on:event:handler` binds a DOM event to a handler:
+
+```rtml
+<button @on:click:Increment>+</button>
+<form @on:submit.prevent:Save>...</form>
+```
+
+The handler name must match a method on the struct or a name registered via `comp.On()`.
+
+### Modifiers
+
+| Modifier  | Effect |
+|-----------|--------|
+| `.stop`    | `event.stopPropagation()` |
+| `.prevent` | `event.preventDefault()` |
+| `.once`    | Removes listener after first call |
+
+Chain modifiers after the event name:
+
+```rtml
+<form @on:submit.prevent.stop:Save>
+<button @on:click.once:Launch>Launch once</button>
+```
 
 ---
 
 ## Conditionals
 
-Render blocks conditionally with `@if`, `@else-if`, and `@else`:
+`@if`, `@else-if`, `@else`, `@endif`:
 
 ```rtml
-@if:count > 0
+@if:Count.Get > 0
   <p>Positive</p>
+@else-if:Count.Get == 0
+  <p>Zero</p>
 @else
-  <p>Zero or negative</p>
+  <p>Negative</p>
 @endif
 ```
 
-Branches may contain any valid RTML, including loops and component includes.
+Branches may contain any RTML content, including includes, loops, and nested conditionals.
 
 ---
 
-## Lists
+## List Rendering
 
-Iterate collections with `@for`:
+`@for:alias in collection` ... `@endfor`:
 
 ```rtml
 @for:item in items
-  <li>{item.Text}</li>
+  <li>{{item.Text}}</li>
 @endfor
 ```
 
-* **Ranges**:
+### Range
 
-  ```rtml
-  @for:i in 0..n
-    <span>{i}</span>
-  @endfor
-  ```
-* **Maps**:
+```rtml
+@for:i in 0..N.Get
+  <span>{{i}}</span>
+@endfor
+```
 
-  ```rtml
-  @for:key,val in obj
-    <p>{key}: {val}</p>
-  @endfor
-  ```
+### Maps
 
-### Keyed items
+```rtml
+@for:key, val in obj
+  <p>{{key}}: {{val}}</p>
+@endfor
+```
 
-Give items a stable identity with the `[key {expr}]` constructor to enable efficient reorders:
+### Keyed Items
+
+Use `[key {{expr}}]` for stable identity and efficient reorders:
 
 ```rtml
 @for:todo in todos
-  <li [key {todo.ID}]>{todo.Text}</li>
+  <li [key {{todo.ID}}]>{{todo.Text}}</li>
 @endfor
 ```
 
@@ -167,112 +173,140 @@ Without keys, elements may be recreated when order changes.
 
 ---
 
-## Events
+## Includes and Slots
 
-Bind DOM events with `@on:event:handler`:
+### Include
 
-```rtml
-<button @on:click:increment>Increment</button>
-```
-
-You can also use the shorthand `@click:increment`—it’s **equivalent**, but `@on:` is more explicit and recommended for consistency.
-
-### Modifiers
-
-Append modifiers after the event name:
-
-| Modifier  | Effect                                           |
-| --------- | ------------------------------------------------ |
-| `stop`    | `event.stopPropagation()` prevents bubbling      |
-| `prevent` | `event.preventDefault()` blocks default behavior |
-| `once`    | Removes the listener after the first call        |
-
-Examples:
+`@include:component` renders a child component:
 
 ```rtml
-<form @on:submit.prevent.stop:onSubmit>
-<button @on:click.once:launch>Launch once</button>
+@include:content
 ```
 
-Register handlers in Go. With Composition API, use `cmp.On("increment", fn)`; with plain `*core.HTMLComponent` use the `dom` / `events` helpers.
+With props:
+
+```rtml
+@include:Card:{title: "Hello"}
+```
+
+### Slot
+
+`@slot:name` ... `@endslot` defines a named outlet:
+
+```rtml
+<!-- Layout.rtml -->
+<root>
+  <nav>My App</nav>
+  <main>@slot:content
+    <p>Default content</p>
+  @endslot</main>
+</root>
+```
+
+Parents fill slots from their own template:
+
+```rtml
+@include:Layout
+  <div slot="content">Custom content here</div>
+@end
+```
 
 ---
 
-## Constructors & Template Refs
+## Constructors
 
-Constructors annotate elements with extra semantics. Two common patterns:
+Square-bracket annotations in start tags:
 
-* **Template refs** — `[name]` marks the element for lookup via `GetRef("name")`.
-* **List keys** — `[key {expr}]` supplies a stable key inside loops.
+### Template Refs
 
-See **[Template Refs](./template-refs)** for details on refs and when to prefer them over DOM queries.
+`[name]` marks an element for lookup via `GetRef("name")`:
+
+```rtml
+<div [list]></div>
+```
+
+```go
+func (c *MyComp) OnMount() {
+    el := c.GetRef("list")
+    el.SetHTML("updated")
+}
+```
+
+### List Keys
+
+`[key {{expr}}]` gives loop items stable identity (see [List Rendering](#list-rendering)).
 
 ---
 
-## Components, Props & Slots
+## Attribute Bindings
 
-Include a child component and pass props:
-
-```rtml
-@include:Card:{title:"Hello"}
-```
-
-Inside the child, read props with `@prop:name` and expose slots:
+Attributes accept `{{expr}}` values:
 
 ```rtml
-<card>
-  <h2>@prop:title</h2>
-  @slot:body
-    <p>Injected by parent</p>
-  @endslot
-</card>
+<img src="{{avatar}}" alt="{{name}}">
+<div class="btn-{{variant}}"></div>
 ```
 
-Parents can fill named slots using `@slot:Child.slotName` from their own templates.
+### Boolean Attributes
+
+When an expression evaluates to a boolean, the attribute is present only when truthy:
+
+```rtml
+<button disabled="{{isDisabled}}">Save</button>
+```
+
+---
+
+## @expr Directive
+
+For computed values inline:
+
+```rtml
+<p>Doubled: @expr:Count.Get * 2</p>
+<span>@expr:Price.Get * Qty.Get</span>
+```
+
+Any referenced signals trigger re-evaluation. Equivalent to a computed property but defined directly in the template.
 
 ---
 
 ## Dynamic Components
 
-Switch components at runtime with the `rt-is` attribute:
+Switch components at runtime with `rt-is`:
 
 ```rtml
-<div rt-is="{current}"></div>
+<div rt-is="{{current}}"></div>
 ```
 
 The placeholder is replaced with the component whose name matches `current`.
 
 ---
 
-## Expressions
-
-RTML evaluates JavaScript‑like expressions in `{}` and directive values:
-
-```rtml
-<p>{user.First + " " + user.Last}</p>
-<div class="btn-{variant}"></div>
-```
-
-Expressions must produce a value. Statements (e.g. `if`, `var`) are not allowed. Only a restricted set of globals (e.g. `Math`, `Date`) is available.
-
----
-
-## Plugins & Extensibility
-
-Plugins may introduce custom variables, commands, and constructors:
-
-* `{plugin:NAME.var}`
-* `@plugin:NAME.cmd`
-* `[plugin:NAME.ref]`
-
-See the **Plugin API** for details.
-
----
-
 ## Security
 
-Interpolated content is escaped by default to prevent XSS. Only render trusted data, and prefer components/slots for rich markup.
+Interpolated content is escaped by default to prevent XSS. Only render trusted data; use components and slots for rich markup.
 
 ---
 
-These building blocks cover RTML’s core syntax. Combine them with Go logic to build fully reactive components. The compiler records data dependencies so the runtime can patch only what actually changed.
+## Quick Reference
+
+| Syntax | Purpose |
+|--------|---------|
+| `{{expr}}` | Text interpolation |
+| `@signal:Name` | Read a signal |
+| `@signal:Name:w` | Two-way signal binding |
+| `@store:M.S.K` | Read a store key |
+| `@store:M.S.K:w` | Two-way store binding |
+| `@on:event:Handler` | Bind event |
+| `@on:event.prevent.stop:Handler` | Bind event with modifiers |
+| `@if:cond` ... `@endif` | Conditional |
+| `@else-if:cond` |_else-if branch |
+| `@else` | else branch |
+| `@for:x in items` ... `@endfor` | List iteration |
+| `@include:Name` | Include component |
+| `@include:Name:{key: val}` | Include with props |
+| `@slot:name` ... `@endslot` | Define slot |
+| `@expr:expression` | Template expression |
+| `[refName]` | Template ref |
+| `[key {{expr}}]` | List key |
+| `rt-is="{{name}"}` | Dynamic component |

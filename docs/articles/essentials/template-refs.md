@@ -1,139 +1,127 @@
 # Template Refs
 
-Template refs are a feature of **constructors** in RTML. Constructors (`[name]`) can serve multiple purposes, one of which is to mark an element (or a child component) for later lookup. This gives your Go code direct access to DOM elements or component instances when you need fine-grained control.
+Template refs give Go code direct access to DOM elements or child component instances. Use them as an escape hatch for imperative operations like focus, measurement, or third-party library integration.
 
 ---
 
-## Creating a Ref in Templates
+## Creating Refs in RTML
 
-Add a constructor inside an element’s start tag:
+Add a constructor `[name]` inside an element's start tag:
 
 ```rtml
 <input [nameInput]>
+<div [box]></div>
 ```
 
-Inside the component, call `GetRef("nameInput")` to retrieve the reference after the element is mounted:
+Multiple constructors are allowed:
 
-```go
-func (c *Form) OnMount() {
-  el := c.GetRef("nameInput")
-  el.Focus() // dom.Element supports DOM helpers like focus
-}
+```rtml
+<div [container] [measured]>
 ```
-
-The returned value is a `dom.Element`. Use it for scenarios such as focusing, measuring size, or integrating third-party libraries.
 
 ---
 
-## Creating Refs in Go
+## Accessing Refs in Components
 
-Refs can also be created directly from Go code:
+### With composition.New
 
-* **With Composition API** – using `cmp.GetRef("name")` after wrapping a component:
+`composition.New` auto-discovers `OnMount` and `OnUnmount` methods. Refs are accessible via `GetRef` on the embedded `*core.HTMLComponent`:
 
 ```go
-cmp := composition.Wrap(core.NewComponent("Form", tpl, nil))
-cmp.SetOnMount(func(*core.HTMLComponent) {
-  el := cmp.GetRef("nameInput")
-  el.Focus()
+type Form struct {
+    *core.HTMLComponent
+    Query *composition.String `rfw:"signal"`
+}
+
+func (f *Form) OnMount() {
+    input := f.GetRef("nameInput")
+    input.Focus()
+}
+```
+
+### With composition.Wrap
+
+```go
+cmp := composition.Wrap(core.NewHTMLComponent("Form", tpl, nil))
+cmp.SetOnMount(func(_ *core.HTMLComponent) {
+    el := cmp.GetRef("nameInput")
+    el.Focus()
 })
 ```
 
-* **Without Composition API** – plain `*core.HTMLComponent` also exposes `GetRef`:
-
-```go
-c := core.NewComponent("Form", tpl, nil)
-c.SetOnMount(func(*core.HTMLComponent) {
-  el := c.GetRef("nameInput")
-  el.SetStyle("border", "1px solid red")
-})
-```
-
-Both approaches rely on `[nameInput]` in the template, but refs can always be retrieved programmatically once the component is mounted.
+The returned value from `GetRef` is a `dom.Element`. It supports DOM helpers like `Focus()`, `SetStyle()`, `AddClass()`, `SetAttr()`.
 
 ---
 
 ## Child Component Refs
 
-Refs also apply to included components. Adding `[child]` on an `@include` makes the child instance accessible:
+Refs also work on `@include`:
 
 ```rtml
-@include:ChildComponent [child]
+@include:Modal [modal]
 ```
-
-In Go, you can fetch the wrapped component and call its methods:
 
 ```go
-child := c.GetRef("child").Component()
-child.(*ChildComponent).DoSomething()
+func (p *Page) OnMount() {
+    modal := p.GetRef("modal").Component()
+    modal.(*Modal).DoSomething()
+}
 ```
+
+---
+
+## OnMount Auto-discovery
+
+When using `composition.New`, methods named `OnMount` and `OnUnmount` with signature `func()` are auto-detected and registered as lifecycle hooks. No manual `SetOnMount` call needed:
+
+```go
+type Widget struct {
+    *core.HTMLComponent
+    Count *composition.Int `rfw:"signal"`
+}
+
+func (w *Widget) OnMount() {
+    box := w.GetRef("box")
+    box.SetStyle("border", "1px solid red")
+}
+
+func (w *Widget) OnUnmount() {
+    // cleanup
+}
+```
+
+---
+
+## Refs from Go (No Template Constructor)
+
+When building elements programmatically, hold direct references instead of using refs:
+
+```go
+el := composition.Div().Class("panel").Element()
+el.SetStyle("outline", "1px solid #ccc")
+```
+
+Use `Bind` or `For` for selector-based DOM queries:
+
+```go
+composition.Bind(".panel", func(el composition.El) {
+    el.Append(composition.Span().Text("added"))
+})
+```
+
+Use `dom.ByID("email")` for low-level lookups.
 
 ---
 
 ## When to Use Refs
 
-Refs are an **escape hatch**. They should be used sparingly:
-
-* ✅ Focus an input when a form mounts
-* ✅ Integrate a third-party widget that expects a DOM node
-* ✅ Call imperative methods on a child component
-* ❌ Don’t use refs for normal data flow—prefer signals, props, or stores
-
-Most interactivity should stay declarative via events and reactive bindings.
+- Focus an input on mount
+- Integrate a third-party library expecting a DOM node
+- Call imperative methods on a child component
+- Avoid refs for data flow; use signals, props, or stores instead
 
 ---
 
-## Lifecycle Considerations
+## Lifecycle
 
-Refs are only valid after the element or component is mounted. Access them in `OnMount` or later hooks:
-
-```go
-func (c *Widget) OnMount() {
-  box := c.GetRef("box")
-  box.SetStyle("border", "1px solid red")
-}
-```
-
-When the component unmounts, refs become invalid.
-
----
-
-## Refs from Go (without template constructors)
-
-You can **use** refs from Go in both styles (Composition API and struct components), but **creating a named ref** purely from Go is **not specified in documentation**. Template refs are established by placing a constructor in RTML. From Go you have these options:
-
-* **Keep direct handles** to nodes you build with the composition builders:
-
-  ```go
-  el := composition.Div().Class("panel").Element() // dom.Element
-  el.SetStyle("outline", "1px solid #ccc")
-  ```
-
-  You don’t need a ref name if you already hold the element handle.
-
-* **Query the DOM** via selectors using `Bind` / `For` on a wrapped component (Composition API):
-
-  ```go
-  cmp.Bind(".panel", func(el dom.Element) { el.AddClass("active") })
-  ```
-
-* **Use the low-level DOM helpers** (works with Composition API or plain `*core.HTMLComponent`):
-
-  ```go
-  el := dom.ByID("email")
-  el.Focus()
-  ```
-
-* **Assign IDs / data-attributes** at creation time and retrieve them later with DOM queries.
-
-> If a Go-side API to register a *named* ref exists beyond template constructors, it is **not specified in documentation**.
-
-These approaches work in both Composition API and non-Composition components.
-
----
-
-## Related Links
-
-* [Template Syntax](./template-syntax)
-* [Lifecycle Hooks](./lifecycle-hooks)
-* [DOM API](../api/dom)
+Refs are only valid after mount. Access them in `OnMount` or later. Refs become invalid after unmount.
