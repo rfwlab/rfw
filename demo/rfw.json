@@ -1,0 +1,12 @@
+{
+  "port": 8081,
+  "build": {
+    "type": "ssc"
+  },
+  "plugins": {
+    "tailwind": {
+      "input": "input.css",
+      "output": "tailwind.css"
+    }
+  }
+}

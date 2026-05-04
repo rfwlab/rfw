@@ -1,0 +1,16 @@
+<root>
+    <div class="px-4 py-6 sm:px-0">
+        <h1 class="text-3xl font-bold text-gray-900">Welcome to rfw!</h1>
+        <p class="mt-4 text-lg text-gray-600">This is a demo app using rfw v2 and Tailwind CSS.</p>
+        
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold">Interactive Counter</h2>
+            <div class="mt-4 flex items-center space-x-4">
+                <button @on:click:Dec class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">-</button>
+                <span class="text-2xl font-mono">@signal:Count</span>
+                <button @on:click:Inc class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">+</button>
+            </div>
+            <p class="mt-2 text-gray-500">Count * Factor = @expr:Count * Factor</p>
+        </div>
+    </div>
+</root>

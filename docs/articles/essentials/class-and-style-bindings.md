@@ -1,64 +1,111 @@
 # Class and Style Bindings
 
-In **rfw**, templates can bind CSS classes and inline styles directly to reactive data. This provides a clean way to express presentation logic inside RTML without writing manual DOM updates.
+Dynamic CSS classes and inline styles in RTML, driven by signals and expressions.
 
 ---
 
 ## Class Bindings
 
-The `class` attribute accepts either a string or a map expression.
-
-### String Binding
-
-Use string concatenation for simple cases:
+### Static + Signal Interpolation
 
 ```rtml
-<div class="btn btn-{variant}">...</div>
+<div class="btn btn-{Variant.Get}">...</div>
 ```
 
-Here `{variant}` is substituted with the current value of a signal or store property.
+`{Variant.Get}` substitutes the current value of the `Variant` signal.
 
-### Conditional Classes
+### Conditional Classes with @expr:
 
-For dynamic toggles, return a map where keys are class names and values are booleans:
+```rtml
+<div class="@expr:Active.Get ? 'active' : ''">...</div>
+<div class="@expr:Count.Get > 0 ? 'has-items' : 'empty'">...</div>
+```
+
+### Map Syntax
+
+Use the built-in `map()` helper for multiple toggles:
 
 ```rtml
 <div class="{ map('active', isActive, 'disabled', isDisabled) }"></div>
 ```
 
-Only the classes with truthy values appear in the final output. The `map` helper is built into RTML expressions and makes conditional styling concise.
+Keys are class names; values are booleans. Only truthy values appear in the output.
 
 ---
 
 ## Style Bindings
 
-Inline styles follow the same pattern. Keys are CSS properties (camelCase) and values can be strings or numbers:
+Inline styles support signal interpolation and `@expr:`:
+
+### Signal Interpolation
+
+```rtml
+<div style="color: {Color.Get}; font-size: {Size.Get}px">...</div>
+```
+
+### @expr: Expressions
+
+```rtml
+<div style="@expr:Active.Get ? 'background-color: green' : 'background-color: gray'">...</div>
+```
+
+### Map Syntax for Styles
 
 ```rtml
 <div style="{ map('backgroundColor', color, 'width', width + 'px') }"></div>
 ```
 
-When reactive values change, rfw updates only the affected properties, leaving others untouched.
+Keys use camelCase CSS property names. Values can be strings or numbers.
 
 ---
 
-## Binding Objects
+## Programmatic Styles via Composition
 
-Components can also expose entire style or class objects:
+Use element builders for Go-side style and class manipulation:
 
-```rtml
-<div class="{Styles}"></div>
+```go
+composition.Div().
+    Class("panel").
+    Style("border", "1px solid #ccc").
+    Styles("padding", "8px", "margin", "4px")
 ```
 
-The bound object should either:
+For DOM updates after mount, use refs:
 
-* implement `fmt.Stringer`, producing a space‑separated class list, or
-* be convertible to a map for fine‑grained control.
+```go
+func (c *Card) OnMount() {
+    box := c.GetRef("box")
+    box.SetStyle("border-color", "red")
+    box.AddClass("highlighted")
+}
+```
 
-This allows encapsulating style logic in Go structs and reusing them across templates.
+Or `Bind` for selector-based updates:
+
+```go
+composition.Bind(".panel", func(el composition.El) {
+    el.Append(composition.Span().Text("updated"))
+})
+```
 
 ---
 
-## Why It Matters
+## Group Operations
 
-By integrating class and style bindings into RTML, rfw ensures that UI changes remain declarative and reactive. Developers avoid manual DOM manipulation, reducing boilerplate while keeping state and presentation in sync.
+`*Elements` methods operate on all elements in a group:
+
+```go
+group := composition.Group(btn1, btn2, btn3)
+group.AddClass("visible").
+    SetStyle("opacity", "1").
+    SetText("ready")
+```
+
+---
+
+## Summary
+
+- Use `{Signal.Get}` for simple interpolation in class/style strings.
+- Use `@expr:` for conditional and computed values.
+- Use `map()` for multi-toggle class/style maps.
+- Use refs and composition builders for imperative DOM manipulation.

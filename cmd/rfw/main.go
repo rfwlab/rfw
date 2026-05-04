@@ -6,7 +6,7 @@ import (
 
 	"github.com/mirkobrombin/go-cli-builder/v1/root"
 	"github.com/rfwlab/rfw/cmd/rfw/commands"
-	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 func main() {
