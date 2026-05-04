@@ -1,41 +1,299 @@
 {
     "name": "RTML",
     "scopeName": "text.html.rtml",
-    "fileTypes": [
-        "rtml"
-    ],
+    "fileTypes": ["rtml"],
     "patterns": [
-        {
-            "include": "#html"
-        },
-        {
-            "include": "#rtml"
-        }
+        { "include": "#comment" },
+        { "include": "#rtml-tag" },
+        { "include": "#rtml-directives" },
+        { "include": "text.html.basic" }
     ],
     "repository": {
-        "html": {
+        "comment": {
+            "name": "comment.block.html.rtml",
+            "begin": "<!--",
+            "end": "-->",
+            "captures": {
+                "0": { "name": "punctuation.definition.comment.html" }
+            }
+        },
+        "rtml-tag": {
+            "comment": "HTML tags containing @ directives, capture the whole tag to enable RTML highlighting inside attribute values",
+            "begin": "(<\\/[a-zA-Z][a-zA-Z0-9:-]*)(?=[^>]*@)|(<[a-zA-Z][a-zA-Z0-9:-]*)(?=[^>]*@)",
+            "beginCaptures": {
+                "1": { "name": "entity.name.tag.html" },
+                "2": { "name": "entity.name.tag.html" }
+            },
+            "end": "(\\/?>)",
+            "endCaptures": {
+                "1": { "name": "punctuation.definition.tag.end.html" }
+            },
+            "patterns": [
+                { "include": "#rtml-attr-string-double" },
+                { "include": "#rtml-attr-string-single" },
+                { "include": "#rtml-directives-attr" },
+                { "include": "#tag-attr-name" },
+                { "include": "#tag-attr-equals" }
+            ]
+        },
+        "tag-attr-name": {
+            "match": "\\s([a-zA-Z_][a-zA-Z0-9:._-]*)",
+            "captures": {
+                "1": { "name": "entity.other.attribute-name.html" }
+            }
+        },
+        "tag-attr-equals": {
+            "name": "punctuation.separator.key-value.html",
+            "match": "="
+        },
+        "rtml-attr-string-double": {
+            "comment": "Double-quoted attribute value with RTML directives",
+            "begin": "\"",
+            "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.html" } },
+            "end": "\"",
+            "endCaptures": { "0": { "name": "punctuation.definition.string.end.html" } },
+            "name": "string.quoted.double.html",
+            "patterns": [
+                { "include": "#rtml-attr-content" }
+            ]
+        },
+        "rtml-attr-string-single": {
+            "comment": "Single-quoted attribute value with RTML directives",
+            "begin": "'",
+            "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.html" } },
+            "end": "'",
+            "endCaptures": { "0": { "name": "punctuation.definition.string.end.html" } },
+            "name": "string.quoted.single.html",
+            "patterns": [
+                { "include": "#rtml-attr-content" }
+            ]
+        },
+        "rtml-attr-content": {
             "patterns": [
                 {
-                    "include": "text.html.basic"
+                    "comment": "@expr: inside attribute value",
+                    "begin": "(@expr:)",
+                    "beginCaptures": { "1": { "name": "keyword.control.rtml" } },
+                    "end": "(?=[\"']\\s*(?:\\s[a-zA-Z]|\\s*>|\\/?>))",
+                    "patterns": [
+                        { "include": "#rtml-operators" }
+                    ]
+                },
+                {
+                    "comment": "@signal:",
+                    "match": "(@signal:)(\\w+)(:w)?",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" },
+                        "3": { "name": "keyword.operator.rtml" }
+                    }
+                },
+                {
+                    "comment": "@store:",
+                    "match": "(@store:)(\\w+\\.\\w+\\.\\w+)(:w)?",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" },
+                        "3": { "name": "keyword.operator.rtml" }
+                    }
+                },
+                {
+                    "comment": "@on:event:handler",
+                    "match": "(@on?:)([\\w.]+)(:)(\\w+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "support.function.event.rtml" },
+                        "3": { "name": "punctuation.separator.rtml" },
+                        "4": { "name": "entity.name.function.rtml" }
+                    }
+                },
+                {
+                    "comment": "@include:",
+                    "match": "(@include:)([\\w-]+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "entity.name.tag.rtml" }
+                    }
+                },
+                {
+                    "comment": "@prop:",
+                    "match": "(@prop:)(\\w+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" }
+                    }
+                },
+                {
+                    "comment": "@for:",
+                    "match": "(@for:)(\\S+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" }
+                    }
                 }
             ]
         },
-        "rtml": {
+        "rtml-directives-attr": {
+            "comment": "RTML directives that appear as standalone attributes (e.g. @on:click:Handler)",
             "patterns": [
                 {
+                    "match": "(@on?:[\\w.]+:\\w+)",
+                    "captures": {
+                        "0": { "name": "keyword.control.rtml" }
+                    }
+                }
+            ]
+        },
+        "rtml-directives": {
+            "patterns": [
+                {
+                    "comment": "@if:/@else-if: condition blocks",
+                    "match": "(@if:|@else-if:)([^\\n<]+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": {
+                            "name": "meta.expression.rtml",
+                            "patterns": [{ "include": "#rtml-operators" }]
+                        }
+                    }
+                },
+                {
+                    "comment": "@else and @endif",
                     "name": "keyword.control.rtml",
-                    "match": "@[a-zA-Z0-9_]+"
+                    "match": "@(else|endif)\\b"
                 },
                 {
-                    "name": "entity.name.namespace.rtml",
-                    "match": "[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+"
+                    "comment": "@for: loops",
+                    "match": "(@for:)([^\\s<]+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" }
+                    }
                 },
                 {
-                    "name": "variable.parameter.rtml",
-                    "match": ":[a-zA-Z0-9_]+"
+                    "comment": "@endforeach",
+                    "name": "keyword.control.rtml",
+                    "match": "@endforeach\\b"
+                },
+                {
+                    "comment": "@foreach: loops",
+                    "match": "(@foreach:)(\\S+)\\s+(as)\\s+(\\w+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" },
+                        "3": { "name": "keyword.control.rtml" },
+                        "4": { "name": "variable.other.rtml" }
+                    }
+                },
+                {
+                    "comment": "@expr: standalone expression",
+                    "match": "(@expr:)([^<\"\\n]+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": {
+                            "name": "meta.expression.rtml",
+                            "patterns": [{ "include": "#rtml-operators" }]
+                        }
+                    }
+                },
+                {
+                    "comment": "@signal: references",
+                    "match": "(@signal:)(\\w+)(:w)?",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" },
+                        "3": { "name": "keyword.operator.rtml" }
+                    }
+                },
+                {
+                    "comment": "@store: references",
+                    "match": "(@store:)(\\w+\\.\\w+\\.\\w+)(:w)?",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" },
+                        "3": { "name": "keyword.operator.rtml" }
+                    }
+                },
+                {
+                    "comment": "@include: component includes",
+                    "match": "(@include:)([\\w-]+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "entity.name.tag.rtml" }
+                    }
+                },
+                {
+                    "comment": "@on:event:handler event binding",
+                    "match": "(@on?:)([\\w.]+)(:)(\\w+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "support.function.event.rtml" },
+                        "3": { "name": "punctuation.separator.rtml" },
+                        "4": { "name": "entity.name.function.rtml" }
+                    }
+                },
+                {
+                    "comment": "@slot blocks",
+                    "match": "(@slot:?)(\\w*)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "entity.name.tag.rtml" }
+                    }
+                },
+                {
+                    "comment": "@endslot",
+                    "name": "keyword.control.rtml",
+                    "match": "@endslot\\b"
+                },
+                {
+                    "comment": "@prop: references",
+                    "match": "(@prop:)(\\w+)",
+                    "captures": {
+                        "1": { "name": "keyword.control.rtml" },
+                        "2": { "name": "variable.other.rtml" }
+                    }
+                },
+                {
+                    "comment": "{{interpolation}}",
+                    "match": "(\\{\\{)([^}]+)(\\}\\})",
+                    "captures": {
+                        "1": { "name": "punctuation.definition.interpolation.rtml" },
+                        "2": {
+                            "name": "meta.expression.rtml",
+                            "patterns": [{ "include": "#rtml-operators" }]
+                        },
+                        "3": { "name": "punctuation.definition.interpolation.rtml" }
+                    }
+                }
+            ]
+        },
+        "rtml-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.word.rtml",
+                    "match": "\\b(is not|is|then|else|and|or|not)\\b"
+                },
+                {
+                    "name": "keyword.operator.symbol.rtml",
+                    "match": "(==|!=|>=|<=|>|<|&&|\\|\\||!|\\?|:)"
+                },
+                {
+                    "name": "constant.numeric.rtml",
+                    "match": "\\b\\d+(?:\\.\\d+)?\\b"
+                },
+                {
+                    "name": "string.quoted.single.rtml",
+                    "match": "'[^']*'"
+                },
+                {
+                    "name": "string.quoted.double.rtml",
+                    "match": "\"[^\"]*\""
+                },
+                {
+                    "name": "variable.other.rtml",
+                    "match": "[a-zA-Z_][a-zA-Z0-9_.]*"
                 }
             ]
         }
-    },
-    "scope": "text.html.rtml"
+    }
 }

@@ -1,176 +1,275 @@
 # Components Basics
 
-Components are the fundamental unit of UI in **rfw**. Each component pairs a Go implementation with an **RTML** template. Reactive data is bound into the template; when that data changes, rfw patches only the affected DOM nodes—no virtual DOM required.
+Components in rfw v2 are Go structs that embed `composition.Component` and declare reactive state via struct tags. Templates are discovered by convention, and wiring is automatic.
 
 ---
 
-## Two authoring styles
-
-rfw supports two ways to author components. You can mix them in the same app.
-
-### 1) Composition API (recommended)
-
-Use the `composition` helpers to define reactive state and event handlers close to the template.
+## Defining a Component
 
 ```go
 //go:build js && wasm
+
 package components
 
 import (
-    _ "embed"
-    core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/composition"
-    "github.com/rfwlab/rfw/v1/state"
+    "github.com/rfwlab/rfw/v2/composition"
 )
-
-//go:embed templates/counter.rtml
-var counterTpl []byte
-
-func NewCounter() *core.HTMLComponent {
-    cmp := composition.Wrap(core.NewComponent("Counter", counterTpl, nil))
-
-    count := state.NewSignal(0)
-    cmp.Prop("count", count)                  // expose to the template
-    cmp.On("inc", func() { count.Set(count.Get()+1) })
-    cmp.On("dec", func() { count.Set(count.Get()-1) })
-
-    return cmp.HTML()
-}
-```
-
-```rtml
-<root>
-  <button @on:click:dec>-</button>
-  <span>{count}</span>
-  <button @on:click:inc>+</button>
-</root>
-```
-
-**Key points**
-
-* `state.Signal[T]` drives fine‑grained updates.
-* `cmp.Prop(key, signal)` exposes a reactive value to RTML.
-* `@on:click:name` binds DOM events to handlers registered via `cmp.On(name, fn)`.
-
-### 2) Struct components
-
-Embed `*core.HTMLComponent` into a Go struct. Exported fields are reactive and can be referenced by name in RTML.
-
-```go
-//go:build js && wasm
-package components
-
-import (
-    _ "embed"
-    core "github.com/rfwlab/rfw/v1/core"
-)
-
-//go:embed templates/counter.rtml
-var counterTpl []byte
 
 type Counter struct {
-    *core.HTMLComponent
-    Count int
+    composition.Component
+    Count *composition.Int `rfw:"signal"`
 }
-
-func NewCounterStruct() *Counter {
-    c := &Counter{HTMLComponent: core.NewComponent("Counter", counterTpl, nil)}
-    // If required by your setup, connect the struct instance to the component
-    // so exported fields/methods are observable by the runtime.
-    // (Exact wiring details depend on your project’s conventions.)
-    return c
-}
-
-func (c *Counter) Inc() { c.Count++ }
-func (c *Counter) Dec() { c.Count-- }
 ```
+
+Key points:
+
+- Embed `composition.Component` (not `*core.HTMLComponent`).
+- Tag pointer-to-signal fields with `rfw:"signal"`.
+- The struct name `Counter` resolves to `Counter.rtml` in any registered `embed.FS`.
+
+### Creating an Instance
+
+```go
+view := composition.New(&Counter{})
+```
+
+`composition.New` scans tags, initializes nil signal fields, discovers methods, locates the template, and returns a `*View`.
+
+For zero-value structs without custom initialization:
+
+```go
+view := composition.NewFrom[Counter]()
+```
+
+---
+
+## Template Convention
+
+By default, `composition.New` finds a template matching the struct name:
+
+| Struct | Template searched |
+|--------|-------------------|
+| `HomePage` | `HomePage.rtml` or `HomePage.html` |
+| `Counter` | `Counter.rtml` or `Counter.html` |
+
+It searches root-level first, then recursively through subdirectories, across all registered `embed.FS` instances.
+
+### Overriding the Template
+
+Use `rfw:"template:path"` on a blank struct field:
+
+```go
+type HomePage struct {
+    composition.Component
+    _ struct{} `rfw:"template:pages/home.rtml"`
+    Count *composition.Int `rfw:"signal"`
+}
+```
+
+---
+
+## Tag-Driven Wiring
+
+### Signals
+
+`rfw:"signal"` registers a reactive signal as a template prop. If the field is `nil`, `composition.New` auto-initializes it with a zero-value signal:
+
+```go
+type TodoApp struct {
+    composition.Component
+    Count *composition.Int   `rfw:"signal"`
+    Label *composition.String `rfw:"signal"`
+    Done  *composition.Bool   `rfw:"signal"`
+}
+```
+
+Available signal types:
+
+| Type | Constructor | Zero value |
+|------|------------|-------------|
+| `*composition.Int` | `composition.NewInt(0)` | `0` |
+| `*composition.String` | `composition.NewString("")` | `""` |
+| `*composition.Bool` | `composition.NewBool(false)` | `false` |
+| `*composition.Float` | `composition.NewFloat(0.0)` | `0.0` |
+
+These are re-exports of `*state.Signal[T]`, see [Reactivity Fundamentals](./reactivity-fundamentals).
+
+### Stores
+
+`rfw:"store"` creates a component-scoped store:
+
+```go
+type Settings struct {
+    composition.Component
+    LocalStore *composition.Store `rfw:"store"`
+}
+```
+
+Access in templates with `@store:Settings.LocalStore.key`.
+
+### Inject
+
+`rfw:"inject"` resolves a dependency from the DI container. Without a key, it defaults to the field name:
+
+```go
+type Dashboard struct {
+    composition.Component
+    UserService *UserService `rfw:"inject"`         // key defaults to "UserService"
+    Logger      *Logger       `rfw:"inject:appLog"`  // explicit key
+}
+```
+
+Register providers before calling `composition.New`:
+
+```go
+composition.Container().Register("UserService", &myService{})
+```
+
+### Include
+
+`rfw:"include:slotname"` wires a child `*View` into a named slot:
+
+```go
+type Layout struct {
+    composition.Component
+    Content *types.View `rfw:"include:content"`
+}
+```
+
+In the parent:
+
+```go
+layout := composition.New(&Layout{})
+```
+
+The `AddDependency("content", childView)` call happens automatically. In the template, `@include:content` renders the child at that position.
+
+### Host
+
+`rfw:"host"` registers a host component by name:
+
+```go
+type Page struct {
+    composition.Component
+    _ string `rfw:"host:Analytics"`
+}
+```
+
+---
+
+## Lifecycle Methods
+
+`composition.New` auto-discovers no-argument exported methods named `OnMount` and `OnUnmount`:
+
+```go
+type Tracker struct {
+    composition.Component
+    Count *composition.Int `rfw:"signal"`
+}
+
+func (t *Tracker) OnMount() {
+    t.Count.Set(0)
+}
+
+func (t *Tracker) OnUnmount() {
+    // cleanup subscriptions, timers, etc.
+}
+```
+
+No registration needed, just define the methods.
+
+---
+
+## Full Example
+
+```go
+//go:build js && wasm
+
+package components
+
+import (
+    "github.com/rfwlab/rfw/v2/composition"
+    "github.com/rfwlab/rfw/v2/types"
+)
+
+type App struct {
+    composition.Component
+    Count   *composition.Int  `rfw:"signal"`
+    Sidebar *types.View       `rfw:"include:sidebar"`
+}
+
+func (a *App) OnMount() {
+    a.Count.Set(0)
+}
+
+func (a *App) Increment() {
+    a.Count.Set(a.Count.Get() + 1)
+}
+```
+
+`App.rtml`:
 
 ```rtml
 <root>
-  <button @on:click:Dec>-</button>
-  <span>{Count}</span>
-  <button @on:click:Inc>+</button>
+  <h1>Counter: @signal:Count</h1>
+  <button @on:click:Increment>+1</button>
+  @include:sidebar
 </root>
 ```
 
-**Key points**
-
-* Exported fields (e.g., `Count`) are observable by the template.
-* Exported methods can be called from RTML via `@on:`.
-
----
-
-## Props (one‑way data flow)
-
-Props pass data **into** a child component. In RTML:
-
-```rtml
-@include:ChildCounter:{start: 5}
-```
-
-In code (Composition API):
-
-* `Prop(key, signal)` stores a reactive value under a key.
-* `FromProp[T](key, default)` retrieves a `Signal[T]` from props; if the prop is a plain value of type `T`, it’s wrapped into a new signal.
-
-Props are immutable from the child’s perspective. To communicate back **up**, emit events (handlers registered by the parent) or use shared stores.
-
----
-
-## Lifecycle hooks
-
-Use lifecycle hooks to wire effects, timers, or subscriptions. Ensure you clean up on unmount.
+Wiring it up:
 
 ```go
-cmp.SetOnMount(func(*core.HTMLComponent) {
-    stop := state.Effect(func() func() {
-        // read signals / stores here
-        return nil // return a disposer if you allocate resources
-    })
-    cmp.SetOnUnmount(func(*core.HTMLComponent) { if stop != nil { stop() } })
-})
+// main.go
+func main() {
+    router.Page("/", composition.NewFrom[App]())
+    router.InitRouter()
+    select {}
+}
 ```
-
-* **Mount**: attach listeners, kick off async work, preload assets.
-* **Unmount**: cancel timers, dispose effects, unsubscribe from stores.
 
 ---
 
-## Slots & composition
+## Layout Pattern
 
-Components can include other components and expose slots. Parents inject markup into named outlets without coupling logic.
+A common pattern is a layout component with a content slot:
+
+```go
+type Layout struct {
+    composition.Component
+    Content *types.View `rfw:"include:content"`
+}
+```
+
+`Layout.rtml`:
 
 ```rtml
-<!-- Parent -->
-@include:Panel:{title: "Dashboard"}
-  <div slot="body">…content…</div>
-@end
+<root>
+  <nav>My App</nav>
+  <main>@include:content</main>
+</root>
 ```
 
-Children render slot content where appropriate. (Slot syntax and capabilities follow RTML rules.)
+Parent pages compose with the layout:
+
+```go
+type Home struct {
+    composition.Component
+    Count *composition.Int `rfw:"signal"`
+    Layout *types.View
+}
+
+func (h *Home) OnMount() {
+    h.Layout = composition.New(&Layout{})
+    // wire Home into Layout's content slot
+    // ...
+}
+```
 
 ---
 
-## Reactivity model (under the hood)
+## See Also
 
-* RTML binds attributes, text nodes, and event handlers to **signals** or **exported fields**.
-* When a bound value changes, rfw patches only the affected nodes.
-* No virtual DOM is used; updates are direct and localized.
-
----
-
-## Choosing a style
-
-* **Composition API**: prefer for new code; explicit, scalable, and easy to unit test.
-* **Struct components**: convenient when you like method receivers and exported fields.
-
-Both interoperate seamlessly—pick the one that fits each component.
-
----
-
-## See also
-
-* [Template Syntax](/docs/essentials/template-syntax)
-* [Signals & Effects](/docs/essentials/signals-and-effects)
-* [State Management](/docs/essentials/state-management)
-* [Composition](/docs/essentials/composition)
+- [Composition](./composition), how `composition.New` works internally
+- [Template Syntax](./template-syntax), RTML directives reference
+- [Signals & Effects](./signals-effects-and-watchers), reactive primitives
