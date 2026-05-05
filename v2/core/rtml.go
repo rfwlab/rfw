@@ -329,11 +329,13 @@ func replaceExprPlaceholders(template string, c *HTMLComponent) string {
 		idx++
 
 		astExpr := rtmlast.ParseExpr(exprStr)
-		initialVal := evalASTExpr(astExpr, c)
+		initialVal := evalASTExprWithSigRefs(astExpr, c, nil)
 		c.exprContents[exprID] = exprToString(astExpr)
 
+		sigRefs := collectExprSignals(astExpr, c)
+
 		unsub := state.Effect(func() func() {
-			newVal := evalASTExpr(astExpr, c)
+			newVal := evalASTExprWithSigRefs(astExpr, c, sigRefs)
 			updateExprBindings(c, exprID, newVal)
 			return nil
 		})
@@ -369,13 +371,15 @@ func replaceExprInClassAttr(template string, c *HTMLComponent) string {
 			exprIDs = append(exprIDs, exprID)
 
 			astExpr := rtmlast.ParseExpr(exprStr)
-			initialVal := evalASTExpr(astExpr, c)
+			initialVal := evalASTExprWithSigRefs(astExpr, c, nil)
 			dynamicVal := strings.TrimSpace(fmt.Sprintf("%v", initialVal))
 			c.classExprContents[exprID] = dynamicVal
 			c.exprContents[exprID] = exprToString(astExpr)
 
+			sigRefs := collectExprSignals(astExpr, c)
+
 			unsub := state.Effect(func() func() {
-				newVal := evalASTExpr(astExpr, c)
+				newVal := evalASTExprWithSigRefs(astExpr, c, sigRefs)
 				updateClassExprBindings(c, exprID, newVal)
 				return nil
 			})
@@ -390,7 +394,39 @@ func replaceExprInClassAttr(template string, c *HTMLComponent) string {
 	return result
 }
 
-func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
+func collectExprSignals(expr rtmlast.Expr, c *HTMLComponent) map[string]any {
+	refs := make(map[string]any)
+	collectIdents(expr, c, refs)
+	return refs
+}
+
+func collectIdents(expr rtmlast.Expr, c *HTMLComponent, refs map[string]any) {
+	switch e := expr.(type) {
+	case rtmlast.IdentExpr:
+		name := e.Name
+		if strings.HasPrefix(name, "store:") || strings.HasPrefix(name, "signal:") {
+			return
+		}
+		if _, seen := refs[name]; !seen {
+			if prop, ok := c.Props[name]; ok {
+				refs[name] = prop
+			}
+		}
+	case rtmlast.BinaryExpr:
+		collectIdents(e.LHS, c, refs)
+		collectIdents(e.RHS, c, refs)
+	case rtmlast.UnaryExpr:
+		collectIdents(e.Expr, c, refs)
+	case rtmlast.FieldExpr:
+		collectIdents(e.Obj, c, refs)
+	case rtmlast.TernaryExpr:
+		collectIdents(e.Cond, c, refs)
+		collectIdents(e.Then, c, refs)
+		collectIdents(e.Else, c, refs)
+	}
+}
+
+func evalASTExprWithSigRefs(expr rtmlast.Expr, c *HTMLComponent, sigRefs map[string]any) any {
 	switch e := expr.(type) {
 	case rtmlast.IdentExpr:
 		name := e.Name
@@ -414,6 +450,12 @@ func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
 			}
 			return nil
 		}
+		if prop, ok := sigRefs[name]; ok {
+			if sig, ok := prop.(interface{ Read() any }); ok {
+				return sig.Read()
+			}
+			return prop
+		}
 		if prop, ok := c.Props[name]; ok {
 			if sig, ok := prop.(interface{ Read() any }); ok {
 				return sig.Read()
@@ -426,18 +468,18 @@ func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
 	case rtmlast.BinaryExpr:
 		switch e.Op {
 		case rtmlast.OpEq:
-			return cmpASTEqual(evalASTExpr(e.LHS, c), evalASTExpr(e.RHS, c))
+			return cmpASTEqual(evalASTExprWithSigRefs(e.LHS, c, sigRefs), evalASTExprWithSigRefs(e.RHS, c, sigRefs))
 		case rtmlast.OpNeq:
-			return !cmpASTEqual(evalASTExpr(e.LHS, c), evalASTExpr(e.RHS, c))
+			return !cmpASTEqual(evalASTExprWithSigRefs(e.LHS, c, sigRefs), evalASTExprWithSigRefs(e.RHS, c, sigRefs))
 		case rtmlast.OpAnd:
-			return toASTBool(evalASTExpr(e.LHS, c)) && toASTBool(evalASTExpr(e.RHS, c))
+			return toASTBool(evalASTExprWithSigRefs(e.LHS, c, sigRefs)) && toASTBool(evalASTExprWithSigRefs(e.RHS, c, sigRefs))
 		case rtmlast.OpOr:
-			return toASTBool(evalASTExpr(e.LHS, c)) || toASTBool(evalASTExpr(e.RHS, c))
+			return toASTBool(evalASTExprWithSigRefs(e.LHS, c, sigRefs)) || toASTBool(evalASTExprWithSigRefs(e.RHS, c, sigRefs))
 		case rtmlast.OpLt, rtmlast.OpGt, rtmlast.OpLte, rtmlast.OpGte:
-			return cmpASTValues(evalASTExpr(e.LHS, c), evalASTExpr(e.RHS, c), e.Op)
+			return cmpASTValues(evalASTExprWithSigRefs(e.LHS, c, sigRefs), evalASTExprWithSigRefs(e.RHS, c, sigRefs), e.Op)
 		default:
-			lhs := toASTFloat(evalASTExpr(e.LHS, c))
-			rhs := toASTFloat(evalASTExpr(e.RHS, c))
+			lhs := toASTFloat(evalASTExprWithSigRefs(e.LHS, c, sigRefs))
+			rhs := toASTFloat(evalASTExprWithSigRefs(e.RHS, c, sigRefs))
 			switch e.Op {
 			case rtmlast.OpAdd:
 				return lhs + rhs
@@ -453,7 +495,7 @@ func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
 			}
 		}
 	case rtmlast.UnaryExpr:
-		val := evalASTExpr(e.Expr, c)
+		val := evalASTExprWithSigRefs(e.Expr, c, sigRefs)
 		switch e.Op {
 		case rtmlast.UnaryNot:
 			return !toASTBool(val)
@@ -461,18 +503,22 @@ func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
 			return -toASTFloat(val)
 		}
 	case rtmlast.FieldExpr:
-		obj := evalASTExpr(e.Obj, c)
+		obj := evalASTExprWithSigRefs(e.Obj, c, sigRefs)
 		if m, ok := obj.(map[string]any); ok {
 			return m[e.Field]
 		}
 		return nil
 	case rtmlast.TernaryExpr:
-		if toASTBool(evalASTExpr(e.Cond, c)) {
-			return evalASTExpr(e.Then, c)
+		if toASTBool(evalASTExprWithSigRefs(e.Cond, c, sigRefs)) {
+			return evalASTExprWithSigRefs(e.Then, c, sigRefs)
 		}
-		return evalASTExpr(e.Else, c)
+		return evalASTExprWithSigRefs(e.Else, c, sigRefs)
 	}
 	return nil
+}
+
+func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
+	return evalASTExprWithSigRefs(expr, c, nil)
 }
 
 func cmpASTEqual(a, b any) bool {

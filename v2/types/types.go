@@ -43,6 +43,34 @@ func NewMap[K comparable, V any](v ...map[K]V) *Map[K, V] {
 	return &Map[K, V]{Signal: state.NewSignal(initial)}
 }
 
+type HInt struct {
+	*state.Signal[int]
+}
+
+type HString struct {
+	*state.Signal[string]
+}
+
+type HBool struct {
+	*state.Signal[bool]
+}
+
+type HFloat struct {
+	*state.Signal[float64]
+}
+
+type HAny struct {
+	*state.Signal[any]
+}
+
+type HSlice[T any] struct {
+	*state.Signal[[]T]
+}
+
+type HMap[K comparable, V any] struct {
+	*state.Signal[map[K]V]
+}
+
 type Ref struct {
 	node js.Value
 }
@@ -66,11 +94,11 @@ func NewProp[T any](v T) *Prop[T] {
 func (p *Prop[T]) Get() T  { return p.value }
 func (p *Prop[T]) Set(v T) { p.value = v }
 
-func NewInt(v int) *Int       { return state.NewSignal(v) }
+func NewInt(v int) *Int         { return state.NewSignal(v) }
 func NewString(v string) *String { return state.NewSignal(v) }
-func NewBool(v bool) *Bool    { return state.NewSignal(v) }
+func NewBool(v bool) *Bool      { return state.NewSignal(v) }
 func NewFloat(v float64) *Float { return state.NewSignal(v) }
-func NewAny(v any) *Any       { return state.NewSignal(v) }
+func NewAny(v any) *Any         { return state.NewSignal(v) }
 
 type Viewer interface {
 	View() *View

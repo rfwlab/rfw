@@ -20,10 +20,17 @@ type (
 )
 
 type (
-	Slice[T any]    = t.Slice[T]
+	Slice[T any]         = t.Slice[T]
 	Map[K comparable, V any] = t.Map[K, V]
-	Ref              = t.Ref
-	Prop[T any]      = t.Prop[T]
+	Ref               = t.Ref
+	Prop[T any]       = t.Prop[T]
+	HInt              = t.HInt
+	HString           = t.HString
+	HBool              = t.HBool
+	HFloat             = t.HFloat
+	HAny               = t.HAny
+	HSlice[T any]     = t.HSlice[T]
+	HMap[K comparable, V any] = t.HMap[K, V]
 )
 
 type Viewer = t.Viewer
