@@ -3,16 +3,97 @@
 package types
 
 import (
+	"sync"
+
 	"github.com/rfwlab/rfw/v2/core"
 )
 
 type signalStub[T any] struct {
 	value T
+
+	onChangeMu sync.Mutex
+	onChange   []func(T)
+	ch         chan T
+	chCreated  bool
 }
 
-func (s *signalStub[T]) Get() T  { return s.value }
-func (s *signalStub[T]) Set(v T) { s.value = v }
+func (s *signalStub[T]) Get() T   { return s.value }
+func (s *signalStub[T]) Set(v T)  { s.value = v; s.notifyOnChange(v) }
 func (s *signalStub[T]) Read() any { return s.value }
+
+func (s *signalStub[T]) OnChange(fn func(T)) *Subscription {
+	s.onChangeMu.Lock()
+	idx := len(s.onChange)
+	s.onChange = append(s.onChange, fn)
+	s.onChangeMu.Unlock()
+	sub := &Subscription{
+		cancel: func() {
+			s.onChangeMu.Lock()
+			defer s.onChangeMu.Unlock()
+			if idx < len(s.onChange) {
+				s.onChange[idx] = nil
+			}
+			s.maybeCloseChannel()
+		},
+	}
+	return sub
+}
+
+func (s *signalStub[T]) Channel() <-chan T {
+	s.onChangeMu.Lock()
+	defer s.onChangeMu.Unlock()
+	if !s.chCreated {
+		s.ch = make(chan T, 8)
+		s.chCreated = true
+	}
+	return s.ch
+}
+
+func (s *signalStub[T]) notifyOnChange(v T) {
+	s.onChangeMu.Lock()
+	listeners := make([]func(T), len(s.onChange))
+	copy(listeners, s.onChange)
+	ch := s.ch
+	hasCh := s.chCreated
+	s.onChangeMu.Unlock()
+
+	for _, fn := range listeners {
+		if fn != nil {
+			fn(v)
+		}
+	}
+	if hasCh && ch != nil {
+		select {
+		case ch <- v:
+		default:
+		}
+	}
+}
+
+func (s *signalStub[T]) maybeCloseChannel() {
+	allNil := true
+	for _, fn := range s.onChange {
+		if fn != nil {
+			allNil = false
+			break
+		}
+	}
+	if allNil && s.chCreated {
+		close(s.ch)
+		s.ch = nil
+		s.chCreated = false
+		s.onChange = nil
+	}
+}
+
+// Subscription represents a cancellable listener.
+type Subscription struct {
+	cancel func()
+	once   sync.Once
+}
+
+// Stop removes the listener.
+func (s *Subscription) Stop() { s.once.Do(s.cancel) }
 
 type (
 	Int    = signalStub[int]
@@ -33,6 +114,34 @@ type Map[K comparable, V any] struct {
 	*signalStub[map[K]V]
 }
 
+type HInt struct {
+	*signalStub[int]
+}
+
+type HString struct {
+	*signalStub[String]
+}
+
+type HBool struct {
+	*signalStub[bool]
+}
+
+type HFloat struct {
+	*signalStub[float64]
+}
+
+type HAny struct {
+	*signalStub[any]
+}
+
+type HSlice[T any] struct {
+	*signalStub[[]T]
+}
+
+type HMap[K comparable, V any] struct {
+	*signalStub[map[K]V]
+}
+
 type Ref struct{}
 
 type Prop[T any] struct {
@@ -42,11 +151,11 @@ type Prop[T any] struct {
 func (p *Prop[T]) Get() T  { return p.value }
 func (p *Prop[T]) Set(v T) { p.value = v }
 
-func NewInt(v int) *Int       { return &Int{} }
+func NewInt(v int) *Int          { return &Int{} }
 func NewString(v string) *String { return &String{} }
-func NewBool(v bool) *Bool    { return &Bool{} }
-func NewFloat(v float64) *Float { return &Float{} }
-func NewAny(v any) *Any       { return &Any{} }
+func NewBool(v bool) *Bool       { return &Bool{} }
+func NewFloat(v float64) *Float  { return &Float{} }
+func NewAny(v any) *Any          { return &Any{} }
 func NewSlice[T any](v ...[]T) *Slice[T] {
 	var initial []T
 	if len(v) > 0 {
@@ -61,7 +170,7 @@ func NewMap[K comparable, V any](v ...map[K]V) *Map[K, V] {
 	}
 	return &Map[K, V]{signalStub: &signalStub[map[K]V]{value: initial}}
 }
-func NewRef() *Ref { return &Ref{} }
+func NewRef() *Ref    { return &Ref{} }
 func NewProp[T any](v T) *Prop[T] { return &Prop[T]{value: v} }
 
 type Viewer interface {

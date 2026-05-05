@@ -1,5 +1,7 @@
 package state
 
+import "sync"
+
 // effect represents a reactive computation registered via Effect.
 type effect struct {
 	run     func() func()
@@ -15,10 +17,26 @@ var (
 	currentEffect *effect
 )
 
+// Subscription represents a cancellable listener returned by OnChange.
+type Subscription struct {
+	cancel func()
+	once   sync.Once
+}
+
+// Stop removes the listener and releases the associated channel.
+func (s *Subscription) Stop() {
+	s.once.Do(s.cancel)
+}
+
 // Signal holds a value of type T and tracks which effects depend on it.
 type Signal[T any] struct {
 	value T
 	subs  map[*effect]struct{}
+
+	onChangeMu sync.Mutex
+	onChange   []func(T)
+	ch         chan T
+	chCreated  bool
 }
 
 // NewSignal creates a new Signal with the given initial value.
@@ -28,7 +46,14 @@ func NewSignal[T any](initial T) *Signal[T] {
 
 // Get returns the current value of the signal and registers the calling effect.
 func (s *Signal[T]) Get() T {
+	if s == nil {
+		var zero T
+		return zero
+	}
 	if currentEffect != nil {
+		if s.subs == nil {
+			s.subs = make(map[*effect]struct{})
+		}
 		s.subs[currentEffect] = struct{}{}
 		currentEffect.deps = append(currentEffect.deps, s)
 	}
@@ -36,17 +61,106 @@ func (s *Signal[T]) Get() T {
 }
 
 // Read implements a generic getter for use without knowing T.
-func (s *Signal[T]) Read() any { return s.Get() }
+func (s *Signal[T]) Read() any {
+	if s == nil {
+		return nil
+	}
+	return s.Get()
+}
 
 // Set updates the signal's value and notifies dependent effects.
 func (s *Signal[T]) Set(v T) {
+	if s == nil {
+		return
+	}
 	s.value = v
+	if s.subs == nil {
+		s.subs = make(map[*effect]struct{})
+	}
+	snapshot := make(map[*effect]struct{}, len(s.subs))
 	for eff := range s.subs {
+		snapshot[eff] = struct{}{}
+	}
+	for eff := range snapshot {
 		eff.runEffect()
+	}
+	s.notifyOnChange(v)
+}
+
+// OnChange registers a callback that fires whenever the signal's value changes.
+// Returns a Subscription that can be stopped to remove the listener.
+func (s *Signal[T]) OnChange(fn func(T)) *Subscription {
+	if s == nil {
+		return &Subscription{cancel: func() {}}
+	}
+	s.onChangeMu.Lock()
+	idx := len(s.onChange)
+	s.onChange = append(s.onChange, fn)
+	s.onChangeMu.Unlock()
+
+	sub := &Subscription{
+		cancel: func() {
+			s.onChangeMu.Lock()
+			defer s.onChangeMu.Unlock()
+			if idx < len(s.onChange) {
+				s.onChange[idx] = nil
+			}
+		},
+	}
+	return sub
+}
+
+// Channel returns a read-only channel that receives the new value on each Set.
+// The channel is created lazily on first call and shared across all listeners.
+// It is closed automatically when all OnChange listeners are removed.
+func (s *Signal[T]) Channel() <-chan T {
+	if s == nil {
+		return nil
+	}
+	s.onChangeMu.Lock()
+	defer s.onChangeMu.Unlock()
+	if !s.chCreated {
+		s.ch = make(chan T, 8)
+		s.chCreated = true
+	}
+	return s.ch
+}
+
+func (s *Signal[T]) notifyOnChange(v T) {
+	s.onChangeMu.Lock()
+	listeners := make([]func(T), len(s.onChange))
+	copy(listeners, s.onChange)
+	ch := s.ch
+	hasCh := s.chCreated
+	s.onChangeMu.Unlock()
+
+	for _, fn := range listeners {
+		if fn != nil {
+			fn(v)
+		}
+	}
+	if hasCh && ch != nil {
+		select {
+		case ch <- v:
+		default:
+		}
 	}
 }
 
-func (s *Signal[T]) remove(e *effect) { delete(s.subs, e) }
+
+
+func (s *Signal[T]) SubCount() int {
+	if s.subs == nil {
+		return 0
+	}
+	return len(s.subs)
+}
+
+func (s *Signal[T]) remove(e *effect) {
+	if s.subs != nil {
+		delete(s.subs, e)
+	}
+}
 
 func (e *effect) runEffect() {
 	if e.cleanup != nil {

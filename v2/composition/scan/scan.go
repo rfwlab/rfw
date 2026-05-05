@@ -19,7 +19,7 @@ type Meta struct {
 	Hosts         []Host
 	Events        []Event
 	Includes      []Include
-	TemplateName   string
+	TemplateName  string
 	TemplatePath  string
 	HostComponent string
 }
@@ -39,8 +39,15 @@ var (
 	storePtrType = reflect.TypeOf((*state.Store)(nil))
 	refPtrType   = reflect.TypeOf((*types.Ref)(nil))
 	viewPtrType  = reflect.TypeOf((*types.View)(nil))
-	componentTyp  = reflect.TypeOf((*types.Comp)(nil)).Elem()
 )
+
+var hostTypes = map[string]bool{
+	"HInt":    true,
+	"HString": true,
+	"HBool":   true,
+	"HFloat":  true,
+	"HAny":    true,
+}
 
 func isSignalType(t reflect.Type) bool {
 	if t.Kind() == reflect.Ptr {
@@ -82,12 +89,31 @@ func isPropType(t reflect.Type) bool {
 	return t.Kind() == reflect.Struct && t.Name() == "Prop" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
+func isHostType(t reflect.Type) bool {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+	if hostTypes[t.Name()] && t.PkgPath() == "github.com/rfwlab/rfw/v2/types" {
+		return true
+	}
+	if t.Name() == "HSlice" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types" {
+		return true
+	}
+	if t.Name() == "HMap" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types" {
+		return true
+	}
+	return false
+}
+
 var componentMethods = map[string]struct{}{
-	"On":        {},
-	"Prop":      {},
-	"Unwrap":    {},
-	"Store":     {},
-	"History":   {},
+	"On":      {},
+	"Prop":    {},
+	"Unwrap":  {},
+	"Store":   {},
+	"History": {},
 }
 
 func isComponentMethod(name string) bool {
@@ -150,6 +176,11 @@ func Scan(v any) (*Meta, error) {
 
 		case isPropType(ft):
 			m.Props = append(m.Props, Prop{Name: field.Name})
+
+		case isHostType(ft):
+			m.Hosts = append(m.Hosts, Host{Name: field.Name})
+			// Host fields are also signals — register for reactivity
+			m.Signals = append(m.Signals, Signal{Name: field.Name})
 
 		case ft == refPtrType:
 			m.Refs = append(m.Refs, Ref{Name: field.Name})
