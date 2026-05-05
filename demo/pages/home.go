@@ -10,14 +10,15 @@ import (
 type HomePage struct {
 	Count  t.Int
 	Factor t.Int
+	Visit  t.HInt
 }
 
-func (h *HomePage) Inc() { h.Count.Set(h.Count.Get() + 1) }
-func (h *HomePage) Dec() { h.Count.Set(h.Count.Get() - 1) }
+func (h *HomePage) Inc()  { h.Count.Set(h.Count.Get() + 1) }
+func (h *HomePage) Dec()  { h.Count.Set(h.Count.Get() - 1) }
 
 func (h *HomePage) OnMount() {
-	h.Count.Set(0)
-	h.Factor.Set(2)
+	(&h.Count).Set(2)
+	(&h.Factor).Set(2)
 }
 
 func NewHomePage() *t.View {

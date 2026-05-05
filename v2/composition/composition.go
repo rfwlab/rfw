@@ -151,13 +151,15 @@ func New(v any) *View {
 		}
 	}
 
-	// Wire signals, auto-init nil fields
+	// Wire signals: handle both value-type (t.Int) and pointer-type (*t.Int)
 	for _, s := range meta.Signals {
 		field := val.FieldByName(s.Name)
 		if !field.IsValid() || !field.CanSet() {
 			continue
 		}
-		if field.Kind() == reflect.Ptr && field.IsNil() {
+		switch {
+		case field.Kind() == reflect.Ptr && field.IsNil():
+			// Nil pointer to signal: auto-init with zero value
 			sig := newZeroSignalFromFieldType(field.Type())
 			if sig != nil {
 				field.Set(reflect.ValueOf(sig))
@@ -165,11 +167,24 @@ func New(v any) *View {
 			if sig, ok := field.Interface().(signalAny); ok {
 				comp.Prop(s.Name, sig)
 			}
-			continue
-		}
-		// Field already initialized
-		if sig, ok := field.Interface().(signalAny); ok {
-			comp.Prop(s.Name, sig)
+		case field.Kind() == reflect.Ptr:
+			if sig, ok := field.Interface().(signalAny); ok {
+				comp.Prop(s.Name, sig)
+			}
+		case field.Kind() == reflect.Struct:
+			if _, ok := field.Type().FieldByName("value"); ok {
+				// Direct Signal[T] value field: just register address
+				if sig, ok := field.Addr().Interface().(signalAny); ok {
+					comp.Prop(s.Name, sig)
+					core.Log().Info("Registered signal %s at ptr %p", s.Name, field.Addr().Interface())
+				}
+			} else {
+				// Other struct types (e.g. HInt) - init embedded pointers
+				initEmbeddedSignalPtr(field)
+				if sig, ok := field.Addr().Interface().(signalAny); ok {
+					comp.Prop(s.Name, sig)
+				}
+			}
 		}
 	}
 
@@ -200,16 +215,19 @@ func New(v any) *View {
 	}
 
 	// Auto-discover OnMount/OnUnmount
-	if m, ok := base.MethodByName("OnMount"); ok {
-		if m.Type.NumIn() == 0 && m.Type.NumOut() == 0 {
+	// Use pointer type for method lookup since methods with pointer receiver
+	// (e.g. func (h *HomePage) OnMount()) are only in the pointer method set.
+	ptrType := reflect.PtrTo(base)
+	if m, ok := ptrType.MethodByName("OnMount"); ok {
+		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
 			method := val.Addr().MethodByName("OnMount")
 			if fn, ok := method.Interface().(func()); ok {
 				hc.SetOnMount(func(_ *core.HTMLComponent) { fn() })
 			}
 		}
 	}
-	if m, ok := base.MethodByName("OnUnmount"); ok {
-		if m.Type.NumIn() == 0 && m.Type.NumOut() == 0 {
+	if m, ok := ptrType.MethodByName("OnUnmount"); ok {
+		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
 			method := val.Addr().MethodByName("OnUnmount")
 			if fn, ok := method.Interface().(func()); ok {
 				hc.SetOnUnmount(func(_ *core.HTMLComponent) { fn() })
@@ -222,9 +240,14 @@ func New(v any) *View {
 		comp.Store(st.Name)
 	}
 
-	// Wire host component
+	// Wire host component (legacy string tag)
 	if meta.HostComponent != "" {
 		comp.HTMLComponent.AddHostComponent(meta.HostComponent)
+	}
+
+	// Wire host fields (t.HInt, t.HString, etc.) — both signal and host registration
+	for _, h := range meta.Hosts {
+		comp.HTMLComponent.AddHostComponent(h.Name)
 	}
 
 	// Wire includes (View dependencies)
@@ -260,6 +283,50 @@ func NewFrom[T any]() *View {
 	}
 	v := reflect.New(typ)
 	return New(v.Interface())
+}
+
+func initEmbeddedSignalPtr(field reflect.Value) {
+	if field.Kind() != reflect.Struct {
+		return
+	}
+	for i := 0; i < field.NumField(); i++ {
+		f := field.Type().Field(i)
+		if f.Type.Kind() != reflect.Ptr {
+			continue
+		}
+		innerField := field.Field(i)
+		if !innerField.IsNil() {
+			continue
+		}
+		if !innerField.CanSet() {
+			continue
+		}
+		elem := f.Type.Elem()
+		if elem.Kind() != reflect.Struct {
+			continue
+		}
+		// Check if it's *state.Signal[T] by looking for "value" field
+		hasValue := false
+		for j := 0; j < elem.NumField(); j++ {
+			if elem.Field(j).Name == "value" {
+				hasValue = true
+				break
+			}
+		}
+		if !hasValue {
+			continue
+		}
+		// Check for signalAny interface (Get, Set, Read methods)
+		_, hasGet := reflect.PtrTo(elem).MethodByName("Get")
+		_, hasSet := reflect.PtrTo(elem).MethodByName("Set")
+		_, hasRead := reflect.PtrTo(elem).MethodByName("Read")
+		if hasGet && hasSet && hasRead {
+			sig := newZeroSignalFromFieldType(f.Type)
+			if sig != nil {
+				innerField.Set(reflect.ValueOf(sig))
+			}
+		}
+	}
 }
 
 func newZeroSignalFromFieldType(ptrType reflect.Type) signalAny {
