@@ -25,7 +25,7 @@ var (
 	reSlotDefault     = regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
 	reStore           = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
 	reSignal          = regexp.MustCompile(`@signal:(\w+)(:w)?`)
-	reExpr            = regexp.MustCompile(`@expr:([^<@]+)`)
+	reExpr            = regexp.MustCompile(`@expr:([^<@|\n)]+)`)
 	reProp            = regexp.MustCompile(`@prop:(\w+)`)
 	rePluginVar       = regexp.MustCompile(`\{plugin:(\w+)\.(\w+)\}`)
 	rePluginCmd       = regexp.MustCompile(`@plugin:(\w+)\.(\w+)([\s>/])`)

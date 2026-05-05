@@ -18,3 +18,4 @@ routes_gen.go
 rfw_*.go
 
 demo/build/
+v2/scan.test
