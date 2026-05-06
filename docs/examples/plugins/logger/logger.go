@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/rfwlab/rfw/v1/core"
-	js "github.com/rfwlab/rfw/v1/js"
+	"github.com/rfwlab/rfw/v2/core"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // Plugin installs a custom logger that forwards framework logs to the

@@ -7,11 +7,11 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/rfwlab/rfw/v1/composition"
-	"github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/dom"
-	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
-	"github.com/rfwlab/rfw/v1/state"
+	"github.com/rfwlab/rfw/v2/composition"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/dom"
+	highlight "github.com/rfwlab/rfw/v2/plugins/highlight"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 //go:embed templates/home_component.rtml

@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rfwlab/rfw/v1/composition"
-	"github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	events "github.com/rfwlab/rfw/v1/events"
-	js "github.com/rfwlab/rfw/v1/js"
-	markdown "github.com/rfwlab/rfw/v1/markdown"
-	docplug "github.com/rfwlab/rfw/v1/plugins/docs"
-	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
-	"github.com/rfwlab/rfw/v1/plugins/seo"
-	"github.com/rfwlab/rfw/v1/router"
+	"github.com/rfwlab/rfw/v2/composition"
+	"github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	events "github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
+	markdown "github.com/rfwlab/rfw/v2/markdown"
+	docplug "github.com/rfwlab/rfw/v2/plugins/docs"
+	highlight "github.com/rfwlab/rfw/v2/plugins/highlight"
+	"github.com/rfwlab/rfw/v2/plugins/seo"
+	"github.com/rfwlab/rfw/v2/router"
 )
 
 //go:embed templates/docs_component.rtml

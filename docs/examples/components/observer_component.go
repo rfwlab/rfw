@@ -5,10 +5,10 @@ package components
 import (
 	_ "embed"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	events "github.com/rfwlab/rfw/v1/events"
-	js "github.com/rfwlab/rfw/v1/js"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	events "github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 //go:embed templates/observer_component.rtml

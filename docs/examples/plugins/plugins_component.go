@@ -5,9 +5,9 @@ package plugins
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/v1/composition"
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/plugins/i18n"
+	"github.com/rfwlab/rfw/v2/composition"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/plugins/i18n"
 )
 
 //go:embed templates/plugins_component.rtml

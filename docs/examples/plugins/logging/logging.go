@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 // Plugin provides basic console logging for various hooks.

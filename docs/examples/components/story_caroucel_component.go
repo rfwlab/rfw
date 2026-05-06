@@ -6,7 +6,7 @@ import (
 	_ "embed"
 	"time"
 
-	core "github.com/rfwlab/rfw/v1/core"
+	core "github.com/rfwlab/rfw/v2/core"
 )
 
 //go:embed templates/story_carousel_component.rtml

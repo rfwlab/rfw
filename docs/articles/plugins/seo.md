@@ -29,8 +29,8 @@ Enable the plugin in `rfw.json`:
 Register it in your app:
 
 ```go
-import "github.com/rfwlab/rfw/v1/core"
-import "github.com/rfwlab/rfw/v1/plugins/seo"
+import "github.com/rfwlab/rfw/v2/core"
+import "github.com/rfwlab/rfw/v2/plugins/seo"
 
 func init() {
     core.RegisterPlugin(seo.New())

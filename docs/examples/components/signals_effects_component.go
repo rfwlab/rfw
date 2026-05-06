@@ -6,9 +6,9 @@ import (
 	_ "embed"
 	"fmt"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	state "github.com/rfwlab/rfw/v1/state"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	state "github.com/rfwlab/rfw/v2/state"
 )
 
 //go:embed templates/signals_effects_component.rtml

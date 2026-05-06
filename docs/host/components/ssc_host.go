@@ -3,7 +3,7 @@ package components
 import (
 	"time"
 
-	"github.com/rfwlab/rfw/v1/host"
+	"github.com/rfwlab/rfw/v2/host"
 )
 
 func RegisterSSCHost() {

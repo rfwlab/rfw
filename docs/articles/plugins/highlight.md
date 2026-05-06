@@ -17,8 +17,8 @@ The **Highlight plugin** adds syntax highlighting for RTML and Go code blocks. I
 
 ```go
 import (
-    highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
-    "github.com/rfwlab/rfw/v1/core"
+    highlight "github.com/rfwlab/rfw/v2/plugins/highlight"
+    "github.com/rfwlab/rfw/v2/core"
 )
 
 func main() {

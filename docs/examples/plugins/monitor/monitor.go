@@ -5,9 +5,9 @@ package monitor
 import (
 	"log"
 
-	"github.com/rfwlab/rfw/v1/core"
-	js "github.com/rfwlab/rfw/v1/js"
-	m "github.com/rfwlab/rfw/v1/plugins/monitor"
+	"github.com/rfwlab/rfw/v2/core"
+	js "github.com/rfwlab/rfw/v2/js"
+	m "github.com/rfwlab/rfw/v2/plugins/monitor"
 )
 
 // New creates a monitoring plugin that logs observed events.

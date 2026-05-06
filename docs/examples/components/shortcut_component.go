@@ -5,9 +5,9 @@ package components
 import (
 	_ "embed"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/plugins/shortcut"
-	"github.com/rfwlab/rfw/v1/state"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/plugins/shortcut"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 //go:embed templates/shortcut_component.rtml

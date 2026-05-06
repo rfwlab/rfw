@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rfwlab/rfw/v1/composition"
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/dom"
-	"github.com/rfwlab/rfw/v1/http"
-	highlight "github.com/rfwlab/rfw/v1/plugins/highlight"
+	"github.com/rfwlab/rfw/v2/composition"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/http"
+	highlight "github.com/rfwlab/rfw/v2/plugins/highlight"
 )
 
 //go:embed templates/example_frame.rtml

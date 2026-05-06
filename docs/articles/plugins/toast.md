@@ -15,8 +15,8 @@ Register the plugin before starting your app:
 
 ```go
 import (
-    core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/plugins/toast"
+    core "github.com/rfwlab/rfw/v2/core"
+    "github.com/rfwlab/rfw/v2/plugins/toast"
 )
 
 func main() {

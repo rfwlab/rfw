@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	"github.com/rfwlab/rfw/v1/netcode"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/netcode"
 )
 
 //go:embed templates/netcode_component.rtml

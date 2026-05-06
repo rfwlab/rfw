@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/rfwlab/rfw/docs/host/components"
-	"github.com/rfwlab/rfw/v1/host"
+	"github.com/rfwlab/rfw/v2/host"
 )
 
 func main() {

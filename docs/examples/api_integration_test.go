@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	rfwhttp "github.com/rfwlab/rfw/v1/http"
+	rfwhttp "github.com/rfwlab/rfw/v2/http"
 )
 
 func TestFetchJSON(t *testing.T) {

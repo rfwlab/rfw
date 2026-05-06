@@ -67,7 +67,7 @@ package analytics
 
 import (
     "encoding/json"
-    "github.com/rfwlab/rfw/v1/core"
+    "github.com/rfwlab/rfw/v2/core"
 )
 
 type Plugin struct{}
@@ -100,7 +100,7 @@ func main() {
 rfw ships with several plugins. Example: the `i18n` plugin for translations:
 
 ```go
-import "github.com/rfwlab/rfw/v1/plugins/i18n"
+import "github.com/rfwlab/rfw/v2/plugins/i18n"
 
 core.RegisterPlugin(i18n.New(map[string]map[string]string{
     "en": {"hello": "Hello"},

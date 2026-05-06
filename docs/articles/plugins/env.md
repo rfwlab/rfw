@@ -22,8 +22,8 @@ The **Env plugin** makes environment variables available to your rfw app at buil
 
    ```go
    import (
-       core "github.com/rfwlab/rfw/v1/core"
-       env "github.com/rfwlab/rfw/v1/plugins/env"
+       core "github.com/rfwlab/rfw/v2/core"
+       env "github.com/rfwlab/rfw/v2/plugins/env"
    )
 
    func main() {

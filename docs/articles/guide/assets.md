@@ -14,7 +14,7 @@ Loaders integrate with the [`http` package](../api/http) and return `http.ErrPen
 
 ## How It Works
 
-1. Import the package: `import "github.com/rfwlab/rfw/v1/assets"`
+1. Import the package: `import "github.com/rfwlab/rfw/v2/assets"`
 2. Call `assets.LoadImage`, `assets.LoadJSON`, or `assets.LoadModel` with a URL
 3. Handle `http.ErrPending` to show a loading state
 4. Subsequent calls with the same URL return instantly from cache
