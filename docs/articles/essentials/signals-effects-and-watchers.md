@@ -31,7 +31,7 @@ The underlying type is `*t.Int` (alias for `*state.Signal[int]`), `*t.String` (a
 
 ## Wiring Signals with composition.New
 
-When building a component, declare signal fields with the `rfw:"signal"` tag and `composition.New` auto-wires them:
+When building a component, declare signal fields using their types and `composition.New` auto-wires them by type detection:
 
 ```go
 import (
@@ -41,15 +41,18 @@ import (
 
 type Counter struct {
     composition.Component
-    Count *t.Int    `rfw:"signal"`
-    Name  *t.String `rfw:"signal"`
+    Count *t.Int
+    Name  *t.String
 }
 
 func main() {
-    view := composition.New(&Counter{
+    view, err := composition.New(&Counter{
         Count: t.NewInt(0),
         Name:  t.NewString("hello"),
     })
+    if err != nil {
+        log.Fatal(err)
+    }
     _ = view
 }
 ```
@@ -126,12 +129,15 @@ The `state.Effect` function is used internally by the framework to track signal 
 
 ## Passing Signals as Props
 
-Provide signals through component props so children can bind to them:
+Provide signals through component fields so children can bind to them:
 
 ```go
-view := composition.New(&Child{
+view, err := composition.New(&Child{
     Count: parentCount,
 })
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 The child template can then use `@signal:Count` to stay reactive.

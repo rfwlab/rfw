@@ -29,16 +29,16 @@ const state = reactive({ count: 0 })
 
 Vue wraps objects in JavaScript Proxies. Any property access or mutation is intercepted automatically. The system is flexible but relies on runtime tracking.
 
-### rfw: Explicit signals with struct tags
+### rfw: Explicit signals with type-based detection
 
 ```go
 type Counter struct {
     composition.Component
-    Count *composition.Int `rfw:"signal"`
+    Count *t.Int
 }
 ```
 
-Signals are explicit. You declare them as typed fields (`*t.Int`, `*t.String`, etc.), tag them with `rfw:"signal"`, and `composition.New` wires them automatically. There are no hidden proxies, every reactive field is visible in the struct.
+Signals are explicit. You declare them as typed fields (`*t.Int`, `*t.String`, etc.), and `composition.New` wires them automatically based on their type. There are no hidden proxies, every reactive field is visible in the struct.
 
 Reading and writing are explicit:
 
@@ -86,7 +86,7 @@ import (
 
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (c *Counter) Increment() {
@@ -264,7 +264,7 @@ func (c *Counter) Doubled() int {
 <p>Doubled: {{Doubled}}</p>
 ```
 
-### `props` → `rfw:"prop"`
+### `props` → `t.Prop[T]` or signal fields
 
 **Vue:**
 
@@ -272,26 +272,39 @@ func (c *Counter) Doubled() int {
 defineProps({ title: String, count: Number })
 ```
 
-**rfw, via struct fields with signal + auto-wiring:**
+**rfw, via `t.Prop[T]` fields:**
 
 ```go
 type Card struct {
     composition.Component
-    Title *t.String `rfw:"signal"`
-    Count *t.Int    `rfw:"signal"`
+    Title t.Prop[string]
+    Count t.Prop[int]
+}
+```
+
+Or via signal fields passed at construction:
+
+```go
+type Card struct {
+    composition.Component
+    Title *t.String
+    Count *t.Int
 }
 ```
 
 Parent passes props when creating the component:
 
 ```go
-card := composition.New(&Card{
+card, err := composition.New(&Card{
     Title: t.NewString("Hello"),
     Count: t.NewInt(0),
 })
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
-For cross-component prop flow, use the `Prop()` method or `rfw:"include:content"` for layout composition (see below).
+For cross-component prop flow, use `t.Prop[T]` fields or `*t.View` for layout composition (see below).
 
 ### `emit` → handler methods
 
@@ -310,7 +323,7 @@ parent.On("childUpdate", func() { /* ... */ })
 
 Or use stores to communicate between components without direct coupling.
 
-### Slots → `@include:` / `@slot:`
+### Slots → `*t.View` field / `@include:`
 
 **Vue parent:**
 
@@ -320,7 +333,7 @@ Or use stores to communicate between components without direct coupling.
 </Layout>
 ```
 
-**Vue Layout.svelte:**
+**Vue Layout:**
 
 ```html
 <slot name="content">Default content</slot>
@@ -331,9 +344,11 @@ Or use stores to communicate between components without direct coupling.
 ```go
 type Layout struct {
     composition.Component
-    Content *t.View `rfw:"include:content"`
+    Content *t.View
 }
 ```
+
+The slot name is derived from the lowercase field name (`Content` → `content`).
 
 **Layout.rtml:**
 
@@ -347,7 +362,10 @@ type Layout struct {
 **rfw, using the layout:**
 
 ```go
-layout := composition.New(&Layout{})
+layout, err := composition.New(&Layout{})
+if err != nil {
+    log.Fatal(err)
+}
 // Wire a child into the "content" slot
 layout.AddDependency("content", pageView)
 ```
@@ -413,9 +431,9 @@ const user = reactive({ name: '', age: 0 })
 ```go
 type MyComp struct {
     composition.Component
-    Count *t.Int    `rfw:"signal"`
-    Name  *t.String `rfw:"signal"`
-    Age   *t.Int    `rfw:"signal"`
+    Count *t.Int
+    Name  *t.String
+    Age   *t.Int
 }
 ```
 
@@ -442,19 +460,23 @@ const router = createRouter({ routes, history: createWebHistory() })
 
 ```go
 func main() {
-    router.Page("/", func() *t.View {
-        return composition.New(&Home{})
+    router.Page("/", func() *composition.View {
+        v, _ := composition.New(&Home{})
+        return v
     })
-    router.Page("/about", func() *t.View {
-        return composition.New(&About{})
+    router.Page("/about", func() *composition.View {
+        v, _ := composition.New(&About{})
+        return v
     })
-    router.Page("/users/:id", func() *t.View {
-        return composition.New(&UserProfile{})
+    router.Page("/users/:id", func() *composition.View {
+        v, _ := composition.New(&UserProfile{})
+        return v
     })
 
     router.Group("/admin", func(r *router.GroupBuilder) {
-        r.Page("/dashboard", func() *t.View {
-            return composition.New(&Dashboard{})
+        r.Page("/dashboard", func() *composition.View {
+            v, _ := composition.New(&Dashboard{})
+            return v
         })
     })
 
@@ -531,7 +553,7 @@ onMounted(() => {
 ```go
 type Timer struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
     done  chan struct{}
 }
 
@@ -637,8 +659,8 @@ const removeTodo = (id) => {
 ```go
 type TodoApp struct {
     composition.Component
-    NewTodo *t.String  `rfw:"signal"`
-    Todos   *t.Any      `rfw:"signal"`
+    NewTodo *t.String
+    Todos   *t.Any
 }
 
 func (a *TodoApp) AddTodo() {
@@ -662,7 +684,7 @@ func (a *TodoApp) OnMount() {
         {{todo.Text}}
         <button @on:click:RemoveTodo-{{todo.ID}}>×</button>
       </li>
-    @endfor
+    @endfor>
   </ul>
 </root>
 ```
@@ -694,7 +716,7 @@ const submit = () => { if (valid.value) { /* ... */ } }
 ```go
 type Form struct {
     composition.Component
-    Email *t.String `rfw:"signal"`
+    Email *t.String
 }
 
 func (f *Form) Valid() bool {
@@ -733,8 +755,8 @@ func (f *Form) Submit() {
 
 | Vue | rfw | Notes |
 |-----|-----|-------|
-| `ref()` | `*t.Int` / `*t.String` etc with `rfw:"signal"` | Typed signals |
-| `reactive()` | `*state.Store` or multiple signals | No proxy-based objects |
+| `ref()` | `*t.Int` / `*t.String` etc (type-detected) | Typed signals |
+| `reactive()` | `*t.Store` or multiple signals | No proxy-based objects |
 | `computed()` | Go method or `@expr:` | Methods auto-invoked in templates |
 | `v-model` | `@signal:Name:w` | Two-way via `:w` suffix |
 | `v-if` / `v-else-if` / `v-else` | `@if:` / `@else-if:` / `@else` / `@endif` | Block directives |
@@ -742,15 +764,15 @@ func (f *Form) Submit() {
 | `@click` / `v-on:click` | `@on:click:Handler` | Handler is struct method |
 | `:class` | `@expr:condition && 'class'` | Computed expression |
 | `:style` | `style="{{expr}}"` | Expression in attribute |
-| `defineProps()` | Signal fields + `rfw:"signal"` | Auto-wired by `composition.New` |
+| `defineProps()` | `t.Prop[T]` fields or signal fields | Auto-wired by `composition.New` |
 | `defineEmits()` | Handler methods / stores | No formal emit system |
 | `<slot name="x">` | `@slot:x` / `@endslot` | Slot in layout template |
-| `<Comp #x="child">` | `@include:Comp` + `rfw:"include:slot"` | Include directive |
+| `<Comp #x="child">` | `@include:Comp` + `*t.View` field | Slot name from field name |
 | `onMounted()` | `func (c *T) OnMount()` | Auto-discovered |
 | `onUnmounted()` | `func (c *T) OnUnmount()` | Auto-discovered |
 | `watch()` | `state.Effect()` or `store.OnChange` | |
-| `provide/inject` | `rfw:"inject"` or `Provide`/`Inject` | DI container or component tree |
-| `Pinia store` | `state.NewStore()` | Namespaced key-value |
+| `provide/inject` | `*t.Inject[T]` or `Provide`/`Inject` | DI container or component tree |
+| `Pinia store` | `state.NewStore()` / `*t.Store` | Namespaced key-value |
 | `vue-router` | `router.Page()` / `router.Group()` | |
 | `beforeEach` guard | `func(map[string]string) bool` | Per-route guards |
 | `Nuxt SSR` | rfw SSC (required) | Server renders, WASM hydrates |
