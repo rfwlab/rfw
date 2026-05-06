@@ -8,14 +8,14 @@
     "title": "Getting Started",
     "children": [
       {
-        "title": "Introduction",
-        "path": "getting-started/introduction.md",
-        "description": "Introduction to building with rfw."
-      },
-      {
         "title": "Quick Start",
         "path": "getting-started/quick-start.md",
         "description": "Minimal steps to run your first rfw app."
+      },
+      {
+        "title": "Requirements",
+        "path": "getting-started/requirements.md",
+        "description": "Environment and tools needed."
       }
     ]
   },
@@ -60,7 +60,7 @@
       },
       {
         "title": "Signals, Effects & Watchers",
-        "path": "essentials/signals-effects-and-effects.md"
+        "path": "essentials/signals-effects-and-watchers.md"
       },
       {
         "title": "Template Refs",
@@ -88,11 +88,7 @@
         "path": "guide/features.md"
       },
       {
-        "title": "Selective DOM Patching",
-        "path": "guide/dom-patching.md"
-      },
-      {
-        "title": "State Management & Suspense",
+        "title": "State Management",
         "path": "guide/state-management.md"
       },
       {
@@ -106,10 +102,6 @@
       {
         "title": "Routing",
         "path": "guide/router.md"
-      },
-      {
-        "title": "Complex Routing",
-        "path": "guide/complex-routing.md"
       },
       {
         "title": "Plugins",
@@ -128,36 +120,12 @@
         "path": "guide/api-integration.md"
       },
       {
-        "title": "Scene Graph",
-        "path": "guide/scene-graph.md"
-      },
-      {
-        "title": "Cinema",
-        "path": "guide/cinema.md"
-      },
-      {
-        "title": "Animations",
-        "path": "guide/animation.md"
-      },
-      {
-        "title": "WASM Loader",
-        "path": "guide/wasm-loader.md"
-      },
-      {
-        "title": "Manifest",
-        "path": "guide/manifest.md"
-      },
-      {
         "title": "Server Side Computed",
         "path": "guide/ssc.md"
       },
       {
-        "title": "Pathfinding",
-        "path": "guide/pathfinding.md"
-      },
-      {
-        "title": "Multiplayer",
-        "path": "guide/multiplayer.md"
+        "title": "Manifest",
+        "path": "guide/manifest.md"
       }
     ]
   },
@@ -215,19 +183,6 @@
     ]
   },
   {
-    "title": "Developer Goodies",
-    "children": [
-      {
-        "title": "Devtools",
-        "path": "goodies/devtools.md"
-      },
-      {
-        "title": "Debugging",
-        "path": "goodies/debugging.md"
-      }
-    ]
-  },
-  {
     "title": "API",
     "children": [
       {
@@ -279,10 +234,6 @@
         "path": "api/js.md"
       },
       {
-        "title": "markdown",
-        "path": "api/markdown.md"
-      },
-      {
         "title": "http",
         "path": "api/http.md"
       },
@@ -311,56 +262,29 @@
         "path": "api/hostclient.md"
       },
       {
-        "title": "animation",
-        "path": "api/animation.md"
-      },
-      {
-        "title": "assets",
-        "path": "api/assets.md"
-      },
-      {
-        "title": "cinema",
-        "path": "api/cinema.md"
-      },
-      {
-        "title": "devtools",
-        "path": "api/devtools.md"
-      },
-      {
-        "title": "math",
-        "path": "api/math.md"
-      },
-      {
-        "title": "game loop",
-        "path": "api/game-loop.md"
-      },
-      {
-        "title": "game draw",
-        "path": "api/game-draw.md"
-      },
-      {
-        "title": "scene",
-        "path": "api/scene.md"
-      },
-      {
-        "title": "netcode",
-        "path": "api/netcode.md"
-      },
-      {
-        "title": "pathfinding",
-        "path": "api/pathfinding.md"
-      },
-      {
-        "title": "wasmloader",
-        "path": "api/wasmloader.md"
-      },
-      {
-        "title": "shortcut",
-        "path": "api/shortcut.md"
-      },
-      {
         "title": "webgl",
         "path": "api/webgl.md"
+      }
+    ]
+  },
+  {
+    "title": "Migration",
+    "children": [
+      {
+        "title": "From React",
+        "path": "migration/from-react.md"
+      },
+      {
+        "title": "From Vue",
+        "path": "migration/from-vue.md"
+      },
+      {
+        "title": "From Svelte",
+        "path": "migration/from-svelte.md"
+      },
+      {
+        "title": "Comparison",
+        "path": "migration/comparison.md"
       }
     ]
   }
