@@ -29,13 +29,14 @@ func init() {
 
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count t.Int
 }
 
 func (c *Counter) Increment() { c.Count.Set(c.Count.Get() + 1) }
 
 func NewCounter() *t.View {
-    return composition.New(&Counter{Count: t.NewInt(0)})
+    view, _ := composition.New(&Counter{Count: *t.NewInt(0)})
+    return view
 }
 ```
 
@@ -50,16 +51,16 @@ func NewCounter() *t.View {
 
 This example shows the core features of rfw v2:
 
-* **Tag-driven composition**, `rfw:"signal"` on struct fields auto-wires reactivity
-* **Convention over configuration**, templates found by struct name (`Counter` → `Counter.rtml`)
+* **Type-based composition**, field types (`t.Int`, `*t.Store`, `*t.Ref`, etc.) auto-wire reactivity
+* **Convention over configuration**, templates found by struct name (`Counter` → `Counter.rtml`) or `Template()` method
 * **Auto-discovered lifecycle**, `OnMount()`/`OnUnmount()` methods detected automatically
 * **Declarative RTML**, `@signal:`, `@on:click:`, `@expr:` bind state and events
 
 ## Key Concepts
 
-* **Signals**, reactive values (`*t.Int`, `*t.String`, etc.) that update the DOM when changed
+* **Signals**, reactive values (`t.Int`, `t.String`, etc.) that update the DOM when changed
 * **Stores**, shared state across components, scoped by module and name
-* **Composition**, `composition.New(&struct{})` auto-wires everything from struct tags
+* **Composition**, `composition.New(&struct{})` auto-wires everything from field types
 * **Routing**, `router.Page()` and `router.Group()` for client-side navigation
 * **SSC**, Server-Side Computed: the host renders HTML, Wasm hydrates it
 
@@ -67,7 +68,7 @@ This example shows the core features of rfw v2:
 
 * [Quick Start](./getting-started/quick-start), build your first component in minutes
 * [Creating an Application](./essentials/creating-application), project structure and bootstrap
-* [Components Basics](./essentials/components-basics), components, tags, and lifecycle
+* [Components Basics](./essentials/components-basics), components, types, and lifecycle
 * [Template Syntax](./essentials/template-syntax), RTML directives and expressions
 * [API Reference](./api/composition), full API docs
 
