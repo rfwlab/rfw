@@ -12,10 +12,32 @@ Inline computed expressions that re-evaluate when their signal dependencies chan
 <p>Doubled: @expr:Count.Get * 2</p>
 <p>Positive: @expr:Count.Get > 0</p>
 <p>Greeting: @expr:Name.Get + "!"</p>
-<p>Label: @expr:Active.Get ? "on" : "off"</p>
 ```
 
 Any `Get()` call inside `@expr:` creates a dependency. When the signal updates, only the affected expression re-renders.
+
+### Inline Conditionals (Ternary)
+
+Use `then ... else` for inline conditionals — reads naturally in templates:
+
+```rtml
+<p>Status: @expr:Active.Get then "Online" else "Offline"</p>
+<p>Tier: @expr:Count.Get > 10 then "high" else "low"</p>
+```
+
+Nested:
+
+```rtml
+<p>Size: @expr:Count.Get > 100 then "XL" else Count.Get > 50 then "L" else "M"</p>
+```
+
+Legacy `? :` syntax also works:
+
+```rtml
+<p>Status: @expr:Active.Get ? "Online" : "Offline"</p>
+```
+
+Prefer `then ... else` for readability.
 
 ---
 
@@ -26,12 +48,7 @@ When `@expr:` isn't enough, define a method on the struct:
 ```go
 type Stats struct {
     *core.HTMLComponent
-    Scores *composition.String `rfw:"signal"`
-}
-
-func (s *Stats) Average() string {
-    // complex logic here
-    return result
+    Scores *t.String
 }
 ```
 

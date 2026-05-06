@@ -65,8 +65,10 @@ import (
 )
 
 func main() {
-    router.Page("/", composition.NewFrom[components.Home]())
-    router.Page("/counter", composition.NewFrom[components.Counter]())
+    homeView, _ := composition.NewFrom[components.Home]()
+    counterView, _ := composition.NewFrom[components.Counter]()
+    router.Page("/", homeView)
+    router.Page("/counter", counterView)
     router.InitRouter()
     select {}
 }
@@ -77,9 +79,14 @@ func main() {
 `router.Page(path, component)` is the v2 shorthand for registering a route. It accepts a `*View`, a `func() *View`, or a `func() core.Component`:
 
 ```go
+view, err := composition.New(&About{})
+if err != nil {
+    log.Fatal(err)
+}
 router.Page("/", view)                        // singleton, same instance every visit
 router.Page("/about", func() *composition.View {
-    return composition.New(&About{})
+    v, _ := composition.New(&About{})
+    return v
 })
 ```
 
@@ -88,9 +95,11 @@ router.Page("/about", func() *composition.View {
 For nested routes under a common prefix:
 
 ```go
+profileView, _ := composition.NewFrom[Profile]()
+securityView, _ := composition.NewFrom[Security]()
 router.Group("/settings", func(g *router.GroupBuilder) {
-    g.Page("/profile", composition.NewFrom[Profile]())
-    g.Page("/security", composition.NewFrom[Security]())
+    g.Page("/profile", profileView)
+    g.Page("/security", securityView)
 })
 ```
 
@@ -100,7 +109,7 @@ This registers `/settings/profile` and `/settings/security`.
 
 ## Root Component
 
-Components embed `composition.Component` and use struct tags for wiring. The template is found automatically by struct name:
+Components embed `composition.Component` and use typed fields for type-based auto-wiring. The template is found automatically by struct name:
 
 ```go
 //go:build js && wasm
@@ -114,8 +123,8 @@ import (
 
 type Home struct {
     composition.Component
-    Count *composition.Int `rfw:"signal"`
-    Body  *types.View     `rfw:"include:content"`
+    Count   *t.Int
+    Body    *t.View
 }
 
 func (h *Home) OnMount() {
@@ -127,13 +136,11 @@ func (h *Home) Increment() {
 }
 ```
 
-The struct name `Home` resolves to `Home.rtml` (or `Home.html`) in any registered `embed.FS`. Override this with a `rfw:"template:path"` tag on a blank field:
+The struct name `Home` resolves to `Home.rtml` (or `Home.html`) in any registered `embed.FS`. Override this by implementing the `Template() string` method:
 
 ```go
-type Home struct {
-    composition.Component
-    _    struct{}        `rfw:"template:pages/index.rtml"`
-    Count *composition.Int `rfw:"signal"`
+func (h *Home) Template() string {
+    return "pages/index.rtml"
 }
 ```
 
@@ -150,15 +157,17 @@ The corresponding template:
 
 ### Wiring Summary
 
-| Tag | Field Type | Effect |
-|-----|-----------|--------|
-| `rfw:"signal"` | `*composition.Int`, `*composition.String`, etc. | Registers as a reactive prop; nil fields are auto-initialized |
-| `rfw:"store"` | `*composition.Store` | Creates a component-scoped store by field name |
-| `rfw:"inject"` | any | Resolves from the DI container; defaults to field name |
-| `rfw:"include:slotname"` | `*types.View` | Calls `AddDependency(slotname, view)` for composition |
-| `rfw:"template:path"` | blank struct field | Overrides convention-based template resolution |
-| `rfw:"host"` | string | Registers a host component by name |
-| `rfw:"history:store:undo:redo"` |, | Wires undo/redo handlers onto the named store |
+| Field Type | Effect |
+|-----------|--------|
+| `*t.Int`, `*t.String`, `*t.Bool`, `*t.Float`, `*t.Any` | Detected as reactive signals; nil fields are auto-initialized |
+| `*t.Store` | Creates a component-scoped store by field name |
+| `*t.Inject[T]` | Resolves type T from the DI container |
+| `*t.View` | Slot for composition (slot name = lowercase field name) |
+| `*t.Ref` | Template ref for DOM element access |
+| `*t.History` | Wires undo/redo handlers |
+| `t.HInt`, `t.HString`, etc. | Host signal types for server-side data |
+| `t.Prop[T]` | Declared prop of type T |
+| `Template() string` method | Overrides convention-based template resolution |
 
 ---
 
@@ -180,6 +189,6 @@ With SSC, every navigation is a real page load processed by the server. The rout
 
 ## Next Steps
 
-- [Components Basics](./components-basics), struct tags, signals, includes, and lifecycle
+- [Components Basics](./components-basics), typed fields, signals, includes, and lifecycle
 - [Composition](./composition), how `composition.New` works under the hood
 - [Template Syntax](./template-syntax), RTML directives and expressions

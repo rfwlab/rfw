@@ -1,6 +1,6 @@
 # Migrating from React to rfw
 
-You know React, JSX, hooks, context, effects. rfw replaces JavaScript with Go, the virtual DOM with fine-grained reactive updates, and component state with struct-tagged signals. This guide maps React concepts to rfw.
+You know React, JSX, hooks, context, effects. rfw replaces JavaScript with Go, the virtual DOM with fine-grained reactive updates, and component state with type-detected signal fields. This guide maps React concepts to rfw.
 
 ---
 
@@ -35,7 +35,7 @@ Every state change triggers a re-render of the component. React reconciles the v
 ```go
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (c *Counter) Increment() {
@@ -49,7 +49,7 @@ Signals update **only** the DOM nodes that read them. No re-render, no reconcili
 
 ## Hooks Mapping
 
-### `useState` → `rfw:"signal"`
+### `useState` → signal type fields
 
 **React:**
 
@@ -63,8 +63,8 @@ const [name, setName] = useState('')
 ```go
 type MyComp struct {
     composition.Component
-    Count *t.Int    `rfw:"signal"`
-    Name  *t.String `rfw:"signal"`
+    Count *t.Int
+    Name  *t.String
 }
 ```
 
@@ -94,7 +94,7 @@ useEffect(() => {
 ```go
 type Timer struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
     done  chan struct{}
 }
 
@@ -139,8 +139,13 @@ useEffect(() => { inputRef.current?.focus() }, [])
 **rfw:**
 
 ```go
+type MyComp struct {
+    composition.Component
+    MyInput *t.Ref
+}
+
 func (c *MyComp) OnMount() {
-    el := c.GetRef("myInput")
+    el := c.MyInput.Get()
     el.Call("focus")
 }
 ```
@@ -149,9 +154,9 @@ func (c *MyComp) OnMount() {
 <input [myInput] type="text" />
 ```
 
-The `[myInput]` constructor marks the element for lookup via `GetRef`.
+The `[myInput]` constructor marks the element for lookup via the `*t.Ref` field.
 
-### `useContext` → `rfw:"inject"`
+### `useContext` → `*t.Inject[T]`
 
 **React:**
 
@@ -172,11 +177,11 @@ composition.Container().Register("theme", &ThemeService{Mode: "dark"})
 // Inject into component
 type Button struct {
     composition.Component
-    Theme *ThemeService `rfw:"inject:theme"`
+    Theme *t.Inject[*ThemeService]
 }
 ```
 
-`composition.New` resolves the field from the container automatically.
+`composition.New` resolves the field type from the container automatically.
 
 For component-tree-scoped injection, use `Provide` / `Inject`:
 
@@ -193,7 +198,7 @@ theme, ok := core.Inject[string](child, "theme")
 
 ## Props Flow
 
-### React props → `rfw:"signal"` / composition.New
+### React props → signal fields / composition.New
 
 **React:**
 
@@ -209,18 +214,21 @@ function Card({ title, count }) {
 ```go
 type Card struct {
     composition.Component
-    Title *t.String `rfw:"signal"`
-    Count *t.Int    `rfw:"signal"`
+    Title *t.String
+    Count *t.Int
 }
 ```
 
 Parent sets props at construction:
 
 ```go
-card := composition.New(&Card{
+card, err := composition.New(&Card{
     Title: t.NewString("Hello"),
     Count: t.NewInt(42),
 })
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 Since signals are reactive, updating a signal from the parent propagates to the child automatically.
@@ -229,7 +237,7 @@ Since signals are reactive, updating a signal from the parent propagates to the 
 
 ## Component Composition
 
-### Children → `rfw:"include:content"`
+### Children → `*t.View` field
 
 **React:**
 
@@ -244,7 +252,7 @@ function Layout({ children }) {
 ```go
 type Layout struct {
     composition.Component
-    Content *t.View `rfw:"include:content"`
+    Content *t.View
 }
 ```
 
@@ -257,10 +265,15 @@ Layout.rtml:
 </root>
 ```
 
+The slot name is derived from the lowercase field name (`Content` → `content`).
+
 Parent wires the child:
 
 ```go
-layout := composition.New(&Layout{})
+layout, err := composition.New(&Layout{})
+if err != nil {
+    log.Fatal(err)
+}
 layout.AddDependency("content", pageView)
 ```
 
@@ -385,15 +398,18 @@ func (c *MyComp) ButtonClass() string {
 
 ```go
 func main() {
-    router.Page("/", func() *t.View {
-        return composition.New(&Home{})
+    router.Page("/", func() *composition.View {
+        v, _ := composition.New(&Home{})
+        return v
     })
-    router.Page("/users/:id", func() *t.View {
-        return composition.New(&UserProfile{})
+    router.Page("/users/:id", func() *composition.View {
+        v, _ := composition.New(&UserProfile{})
+        return v
     })
     router.Group("/admin", func(r *router.GroupBuilder) {
-        r.Page("/dashboard", func() *t.View {
-            return composition.New(&Dashboard{})
+        r.Page("/dashboard", func() *composition.View {
+            v, _ := composition.New(&Dashboard{})
+            return v
         })
     })
     router.InitRouter()
@@ -470,7 +486,7 @@ host.Register(host.NewHostComponent("UserHost", func(payload map[string]any) any
 
 ## Context → DI Container
 
-React context requires a Provider component that wraps consumers. rfw uses a global DI container with the `rfw:"inject"` tag.
+React context requires a Provider component that wraps consumers. rfw uses a global DI container with type-based injection.
 
 **React:**
 
@@ -500,11 +516,11 @@ composition.Container().Register("userService", &UserService{})
 // Inject
 type Dashboard struct {
     composition.Component
-    UserSvc *UserService `rfw:"inject:userService"`
+    UserSvc *t.Inject[*UserService]
 }
 
 func (d *Dashboard) OnMount() {
-    name := d.UserSvc.CurrentUser()
+    name := d.UserSvc.Get().CurrentUser()
 }
 ```
 
@@ -546,7 +562,7 @@ function Counter() {
 ```go
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (c *Counter) Increment() {
@@ -584,7 +600,7 @@ function Users() {
 ```go
 type Users struct {
     composition.Component
-    Users *t.Any `rfw:"signal"`
+    Users *t.Any
 }
 
 func (u *Users) OnMount() {
@@ -625,8 +641,14 @@ s := state.NewStore("counter", state.WithModule("app"))
 s.Set("count", 0)
 
 // In a component:
-func (c *MyComp) Increment() {
-    c.CounterStore.Set("count", c.CounterStore.Get("count").(int)+1)
+type MyComp struct {
+    composition.Component
+    CounterStore *t.Store
+}
+
+func (m *MyComp) Increment() {
+    c := m.CounterStore.Get("count").(int)
+    m.CounterStore.Set("count", c+1)
 }
 ```
 
@@ -641,11 +663,11 @@ func (c *MyComp) Increment() {
 
 | React | rfw | Notes |
 |-------|-----|-------|
-| `useState(val)` | `*t.Int` / `*t.String` etc with `rfw:"signal"` | Typed signals |
+| `useState(val)` | `*t.Int` / `*t.String` etc (type-detected) | Typed signals |
 | `useEffect(fn, [])` | `func (c *T) OnMount()` | Auto-discovered |
 | `useEffect(fn, [dep])` | `state.Effect()` | Re-runs on dep change |
-| `useRef()` | `[refName]` in RTML + `GetRef()` | Template refs |
-| `useContext()` | `rfw:"inject"` or `Provide`/`Inject` | DI container |
+| `useRef()` | `*t.Ref` field + `Get()` in template | Type-based refs |
+| `useContext()` | `*t.Inject[T]` field or `Provide`/`Inject` | DI container |
 | JSX | RTML templates | `@` directives |
 | `{condition && <El/>}` | `@if:condition` / `@endif` | Block directives |
 | `{items.map(...)}` | `@for:item in items` / `@endfor` | Block directives |
@@ -653,7 +675,7 @@ func (c *MyComp) Increment() {
 | `className={cls}` | `class="{{Method}}"` or `@expr:` | |
 | `key={item.id}` | `[key {{item.ID}}]` | Constructor syntax |
 | `<Child prop={val}>` | Signal fields + `composition.New` | Typed props |
-| `{children}` | `@include:content` / `rfw:"include:content"` | Slots |
+| `{children}` | `@include:content` / `*t.View` field | Slots |
 | `createContext` | `composition.Container()` | Global DI |
 | React Router | `router.Page()` / `router.Group()` | |
 | Next.js SSR | rfw SSC (required) | Host renders, WASM hydrates |

@@ -1,6 +1,6 @@
 # Event Handling
 
-Interactivity in **rfw v2** is driven by events. Templates register listeners with directives, and Go code defines the handlers. `composition.New` auto-wires them together.
+Interactivity in **rfw v2** is driven by events. Templates register listeners with directives, and Go code defines the handlers. `composition.New` auto-discovers them by method signature.
 
 ---
 
@@ -11,7 +11,7 @@ Exported no-argument methods on a struct are automatically registered as event h
 ```go
 type Form struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (f *Form) Save() {
@@ -25,26 +25,29 @@ The method name (`Save`) becomes the handler name. Wire it in your template:
 <button @on:click:Save>Save</button>
 ```
 
-Any exported method with no arguments and no return value is auto-discovered and registered as a handler. No tags required.
+Any exported method with no arguments and no return value is auto-discovered and registered as a handler. No tags or registration needed — `composition.New` detects them by convention.
 
 ---
 
-## Tag-Based Registration
+## Method Registration for Events
 
-For explicit control, use the `rfw:"event"` tag on a field:
+For explicit control over which events a handler responds to, define the method on the struct. The method name must match the handler name used in the template:
 
 ```go
 type Form struct {
     composition.Component
-    _ struct{} `rfw:"event:click:Save"`
+}
+
+func (f *Form) HandleForm() {
+    // handle form submission
 }
 ```
 
-This registers the `Save` method for the `click` DOM event. You can also specify modifiers:
-
-```go
-_ struct{} `rfw:"event:submit.prevent:HandleForm"`
+```rtml
+<form @on:submit.prevent:HandleForm>...</form>
 ```
+
+All event handlers are discovered automatically from exported no-arg methods. No additional wiring or tags required.
 
 ---
 
@@ -108,7 +111,7 @@ import (
 
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 //go:embed templates/counter.rtml
@@ -164,7 +167,7 @@ This bypasses the composition system entirely, use it only when you need program
 ## Summary
 
 * **Auto-discovered**: exported no-arg methods on the struct are handlers.
-* **Tag-based**: `rfw:"event:click:Handler"` for explicit registration.
+* **Type-based**: signal fields (`*t.Int`, `*t.String`, etc.) are auto-wired by their type.
 * **Template**: `@on:event:Handler` to bind DOM events.
 * **Modifiers**: `.stop`, `.prevent`, `.once` for finer control.
 * **Go API**: `events.On*` for low-level programmatic listeners.

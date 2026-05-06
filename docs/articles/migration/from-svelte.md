@@ -1,6 +1,6 @@
 # Migrating from Svelte to rfw
 
-You know Svelte, reactive assignments, `$:` statements, stores, `{#if}` blocks. rfw shares Svelte's philosophy of fine-grained reactivity (no virtual DOM), but implements it in Go with explicit signals and struct tags. This guide maps Svelte concepts to rfw.
+You know Svelte, reactive assignments, `$:` statements, stores, `{#if}` blocks. rfw shares Svelte's philosophy of fine-grained reactivity (no virtual DOM), but implements it in Go with explicit signals and type-detected field wiring. This guide maps Svelte concepts to rfw.
 
 ---
 
@@ -42,8 +42,8 @@ Svelte intercepts variable assignments at compile time. `count += 1` triggers re
 ```go
 type Counter struct {
     composition.Component
-    Count   *t.Int `rfw:"signal"`
-    Doubled *t.Int `rfw:"signal"`
+    Count   *t.Int
+    Doubled *t.Int
 }
 
 func (c *Counter) Increment() {
@@ -101,7 +101,7 @@ import (
 
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (c *Counter) OnMount() {
@@ -124,7 +124,7 @@ func (c *Counter) Increment() {
 Key differences:
 
 - Svelte puts script, template, and styles in one `.svelte` file. rfw splits into a `.go` struct and a `.rtml` template.
-- Props are signal fields tagged with `rfw:"signal"`. No `export let`.
+- Props are signal fields detected by type (`*t.Int`, `*t.String`, etc.). No `export let`.
 - Methods on the struct are event handlers. No `on:click={handler}` closures, just method names.
 - No local CSS scoping built in. Use external CSS or Tailwind.
 
@@ -205,9 +205,9 @@ Range syntax:
 | Svelte | rfw |
 |--------|-----|
 | `on:click` | `@on:click:Handler` |
-| `\|preventDefault` | `.prevent` |
-| `\|stopPropagation` | `.stop` |
-| `\|once` | `.once` |
+| `|preventDefault` | `.prevent` |
+| `|stopPropagation` | `.stop` |
+| `|once` | `.once` |
 
 ### `bind:value` → `@signal:...:w`
 
@@ -248,9 +248,9 @@ Append `:w` for two-way binding. Without it, the binding is read-only.
 ```go
 type DataPage struct {
     composition.Component
-    Data    *t.String `rfw:"signal"`
-    Loading *t.Bool   `rfw:"signal"`
-    Error   *t.String `rfw:"signal"`
+    Data    *t.String
+    Loading *t.Bool
+    Error   *t.String
 }
 
 func (d *DataPage) OnMount() {
@@ -381,7 +381,7 @@ const time = readable(new Date(), (set) => {
 ```go
 type Clock struct {
     composition.Component
-    Time *t.String `rfw:"signal"`
+    Time *t.String
     done chan struct{}
 }
 
@@ -409,7 +409,7 @@ func (c *Clock) OnUnmount() {
 
 ## Component Composition
 
-### Slots → `@include:` / `@slot:`
+### Slots → `*t.View` field / `@include:`
 
 **Svelte, Layout.svelte:**
 
@@ -435,9 +435,11 @@ func (c *Clock) OnUnmount() {
 ```go
 type Layout struct {
     composition.Component
-    Content *t.View `rfw:"include:content"`
+    Content *t.View
 }
 ```
+
+The slot name is derived from the lowercase field name (`Content` → `content`).
 
 **Layout.rtml:**
 
@@ -453,7 +455,10 @@ type Layout struct {
 **Using the layout:**
 
 ```go
-layout := composition.New(&Layout{})
+layout, err := composition.New(&Layout{})
+if err != nil {
+    log.Fatal(err)
+}
 layout.AddDependency("content", pageView)
 ```
 
@@ -487,7 +492,7 @@ layout.AddDependency("content", pageView)
 ```go
 type Timer struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
     done  chan struct{}
 }
 
@@ -527,18 +532,22 @@ src/routes/users/[id]/+page.svelte → /users/:id
 
 ```go
 func main() {
-    router.Page("/", func() *t.View {
-        return composition.New(&Home{})
+    router.Page("/", func() *composition.View {
+        v, _ := composition.New(&Home{})
+        return v
     })
-    router.Page("/about", func() *t.View {
-        return composition.New(&About{})
+    router.Page("/about", func() *composition.View {
+        v, _ := composition.New(&About{})
+        return v
     })
-    router.Page("/users/:id", func() *t.View {
-        return composition.New(&UserProfile{})
+    router.Page("/users/:id", func() *composition.View {
+        v, _ := composition.New(&UserProfile{})
+        return v
     })
     router.Group("/admin", func(r *router.GroupBuilder) {
-        r.Page("/dashboard", func() *t.View {
-            return composition.New(&Dashboard{})
+        r.Page("/dashboard", func() *composition.View {
+            v, _ := composition.New(&Dashboard{})
+            return v
         })
     })
     router.InitRouter()
@@ -562,7 +571,7 @@ export async function load({ params }) {
 ```go
 type UserProfile struct {
     composition.Component
-    UserName *t.String `rfw:"signal"`
+    UserName *t.String
 }
 
 func (u *UserProfile) OnMount() {
@@ -623,7 +632,7 @@ host.Register(host.NewHostComponent("PageHost", func(payload map[string]any) any
 ```go
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (c *Counter) Inc() {
@@ -668,8 +677,8 @@ func (c *Counter) Inc() {
 ```go
 type TodoApp struct {
     composition.Component
-    NewTodo *t.String `rfw:"signal"`
-    Todos   *t.Any    `rfw:"signal"`
+    NewTodo *t.String
+    Todos   *t.Any
 }
 
 func (a *TodoApp) AddTodo() {
@@ -691,7 +700,7 @@ func (a *TodoApp) OnMount() {
   <ul>
     @for:todo in Todos
       <li [key {{todo.ID}}]>{{todo.Text}}</li>
-    @endfor
+    @endfor>
   </ul>
 </root>
 ```
@@ -724,7 +733,7 @@ var CounterStore = state.NewStore("counter", state.WithModule("app"))
 ```go
 type MyComp struct {
     composition.Component
-    CountStore *state.Store `rfw:"store:counter"`
+    CountStore *t.Store
 }
 
 func (m *MyComp) Inc() {
@@ -743,7 +752,7 @@ func (m *MyComp) Inc() {
 
 | Svelte | rfw | Notes |
 |--------|-----|-------|
-| `let x = 0` | `*t.Int` with `rfw:"signal"` | Typed signals |
+| `let x = 0` | `*t.Int` (type-detected signal) | Typed signals |
 | `$: doubled = x * 2` | Go method or `@expr:` | Computed values |
 | `x += 1` | `x.Set(x.Get() + 1)` | Explicit read/write |
 | `bind:value={name}` | `@signal:Name:w` | Two-way binding |
@@ -754,10 +763,10 @@ func (m *MyComp) Inc() {
 | `{#each items as item}` | `@for:item in Items` / `@endfor` | |
 | `{#await promise}` | `OnMount` + goroutines | No built-in await block |
 | `<slot>` | `@slot:name` / `@endslot` | |
-| `<Comp let:item>` | `rfw:"include:content"` | Include directive |
-| `export let prop` | Signal field with `rfw:"signal"` | Auto-wired |
+| `<Comp let:item>` | `*t.View` field + `AddDependency` | Slot name from field name |
+| `export let prop` | Signal field (type-detected) | Auto-wired |
 | `createEventDispatcher` | Handler methods / stores | No built-in emit |
-| `writable()` | `*state.Store` | Centralized key-value |
+| `writable()` | `*t.Store` | Centralized key-value |
 | `derived()` | `state.Map()` / `state.Map2()` | Computed from dependencies |
 | `onMount()` | `func (c *T) OnMount()` | Auto-discovered |
 | `onDestroy()` | `func (c *T) OnUnmount()` | Auto-discovered |

@@ -70,6 +70,25 @@ For computed or numeric comparisons, use `@expr:` expressions:
 
 ---
 
+## Ternary in @expr:
+
+Use inline conditionals with `then ... else` inside `@expr:`:
+
+```rtml
+<p>Status: @expr:Active.Get then "Online" else "Offline"</p>
+<p>Size: @expr:Count.Get > 10 then "large" else "small"</p>
+```
+
+Legacy `? :` syntax also works:
+
+```rtml
+<p>Status: @expr:Active.Get ? "Online" : "Offline"</p>
+```
+
+Prefer `then ... else` for readability in templates.
+
+---
+
 ## Negation
 
 Use `!` to invert a condition:
