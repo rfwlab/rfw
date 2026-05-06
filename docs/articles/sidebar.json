@@ -161,6 +161,10 @@
         "path": "plugins/i18n.md"
       },
       {
+        "title": "Monitor",
+        "path": "plugins/monitor.md"
+      },
+      {
         "title": "Pages",
         "path": "plugins/pages.md"
       },
@@ -171,6 +175,10 @@
       {
         "title": "SEO",
         "path": "plugins/seo.md"
+      },
+      {
+        "title": "Shortcut",
+        "path": "plugins/shortcut.md"
       },
       {
         "title": "Tailwind",
@@ -250,6 +258,10 @@
         "path": "api/signal.md"
       },
       {
+        "title": "types",
+        "path": "api/types.md"
+      },
+      {
         "title": "router",
         "path": "api/router.md"
       },
@@ -262,8 +274,45 @@
         "path": "api/hostclient.md"
       },
       {
+        "title": "ssc",
+        "path": "api/ssc.md"
+      },
+      {
+        "title": "wasmloader",
+        "path": "api/wasmloader.md"
+      },
+      {
         "title": "webgl",
         "path": "api/webgl.md"
+      }
+    ]
+  },
+  {
+    "title": "Game & Graphics",
+    "children": [
+      {
+        "title": "ai",
+        "path": "api/ai.md"
+      },
+      {
+        "title": "animation",
+        "path": "api/animation.md"
+      },
+      {
+        "title": "game",
+        "path": "api/game.md"
+      },
+      {
+        "title": "math",
+        "path": "api/math.md"
+      },
+      {
+        "title": "netcode",
+        "path": "api/netcode.md"
+      },
+      {
+        "title": "markdown",
+        "path": "api/markdown.md"
       }
     ]
   },
