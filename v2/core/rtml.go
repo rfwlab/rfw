@@ -670,13 +670,7 @@ func binOpString(op rtmlast.BinOp) string {
 }
 
 func updateExprBindings(c *HTMLComponent, exprID string, newValue any) {
-	doc := dom.Doc()
-	var element dom.Element
-	if c.ID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = dom.Doc().Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
@@ -690,13 +684,7 @@ func updateExprBindings(c *HTMLComponent, exprID string, newValue any) {
 }
 
 func updateClassExprBindings(c *HTMLComponent, exprID string, newValue any) {
-	doc := dom.Doc()
-	var element dom.Element
-	if c.ID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = dom.Doc().Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
@@ -1014,13 +1002,7 @@ func extractDependencies(expr string) []ConditionDependency {
 }
 
 func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newValue any) {
-	doc := dom.Doc()
-	var element dom.Element
-	if c.ID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
@@ -1070,13 +1052,7 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 }
 
 func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
-	doc := dom.Doc()
-	var element dom.Element
-	if c.ID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
@@ -1479,13 +1455,7 @@ func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
 }
 
 func updateForeachBindings(c *HTMLComponent, foreachID string) {
-	doc := dom.Doc()
-	var element dom.Element
-	if c.ID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
@@ -1504,13 +1474,7 @@ func updateForeachBindings(c *HTMLComponent, foreachID string) {
 }
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
-	doc := dom.Doc()
-	var element dom.Element
-	if c.ID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}

@@ -1,6 +1,6 @@
 # State Management
 
-rfw v2 provides two reactive state primitives, **signals** for local component state and **stores** for shared global state. Both are auto-wired by `composition.New` via struct tags, eliminating manual prop passing for the common case.
+rfw v2 provides two reactive state primitives: **signals** for local component state and **stores** for shared global state. Both are auto-wired by `composition.New` based on field types — no tags required.
 
 ---
 
@@ -31,31 +31,34 @@ fmt.Println(count.Get()) // 42
 
 Under the hood, `t.Int` is `*state.Signal[int]`, `t.String` is `*state.Signal[string]`, etc.
 
-### Auto-Wiring with rfw:"signal"
+Signals are nil-safe: calling `.Get()` or `.Set()` on a nil `*Signal[T]` is a no-op (returns zero value for Get).
 
-Declare signal fields on your struct with the `rfw:"signal"` tag:
+### Auto-Wiring by Type
+
+Declare signal fields on your struct using value types or pointer types:
 
 ```go
 type Counter struct {
     composition.Component
-    Count *t.Int    `rfw:"signal"`
-    Name  *t.String `rfw:"signal"`
+    Count t.Int      // value type
+    Name  *t.String  // pointer type (auto-initialized if nil)
 }
 
 func (c *Counter) Inc() { c.Count.Set(c.Count.Get() + 1) }
 func (c *Counter) Dec() { c.Count.Set(c.Count.Get() - 1) }
 ```
 
-`composition.New` auto-wires these:
+`composition.New` detects signal-type fields and:
 
-- If the field is **non-nil** (initialized at construction), it's registered as a prop directly.
-- If the field is **nil**, a zero-value signal is created and set on the field automatically.
+- If the field is a **value type** (`t.Int`), registers it as a prop via `field.Addr()`.
+- If the field is a **pointer type** and **nil** (`*t.Int`), auto-creates a zero-value signal and sets the field.
+- If the field is a **pointer type** and **non-nil**, registers it directly as a prop.
 
 Initialize with values:
 
 ```go
-view := composition.New(&Counter{
-    Count: t.NewInt(0),
+view, err := composition.New(&Counter{
+    Count: *t.NewInt(5),
 })
 ```
 
@@ -64,14 +67,12 @@ Or rely on auto-zero and set in `OnMount`:
 ```go
 type Counter struct {
     composition.Component
-    Count *t.Int `rfw:"signal"`
+    Count *t.Int
 }
 
 func (c *Counter) OnMount() {
     c.Count.Set(1)
 }
-
-view := composition.New(&Counter{})
 ```
 
 ### Template Binding
@@ -118,16 +119,16 @@ Options:
 | `state.WithPersistence()` | Persist to localStorage |
 | `state.WithDevTools()` | Log mutations (debug only) |
 
-### Auto-Wiring with rfw:"store:name"
+### Auto-Wiring with `*t.Store`
 
 ```go
 type CartPage struct {
     composition.Component
-    Cart *state.Store `rfw:"store:cart"`
+    Cart *t.Store
 }
 ```
 
-`composition.New` calls `comp.Store("cart")`, creating or retrieving the store scoped to the component.
+`composition.New` detects `*t.Store` fields and calls `comp.Store("Cart")`, creating or retrieving the store scoped to the component.
 
 ### Template Binding
 
@@ -216,33 +217,43 @@ remove := s.RegisterWatcher(state.NewWatcher(
 
 ---
 
-## Undo / Redo
+## Undo / Redo with `*t.History`
 
-Enable history on stores with `WithHistory`:
+Use `*t.History` fields for undo/redo on stores:
 
 ```go
-s := state.NewStore("profile", state.WithModule("app"), state.WithHistory(5))
-s.Set("age", 30)
-s.Set("age", 31)
-s.Undo() // age → 30
-s.Redo() // age → 31
+type Editor struct {
+    composition.Component
+    Doc  *t.Store
+    Hist *t.History
+}
 ```
 
-Auto-wire undo/redo via `rfw:"history:store:undo:redo"`:
+`composition.New` discovers `*t.History` fields and binds them to the component's first store automatically.
+
+Call methods in event handlers:
 
 ```go
-type EditorPage struct {
-    composition.Component
-    Doc *state.Store `rfw:"store:doc"`
-    _   struct{}     `rfw:"history:doc:Undo:redo"`
-}
+func (e *Editor) Save()    { e.Hist.Snapshot() }
+func (e *Editor) Undo()    { e.Hist.Undo() }
+func (e *Editor) Redo()    { e.Hist.Redo() }
 ```
 
 Template:
 
 ```rtml
 <button @on:click:Undo>Undo</button>
-<button @on:click:redo>Redo</button>
+<button @on:click:Redo>Redo</button>
+```
+
+You can also create a history manually:
+
+```go
+hist := t.NewHistory(50)  // max 50 snapshots
+hist.Bind(myStore)
+hist.Snapshot()
+hist.Undo()
+hist.Redo()
 ```
 
 ---
@@ -290,29 +301,20 @@ Values survive browser reloads.
 
 ---
 
-## DI Injection with rfw:"inject"
+## DI Injection with `*t.Inject[T]`
 
 Auto-fill struct fields from the DI container:
 
 ```go
-composition.Container().Register("logger", &MyLogger{})
+composition.Container().Provide("logger", &MyLogger{})
 
 type Page struct {
     composition.Component
-    Logger *MyLogger `rfw:"inject"`
+    Logger *t.Inject[Logger]
 }
 ```
 
-`composition.New` resolves the field from `Container().Get("logger")` and sets it. Works for any type, services, configs, API clients.
-
-Custom key:
-
-```go
-type Page struct {
-    composition.Component
-    Log *MyLogger `rfw:"inject:appLogger"`
-}
-```
+`composition.New` resolves the field from `Container().Get("logger")` and sets the inner `Value`. Works for any type — services, configs, API clients.
 
 ---
 
@@ -330,36 +332,7 @@ stop := state.Effect(func() func() {
 
 ---
 
-## No More Manual Prop()
-
-In v1, you passed state through `map[string]any{}` and called handlers with `dom.RegisterHandlerFunc`. In v2, `rfw:` tags handle everything:
-
-```go
-// v1
-func New() *core.HTMLComponent {
-    c := core.NewComponent("Counter", tpl, map[string]any{"count": 0})
-    dom.RegisterHandlerFunc("increment", func() {
-        c.Props["count"] = c.Props["count"].(int) + 1
-    })
-    return c
-}
-
-// v2
-type Counter struct {
-    composition.Component
-    Count *t.Int `rfw:"signal"`
-}
-
-func (c *Counter) Inc() { c.Count.Set(c.Count.Get() + 1) }
-
-view := composition.New(&Counter{Count: t.NewInt(0)})
-```
-
-Type-safe, auto-wired, no map casts.
-
----
-
-## API Reference
+## Type Reference
 
 ### Signal Constructors
 
@@ -371,7 +344,29 @@ Type-safe, auto-wired, no map casts.
 | `t.NewFloat(v)` | `*t.Float` | `0.0` |
 | `t.NewAny(v)` | `*t.Any` | `nil` |
 
-All support `.Get()` and `.Set()`.
+All support `.Get()` and `.Set()`. Nil-safe: calling `.Get()` on a nil pointer returns the zero value.
+
+### Host Signal Types
+
+| Type | Underlying | Use |
+|---|---|---|
+| `t.HInt` | `*Signal[int]` | SSC host-synced integer |
+| `t.HString` | `*Signal[string]` | SSC host-synced string |
+| `t.HBool` | `*Signal[bool]` | SSC host-synced boolean |
+| `t.HFloat` | `*Signal[float64]` | SSC host-synced float |
+
+### Special Types
+
+| Type | Use |
+|---|---|
+| `*t.Store` | Component-scoped store |
+| `*t.Ref` | Template DOM ref |
+| `*t.Inject[T]` | DI injection |
+| `*t.History` | Undo/redo bound to a store |
+| `*t.View` | Child view (include slot) |
+| `*t.Slice[T]` | Reactive slice signal |
+| `*t.Map[K,V]` | Reactive map signal |
+| `t.Prop[T]` | Reactive prop |
 
 ### Store Options
 
@@ -381,21 +376,6 @@ All support `.Get()` and `.Set()`.
 | `state.WithHistory(n)` | Enable undo/redo, max `n` entries |
 | `state.WithPersistence()` | Persist to localStorage |
 | `state.WithDevTools()` | Log all mutations |
-
-### rfw Tags Summary
-
-| Tag | Field Type | Effect |
-|---|---|---|
-| `rfw:"signal"` | `*t.Int`, `*t.String`, etc. | Auto-wire as reactive prop |
-| `rfw:"store:name"` | `*state.Store` | Create/retrieve named store |
-| `rfw:"inject"` | Any pointer | Resolve from DI container |
-| `rfw:"inject:key"` | Any pointer | Resolve with custom key |
-| `rfw:"include:slot"` | `*t.View` | Wire child into `@include:slot` |
-| `rfw:"host:Name"` | `string` | Register host component binding |
-| `rfw:"event:click:handler"` |, | Register DOM event → method |
-| `rfw:"template:path"` | `struct{}` | Override template path |
-| `rfw:"history:store:undo:redo"` |, | Wire undo/redo on store |
-| `rfw:"prop:name"` | Any | Create reactive prop |
 
 ### Template Directive Summary
 
@@ -414,4 +394,4 @@ All support `.Get()` and `.Set()`.
 
 - [Signals & Effects](../essentials/signals-effects-and-watchers)
 - [Composition](../essentials/composition)
-- [Store vs Signals](../guide/store-vs-signals)
+- [Store vs Signals](./store-vs-signals)

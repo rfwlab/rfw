@@ -9,9 +9,11 @@ rfw updates the DOM only where state changed. No virtual DOM, no manual patching
 Signals are standalone reactive values. Create them with typed constructors:
 
 ```go
-count := composition.NewInt(0)
-name := composition.NewString("rfw")
-active := composition.NewBool(false)
+import t "github.com/rfwlab/rfw/v2/types"
+
+count := t.NewInt(0)
+name := t.NewString("rfw")
+active := t.NewBool(false)
 ```
 
 `Get()` reads, `Set()` writes and notifies dependents:
@@ -20,15 +22,19 @@ active := composition.NewBool(false)
 count.Set(count.Get() + 1)
 ```
 
-In components, declare signal fields with the `rfw:"signal"` tag:
+Signals are nil-safe: calling `.Get()` or `.Set()` on a nil `*Signal[T]` is a no-op (Get returns zero value).
+
+In components, declare signal fields by type — no tags required:
 
 ```go
 type Counter struct {
-    Count *composition.Int `rfw:"signal"`
+    composition.Component
+    Count t.Int      // value type
+    Name  *t.String  // pointer type (auto-initialized if nil)
 }
 ```
 
-`composition.New(&Counter{})` auto-creates a zero-value signal if the field is nil, and wires it as a prop.
+`composition.New(&Counter{})` detects signal-type fields and auto-wires them. Nil pointer fields get zero-value signals.
 
 In RTML, bind signals with `@signal:name`:
 
@@ -41,17 +47,33 @@ Append `:w` for two-way binding on form controls.
 
 ---
 
-## Stores
+## Host Signal Types (SSC)
 
-Stores hold shared reactive key/value pairs scoped to a component. Declare them with `rfw:"store:name"`:
+For server-side computed values, use host signal types:
 
 ```go
-type App struct {
-    CounterStore *composition.Store `rfw:"store:counter"`
+type VisitPage struct {
+    composition.Component
+    Visit t.HInt // signal + host component binding
 }
 ```
 
-`composition.New` creates the store automatically. Access it via `@store` in RTML:
+`t.HInt`, `t.HString`, `t.HBool`, `t.HFloat` are signals that also auto-register as host component bindings for SSC.
+
+---
+
+## Stores
+
+Stores hold shared reactive key/value pairs scoped to a component. Declare them with `*t.Store` fields:
+
+```go
+type App struct {
+    composition.Component
+    CounterStore *t.Store
+}
+```
+
+`composition.New` creates or retrieves the store automatically. Access it via `@store` in RTML:
 
 ```rtml
 <p>@store:default.counter.count</p>
@@ -77,7 +99,8 @@ func (a *App) OnMount() {
 | `@signal:Name:w` | Yes | Two-way bind to form control |
 | `@store:module.store.key` | No | Read a store value |
 | `@store:module.store.key:w` | Yes | Two-way bind to store |
-| `@expr:expression` | No | Computed expression (see below) |
+| `@expr:expression` | No | Computed expression |
+| `@on:event:handler` | - | DOM event to Go method |
 
 ---
 
@@ -118,7 +141,9 @@ Returns a stop function. Optional cleanup runs before each re-execution.
 
 ## Summary
 
-- Use `rfw:"signal"` for local reactive state; `rfw:"store:name"` for component-scoped shared state.
+- Use signal types (`t.Int`, `*t.String`) for local reactive state; `*t.Store` for component-scoped shared state.
 - `@signal:Name:w` and `@store:...:w` enable two-way binding on inputs.
 - `@expr:` handles inline computed values in templates.
 - Changes propagate only to affected nodes.
+- Host signal types (`t.HInt`, etc.) add SSC host bindings.
+- All signal methods are nil-safe.

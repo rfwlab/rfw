@@ -308,13 +308,7 @@ func (c *HTMLComponent) Unmount() {
 	}
 
 	dom.RemoveComponentSignals(c.ID)
-	doc := dom.Doc()
-	var root dom.Element
-	if c.ID == "" {
-		root = doc.ByID("app")
-	} else {
-		root = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	root := dom.ComponentRoot(c.ID)
 	if !root.IsNull() && !root.IsUndefined() {
 		dom.RemoveDelegatedEvents(c.ID, root.Value)
 	}
@@ -330,13 +324,7 @@ func (c *HTMLComponent) Mount() {
 	for _, dep := range c.Dependencies {
 		dep.Mount()
 	}
-	doc := dom.Doc()
-	var root dom.Element
-	if c.ID == "" {
-		root = doc.ByID("app")
-	} else {
-		root = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	root := dom.ComponentRoot(c.ID)
 	if !root.IsNull() && !root.IsUndefined() {
 		dom.DelegateEvents(c.ID, root.Value)
 	}
@@ -357,13 +345,7 @@ func (c *HTMLComponent) GetID() string {
 // decorator. It searches within this component's root element using the
 // data-ref attribute injected during template rendering.
 func (c *HTMLComponent) GetRef(name string) dom.Element {
-	doc := dom.Doc()
-	var root dom.Element
-	if c.ID == "" {
-		root = doc.ByID("app")
-	} else {
-		root = doc.Query(fmt.Sprintf("[data-component-id='%s']", c.ID))
-	}
+	root := dom.ComponentRoot(c.ID)
 	if root.IsNull() || root.IsUndefined() {
 		return dom.Element{}
 	}

@@ -16,5 +16,9 @@ func (c *CustomPage) OnUnmount() {
 }
 
 func NewCustomPage() *t.View {
-	return composition.New(&CustomPage{})
+	v, err := composition.New(&CustomPage{})
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
