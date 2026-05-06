@@ -77,7 +77,7 @@ func TestHandleHostPayloadMismatchTriggersResync(t *testing.T) {
 	}
 
 	payload := map[string]any{"greeting": "fresh"}
-	mismatches := handleHostPayload(root, payload)
+	mismatches := handleHostPayload(root, payload, nil)
 	if len(mismatches) != 1 {
 		t.Fatalf("expected 1 mismatch, got %d", len(mismatches))
 	}
@@ -111,14 +111,14 @@ func TestInitSnapshotRecoveryAndUpdate(t *testing.T) {
 		text:     "0",
 	}
 
-	if mismatches := handleHostPayload(root, map[string]any{"count": "2"}); len(mismatches) == 0 {
+	if mismatches := handleHostPayload(root, map[string]any{"count": "2"}, nil); len(mismatches) == 0 {
 		t.Fatalf("expected mismatch when expectation diverges")
 	}
 
 	snapHTML := `<span data-host-var="count" data-host-expected="` + encodeExpectation("1") + `">1</span>`
 	applyInitSnapshot(root, &initSnapshotPayload{HTML: snapHTML})
 
-	if mismatches := handleHostPayload(root, map[string]any{"count": "3"}); len(mismatches) != 0 {
+	if mismatches := handleHostPayload(root, map[string]any{"count": "3"}, nil); len(mismatches) != 0 {
 		t.Fatalf("expected clean hydration after snapshot")
 	}
 
