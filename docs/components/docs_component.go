@@ -32,7 +32,6 @@ type DocsComponent struct {
 	order   []string
 	meta    map[string]struct{ Title, Description string }
 	mounted bool
-	docComp *core.HTMLComponent
 	SidebarEl *types.Ref
 	TocEl     *types.Ref
 	ContentEl *types.Ref
@@ -202,20 +201,14 @@ func (c *DocsComponent) watchDocEvents(doc dom.Document) {
 			if !c.mounted {
 				continue
 			}
-			detail := evt.Get("detail")
-			path := detail.Get("path").String()
-			content := detail.Get("content").String()
-			html := markdown.Parse(content)
+		detail := evt.Get("detail")
+		path := detail.Get("path").String()
+		content := detail.Get("content").String()
+		html := markdown.Parse(content)
 
-			if c.docComp != nil {
-				c.docComp.Unmount()
-				delete(c.HTMLComponent.Dependencies, "doc")
-			}
-			c.docComp = core.NewComponent("DocContent", []byte(html), nil)
-			c.HTMLComponent.AddDependency("doc", c.docComp)
-			doc.ByID("doc-content").SetHTML(c.docComp.Render())
-			c.docComp.Mount()
-			highlight.HighlightAll()
+		docContent := doc.ByID("doc-content")
+		docContent.SetHTML(html)
+		highlight.HighlightAll()
 
 			c.applyHeadings(doc, detail)
 			c.buildTOC(doc, detail)
