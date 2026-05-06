@@ -23,6 +23,25 @@ func (s *signalStub[T]) Read() any   { return s.value }
 func (s *signalStub[T]) SetFromHost(raw any) {
 	if v, ok := raw.(T); ok {
 		s.Set(v)
+		return
+	}
+	switch any(s.value).(type) {
+	case int:
+		if f, ok := raw.(float64); ok {
+			s.Set(int(f))
+		}
+	case float64:
+		if f, ok := raw.(float64); ok {
+			s.Set(f)
+		}
+	case string:
+		if str, ok := raw.(string); ok {
+			s.Set(str)
+		}
+	case bool:
+		if b, ok := raw.(bool); ok {
+			s.Set(b)
+		}
 	}
 }
 
