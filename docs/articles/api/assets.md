@@ -1,5 +1,9 @@
 # assets
 
+```go
+import "github.com/rfwlab/rfw/v2/assets"
+```
+
 Load images, JSON data, and binary models at runtime with caching and suspense-style loading.
 
 | Function | Description |
@@ -8,4 +12,4 @@ Load images, JSON data, and binary models at runtime with caching and suspense-s
 | `LoadJSON(url string, v any) error` | Fetches JSON into `v` using `http.FetchJSON`. |
 | `LoadModel(url string) ([]byte, error)` | Downloads binary data such as glTF models, caching results. |
 | `ClearCache(url string)` | Removes a cached entry for `url`. |
-
+| `Preload(urls ...string)` | Preloads multiple assets in parallel. |
