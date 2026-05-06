@@ -10,7 +10,7 @@ The [rtmlast](rtmlast) package provides the RTML template parser and renderer. T
 
 The full set of API references is listed below:
 
-- [composition](composition), tag-driven component creation, signals, stores, DI, element builders
+- [composition](composition), type-based component creation, signals, stores, DI, element builders
 - [core](core), HTMLComponent, lifecycle, component registry
 - [dom](dom), DOM helpers, event delegation
 - [events](events), browser event utilities
