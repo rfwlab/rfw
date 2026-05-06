@@ -172,12 +172,11 @@ func New(v any) *View {
 				comp.Prop(s.Name, sig)
 			}
 		case field.Kind() == reflect.Struct:
-			if _, ok := field.Type().FieldByName("value"); ok {
+			if f, ok := field.Type().FieldByName("value"); ok && len(f.Index) == 1 {
 				if sig, ok := field.Addr().Interface().(signalAny); ok {
 					comp.Prop(s.Name, sig)
 				}
 			} else {
-				// Other struct types (e.g. HInt) - init embedded pointers
 				initEmbeddedSignalPtr(field)
 				if sig, ok := field.Addr().Interface().(signalAny); ok {
 					comp.Prop(s.Name, sig)
