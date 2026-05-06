@@ -45,10 +45,10 @@ func (hc *HostComponent) Name() string { return hc.name }
 
 // Handle executes the component's handler.
 func (hc *HostComponent) Handle(payload map[string]any) any {
-	if hc.handler == nil {
-		return nil
+	if hc.handler != nil {
+		return hc.handler(payload)
 	}
-	return hc.handler(payload)
+	return nil
 }
 
 // NewHostComponentWithSession registers a session-aware handler.
@@ -85,6 +85,24 @@ func (hc *HostComponent) StoreManager(session *Session) *state.StoreManager {
 		return session.StoreManager()
 	}
 	return state.GlobalStoreManager
+}
+
+// Component is the interface for struct-based host components.
+// Register a struct implementing Component via RegisterComponent.
+type Component interface {
+	Name() string
+	Serve(*Session, map[string]any) any
+}
+
+// RegisterComponent creates a HostComponent from a struct implementing Component
+// and registers it in the global registry. This is the recommended way to
+// define host components — it provides type safety and clean separation.
+func RegisterComponent(c Component) {
+	hc := &HostComponent{
+		name:           c.Name(),
+		sessionHandler: func(s *Session, p map[string]any) any { return c.Serve(s, p) },
+	}
+	registry[c.Name()] = hc
 }
 
 var registry = make(map[string]*HostComponent)
