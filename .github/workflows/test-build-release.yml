@@ -3,6 +3,7 @@ name: Test
 on:
   push:
     branches: ["main"]
+    tags: [ 'v*' ]
   pull_request:
     branches: ["main"]
 
@@ -12,8 +13,8 @@ permissions:
   packages: write
 
 jobs:
-  build:
-    name: Build
+  test:
+    name: Test
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/vanilla-os/pico:main
@@ -44,10 +45,90 @@ jobs:
             rfw
             checksums.txt
 
+  scan:
+    name: EUProvGuard Scan
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download euprovguard
+        run: |
+          curl -sL https://github.com/mirkobrombin/euprovguard/releases/latest/download/euprovguard-linux-amd64 -o euprovguard
+          chmod +x euprovguard
+
+      - name: Run EUProvGuard Scan
+        run: |
+          ./euprovguard -path . -bundle compliance-report > scan.log 2>&1
+          cat scan.log
+
+      - name: Check for CVEs
+        run: |
+          if grep -q "CVEs: [1-9]" scan.log; then
+            echo "::error::CVEs found by EUProvGuard - release blocked"
+            exit 1
+          fi
+          echo "No CVEs found - safe to release"
+
+      - name: Upload Compliance Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-reports
+          path: compliance-report.*
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [test, scan]
+    container:
+      image: ghcr.io/vanilla-os/pico:main
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Build Application
+        run: go build -o rfw -ldflags="-X 'main.Version=${{ github.ref_name }}'" ./cmd/rfw/main.go
+
+      - name: Calculate and Save Checksums
+        run: sha256sum rfw > checksums.txt
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rfw-release-build
+          path: |
+            rfw
+            checksums.txt
+
+      - name: Download Compliance Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: compliance-reports
+          path: compliance/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            rfw
+            checksums.txt
+            compliance/*
+
   image:
+    name: Container Image
     if: ${{ !contains(github.event.head_commit.message, '(skip)') }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test, scan]
     steps:
       - uses: actions/checkout@v3
 
