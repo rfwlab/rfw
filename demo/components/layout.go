@@ -14,8 +14,12 @@ type Layout struct {
 }
 
 func NewLayout(content *t.View) *t.View {
-	return composition.New(&Layout{
+	v, err := composition.New(&Layout{
 		Content:    content,
 		ActivePath: router.ActivePath(),
 	})
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

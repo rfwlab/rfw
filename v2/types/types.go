@@ -100,6 +100,65 @@ func NewBool(v bool) *Bool      { return state.NewSignal(v) }
 func NewFloat(v float64) *Float { return state.NewSignal(v) }
 func NewAny(v any) *Any         { return state.NewSignal(v) }
 
+type Inject[T any] struct {
+	Value T
+}
+
+type History struct {
+	store  *state.Store
+	max    int
+	cursor int
+	entries []map[string]any
+}
+
+func NewHistory(max int) *History {
+	return &History{max: max, entries: make([]map[string]any, 0)}
+}
+
+func (h *History) Bind(s *state.Store) {
+	h.store = s
+}
+
+func (h *History) Undo() {
+	if h.store == nil || h.cursor <= 0 {
+		return
+	}
+	h.cursor--
+	snap := h.entries[h.cursor]
+	for k, v := range snap {
+		h.store.Set(k, v)
+	}
+}
+
+func (h *History) Redo() {
+	if h.store == nil || h.cursor >= len(h.entries)-1 {
+		return
+	}
+	h.cursor++
+	snap := h.entries[h.cursor]
+	for k, v := range snap {
+		h.store.Set(k, v)
+	}
+}
+
+func (h *History) Snapshot() {
+	if h.store == nil {
+		return
+	}
+	snap := h.store.Snapshot()
+	if snap == nil {
+		snap = map[string]any{}
+	}
+	if h.cursor < len(h.entries)-1 {
+		h.entries = h.entries[:h.cursor+1]
+	}
+	h.entries = append(h.entries, snap)
+	if len(h.entries) > h.max {
+		h.entries = h.entries[len(h.entries)-h.max:]
+	}
+	h.cursor = len(h.entries) - 1
+}
+
 type Viewer interface {
 	View() *View
 }
