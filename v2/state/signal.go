@@ -68,6 +68,17 @@ func (s *Signal[T]) Read() any {
 	return s.Get()
 }
 
+// SetFromHost sets the signal value from an untyped host payload.
+func (s *Signal[T]) SetFromHost(raw any) {
+	if s == nil {
+		return
+	}
+	v, ok := raw.(T)
+	if ok {
+		s.Set(v)
+	}
+}
+
 // Set updates the signal's value and notifies dependent effects.
 func (s *Signal[T]) Set(v T) {
 	if s == nil {
