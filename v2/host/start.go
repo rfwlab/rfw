@@ -30,6 +30,30 @@ func readPort() int {
 	return manifest.Port
 }
 
+// StartAuto launches HTTP and HTTPS servers serving files from the default
+// client build directory. It resolves the root path from rfw.json or falls
+// back to "build/client". This is the recommended way to start the host server.
+func StartAuto() error {
+	root := resolveRoot()
+	return Start(root)
+}
+
+func resolveRoot() string {
+	// Check rfw.json for build configuration.
+	var manifest struct {
+		Build struct {
+			Dir string `json:"dir"`
+		} `json:"build"`
+	}
+	if data, err := os.ReadFile("rfw.json"); err == nil {
+		_ = json.Unmarshal(data, &manifest)
+		if manifest.Build.Dir != "" {
+			return manifest.Build.Dir
+		}
+	}
+	return "build/client"
+}
+
 // Start launches HTTP and HTTPS servers serving files from root.
 // The HTTPS port is the HTTP port + 1.
 func Start(root string) error {
