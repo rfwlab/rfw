@@ -53,7 +53,7 @@ Mitigations: Brotli compression (`.wasm.br`), streaming compilation, SSC pre-ren
 |---------|-----|-------|--------|-----|
 | **Mechanism** | Proxy-based interception | Virtual DOM diffing | Compile-time tracking | Explicit signals |
 | **Granularity** | Component-level re-render | Component-level re-render | DOM-level updates | DOM-level updates |
-| **State declaration** | `ref()` / `reactive()` / `computed()` | `useState()` / `useReducer()` | `let` / `$:` | `*t.Int` etc with `rfw:"signal"` |
+| **State declaration** | `ref()` / `reactive()` / `computed()` | `useState()` / `useReducer()` | `let` / `$:` | `*t.Int` etc (type-based detection) |
 | **Mutation** | Direct (proxied) | Immutable (setState) | Direct assignment | `.Set()` method |
 | **Read** | Direct (proxied) | Variable read | Variable read | `.Get()` method |
 | **Derived state** | `computed()` | `useMemo()` | `$:` | Go methods / `@expr:` / `state.Map()` |
@@ -171,7 +171,7 @@ rfw's HMR is slower than Vite-based JS frameworks because it must recompile Go t
 | Form handling | Manual / libraries | Manual / libraries | `bind:` + `enhance` | `@signal:..:w` + host |
 | Routing | vue-router | react-router / Next.js | SvelteKit | router.Page/Group |
 | State management | Pinia / Vuex | Redux / Zustand / Jotai | Stores | signals + state.Store |
-| DI | provide/inject | Context | setContext/getContext | rfw:"inject" + Container |
+| DI | provide/inject | Context | setContext/getContext | `*t.Inject[T]` + Container |
 | i18n | vue-i18n | react-i18next | svelte-i18n | rfw i18n plugin |
 | SEO | Nuxt SSR | Next.js SSR | SvelteKit SSR | SSC (built-in) |
 | Mobile | Capacitive / NativeScript | React Native | Svelte Native | Not supported |

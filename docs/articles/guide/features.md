@@ -2,24 +2,26 @@
 
 **rfw** focuses on delivering a productive, Go-first workflow for the web. Instead of layering a virtual DOM over browser APIs, it updates the real DOM directly with **Selective DOM Patching**, a lightweight routine that mutates only what changed.
 
-## Tag-Driven Composition
+## Type-Based Composition
 
-rfw v2 auto-wires your components from struct tags. No manual `Prop()` calls, no `AddDependency()`, no `SetOnMount()` boilerplate:
+rfw v2 auto-wires your components from field types. No manual `Prop()` calls, no `AddDependency()`, no `SetOnMount()` boilerplate:
 
 ```go
 type HomePage struct {
     composition.Component
-    Count *t.Int  `rfw:"signal"`
-    Name  *t.String `rfw:"inject"`
+    Count *t.Int
+    Name  *t.Inject[*t.String]
 }
 
 func (h *HomePage) Increment() { h.Count.Set(h.Count.Get() + 1) }
 func (h *HomePage) OnMount()   { h.Count.Set(0) }
 ```
 
+Fields like `*t.Int`, `*t.String`, `*t.View`, `*t.Inject[T]`, `*t.Store`, `*t.Ref`, and `t.Prop[T]` are automatically detected and wired by their type. No struct tags required.
+
 ## Convention Over Configuration
 
-Templates are found by struct name, `HomePage` → `HomePage.rtml`. Override with `rfw:"template:path"` when needed.
+Templates are found by struct name, `HomePage` → `HomePage.rtml`. Override with a `Template() string` method when needed.
 
 ## Direct DOM Binding
 
@@ -39,8 +41,8 @@ The `rfw` CLI handles scaffolding and WebAssembly builds.
 
 Fine-grained reactivity without the overhead:
 
-* **Signals**: local component state via `rfw:"signal"` tags
-* **Stores**: shared state across components via `rfw:"store:name"` tags
+* **Signals**: local component state via typed fields (`*t.Int`, `*t.String`, etc.)
+* **Stores**: shared state across components via `*t.Store` fields
 * **@expr:**: computed values inline in templates
 
 ## SSC (Server-Side Computed)

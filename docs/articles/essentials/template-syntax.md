@@ -268,6 +268,29 @@ For computed values inline:
 
 Any referenced signals trigger re-evaluation. Equivalent to a computed property but defined directly in the template.
 
+### Ternary Expressions (Natural Syntax)
+
+Use `if ... then ... else ...` inside `@expr:` for inline conditionals:
+
+```rtml
+<p>@expr:Count.Get > 0 then "Positive" else "Zero or negative"</p>
+<span>@expr:Active.Get then "Yes" else "No"</span>
+```
+
+The condition before `then` follows the same expression rules as `@if:` — comparisons, logical operators, and signal field access all work:
+
+```rtml
+<p>@expr:Count.Get > 10 then "high" else Count.Get > 5 then "medium" else "low"</p>
+```
+
+Legacy `? :` syntax is also supported:
+
+```rtml
+<p>@expr:Count.Get > 0 ? "Positive" : "Non-positive"</p>
+```
+
+Prefer the `if ... then ... else` form — it reads naturally in RTML templates.
+
 ---
 
 ## Dynamic Components
@@ -307,6 +330,8 @@ Interpolated content is escaped by default to prevent XSS. Only render trusted d
 | `@include:Name:{key: val}` | Include with props |
 | `@slot:name` ... `@endslot` | Define slot |
 | `@expr:expression` | Template expression |
+| `@expr:cond then X else Y` | Ternary in expressions |
+| `@expr:cond ? X : Y` | Legacy ternary syntax |
 | `[refName]` | Template ref |
 | `[key {{expr}}]` | List key |
 | `rt-is="{{name}"}` | Dynamic component |
