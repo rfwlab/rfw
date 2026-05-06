@@ -53,9 +53,11 @@ type HTMLComponent struct {
 	hostVars          []string
 	hostCmds          []string
 	component         Component
-	onMount           func(*HTMLComponent)
-	onUnmount         func(*HTMLComponent)
-	parent            *HTMLComponent
+	mounted        bool
+	onMount        func(*HTMLComponent)
+	onUnmount      func(*HTMLComponent)
+	onParams       func(*HTMLComponent, map[string]string)
+	parent         *HTMLComponent
 	provides          map[string]any
 	cache             map[string]string
 	lastCacheKey      string
@@ -321,6 +323,7 @@ func (c *HTMLComponent) Unmount() {
 }
 
 func (c *HTMLComponent) Mount() {
+	c.mounted = true
 	for _, dep := range c.Dependencies {
 		dep.Mount()
 	}
@@ -362,6 +365,21 @@ func (c *HTMLComponent) OnUnmount() {
 	if c.onUnmount != nil {
 		c.onUnmount(c)
 	}
+	c.mounted = false
+}
+
+func (c *HTMLComponent) IsMounted() bool {
+	return c.mounted
+}
+
+func (c *HTMLComponent) OnParams(params map[string]string) {
+	if c.onParams != nil {
+		c.onParams(c, params)
+	}
+}
+
+func (c *HTMLComponent) SetOnParams(fn func(*HTMLComponent, map[string]string)) {
+	c.onParams = fn
 }
 
 func (c *HTMLComponent) SetOnMount(fn func(*HTMLComponent)) {

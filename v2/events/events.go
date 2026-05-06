@@ -3,10 +3,69 @@
 package events
 
 import (
+	"sync"
+
 	js "github.com/rfwlab/rfw/v2/js"
 )
 
-// On attaches a handler function for the given event to target.
+// Event is a type-safe application event identifier.
+type Event string
+
+// Framework events
+const (
+	EventSidebarLoaded   Event = "rfw:sidebar-loaded"
+	EventArticleLoaded    Event = "rfw:article-loaded"
+	EventRouterNavigated  Event = "rfw:router-navigated"
+)
+
+// bus is the application-level event bus for framework and plugin events.
+var bus = &eventBus{handlers: make(map[Event][]func(any))}
+
+type eventBus struct {
+	mu       sync.RWMutex
+	handlers map[Event][]func(any)
+}
+
+// On registers a handler for an application event and returns an unsubscribe function.
+func (b *eventBus) On(event Event, handler func(any)) func() {
+	b.mu.Lock()
+	b.handlers[event] = append(b.handlers[event], handler)
+	b.mu.Unlock()
+	return func() {
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		handlers := b.handlers[event]
+		for i, h := range handlers {
+			if &h == &handler {
+				b.handlers[event] = append(handlers[:i], handlers[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+// Emit dispatches an application event to all registered handlers.
+func (b *eventBus) Emit(event Event, data any) {
+	b.mu.RLock()
+	handlers := make([]func(any), len(b.handlers[event]))
+	copy(handlers, b.handlers[event])
+	b.mu.RUnlock()
+	for _, h := range handlers {
+		h(data)
+	}
+}
+
+// OnApp registers a handler for an application event. Returns unsubscribe function.
+func OnApp(event Event, handler func(any)) func() {
+	return bus.On(event, handler)
+}
+
+// EmitApp dispatches an application event.
+func EmitApp(event Event, data any) {
+	bus.Emit(event, data)
+}
+
+// On attaches a handler function for the given DOM event to target.
 // Optional opts are forwarded to addEventListener as-is.
 // It returns a function that removes the listener and releases resources.
 func On(event string, target js.Value, handler func(js.Value), opts ...any) func() {

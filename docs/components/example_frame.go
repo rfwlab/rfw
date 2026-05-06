@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rfwlab/rfw/v2/core"
+	core "github.com/rfwlab/rfw/v2/core"
 	"github.com/rfwlab/rfw/v2/dom"
 	"github.com/rfwlab/rfw/v2/http"
 	highlight "github.com/rfwlab/rfw/v2/plugins/highlight"
@@ -19,37 +19,37 @@ import (
 var exampleFrameTpl []byte
 
 type ExampleFrame struct {
-	*core.HTMLComponent
-	Wrapper   *types.Ref
-	Frame     *types.Ref
-	CodeTab   *types.Ref
+	hc         *core.HTMLComponent
+	Wrapper    *types.Ref
+	Frame      *types.Ref
+	CodeTab    *types.Ref
 	PreviewTab *types.Ref
-	CodeDiv   *types.Ref
-	CodeEl    *types.Ref
-	FilePath  *types.Ref
+	CodeDiv    *types.Ref
+	CodeEl     *types.Ref
+	FilePath   *types.Ref
 	PreviewDiv *types.Ref
 }
 
 func NewExampleFrame(props map[string]any) *core.HTMLComponent {
-	c := &ExampleFrame{}
-	c.HTMLComponent = core.NewComponent("ExampleFrame", exampleFrameTpl, props).WithLifecycle(c.mount, nil)
-	c.SetComponent(c)
-	return c.HTMLComponent
+	f := &ExampleFrame{}
+	c := core.NewComponentWith("ExampleFrame", exampleFrameTpl, props, f)
+	f.hc = c
+	c.Init(nil)
+	return c
 }
 
-func (c *ExampleFrame) mount(hc *core.HTMLComponent) {
-	wrapper := c.Wrapper.Get()
-	if !wrapper.Truthy() {
+func (f *ExampleFrame) OnMount() {
+	if !f.Wrapper.Get().Truthy() {
 		return
 	}
 
-	if uri, ok := c.HTMLComponent.Props["uri"].(string); ok {
-		uri = fmt.Sprintf(`%s?%s`, uri, c.HTMLComponent.GetID())
-		c.Frame.Get().Call("setAttribute", "src", uri)
+	if uri, ok := f.hc.Props["uri"].(string); ok {
+		uri = fmt.Sprintf(`%s?%s`, uri, f.hc.GetID())
+		f.Frame.Get().Call("setAttribute", "src", uri)
 	}
 
-	if codeURL, ok := c.HTMLComponent.Props["code"].(string); ok && codeURL != "" {
-		filePathEl := dom.Element{Value: c.FilePath.Get()}
+	if codeURL, ok := f.hc.Props["code"].(string); ok && codeURL != "" {
+		filePathEl := dom.Element{Value: f.FilePath.Get()}
 		filePathEl.SetText(codeURL)
 		go func() {
 			for {
@@ -62,17 +62,17 @@ func (c *ExampleFrame) mount(hc *core.HTMLComponent) {
 					filePathEl.SetText(err.Error())
 					return
 				}
-				dom.Element{Value: c.CodeEl.Get()}.SetText(code)
+				dom.Element{Value: f.CodeEl.Get()}.SetText(code)
 				highlight.HighlightAll()
 				return
 			}
 		}()
 	}
 
-	codeTab := dom.Element{Value: c.CodeTab.Get()}
-	previewTab := dom.Element{Value: c.PreviewTab.Get()}
-	codeDiv := dom.Element{Value: c.CodeDiv.Get()}
-	previewDiv := dom.Element{Value: c.PreviewDiv.Get()}
+	codeTab := dom.Element{Value: f.CodeTab.Get()}
+	previewTab := dom.Element{Value: f.PreviewTab.Get()}
+	codeDiv := dom.Element{Value: f.CodeDiv.Get()}
+	previewDiv := dom.Element{Value: f.PreviewDiv.Get()}
 
 	codeTab.OnClick(func(dom.Event) {
 		codeDiv.RemoveClass("hidden")
@@ -96,6 +96,20 @@ func (c *ExampleFrame) mount(hc *core.HTMLComponent) {
 		codeTab.RemoveClass("text-red-500")
 	})
 }
+
+func (f *ExampleFrame) Render() string          { return f.hc.Render() }
+func (f *ExampleFrame) Mount()                  { f.hc.Mount() }
+func (f *ExampleFrame) Unmount()                { f.hc.Unmount() }
+func (f *ExampleFrame) OnUnmount()              {}
+func (f *ExampleFrame) GetName() string         { return f.hc.GetName() }
+func (f *ExampleFrame) GetID() string           { return f.hc.GetID() }
+func (f *ExampleFrame) SetSlots(s map[string]any) { f.hc.SetSlots(s) }
+
+func (f *ExampleFrame) IsMounted() bool {
+	return f.hc.IsMounted()
+}
+
+func (f *ExampleFrame) OnParams(map[string]string) {}
 
 func init() {
 	core.MustRegisterComponent("ExampleFrame", func() core.Component { return NewExampleFrame(nil) })
