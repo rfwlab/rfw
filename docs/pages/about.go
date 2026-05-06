@@ -3,8 +3,8 @@
 package pages
 
 import (
-	"github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/plugins/seo"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/plugins/seo"
 )
 
 // About renders the about page.

@@ -46,8 +46,8 @@ pages/
 package posts
 
 import (
-    core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/composition"
+    core "github.com/rfwlab/rfw/v2/core"
+    "github.com/rfwlab/rfw/v2/composition"
 )
 
 //go:embed [id].rtml

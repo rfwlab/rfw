@@ -5,7 +5,7 @@ package components
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/v1/core"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 //go:embed templates/not_found_component.rtml

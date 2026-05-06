@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	composition "github.com/rfwlab/rfw/v1/composition"
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	events "github.com/rfwlab/rfw/v1/events"
-	game "github.com/rfwlab/rfw/v1/game/loop"
-	scene "github.com/rfwlab/rfw/v1/game/scene"
-	js "github.com/rfwlab/rfw/v1/js"
-	m "github.com/rfwlab/rfw/v1/math"
-	webgl "github.com/rfwlab/rfw/v1/webgl"
+	composition "github.com/rfwlab/rfw/v2/composition"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	events "github.com/rfwlab/rfw/v2/events"
+	game "github.com/rfwlab/rfw/v2/game/loop"
+	scene "github.com/rfwlab/rfw/v2/game/scene"
+	js "github.com/rfwlab/rfw/v2/js"
+	m "github.com/rfwlab/rfw/v2/math"
+	webgl "github.com/rfwlab/rfw/v2/webgl"
 )
 
 //go:embed templates/webgl_component.rtml

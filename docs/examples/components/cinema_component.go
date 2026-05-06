@@ -5,9 +5,9 @@ package components
 import (
 	_ "embed"
 
-	anim "github.com/rfwlab/rfw/v1/animation"
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
+	anim "github.com/rfwlab/rfw/v2/animation"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
 )
 
 //go:embed templates/cinema_component.rtml

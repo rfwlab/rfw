@@ -5,8 +5,8 @@ package main
 import (
 	"testing"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/router"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/router"
 )
 
 type mountCheckComponent struct {

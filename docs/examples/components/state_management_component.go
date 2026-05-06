@@ -6,9 +6,9 @@ import (
 	"context"
 	_ "embed"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	"github.com/rfwlab/rfw/v1/state"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 //go:embed templates/state_management_component.rtml

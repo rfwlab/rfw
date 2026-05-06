@@ -3,7 +3,7 @@
 package pages
 
 import (
-	core "github.com/rfwlab/rfw/v1/core"
+	core "github.com/rfwlab/rfw/v2/core"
 )
 
 // PostsId renders a post detail page using a dynamic segment.
