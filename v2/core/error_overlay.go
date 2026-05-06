@@ -202,13 +202,13 @@ func (eo *errorOverlay) hintHTML(errStr, context string) string {
 	hints := []string{}
 
 	if strings.Contains(errLower, "template") && strings.Contains(errLower, "not found") {
-		hints = append(hints, `Call <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">composition.RegisterFS(&amp;yourEmbedFS)</code> or add <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">rfw:"template:path"</code> tag.`)
+		hints = append(hints, `Call <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">composition.RegisterFS(&amp;yourEmbedFS)</code> or add a <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">Template() string</code> method to your struct.`)
 	}
 	if strings.Contains(errLower, "signal") && strings.Contains(errLower, "not found") {
-		hints = append(hints, `Add <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">rfw:"signal"</code> tag and initialize with <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">t.NewInt(0)</code>.`)
+		hints = append(hints, `Use a signal type field (<code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">t.Int</code>, <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">*t.String</code>, etc.) and initialize with <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">t.NewInt(0)</code>.`)
 	}
 	if strings.Contains(errLower, "nil pointer") || strings.Contains(errLower, "invalid memory") {
-		hints = append(hints, `Initialize all pointers in constructor. Use <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">rfw:"inject"</code> for dependencies.`)
+		hints = append(hints, `Initialize all pointer fields. Use <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">*t.Inject[T]</code> for DI dependencies.`)
 	}
 	if strings.Contains(errLower, "store") && strings.Contains(errLower, "not found") {
 		hints = append(hints, `Register store with <code style="background:#f3f4f6;padding:2px 5px;border-radius:3px;font-size:12px;">state.GlobalStoreManager.RegisterStore()</code>.`)
