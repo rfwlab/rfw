@@ -77,7 +77,7 @@ func updateHostVar(root componentRoot, name, value string) *hydrationMismatch {
 	return nil
 }
 
-func handleHostPayload(root componentRoot, payload map[string]any) []hydrationMismatch {
+func handleHostPayload(root componentRoot, payload map[string]any, updateSignal func(name string, raw any)) []hydrationMismatch {
 	mismatches := make([]hydrationMismatch, 0)
 	for key, raw := range payload {
 		if key == "initSnapshot" || strings.HasPrefix(key, "_") {
@@ -86,6 +86,9 @@ func handleHostPayload(root componentRoot, payload map[string]any) []hydrationMi
 		mismatch := updateHostVar(root, key, fmt.Sprintf("%v", raw))
 		if mismatch != nil {
 			mismatches = append(mismatches, *mismatch)
+		}
+		if updateSignal != nil {
+			updateSignal(key, raw)
 		}
 	}
 	return mismatches

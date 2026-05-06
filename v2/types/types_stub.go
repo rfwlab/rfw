@@ -17,9 +17,14 @@ type signalStub[T any] struct {
 	chCreated  bool
 }
 
-func (s *signalStub[T]) Get() T   { return s.value }
-func (s *signalStub[T]) Set(v T)  { s.value = v; s.notifyOnChange(v) }
-func (s *signalStub[T]) Read() any { return s.value }
+func (s *signalStub[T]) Get() T      { return s.value }
+func (s *signalStub[T]) Set(v T)     { s.value = v; s.notifyOnChange(v) }
+func (s *signalStub[T]) Read() any   { return s.value }
+func (s *signalStub[T]) SetFromHost(raw any) {
+	if v, ok := raw.(T); ok {
+		s.Set(v)
+	}
+}
 
 func (s *signalStub[T]) OnChange(fn func(T)) *Subscription {
 	s.onChangeMu.Lock()

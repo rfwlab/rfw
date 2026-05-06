@@ -199,7 +199,17 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 				continue
 			}
 
-			mismatches := handleHostPayload(root, msg.Payload)
+			mismatches := handleHostPayload(root, msg.Payload, func(name string, raw any) {
+				sig := dom.SnapshotComponentSignals(b.id)
+				if sig == nil {
+					return
+				}
+				if s, ok := sig[name]; ok {
+					if setter, ok := s.(interface{ SetFromHost(any) }); ok {
+						setter.SetFromHost(raw)
+					}
+				}
+			})
 			if len(mismatches) > 0 {
 				for _, m := range mismatches {
 					log.Printf("hostclient: hydration mismatch component=%s var=%s expected=%s actualHash=%s actual=%q", msg.Component, m.VarName, m.Expected, m.ActualHash, m.Actual)
