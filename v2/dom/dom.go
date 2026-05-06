@@ -358,7 +358,22 @@ func patchInnerHTML(element js.Value, html string) {
 	template := CreateElement("template")
 	template.Set("innerHTML", html)
 	newContent := template.Get("content")
-	patchChildren(element, newContent)
+
+	patched := false
+	firstChild := newContent.Get("firstChild")
+	if firstChild.Truthy() && firstChild.Get("nodeName").String() == "ROOT" {
+		cid := element.Call("getAttribute", "data-component-id")
+		newCid := firstChild.Call("getAttribute", "data-component-id")
+		if cid.Truthy() && cid.String() == newCid.String() {
+			patchAttributes(element, firstChild)
+			patchChildren(element, firstChild)
+			patched = true
+		}
+	}
+
+	if !patched {
+		patchChildren(element, newContent)
+	}
 
 	if activeID != "" {
 		restore := js.Global().Get("document").Call("getElementById", activeID)
