@@ -21,6 +21,8 @@ type TestPage struct {
 	Content  *types.View
 	Visits   types.HInt
 	Message  types.HString
+	Logger   *types.Inject[any]
+	Hist     *types.History
 }
 
 func TestScanDetectsSignalTypes(t *testing.T) {
@@ -193,5 +195,46 @@ func TestScanDiscoversOnMount(t *testing.T) {
 		if ev.Handler == "OnMount" {
 			t.Error("OnMount should not be in events list")
 		}
+	}
+}
+
+func TestScanDetectsInjection(t *testing.T) {
+	page := &TestPage{}
+	meta, err := Scan(page)
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+	if len(meta.Injections) != 1 || meta.Injections[0].Name != "Logger" {
+		t.Errorf("expected injection Logger, got: %v", meta.Injections)
+	}
+}
+
+func TestScanDetectsHistory(t *testing.T) {
+	page := &TestPage{}
+	meta, err := Scan(page)
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+	// History should be in Histories, not Stores
+	if len(meta.Histories) != 1 || meta.Histories[0].Name != "Hist" {
+		t.Errorf("expected history Hist, got: %v", meta.Histories)
+	}
+	// History should NOT appear in Stores
+	for _, s := range meta.Stores {
+		if s.Name == "Hist" {
+			t.Error("History should not be in Stores slice")
+		}
+	}
+}
+
+func TestIsInjectType(t *testing.T) {
+	var x types.Inject[any]
+	typ := reflect.TypeOf(&x)
+	if !isInjectType(typ) {
+		t.Errorf("expected *Inject[any] to be detected as inject type, got type: %v", typ)
+	}
+	// Non-pointer should not match
+	if isInjectType(reflect.TypeOf(x)) {
+		t.Error("expected value Inject[any] to NOT be detected as inject type")
 	}
 }

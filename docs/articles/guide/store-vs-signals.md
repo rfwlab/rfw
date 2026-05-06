@@ -6,19 +6,20 @@ State in **rfw v2** is managed with two complementary tools: **global stores** a
 
 ## Local Signals
 
-A signal is a reactive variable scoped to the component that creates it. In v2, use `types.NewInt`, `types.NewString`, etc. or `state.NewSignal[T]` directly.
+A signal is a reactive variable scoped to the component that creates it. In v2, use `types.NewInt`, `types.NewString`, etc. or `state.NewSignal[T]` directly. Signals are nil-safe: calling `.Get()` or `.Set()` on a nil pointer is a no-op.
 
-### With `composition.New` and tags
+### With `composition.New` and type detection
 
 ```go
 type Counter struct {
     composition.Component
 
-    Count *types.Int `rfw:"signal"`
+    Count types.Int      // value type
+    Name  *types.String // pointer type (auto-initialized if nil)
 }
 ```
 
-`rfw:"signal"` auto‑creates the signal (if nil), registers it as a prop, and wires reactivity. No manual `Prop()` call.
+`composition.New` detects signal-type fields and auto-creates nil pointers, registers as props, and wires reactivity. No struct tags needed.
 
 ### Manual creation
 
@@ -41,7 +42,7 @@ defer stop()
 count.Set(2)  // re-runs the effect
 ```
 
-Every `Set` re‑triggers only the effects that read the signal.
+Every `Set` re-triggers only the effects that read the signal.
 
 ---
 
@@ -49,17 +50,17 @@ Every `Set` re‑triggers only the effects that read the signal.
 
 A store holds data shared across your application. Keys are namespaced by module.
 
-### With `rfw:"store"` tag
+### With `*types.Store` field
 
 ```go
 type Profile struct {
     composition.Component
 
-    Settings *types.Store `rfw:"store:settings"`
+    Settings *types.Store
 }
 ```
 
-The tag creates (or retrieves) a store named `"settings"` scoped to the component's ID.
+`composition.New` detects `*types.Store` fields and calls `comp.Store("Settings")`, creating or retrieving the store scoped to the component.
 
 ### Manual creation
 
@@ -76,13 +77,17 @@ In templates, `@user/profile.first` binds directly. Updates propagate automatica
 
 ---
 
-## Tag Reference
+## Type Reference
 
-| Tag | Field Type | Effect |
-|-----|-----------|--------|
-| `rfw:"signal"` | `*types.Int`, `*types.String`, `*types.Bool`, `*types.Float`, `*types.Any` | Auto‑create signal, register as prop |
-| `rfw:"signal:name"` | same | Same, with explicit prop name |
-| `rfw:"store:name"` | `*types.Store` | Create/retrieve scoped store |
+| Field Type | Detection | Auto-wiring |
+|---|---|---|
+| `types.Int`, `types.String`, `types.Bool`, `types.Float` | Signal value type | Register as reactive prop |
+| `*types.Int`, `*types.String`, etc. | Signal pointer type | Auto-init if nil, register as prop |
+| `types.HInt`, `types.HString`, etc. | Host signal type | Register as prop + host component |
+| `*types.Store` | Store type | Create/retrieve scoped store |
+| `*types.Ref` | Ref type | Allocate + resolve DOM on mount |
+| `*types.Inject[T]` | DI inject type | Resolve from container |
+| `*types.History` | History type | Bind to component store for undo/redo |
 
 ---
 
@@ -90,15 +95,36 @@ In templates, `@user/profile.first` binds directly. Updates propagate automatica
 
 | Scenario | Store | Signal |
 |----------|-------|--------|
-| Data shared across many components | ✅ | ❌ |
-| Temporary state in a single component | ❌ | ✅ |
-| Persistence in `localStorage` | ✅ (`WithPersistence`) | ❌ |
-| Fine‑grained reactive updates | ⚠️ depends | ✅ |
-| Undo/redo support | ✅ (`WithHistory`) | ❌ |
-| Server‑side `h:` bindings | ✅ | ❌ |
+| Data shared across many components | Yes | No |
+| Temporary state in a single component | No | Yes |
+| Persistence in `localStorage` | Yes (`WithPersistence`) | No |
+| Fine-grained reactive updates | Depends | Yes |
+| Undo/redo support | Yes (`WithHistory` or `*t.History`) | No |
+| Server-side `h:` bindings | Yes | Host types only |
 
 - **Stores** simplify synchronization of complex data across the app
 - **Signals** shine for small, isolated pieces of state
+
+---
+
+## Undo/Redo with `*types.History`
+
+Bind a history to a store for undo/redo:
+
+```go
+type Editor struct {
+    composition.Component
+
+    Doc  *types.Store
+    Hist *types.History
+}
+
+func (e *Editor) Save()    { e.Hist.Snapshot() }
+func (e *Editor) Undo()    { e.Hist.Undo() }
+func (e *Editor) Redo()    { e.Hist.Redo() }
+```
+
+`composition.New` auto-binds `*t.History` fields to the component's first store.
 
 ---
 
@@ -110,12 +136,11 @@ Use stores as the source of truth, signals for local interactivity:
 type ThemeSwitch struct {
     composition.Component
 
-    Theme    *types.String `rfw:"signal"`
-    Settings *types.Store  `rfw:"store:settings"`
+    Theme    types.String
+    Settings *types.Store
 }
 
 func (t *ThemeSwitch) OnMount() {
-    // Persist signal value into store on change
     state.Effect(func() func() {
         t.Settings.Set("theme", t.Theme.Get())
         return nil
@@ -139,7 +164,17 @@ val   := types.NewFloat(1.5)
 any   := types.NewAny(nil)
 ```
 
-Common methods: `Get()`, `Set()`, `Read() any`
+Common methods: `Get()`, `Set()`, `Read() any`, `OnChange()`, `Channel()`. All nil-safe.
+
+### Host Signal Types
+
+```go
+// For SSC host-synced values
+type HInt    // *Signal[int] + host binding
+type HString // *Signal[string] + host binding
+type HBool   // *Signal[bool] + host binding
+type HFloat  // *Signal[float64] + host binding
+```
 
 ### Stores (`github.com/rfwlab/rfw/v2/state`)
 
@@ -153,6 +188,16 @@ s.OnChange("key", func(v any) { /* ... */ })
 
 undo, redo := s.Undo, s.Redo
 state.NewStore("name", state.WithHistory(50))
+```
+
+### History (`github.com/rfwlab/rfw/v2/types`)
+
+```go
+hist := types.NewHistory(50)  // max 50 snapshots
+hist.Bind(myStore)
+hist.Snapshot()
+hist.Undo()
+hist.Redo()
 ```
 
 ---

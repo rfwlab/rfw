@@ -22,5 +22,9 @@ func (h *HomePage) OnMount() {
 }
 
 func NewHomePage() *t.View {
-	return composition.New(&HomePage{})
+	v, err := composition.New(&HomePage{})
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

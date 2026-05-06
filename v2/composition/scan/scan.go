@@ -12,16 +12,16 @@ import (
 )
 
 type Meta struct {
-	Signals       []Signal
-	Stores        []Store
-	Props         []Prop
-	Refs          []Ref
-	Hosts         []Host
-	Events        []Event
-	Includes      []Include
-	TemplateName  string
-	TemplatePath  string
-	HostComponent string
+	Signals    []Signal
+	Stores     []Store
+	Props      []Prop
+	Refs       []Ref
+	Hosts      []Host
+	Events     []Event
+	Includes   []Include
+	Injections []Injection
+	Histories  []History
+	TemplateName string
 }
 
 type Signal struct{ Name string }
@@ -34,11 +34,17 @@ type Include struct {
 	Name  string
 	Field string
 }
+type Injection struct {
+	Name string
+}
+type History struct{ Name string }
 
 var (
-	storePtrType = reflect.TypeOf((*state.Store)(nil))
-	refPtrType   = reflect.TypeOf((*types.Ref)(nil))
-	viewPtrType  = reflect.TypeOf((*types.View)(nil))
+	storePtrType   = reflect.TypeOf((*state.Store)(nil))
+	refPtrType     = reflect.TypeOf((*types.Ref)(nil))
+	viewPtrType    = reflect.TypeOf((*types.View)(nil))
+	injectPtrType  = reflect.TypeOf((*types.Inject[int])(nil))
+	historyPtrType = reflect.TypeOf((*types.History)(nil))
 )
 
 var hostTypes = map[string]bool{
@@ -108,6 +114,17 @@ func isHostType(t reflect.Type) bool {
 	return false
 }
 
+func isInjectType(t reflect.Type) bool {
+	if t.Kind() != reflect.Ptr {
+		return false
+	}
+	elem := t.Elem()
+	if elem.Kind() != reflect.Struct {
+		return false
+	}
+	return elem.Name() == "Inject" && elem.PkgPath() == "github.com/rfwlab/rfw/v2/types"
+}
+
 var componentMethods = map[string]struct{}{
 	"On":      {},
 	"Prop":    {},
@@ -130,16 +147,10 @@ func Scan(v any) (*Meta, error) {
 		return nil, fmt.Errorf("scan: expected struct, got %v", typ)
 	}
 
-	val := reflect.ValueOf(v)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
 	m := &Meta{TemplateName: typ.Name()}
 
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
-		fieldVal := val.Field(i)
 
 		if !field.IsExported() {
 			continue
@@ -148,18 +159,6 @@ func Scan(v any) (*Meta, error) {
 		// Skip composition.Component embedding
 		if field.Anonymous && field.Type.String() == "composition.Component" {
 			continue
-		}
-
-		// Check for template tag (still supported)
-		if tag, ok := field.Tag.Lookup("rfw"); ok {
-			if len(tag) > 9 && tag[:9] == "template:" {
-				m.TemplatePath = tag[9:]
-				continue
-			}
-			if tag == "host" {
-				m.HostComponent = fieldVal.String()
-				continue
-			}
 		}
 
 		ft := field.Type
@@ -188,18 +187,17 @@ func Scan(v any) (*Meta, error) {
 		case ft == storePtrType:
 			m.Stores = append(m.Stores, Store{Name: field.Name})
 
+		case ft == historyPtrType:
+			m.Histories = append(m.Histories, History{Name: field.Name})
+
+		case isInjectType(ft):
+			m.Injections = append(m.Injections, Injection{Name: field.Name})
+
 		case ft == viewPtrType:
 			m.Includes = append(m.Includes, Include{
 				Name:  strings.ToLower(field.Name),
 				Field: field.Name,
 			})
-
-		default:
-			if ft.Kind() == reflect.String {
-				if tag, ok := field.Tag.Lookup("rfw"); ok && tag == "host" {
-					m.HostComponent = fieldVal.String()
-				}
-			}
 		}
 	}
 

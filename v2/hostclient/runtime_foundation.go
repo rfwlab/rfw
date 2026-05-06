@@ -184,7 +184,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			continue
 		}
 		if b, ok := bindings[msg.Component]; ok {
-			rootEl := dom.Doc().Query(fmt.Sprintf("[data-component-id='%s']", b.id))
+			rootEl := dom.ComponentRoot(b.id)
 			if !rootEl.Truthy() {
 				continue
 			}

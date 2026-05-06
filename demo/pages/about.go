@@ -10,5 +10,9 @@ import (
 type AboutPage struct{}
 
 func NewAboutPage() *t.View {
-	return composition.New(&AboutPage{})
+	v, err := composition.New(&AboutPage{})
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

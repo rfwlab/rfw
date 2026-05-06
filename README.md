@@ -63,7 +63,7 @@ Continuous Integration runs the same command on every push. See the [testing gui
 
 ## Server Side Computed (SSC)
 
-SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
+SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection. Components use host signal types (`t.HInt`, `t.HString`, etc.) to declare server-synced bindings. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
 
 ## Build-level Plugins
 

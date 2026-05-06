@@ -75,19 +75,24 @@ var TemplateHook func(componentID, html string)
 // store name, and key that are bound in the DOM.
 var StoreBindingHook func(componentID, module, store, key string)
 
+// ComponentRoot returns the DOM root element for a component by its ID.
+// Falls back to #app if id is empty or element not found.
+func ComponentRoot(id string) Element {
+	doc := Doc()
+	if id == "" {
+		return doc.ByID("app")
+	}
+	el := doc.Query(fmt.Sprintf("[data-component-id='%s']", id))
+	if el.IsNull() || el.IsUndefined() {
+		return doc.ByID("app")
+	}
+	return el
+}
+
 // UpdateDOM patches the DOM of the specified component with the provided
 // HTML string, resolving the target via typed Document/Element wrappers.
 func UpdateDOM(componentID string, html string) {
-	doc := Doc()
-	var element Element
-	if componentID == "" {
-		element = doc.ByID("app")
-	} else {
-		element = doc.Query(fmt.Sprintf("[data-component-id='%s']", componentID))
-		if element.IsNull() || element.IsUndefined() {
-			element = doc.ByID("app")
-		}
-	}
+	element := ComponentRoot(componentID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}

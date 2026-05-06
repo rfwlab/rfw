@@ -12,8 +12,8 @@ Low-level DOM helpers. Most apps interact with DOM indirectly via components.
 | --- | --- |
 | `Doc() *Document` | Returns the global document. |
 | `Window() *Window` | Returns the global window. |
-| `Document.Head()` *Element | Returns `<head>`. |
-| `Document.Body()` *Element | Returns `<body>`. |
+| `Document.Head() *Element` | Returns `<head>`. |
+| `Document.Body() *Element` | Returns `<body>`. |
 
 ## Queries
 
@@ -24,6 +24,14 @@ Low-level DOM helpers. Most apps interact with DOM indirectly via components.
 | `QueryAll(sel string) []*Element` | All elements matching selector. |
 | `ByClass(name string) []*Element` | Elements with given class. |
 | `ByTag(tag string) []*Element` | Elements with given tag. |
+
+## Component Root
+
+| Function | Description |
+| --- | --- |
+| `ComponentRoot(id string) Element` | Returns the DOM root element for a component by its ID. Falls back to `#app` if id is empty or element not found. |
+
+`ComponentRoot` is the standard way to look up a component's root element. It replaces the `doc.Query(fmt.Sprintf("[data-component-id='%s']", id))` pattern used throughout the framework.
 
 ## Events
 

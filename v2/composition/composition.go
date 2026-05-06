@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"reflect"
+	"strings"
 
 	fndi "github.com/mirkobrombin/go-foundation/pkg/di"
 	"github.com/rfwlab/rfw/v2/composition/scan"
@@ -25,15 +26,6 @@ var templateFS []*embed.FS
 
 func RegisterFS(fsInstance *embed.FS) {
 	templateFS = append(templateFS, fsInstance)
-}
-
-func resolveTemplatePath(path string) string {
-	for _, fsInstance := range templateFS {
-		if data, err := fsInstance.ReadFile(path); err == nil {
-			return string(data)
-		}
-	}
-	panic(fmt.Sprintf("composition: template %q not found in registered FS; call composition.RegisterFS() with your embed.FS", path))
 }
 
 func resolveTemplateByConvention(name string) string {
@@ -107,10 +99,13 @@ func NewRaw(name string, tpl []byte, props map[string]any) *View {
 	return hc
 }
 
-func New(v any) *View {
+func New(v any) (*View, error) {
 	typ := reflect.TypeOf(v)
 	if typ.Kind() != reflect.Ptr {
-		panic("composition.New: expected *struct")
+		return nil, fmt.Errorf("composition.New: expected *struct, got %v", typ)
+	}
+	if typ.Elem().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("composition.New: expected *struct, got %v", typ)
 	}
 	base := typ.Elem()
 	name := base.Name()
@@ -118,18 +113,25 @@ func New(v any) *View {
 
 	meta, err := scan.Scan(v)
 	if err != nil {
-		panic(fmt.Sprintf("composition.New: scan failed: %v", err))
+		return nil, fmt.Errorf("composition.New: scan failed: %w", err)
 	}
 
 	tpl := ""
-	if meta.TemplatePath != "" {
-		tpl = resolveTemplatePath(meta.TemplatePath)
+
+	// Check for optional Template() string method (type-based convention)
+	templateMethod := val.Addr().MethodByName("Template")
+	if templateMethod.IsValid() {
+		if fn, ok := templateMethod.Interface().(func() string); ok {
+			tpl = fn()
+		}
 	}
+
+	// Fallback: convention-based template lookup (StructName.rtml)
 	if tpl == "" && meta.TemplateName != "" {
 		tpl = resolveTemplateByConvention(meta.TemplateName)
 	}
 	if tpl == "" {
-		panic("composition.New: no template found; register a convention template or use rfw:\"template:path\" tag")
+		return nil, fmt.Errorf("composition.New: no template found for %s; add a Template() string method or register a convention template", name)
 	}
 
 	hc := core.NewHTMLComponent(name, []byte(tpl), nil)
@@ -214,32 +216,58 @@ func New(v any) *View {
 	// Auto-discover OnMount/OnUnmount
 	// Use pointer type for method lookup since methods with pointer receiver
 	// (e.g. func (h *HomePage) OnMount()) are only in the pointer method set.
+	var userOnMount func()
 	ptrType := reflect.PtrTo(base)
 	if m, ok := ptrType.MethodByName("OnMount"); ok {
 		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
 			method := val.Addr().MethodByName("OnMount")
 			if fn, ok := method.Interface().(func()); ok {
-				hc.SetOnMount(func(_ *core.HTMLComponent) { fn() })
+				userOnMount = fn
 			}
 		}
 	}
+	var userOnUnmount func()
 	if m, ok := ptrType.MethodByName("OnUnmount"); ok {
 		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
 			method := val.Addr().MethodByName("OnUnmount")
 			if fn, ok := method.Interface().(func()); ok {
-				hc.SetOnUnmount(func(_ *core.HTMLComponent) { fn() })
+				userOnUnmount = fn
 			}
 		}
 	}
 
 	// Wire stores
 	for _, st := range meta.Stores {
+		store := state.GlobalStoreManager.GetStore("app", st.Name)
+		if store != nil {
+			field := val.FieldByName(st.Name)
+			if field.IsValid() && field.CanSet() && field.Kind() == reflect.Ptr {
+				field.Set(reflect.ValueOf(store))
+			}
+		}
 		comp.Store(st.Name)
 	}
 
-	// Wire host component (legacy string tag)
-	if meta.HostComponent != "" {
-		comp.HTMLComponent.AddHostComponent(meta.HostComponent)
+	// Wire history fields (bind store to history for undo/redo)
+	// History binds to the first non-default store, or default if only one exists
+	var historyStore *state.Store
+	for _, st := range meta.Stores {
+		s := state.GlobalStoreManager.GetStore("app", st.Name)
+		if s != nil {
+			historyStore = s
+			break
+		}
+	}
+	if historyStore != nil {
+		for _, h := range meta.Histories {
+			field := val.FieldByName(h.Name)
+			if !field.IsValid() || field.Kind() != reflect.Ptr || field.IsNil() {
+				continue
+			}
+			if hist, ok := field.Interface().(*types.History); ok {
+				hist.Bind(historyStore)
+			}
+		}
 	}
 
 	// Wire host fields (t.HInt, t.HString, etc.) — both signal and host registration
@@ -258,25 +286,82 @@ func New(v any) *View {
 		}
 	}
 
-	// Wire Refs, register a placeholder so the DOM system can fill it later
-	// (Refs are set when the component mounts and the DOM elements are available)
+	// Wire injections (t.Inject[T] — resolve from DI container)
+	for _, inj := range meta.Injections {
+		field := val.FieldByName(inj.Name)
+		if !field.IsValid() || !field.CanSet() {
+			continue
+		}
+		// Allocate *Inject[T] if nil
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		// Resolve inner Value field from DI container by name
+		if field.Kind() == reflect.Ptr {
+			inner := field.Elem().FieldByName("Value")
+			if inner.IsValid() && inner.CanSet() {
+				if svc, ok := Container().Get(strings.ToLower(inj.Name)); ok {
+					inner.Set(reflect.ValueOf(svc))
+				}
+			}
+		}
+	}
 
-	
+	// Wire Refs — allocate *Ref, fill node on mount
+	for _, r := range meta.Refs {
+		field := val.FieldByName(r.Name)
+		if !field.IsValid() || !field.CanSet() {
+			continue
+		}
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			field.Set(reflect.ValueOf(types.NewRef()))
+		}
+	}
 
-	return comp.HTMLComponent
+	// Set OnMount: resolve Refs first, then call user OnMount
+	refNames := make([]string, len(meta.Refs))
+	for i, r := range meta.Refs {
+		refNames[i] = r.Name
+	}
+	hc.SetOnMount(func(c *core.HTMLComponent) {
+		// Resolve Ref DOM nodes
+		for _, name := range refNames {
+			field := val.FieldByName(name)
+			if !field.IsValid() || field.IsNil() {
+				continue
+			}
+			if ref, ok := field.Interface().(*types.Ref); ok {
+				el := c.GetRef(name)
+				if !el.IsNull() && !el.IsUndefined() {
+					ref.Set(el.Value)
+				}
+			}
+		}
+		// Call user OnMount
+		if userOnMount != nil {
+			userOnMount()
+		}
+	})
+
+	// Set OnUnmount
+	if userOnUnmount != nil {
+		hc.SetOnUnmount(func(_ *core.HTMLComponent) { userOnUnmount() })
+	}
+
+	return comp.HTMLComponent, nil
 }
 
-func NewFrom[T any]() *View {
+func NewFrom[T any]() (*View, error) {
 	var zero T
 	typ := reflect.TypeOf(zero)
 	if typ == nil {
-		panic("composition.NewFrom: cannot use nil type")
+		return nil, fmt.Errorf("composition.NewFrom: cannot use nil type")
 	}
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
 	if typ.Kind() != reflect.Struct {
-		panic("composition.NewFrom: expected struct or *struct")
+		return nil, fmt.Errorf("composition.NewFrom: expected struct or *struct, got %v", typ)
 	}
 	v := reflect.New(typ)
 	return New(v.Interface())

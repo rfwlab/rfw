@@ -175,11 +175,25 @@ type Prop[T any] struct {
 func (p *Prop[T]) Get() T  { return p.value }
 func (p *Prop[T]) Set(v T) { p.value = v }
 
-func NewInt(v int) *Int          { return &Int{} }
-func NewString(v string) *String { return &String{} }
-func NewBool(v bool) *Bool       { return &Bool{} }
-func NewFloat(v float64) *Float  { return &Float{} }
-func NewAny(v any) *Any          { return &Any{} }
+type Inject[T any] struct {
+	Value T
+}
+
+type History struct {
+	max    int
+	cursor int
+}
+
+func NewHistory(max int) *History { return &History{max: max} }
+func (h *History) Undo()          {}
+func (h *History) Redo()          {}
+func (h *History) Snapshot()       {}
+
+func NewInt(v int) *Int          { return &Int{signalStub: &signalStub[int]{value: v}} }
+func NewString(v string) *String { return &String{signalStub: &signalStub[string]{value: v}} }
+func NewBool(v bool) *Bool       { return &Bool{signalStub: &signalStub[bool]{value: v}} }
+func NewFloat(v float64) *Float  { return &Float{signalStub: &signalStub[float64]{value: v}} }
+func NewAny(v any) *Any          { return &Any{signalStub: &signalStub[any]{value: v}} }
 func NewSlice[T any](v ...[]T) *Slice[T] {
 	var initial []T
 	if len(v) > 0 {
