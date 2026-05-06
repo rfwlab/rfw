@@ -94,6 +94,10 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 			fs.ServeHTTP(w, r)
 			return
 		}
+		if strings.HasSuffix(r.URL.Path, ".wasm") || strings.HasSuffix(r.URL.Path, ".wasm.br") {
+			http.NotFound(w, r)
+			return
+		}
 		http.ServeFile(w, r, filepath.Join(root, "index.html"))
 	})
 	return mux
