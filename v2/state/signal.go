@@ -69,6 +69,7 @@ func (s *Signal[T]) Read() any {
 }
 
 // SetFromHost sets the signal value from an untyped host payload.
+// JSON decodes numbers as float64, so we convert explicitly.
 func (s *Signal[T]) SetFromHost(raw any) {
 	if s == nil {
 		return
@@ -76,7 +77,37 @@ func (s *Signal[T]) SetFromHost(raw any) {
 	v, ok := raw.(T)
 	if ok {
 		s.Set(v)
+		return
 	}
+	// JSON decodes numbers as float64 — try explicit conversion.
+	switch val := raw.(type) {
+	case float64:
+		switch p := any(&s.value).(type) {
+		case *int:
+			*p = int(val)
+		case *float64:
+			*p = val
+		default:
+			return
+		}
+	case string:
+		switch p := any(&s.value).(type) {
+		case *string:
+			*p = val
+		default:
+			return
+		}
+	case bool:
+		switch p := any(&s.value).(type) {
+		case *bool:
+			*p = val
+		default:
+			return
+		}
+	default:
+		return
+	}
+	s.Set(s.value)
 }
 
 // Set updates the signal's value and notifies dependent effects.
