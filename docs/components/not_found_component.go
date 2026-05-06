@@ -3,15 +3,13 @@
 package components
 
 import (
-	_ "embed"
-
 	"github.com/rfwlab/rfw/v2/core"
 )
 
-//go:embed templates/not_found_component.rtml
-var notFoundTpl []byte
-
-// NewNotFoundComponent returns a simple 404 component.
 func NewNotFoundComponent() *core.HTMLComponent {
-	return core.NewComponent("NotFoundComponent", notFoundTpl, nil)
+	return core.NewComponent("NotFoundComponent", []byte(`<div class="p-8 text-center">
+  <h1 class="text-4xl font-bold mb-4">404 - Page Not Found</h1>
+  <p class="mb-4">The page you are looking for does not exist.</p>
+  <a href="/" class="text-blue-500 underline">Return home</a>
+</div>`), nil)
 }
