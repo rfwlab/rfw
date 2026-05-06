@@ -15,8 +15,8 @@ Register the plugin in your app configuration. By default, it looks for `index.c
 
 ```go
 import (
-    core "github.com/rfwlab/rfw/v1/core"
-    tailwind "github.com/rfwlab/rfw/v1/plugins/tailwind"
+    core "github.com/rfwlab/rfw/v2/core"
+    tailwind "github.com/rfwlab/rfw/v2/plugins/tailwind"
 )
 
 func main() {

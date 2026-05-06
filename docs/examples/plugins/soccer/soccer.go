@@ -5,8 +5,8 @@ package soccer
 import (
 	"encoding/json"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
 )
 
 // Plugin exposes sample soccer data through plugin directives.

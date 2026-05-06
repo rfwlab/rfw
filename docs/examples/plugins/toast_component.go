@@ -5,10 +5,10 @@ package plugins
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/v1/composition"
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	"github.com/rfwlab/rfw/v1/plugins/toast"
+	"github.com/rfwlab/rfw/v2/composition"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/plugins/toast"
 )
 
 //go:embed templates/toast_component.rtml

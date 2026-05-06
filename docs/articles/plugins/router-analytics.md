@@ -17,8 +17,8 @@ Register the plugin at boot:
 
 ```go
 import (
-  core "github.com/rfwlab/rfw/v1/core"
-  routeranalytics "github.com/rfwlab/rfw/v1/plugins/routeranalytics"
+  core "github.com/rfwlab/rfw/v2/core"
+  routeranalytics "github.com/rfwlab/rfw/v2/plugins/routeranalytics"
 )
 
 func main() {

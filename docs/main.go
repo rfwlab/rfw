@@ -9,14 +9,14 @@ import (
 	"github.com/rfwlab/rfw/docs/examples/plugins/logger"
 	"github.com/rfwlab/rfw/docs/examples/plugins/monitor"
 	"github.com/rfwlab/rfw/docs/examples/plugins/soccer"
-	"github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/plugins/docs"
-	"github.com/rfwlab/rfw/v1/plugins/highlight"
-	"github.com/rfwlab/rfw/v1/plugins/i18n"
-	"github.com/rfwlab/rfw/v1/plugins/shortcut"
-	"github.com/rfwlab/rfw/v1/plugins/toast"
-	"github.com/rfwlab/rfw/v1/router"
-	"github.com/rfwlab/rfw/v1/state"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/plugins/docs"
+	"github.com/rfwlab/rfw/v2/plugins/highlight"
+	"github.com/rfwlab/rfw/v2/plugins/i18n"
+	"github.com/rfwlab/rfw/v2/plugins/shortcut"
+	"github.com/rfwlab/rfw/v2/plugins/toast"
+	"github.com/rfwlab/rfw/v2/router"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func main() {

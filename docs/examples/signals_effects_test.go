@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	state "github.com/rfwlab/rfw/v1/state"
+	state "github.com/rfwlab/rfw/v2/state"
 )
 
 func TestSignalAndEffect(t *testing.T) {

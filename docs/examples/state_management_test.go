@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/rfwlab/rfw/v1/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func TestComputedDouble(t *testing.T) {
