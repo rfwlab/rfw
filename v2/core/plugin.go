@@ -47,12 +47,19 @@ type Uninstaller interface {
 	Uninstall(*App)
 }
 
+// Provider allows plugins to expose typed data to components via the DI container.
+// Implementing this interface is optional.
+type Provider interface {
+	Provide() map[string]any
+}
+
 // App maintains registered hooks and exposes helper methods for plugins
 // to attach to framework events.
 type App struct {
 	*hooks
 	pluginVars map[string]map[string]any
 	plugins    map[string]Plugin
+	provides   map[string]any
 }
 
 type hooks struct {
@@ -65,7 +72,7 @@ type hooks struct {
 
 // newApp creates an App with initialized hook storage.
 func newApp() *App {
-	return &App{hooks: &hooks{}, pluginVars: make(map[string]map[string]any), plugins: make(map[string]Plugin)}
+	return &App{hooks: &hooks{}, pluginVars: make(map[string]map[string]any), plugins: make(map[string]Plugin), provides: make(map[string]any)}
 }
 
 // RegisterRouter adds a router navigation hook.
@@ -166,6 +173,17 @@ func RegisterPlugin(p Plugin) {
 		}
 	}
 	p.Install(app)
+	if prov, ok := p.(Provider); ok {
+		for k, v := range prov.Provide() {
+			app.provides[k] = v
+		}
+	}
+}
+
+// GetProvider retrieves a value provided by a plugin via its Provider interface.
+func GetProvider(key string) (any, bool) {
+	v, ok := app.provides[key]
+	return v, ok
 }
 
 // TriggerRouter invokes router hooks with the given path.
