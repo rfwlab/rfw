@@ -3,7 +3,7 @@
 package pages
 
 import (
-	core "github.com/rfwlab/rfw/v1/core"
+	core "github.com/rfwlab/rfw/v2/core"
 )
 
 // About renders the about page.

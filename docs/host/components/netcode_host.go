@@ -3,8 +3,8 @@ package components
 import (
 	"time"
 
-	"github.com/rfwlab/rfw/v1/host"
-	"github.com/rfwlab/rfw/v1/netcode"
+	"github.com/rfwlab/rfw/v2/host"
+	"github.com/rfwlab/rfw/v2/netcode"
 )
 
 type ncState struct {

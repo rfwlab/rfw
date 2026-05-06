@@ -5,9 +5,9 @@ package components
 import (
 	_ "embed"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	"github.com/rfwlab/rfw/v1/http"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/http"
 )
 
 //go:embed templates/api_integration_component.rtml

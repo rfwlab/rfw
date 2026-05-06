@@ -6,9 +6,9 @@ import (
 	_ "embed"
 	"fmt"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/input"
-	js "github.com/rfwlab/rfw/v1/js"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/input"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 //go:embed templates/input_component.rtml

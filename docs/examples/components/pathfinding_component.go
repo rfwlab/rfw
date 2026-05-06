@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	pathfinding "github.com/rfwlab/rfw/v1/ai/pathfinding"
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	m "github.com/rfwlab/rfw/v1/math"
+	pathfinding "github.com/rfwlab/rfw/v2/ai/pathfinding"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	m "github.com/rfwlab/rfw/v2/math"
 )
 
 //go:embed templates/pathfinding_component.rtml

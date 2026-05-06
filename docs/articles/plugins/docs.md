@@ -21,8 +21,8 @@ Register the plugin with a path to `sidebar.json`:
 
 ```go
 import (
-    core "github.com/rfwlab/rfw/v1/core"
-    "github.com/rfwlab/rfw/v1/plugins/docs"
+    core "github.com/rfwlab/rfw/v2/core"
+    "github.com/rfwlab/rfw/v2/plugins/docs"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 Load an article:
 
 ```go
-import docplug "github.com/rfwlab/rfw/v1/plugins/docs"
+import docplug "github.com/rfwlab/rfw/v2/plugins/docs"
 
 docplug.LoadArticle("/articles/guide.md")
 ```

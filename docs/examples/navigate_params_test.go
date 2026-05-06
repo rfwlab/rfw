@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/rfwlab/rfw/docs/examples/components"
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/router"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/router"
 )
 
 func TestNavigateMergesParamsAndQuery(t *testing.T) {

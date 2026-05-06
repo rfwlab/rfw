@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	dom "github.com/rfwlab/rfw/v1/dom"
-	events "github.com/rfwlab/rfw/v1/events"
-	draw "github.com/rfwlab/rfw/v1/game/draw"
-	hostclient "github.com/rfwlab/rfw/v1/hostclient"
-	js "github.com/rfwlab/rfw/v1/js"
-	"github.com/rfwlab/rfw/v1/netcode"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	events "github.com/rfwlab/rfw/v2/events"
+	draw "github.com/rfwlab/rfw/v2/game/draw"
+	hostclient "github.com/rfwlab/rfw/v2/hostclient"
+	js "github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/netcode"
 )
 
 //go:embed templates/multiplayer_component.rtml

@@ -5,8 +5,8 @@ package components
 import (
 	_ "embed"
 
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/state"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 //go:embed templates/state_bindings_component.rtml

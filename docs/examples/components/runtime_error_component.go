@@ -5,9 +5,9 @@ package components
 import (
 	_ "embed"
 
-	"github.com/rfwlab/rfw/v1/composition"
-	core "github.com/rfwlab/rfw/v1/core"
-	"github.com/rfwlab/rfw/v1/js"
+	"github.com/rfwlab/rfw/v2/composition"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/js"
 )
 
 //go:embed templates/runtime_error_component.rtml
