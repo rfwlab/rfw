@@ -25,6 +25,10 @@ type Component interface {
 	GetName() string
 	GetID() string
 	SetSlots(map[string]any)
+	// IsMounted reports whether the component is currently mounted in the DOM.
+	IsMounted() bool
+	// OnParams is called when route parameters change. Override in composition structs.
+	OnParams(params map[string]string)
 }
 
 // ComponentRegistry holds constructors for components that can be loaded on-demand.

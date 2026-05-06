@@ -236,6 +236,22 @@ func New(v any) (*View, error) {
 		}
 	}
 
+	var userOnParams func(map[string]string)
+	if m, ok := ptrType.MethodByName("OnParams"); ok {
+		if m.Type.NumIn() == 2 && m.Type.Out(0).Kind() == reflect.Map && m.Type.Out(0).Key().Kind() == reflect.String {
+			if fn, ok := val.Addr().MethodByName("OnParams").Interface().(func(map[string]string)); ok {
+				userOnParams = fn
+			}
+		}
+		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
+			if method := val.Addr().MethodByName("OnParams"); method.IsValid() {
+				if fn, ok := method.Interface().(func(map[string]string)); ok {
+					userOnParams = fn
+				}
+			}
+		}
+	}
+
 	// Wire stores
 	for _, st := range meta.Stores {
 		store := state.GlobalStoreManager.GetStore("app", st.Name)
@@ -286,7 +302,7 @@ func New(v any) (*View, error) {
 		}
 	}
 
-	// Wire injections (t.Inject[T] — resolve from DI container)
+	// Wire injections (t.Inject[T] — resolve from DI container or plugin providers)
 	for _, inj := range meta.Injections {
 		field := val.FieldByName(inj.Name)
 		if !field.IsValid() || !field.CanSet() {
@@ -300,8 +316,12 @@ func New(v any) (*View, error) {
 		if field.Kind() == reflect.Ptr {
 			inner := field.Elem().FieldByName("Value")
 			if inner.IsValid() && inner.CanSet() {
+				// Try DI container first
 				if svc, ok := Container().Get(strings.ToLower(inj.Name)); ok {
 					inner.Set(reflect.ValueOf(svc))
+				} else if svc, ok := core.GetProvider(inj.Name); ok {
+					// Try plugin providers
+					setInjectValue(inner, svc)
 				}
 			}
 		}
@@ -346,6 +366,13 @@ func New(v any) (*View, error) {
 	// Set OnUnmount
 	if userOnUnmount != nil {
 		hc.SetOnUnmount(func(_ *core.HTMLComponent) { userOnUnmount() })
+	}
+
+	// Set OnParams
+	if userOnParams != nil {
+		hc.SetOnParams(func(_ *core.HTMLComponent, params map[string]string) {
+			userOnParams(params)
+		})
 	}
 
 	return comp.HTMLComponent, nil
@@ -444,4 +471,11 @@ func newZeroSignalFromFieldType(ptrType reflect.Type) signalAny {
 		}
 	}
 	return state.NewSignal[any](nil)
+}
+
+func setInjectValue(field reflect.Value, value any) {
+	v := reflect.ValueOf(value)
+	if v.Type().AssignableTo(field.Type()) {
+		field.Set(v)
+	}
 }
