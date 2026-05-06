@@ -3,16 +3,16 @@
 package components
 
 import (
-	_ "embed"
-
 	"github.com/rfwlab/rfw/v2/core"
 )
 
-//go:embed templates/ssc_component.rtml
-var sscTpl []byte
-
 func NewSSCComponent() *core.HTMLComponent {
-	c := core.NewComponent("SSCComponent", sscTpl, nil)
+	c := core.NewComponent("SSCComponent", []byte(`<root>
+  <div class="p-4">
+    <h1 class="text-2xl mb-4">Server Side Component Demo</h1>
+    <p>Current value: {h:value}</p>
+  </div>
+</root>`), nil)
 	c.AddHostComponent("SSCHost")
 	return c
 }
