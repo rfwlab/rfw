@@ -173,10 +173,8 @@ func New(v any) *View {
 			}
 		case field.Kind() == reflect.Struct:
 			if _, ok := field.Type().FieldByName("value"); ok {
-				// Direct Signal[T] value field: just register address
 				if sig, ok := field.Addr().Interface().(signalAny); ok {
 					comp.Prop(s.Name, sig)
-					core.Log().Info("Registered signal %s at ptr %p", s.Name, field.Addr().Interface())
 				}
 			} else {
 				// Other struct types (e.g. HInt) - init embedded pointers
