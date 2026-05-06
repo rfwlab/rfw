@@ -9,7 +9,6 @@
       "output": "static/tailwind.css"
     },
     "env": {},
-    "pages": {},
     "docs": {},
     "bundler": {},
     "seo": {

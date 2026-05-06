@@ -53,12 +53,12 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 			}
 		}()
 	}
-	if docs := doc.Query("nav a[href='/docs/index']"); docs.Truthy() {
+	if docs := doc.Query("nav a[href='/index']"); docs.Truthy() {
 		ch := events.Listen("click", docs.Value)
 		go func() {
 			for evt := range ch {
 				evt.Call("preventDefault")
-				router.Navigate("/docs/index")
+				router.Navigate("/index")
 			}
 		}()
 	}
@@ -108,7 +108,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 						continue
 					}
 					a := composition.A().
-						Href("/docs/"+link).
+						Href("/"+link).
 						Text(title).
 						Classes("block", "px-2", "py-1", "text-gray-700", "dark:text-zinc-200", "hover:bg-gray-100", "dark:hover:bg-zinc-700")
 					ch := events.Listen("mousedown", a.Element().Value)
@@ -121,7 +121,7 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 							results.SetHTML("")
 							results.Get("classList").Call("add", "hidden")
 							search.Set("value", "")
-							router.Navigate("/docs/" + l)
+							router.Navigate("/" + l)
 						}
 					}(link)
 					results.AppendChild(a.Element())
@@ -239,13 +239,13 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 				prev := c.order[idx-1]
 				a := composition.A().
 					Classes("text-white").
-					Href("/docs/" + prev).
+					Href("/" + prev).
 					Text("\u2190 " + c.titleFor(prev))
 				ch := events.Listen("click", a.Element().Value)
 				go func(p string) {
 					for e := range ch {
 						e.Call("preventDefault")
-						router.Navigate("/docs/" + p)
+						router.Navigate("/" + p)
 					}
 				}(prev)
 				nav.AppendChild(a.Element())
@@ -254,13 +254,13 @@ func (c *DocsComponent) mount(hc *core.HTMLComponent) {
 				next := c.order[idx+1]
 				a := composition.A().
 					Classes("ml-auto", "text-white").
-					Href("/docs/" + next).
+					Href("/" + next).
 					Text(c.titleFor(next) + " \u2192")
 				ch := events.Listen("click", a.Element().Value)
 				go func(n string) {
 					for e := range ch {
 						e.Call("preventDefault")
-						router.Navigate("/docs/" + n)
+						router.Navigate("/" + n)
 					}
 				}(next)
 				nav.AppendChild(a.Element())
@@ -308,7 +308,7 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level 
 			c.meta[link] = struct{ Title, Description string }{Title: title, Description: desc}
 			c.order = append(c.order, link)
 			a := composition.A().
-				Href("/docs/"+link).
+				Href("/"+link).
 				Text(title).
 				Classes("block", "py-1", "pl-"+strconv.Itoa(4*level), "text-gray-700", "dark:text-zinc-200", "dark:hover:text-white", "hover:text-black")
 			ch := events.Listen("click", a.Element().Value)
@@ -318,7 +318,7 @@ func (c *DocsComponent) renderSidebar(items js.Value, parent dom.Element, level 
 						continue
 					}
 					evt.Call("preventDefault")
-					router.Navigate("/docs/" + l)
+					router.Navigate("/" + l)
 				}
 			}(link)
 			parent.AppendChild(a.Element())
