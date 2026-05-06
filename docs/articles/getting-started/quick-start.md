@@ -35,7 +35,7 @@ Use `--skip-tidy` to skip `go mod tidy` during init.
 
 ## A First Component
 
-In v2, `composition.New(&struct{})` auto-wires everything from struct tags. No manual template embedding, no `Prop()` calls, no `On()` registration.
+In v2, `composition.New(&struct{})` auto-wires everything based on **field types** — no struct tags required.
 
 ### Counter.rtml
 
@@ -75,7 +75,7 @@ func init() {
 type Counter struct {
     composition.Component
 
-    Count *types.Int `rfw:"signal"`
+    Count types.Int
 }
 
 func (c *Counter) Increment() {
@@ -88,7 +88,11 @@ func (c *Counter) OnMount() {
 
 func main() {
     router.Page("/", func() *types.View {
-        return composition.New(&Counter{})
+        view, err := composition.New(&Counter{})
+        if err != nil {
+            log.Fatal(err)
+        }
+        return view
     })
     router.InitRouter()
     select {}
@@ -97,15 +101,25 @@ func main() {
 
 ### What happened
 
-| Tag | Effect |
+| Field/Method | Effect |
 |-----|--------|
-| `rfw:"signal"` | Creates a `*types.Int` signal, registers it as prop `Count`, auto-wires reactivity |
-| `Increment()` method | Auto-registered as DOM event handler, no `On()` call needed |
-| `OnMount()` | Auto-discovered lifecycle hook, called when component mounts |
+| `Count types.Int` | Signal type detected → auto-wired as reactive prop |
+| `Increment()` method | Auto-registered as DOM event handler |
+| `OnMount()` | Auto-discovered lifecycle hook, called after DOM insertion |
 | `Counter.rtml` | Auto-found by struct name convention via `composition.RegisterFS` |
 | `composition.Component` embed | Provides `Store()`, `History()`, and other composition helpers |
 
-No `Template` field. No `WithTemplate()`. No `//go:embed` for template bytes. Tags do the work.
+No tags. Field types determine everything. Methods become handlers. Templates found by convention.
+
+## Optional: Template() string Method
+
+Override the template by defining a `Template() string` method:
+
+```go
+func (c *Counter) Template() string {
+    return "<root><button @on:click:Increment>Count: @signal:Count</button></root>"
+}
+```
 
 ## Run the Development Server
 
@@ -146,8 +160,8 @@ Production builds use `-trimpath` and `-ldflags="-s -w"` to strip debug info. Ex
 ## What You Learned
 
 - Installing the CLI and scaffolding a project
-- Creating a component with tag-driven composition
-- Templates found by convention (`StructName.rtml`)
+- Creating a component with type-based composition
+- Templates found by convention (`StructName.rtml`) or `Template()` method
 - Registering routes with `router.Page()`
 - Running the dev server and building for production
 

@@ -1,6 +1,6 @@
 # Composition
 
-The `composition` package is the core of rfw v2's component system. `composition.New` replaces v1's manual wiring with tag-driven auto-composition.
+The `composition` package is the core of rfw v2's component system. `composition.New` uses **type-based auto-wiring** — no tags required. Struct field types determine everything: signals, stores, refs, injects, histories, and host bindings.
 
 ---
 
@@ -8,24 +8,22 @@ The `composition` package is the core of rfw v2's component system. `composition
 
 `composition.New(&MyStruct{})` performs these steps:
 
-1. **Scan struct tags**, Uses the `scan` package to parse all `rfw:` tags on the struct fields.
-2. **Resolve template**, Checks for `rfw:"template:path"`, then falls back to convention (struct name → `Name.rtml`).
-3. **Create HTML component**, Calls `core.NewHTMLComponent` with the resolved template.
-4. **Wrap as Component**, `Wrap(hc)` creates a `composition.Component` providing `Prop`, `On`, `Store`, and `History` methods.
-5. **Initialize default store**, Creates or reuses the `"default"` store under the `"app"` module.
-6. **Wire signals**, For each `rfw:"signal"` field: if non-nil, registers it as a prop; if nil, creates a zero-value signal, sets the field, and registers as prop.
-7. **Wire props**, Creates nil `Signal[any]` props for any `rfw:"prop"` fields not already in the component's props map.
-8. **Register event handlers**, For `rfw:"event:domEvent:handler"` tags, looks up the method by name and calls `comp.On(handler, fn)`.
-9. **Auto-discover zero-arg methods**, Any exported no-argument, no-return method on the struct (excluding `Component` methods) is auto-registered as a handler under its method name.
-10. **Wire lifecycle**, If `OnMount()` or `OnUnmount()` exist as no-arg methods, they are wired into the component's mount/unmount callbacks.
-11. **Create stores**, For each `rfw:"store"` tag, calls `comp.Store(name)`.
-12. **Register hosts**, For `rfw:"host"` tags, calls `AddHostComponent(name)`.
-13. **Wire histories**, For `rfw:"history:store:undo:redo"` tags, retrieves the store and calls `comp.History(store, undo, redo)`.
-14. **Wire includes**, For `rfw:"include:slotname"` on `*View` fields, calls `AddDependency(slotName, view)`.
-15. **Resolve injects**, For `rfw:"inject"` fields, resolves from the DI container and sets the field.
-16. **Validate**, Checks signal fields are pointer types and event handlers exist on the struct.
+1. **Scan struct fields** — the `scan` package inspects field types (not tags) to detect signals, stores, refs, injects, histories, host fields, and includes.
+2. **Resolve template** — checks for an optional `Template() string` method, then falls back to convention (`StructName.rtml` or `StructName.html`).
+3. **Create HTML component** — calls `core.NewHTMLComponent` with the resolved template.
+4. **Wrap as Component** — `Wrap(hc)` creates a `composition.Component` providing `Prop`, `On`, `Store`, and `History` methods.
+5. **Initialize default store** — creates or reuses the `"default"` store under the `"app"` module.
+6. **Wire signals** — for each signal-type field (`t.Int`, `t.String`, etc.): if nil, auto-initializes with a zero-value signal; registers as a prop.
+7. **Wire host signals** — `t.HInt`, `t.HString`, etc. are both signals and host component declarations.
+8. **Wire stores** — `*t.Store` fields get the store from the global manager and registered on the component.
+9. **Wire histories** — `*t.History` fields are bound to the first component store for undo/redo.
+10. **Wire includes** — `*t.View` fields call `AddDependency(slotName, view)` using the lowercase field name.
+11. **Wire injects** — `*t.Inject[T]` fields are resolved from the DI container by lowercase field name.
+12. **Wire refs** — `*t.Ref` fields are allocated and resolved from the DOM on mount via `GetRef`.
+13. **Auto-discover methods** — exported no-arg methods become event handlers (excluding `OnMount`/`OnUnmount` and Component methods).
+14. **Wire lifecycle** — `OnMount` and `OnUnmount` are registered; `OnMount` also resolves ref DOM nodes.
 
-Returns the underlying `*core.HTMLComponent` (typed as `*View`).
+Returns `(*View, error)`. On failure (no template, invalid type), returns a descriptive error instead of panicking.
 
 ---
 
@@ -89,13 +87,16 @@ hc := comp.Unwrap()
 Generic factory for zero-value struct types:
 
 ```go
-view := composition.NewFrom[Counter]()
+view, err := composition.NewFrom[Counter]()
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 Equivalent to:
 
 ```go
-view := composition.New(&Counter{})
+view, err := composition.New(&Counter{})
 ```
 
 Use it when you don't need custom field values during construction.
@@ -198,13 +199,13 @@ composition.For("#list", func() composition.Node {
 
 ## Includes
 
-When a struct field is tagged `rfw:"include:slotname"` and holds a `*types.View`, `composition.New` automatically calls `AddDependency(slotname, view)` on the component. This wires the child view into the template at the `@include:slotname` position.
+When a struct field is `*types.View`, `composition.New` automatically calls `AddDependency(slotname, view)` where the slot name is the lowercase field name:
 
 ```go
 type Page struct {
     composition.Component
-    Header  *types.View `rfw:"include:header"`
-    Content *types.View `rfw:"include:content"`
+    Header  *types.View
+    Content *types.View
 }
 ```
 
@@ -212,9 +213,9 @@ Set the fields before or after creating the view:
 
 ```go
 page := &Page{}
-page.Header = composition.New(&Header{})
-page.Content = composition.New(&Content{})
-view := composition.New(page)
+page.Header = headerView
+page.Content = contentView
+view, err := composition.New(page)
 ```
 
 If the field is `nil` at `composition.New` time, the include is skipped (no panic). Set it later and call `AddDependency` manually if needed.
@@ -223,13 +224,13 @@ If the field is `nil` at `composition.New` time, the include is skipped (no pani
 
 ## NewRaw
 
-For layout or wrapper components that don't use `rfw` tags:
+For layout or wrapper components that don't need type-based wiring:
 
 ```go
 view := composition.NewRaw("wrapper", tplBytes, map[string]any{"title": "Hello"})
 ```
 
-`NewRaw` skips tag scanning entirely, it only initializes the HTMLComponent and default store.
+`NewRaw` skips scanning entirely, it only initializes the HTMLComponent and default store.
 
 ---
 
@@ -240,7 +241,7 @@ The composition package re-exports signal and core types for convenience:
 ```go
 type Int    = types.Int       // *state.Signal[int]
 type String = types.String    // *state.Signal[string]
-type Bool   = types.Bool       // *state.Signal[bool]
+type Bool   = types.Bool      // *state.Signal[bool]
 type Float  = types.Float     // *state.Signal[float64]
 type Store  = types.Store     // *state.Store
 type View   = types.View      // *core.HTMLComponent
@@ -255,6 +256,6 @@ var NewFloat = types.NewFloat
 
 ## See Also
 
-- [Components Basics](./components-basics), struct tags and component definition
+- [Components Basics](./components-basics), struct fields and type-based wiring
 - [Template Syntax](./template-syntax), RTML directives
 - [Signals & Effects](./signals-effects-and-watchers), reactive state primitives

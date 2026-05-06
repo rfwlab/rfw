@@ -10,5 +10,9 @@ import (
 type ContactPage struct{}
 
 func NewContactPage() *t.View {
-	return composition.New(&ContactPage{})
+	v, err := composition.New(&ContactPage{})
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

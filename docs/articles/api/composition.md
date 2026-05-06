@@ -4,7 +4,7 @@
 import "github.com/rfwlab/rfw/v2/composition"
 ```
 
-Package for struct-based component creation, DI, template resolution, and DOM composition helpers.
+Package for struct-based component creation, DI, template resolution, and DOM composition helpers. All wiring is type-based — no struct tags required.
 
 ---
 
@@ -12,11 +12,11 @@ Package for struct-based component creation, DI, template resolution, and DOM co
 
 | Function | Description |
 | --- | --- |
-| `New(v any) *View` | Creates a View from a struct pointer. Scans `rfw` tags to auto-wire signals, stores, events, includes, injects, hosts, refs, FSMs, histories, and template resolution. Auto-discovers `OnMount`/`OnUnmount` methods. Template found by `rfw:"template:path"` tag or struct name convention (`StructName.rtml`). |
-| `NewFrom[T any]() *View` | Generic factory. Creates a zero-value `T`, then calls `New` on it. |
-| `NewRaw(name string, tpl []byte, props map[string]any) *View` | Creates a View from a raw template. No tag scanning. Use for layout/wrapper components. |
+| `New(v any) (*View, error)` | Creates a View from a struct pointer. Scans field types to auto-wire signals, stores, refs, injects, histories, host bindings, includes, and template resolution. Auto-discovers `OnMount`/`OnUnmount` methods. Template found by `Template()` method or struct name convention (`StructName.rtml`). Returns error instead of panicking. |
+| `NewFrom[T any]() (*View, error)` | Generic factory. Creates a zero-value `T`, then calls `New` on it. |
+| `NewRaw(name string, tpl []byte, props map[string]any) *View` | Creates a View from a raw template. No type scanning. Use for layout/wrapper components. |
 | `RegisterFS(fs *embed.FS)` | Registers an `embed.FS` for template resolution. Call in `init()` or at package level. Multiple FS instances are searched in registration order. |
-| `Container() *fndi.Container` | Returns the default DI container used by `New` for `rfw:"inject"` resolution. |
+| `Container() *fndi.Container` | Returns the default DI container used by `New` for `*t.Inject[T]` resolution. |
 | `SetDevMode(v bool)` | Enables or disables development mode (verbose logging, validation). |
 
 ---
@@ -42,6 +42,27 @@ func FromProp[T any](c *Component, key string, def T) *Signal[T]
 ```
 
 Creates a signal from a component prop. If the prop exists and is a `*Signal[T]`, returns it. Otherwise returns a new signal with `def` as initial value.
+
+---
+
+## Type-Based Auto-Wiring
+
+`composition.New` detects field types and wires automatically. No `rfw:` tags are used.
+
+| Field Type | Auto-wiring |
+| --- | --- |
+| `t.Int`, `t.String`, `t.Bool`, `t.Float` (value types) | Register as reactive prop via `field.Addr()` |
+| `*t.Int`, `*t.String`, etc. (pointer types) | Auto-init if nil, register as prop |
+| `t.HInt`, `t.HString`, `t.HBool`, `t.HFloat` | Register as prop + host component binding |
+| `*t.Slice[T]`, `*t.Map[K,V]` | Register as reactive prop |
+| `*t.Store` | Retrieve from global manager, register on component |
+| `*t.Ref` | Allocate ref, resolve DOM node on mount |
+| `*t.Inject[T]` | Resolve T from DI container by lowercase field name |
+| `*t.History` | Bind to component's first store for undo/redo |
+| `*t.View` | `AddDependency(lowercase field name, view)` |
+| `t.Prop[T]` | Create reactive prop |
+| Exported `func()` methods | Register as event handlers (excluding `OnMount`, `OnUnmount`, Component methods) |
+| `Template() string` method | Override template resolution |
 
 ---
 
@@ -72,26 +93,6 @@ Re-exports from the `types` package for convenience:
 | `NewBool` | `func(v bool) *Bool` | Creates a signal initialized to `v`. |
 | `NewFloat` | `func(v float64) *Float` | Creates a signal initialized to `v`. |
 | `NewAny` | `func(v any) *Any` | Creates a signal initialized to `v`. |
-
----
-
-## Tag Reference
-
-`composition.New` scans struct fields for `rfw` tags:
-
-| Tag | Format | Description |
-| --- | --- | --- |
-| `rfw:"signal"` | `rfw:"signal"` or `rfw:"signal:name"` | Reactive signal field. Auto-creates zero-value signal if nil. |
-| `rfw:"store:name"` | `rfw:"store:counter"` | Creates a component-scoped store. |
-| `rfw:"inject"` | `rfw:"inject"` or `rfw:"inject:key"` | DI injection from the container. |
-| `rfw:"include:slot"` | `rfw:"include:sidebar"` | Includes a child View in the named slot. Field must be `*View`. |
-| `rfw:"template:path"` | `rfw:"template:templates/foo.rtml"` | Explicit template path in registered FS. |
-| `rfw:"host:name"` | `rfw:"host:modal"` | Registers a host component. |
-| `rfw:"event:click:Handler"` | `rfw:"event:click:HandleSave"` | Binds a DOM event to a method on the struct. |
-| `rfw:"prop:name"` | `rfw:"prop:title"` | Declares a prop signal. |
-| `rfw:"ref:name"` | `rfw:"ref:inputEl"` | Template ref for DOM lookup. |
-| `rfw:"fsm:definition"` | `rfw:"fsm:toggle"` | Finite state machine definition. |
-| `rfw:"history:store:undo:redo"` | `rfw:"history:counter:Undo:Redo"` | Undo/redo history on a store. |
 
 ---
 

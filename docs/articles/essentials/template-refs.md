@@ -1,6 +1,6 @@
 # Template Refs
 
-Template refs give Go code direct access to DOM elements or child component instances. Use them as an escape hatch for imperative operations like focus, measurement, or third-party library integration.
+Template refs give Go code direct access to DOM elements. Use them as an escape hatch for imperative operations like focus, measurement, or third-party library integration.
 
 ---
 
@@ -23,33 +23,36 @@ Multiple constructors are allowed:
 
 ## Accessing Refs in Components
 
-### With composition.New
+### With `*t.Ref` field (recommended)
 
-`composition.New` auto-discovers `OnMount` and `OnUnmount` methods. Refs are accessible via `GetRef` on the embedded `*core.HTMLComponent`:
+Declare a `*t.Ref` field on your struct. `composition.New` auto-allocates the ref and resolves it from the DOM on mount:
 
 ```go
 type Form struct {
-    *core.HTMLComponent
-    Query *composition.String `rfw:"signal"`
+    composition.Component
+    Input *t.Ref
 }
 
 func (f *Form) OnMount() {
-    input := f.GetRef("nameInput")
-    input.Focus()
+    // Input is automatically resolved — call methods on the JS value
+    f.Input.Get().Call("focus")
 }
 ```
 
-### With composition.Wrap
+No manual `GetRef` call needed. The ref is populated during `OnMount`.
+
+### Manual GetRef
+
+For ad-hoc access without a struct field:
 
 ```go
-cmp := composition.Wrap(core.NewHTMLComponent("Form", tpl, nil))
-cmp.SetOnMount(func(_ *core.HTMLComponent) {
-    el := cmp.GetRef("nameInput")
-    el.Focus()
-})
+func (f *Form) OnMount() {
+    input := f.HTMLComponent.GetRef("nameInput")
+    input.Call("focus")
+}
 ```
 
-The returned value from `GetRef` is a `dom.Element`. It supports DOM helpers like `Focus()`, `SetStyle()`, `AddClass()`, `SetAttr()`.
+The returned value is a `dom.Element`. It supports DOM helpers like `Focus()`, `SetStyle()`, `AddClass()`, `SetAttr()`.
 
 ---
 
@@ -63,8 +66,8 @@ Refs also work on `@include`:
 
 ```go
 func (p *Page) OnMount() {
-    modal := p.GetRef("modal").Component()
-    modal.(*Modal).DoSomething()
+    modal := p.GetRef("modal")
+    // ...
 }
 ```
 
@@ -72,17 +75,17 @@ func (p *Page) OnMount() {
 
 ## OnMount Auto-discovery
 
-When using `composition.New`, methods named `OnMount` and `OnUnmount` with signature `func()` are auto-detected and registered as lifecycle hooks. No manual `SetOnMount` call needed:
+When using `composition.New`, methods named `OnMount` and `OnUnmount` with signature `func()` are auto-detected and registered as lifecycle hooks. Refs are resolved before your `OnMount` method runs:
 
 ```go
 type Widget struct {
-    *core.HTMLComponent
-    Count *composition.Int `rfw:"signal"`
+    composition.Component
+    Box *t.Ref
 }
 
 func (w *Widget) OnMount() {
-    box := w.GetRef("box")
-    box.SetStyle("border", "1px solid red")
+    // Box is already resolved from the DOM
+    w.Box.Get().Call("scrollIntoView")
 }
 
 func (w *Widget) OnUnmount() {

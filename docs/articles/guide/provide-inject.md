@@ -33,7 +33,7 @@ If no provider is found, `ok` is `false`.
 
 ## DI Container Injection
 
-rfw v2 also supports dependency injection via the `composition.Container()` and the `rfw:"inject"` tag:
+rfw v2 supports dependency injection via `*t.Inject[T]` struct fields and the `composition.Container()`:
 
 ```go
 // Register a dependency globally
@@ -42,12 +42,20 @@ composition.Container().Provide("logger", myLogger)
 // Inject into a struct field
 type MyPage struct {
     composition.Component
-    Logger *Logger `rfw:"inject"`        // key defaults to "Logger"
-    Config *Config  `rfw:"inject:config"` // explicit key
+    Logger *t.Inject[Logger]
 }
 ```
 
-When `composition.New(&MyPage{})` is called, nil pointer fields tagged with `rfw:"inject"` are automatically resolved from the container.
+When `composition.New(&MyPage{})` is called, `*t.Inject[T]` fields are automatically resolved from the container using the lowercase field name as the key. The `Logger` field above resolves from `Container().Get("logger")`.
+
+Custom keys work by renaming the field:
+
+```go
+type Page struct {
+    composition.Component
+    AppLog *t.Inject[Logger] // resolves from Container().Get("applog")
+}
+```
 
 ---
 
@@ -68,4 +76,4 @@ answer, _ := core.Inject[int](child, "answer") // 42
 ## When to Use
 
 * **Provide/Inject** for values that flow down the component tree (parent → child).
-* **rfw:"inject" tag** for global singletons and services registered in the container.
+* **`*t.Inject[T]` field** for global singletons and services registered in the container.

@@ -1,6 +1,6 @@
 # Lifecycle Hooks
 
-Components in **rfw v2** pass through well-defined stages. Lifecycle hooks let you run code at these key moments, data fetching, timers, cleanup, and other side effects.
+Components in **rfw v2** pass through well-defined stages. Lifecycle hooks let you run code at these key moments: data fetching, timers, cleanup, and other side effects.
 
 ---
 
@@ -11,7 +11,7 @@ Create → Mount → Update (repeat) → Unmount
 ```
 
 1. **Create**: `composition.New(&struct{})` constructs and auto-wires the component.
-2. **Mount**: template is converted to DOM and inserted into the page.
+2. **Mount**: template is converted to DOM and inserted into the page. Refs are resolved.
 3. **Update**: signal changes trigger reactive DOM patches.
 4. **Unmount**: the component is removed from the DOM.
 
@@ -31,7 +31,7 @@ import (
 
 type Widget struct {
     composition.Component
-    Items *t.Int `rfw:"signal"`
+    Items t.Int
 }
 
 func (w *Widget) OnMount() {
@@ -39,13 +39,14 @@ func (w *Widget) OnMount() {
 }
 ```
 
-`composition.New` auto-discovers `OnMount()` and registers it, no manual wiring needed.
+`composition.New` auto-discovers `OnMount()` and registers it. Refs (`*t.Ref` fields) are resolved from the DOM before your `OnMount` method runs.
 
 Use `OnMount` to:
 
 * Start timers or intervals
 * Fetch remote data
 * Access refs or manipulate child nodes
+* Initialize state from stores
 
 At this point the component is fully available in the DOM.
 
@@ -69,12 +70,35 @@ Auto-discovered by `composition.New`. Use `OnUnmount` to:
 
 ---
 
+## Ref Resolution in OnMount
+
+`*t.Ref` fields are allocated during `composition.New` and resolved from the DOM before `OnMount` runs. This means you can safely access refs inside `OnMount`:
+
+```go
+type Form struct {
+    composition.Component
+    Input *t.Ref
+}
+
+func (f *Form) OnMount() {
+    // Input is already resolved from the DOM
+    f.Input.Get().Call("focus")
+}
+```
+
+No manual `GetRef` call needed.
+
+---
+
 ## SetOnMount / SetOnUnmount
 
 For advanced cases where you need to register hooks dynamically (e.g., in a function-based setup rather than a struct), use `SetOnMount` and `SetOnUnmount` on the underlying `*core.HTMLComponent`:
 
 ```go
-view := composition.New(&Widget{})
+view, err := composition.New(&Widget{})
+if err != nil {
+    log.Fatal(err)
+}
 view.SetOnMount(func(_ *core.HTMLComponent) {
     log.Println("mounted")
 })
@@ -92,7 +116,7 @@ This is useful when the hook logic doesn't belong on the struct itself, for exam
 ```go
 type Timer struct {
     composition.Component
-    Count *t.Int    `rfw:"signal"`
+    Count t.Int
     done  chan struct{}
 }
 
