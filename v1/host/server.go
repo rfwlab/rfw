@@ -63,6 +63,10 @@ func NewMux(root string) *http.ServeMux {
 			fs.ServeHTTP(w, r)
 			return
 		}
+		if strings.HasSuffix(r.URL.Path, ".wasm") || strings.HasSuffix(r.URL.Path, ".wasm.br") {
+			http.NotFound(w, r)
+			return
+		}
 		http.ServeFile(w, r, filepath.Join(root, "index.html"))
 	})
 	mux.Handle("/ws", websocket.Handler(wsHandler))
