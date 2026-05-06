@@ -10,7 +10,7 @@
       </a>
       <div class="text-xl text-black/50 dark:text-white/30">/</div>
       <div class="flex gap-5">
-        <a href="/docs/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
+        <a href="/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
         <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
       </div>
     </nav>
@@ -19,7 +19,7 @@
             <h1 class="text-3xl text-center md:text-left md:text-5xl font-semibold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Build blazing-fast UIs with <span class="bg-clip-text text-transparent bg-[url(/btn.png)]">Go</span>, <br>effortlessly</h1>
             <p class="text-base md:text-lg text-center md:text-left text-black dark:text-white md:max-w-3/4">rfw (Reactive Framework) is a Go-based reactive framework for building web applications using WebAssembly, with future plans to support native applications and the use of GL libraries.</p>
             <div class="flex flex-row gap-2 items-center justify-center w-max">
-            <a href="/docs/getting-started/introduction" class="px-10 py-3 bg-[url(/btn.png)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
+            <a href="/getting-started/introduction" class="px-10 py-3 bg-[url(/btn.png)] text-white font-semibold rounded-full w-max transition bg-cover bg-center">Get Started</a>
             <a href="https://github.com/rfwlab/rfw" class="px-10 py-3 border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold rounded-full w-max text-center hover:bg-white hover:text-red-600 transition">Contribute</a>
             </div>
         </div>
@@ -197,7 +197,7 @@ func NewTestComponent() *core.HTMLComponent {
       <div class="max-w-6xl mx-auto px-6">
         <div class="flex items-center justify-between mb-8">
           <h2 class="text-5xl font-bold bg-gradient-to-r from-zinc-900 dark:from-zinc-50 to-zinc-700 dark:to-zinc-400 bg-clip-text text-transparent">Built-in goodies</h2>
-          <a href="/docs/index" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">menu_book</span>Explore Docs</a>
+          <a href="/index" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition"><span class="material-symbols-outlined text-[20px]">menu_book</span>Explore Docs</a>
         </div>
         <div class="grid md:grid-cols-3 gap-6">
           <div class="outlined-2xl border border-gray-200 dark:border-zinc-700 p-6 bg-white/70 dark:bg-[#1a1a1a]">
@@ -250,10 +250,10 @@ rfw dev --debug</code></pre>
           <div class="text-sm">Reactive Framework for Go &amp; WebAssembly</div>
         </div>
         <div class="flex items-center justify-center gap-6 text-sm">
-          <a href="/docs/index" class="hover:text-red-600">Docs</a>
-          <a href="/docs/guide/ssc" class="hover:text-red-600">SSC</a>
-          <a href="/docs/api/index" class="hover:text-red-600">API</a>
-          <a href="/docs/guide/pages-plugin" class="hover:text-red-600">Pages</a>
+          <a href="/index" class="hover:text-red-600">Docs</a>
+          <a href="/guide/ssc" class="hover:text-red-600">SSC</a>
+          <a href="/api/index" class="hover:text-red-600">API</a>
+          <a href="/guide/pages-plugin" class="hover:text-red-600">Pages</a>
         </div>
         <div class="flex items-center md:justify-end justify-center gap-4">
           <a href="https://github.com/rfwlab" aria-label="GitHub" class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-800 bg-lightbg dark:bg-darkbg text-black dark:text-white font-semibold px-10 py-3 hover:bg-white hover:text-red-600 transition">

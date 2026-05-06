@@ -9,7 +9,6 @@ import (
 	"github.com/rfwlab/rfw/docs/examples/plugins/logger"
 	"github.com/rfwlab/rfw/docs/examples/plugins/monitor"
 	"github.com/rfwlab/rfw/docs/examples/plugins/soccer"
-	_ "github.com/rfwlab/rfw/docs/pages"
 	"github.com/rfwlab/rfw/v1/core"
 	"github.com/rfwlab/rfw/v1/plugins/docs"
 	"github.com/rfwlab/rfw/v1/plugins/highlight"
@@ -56,15 +55,15 @@ func main() {
 	router.NotFoundComponent = func() core.Component { return components.NewNotFoundComponent() }
 
 	router.RegisterRoute(router.Route{
-		Path:      "/docs",
+		Path:      "/",
 		Component: func() core.Component { return components.NewDocsComponent() },
 	})
 	router.RegisterRoute(router.Route{
-		Path:      "/docs/:page",
+		Path:      "/:page",
 		Component: func() core.Component { return components.NewDocsComponent() },
 	})
 	router.RegisterRoute(router.Route{
-		Path:      "/docs/:section/:page",
+		Path:      "/:section/:page",
 		Component: func() core.Component { return components.NewDocsComponent() },
 	})
 	router.RegisterRoute(router.Route{

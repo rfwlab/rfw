@@ -10,7 +10,7 @@
         </a>
         <div class="text-xl text-black/50 dark:text-white/30 hidden sm:flex items-center">/</div>
         <div class="flex gap-3 sm:gap-5 items-center">
-          <a href="/docs/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
+          <a href="/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
           <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
         </div>
         <div class="relative mx-auto h-full flex items-stretch">
