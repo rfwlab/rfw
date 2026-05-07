@@ -12,22 +12,46 @@ import (
 //go:embed templates/story_carousel_component.rtml
 var storyCarouselTpl []byte
 
+type StoryCarouselComponent struct {
+	*core.HTMLComponent
+	snippets []map[string]string
+	stop     chan struct{}
+}
+
 func NewStoryCarouselComponent(snippets []map[string]string) *core.HTMLComponent {
-	c := core.NewComponent("StoryCarouselComponent", storyCarouselTpl, map[string]any{
+	c := &StoryCarouselComponent{snippets: snippets}
+	c.HTMLComponent = core.NewComponentWith("StoryCarouselComponent", storyCarouselTpl, map[string]any{
 		"snippets": snippets,
 		"current":  0,
-	})
+	}, c)
+	return c.HTMLComponent
+}
 
-	// Automatically advance the story every 5 seconds
+func (c *StoryCarouselComponent) OnMount() {
+	if len(c.snippets) == 0 {
+		return
+	}
+	c.stop = make(chan struct{})
 	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(5 * time.Second)
-			if val, ok := c.Store.Get("current").(int); ok {
-				next := (val + 1) % len(snippets)
-				c.Store.Set("current", next)
+			select {
+			case <-c.stop:
+				return
+			case <-ticker.C:
+				if val, ok := c.Store.Get("current").(int); ok {
+					next := (val + 1) % len(c.snippets)
+					c.Store.Set("current", next)
+				}
 			}
 		}
 	}()
+}
 
-	return c
+func (c *StoryCarouselComponent) OnUnmount() {
+	if c.stop != nil {
+		close(c.stop)
+		c.stop = nil
+	}
 }

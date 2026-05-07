@@ -6,14 +6,16 @@ import "testing"
 
 type noopComponent struct{}
 
-func (noopComponent) Render() string          { return "" }
-func (noopComponent) Mount()                  {}
-func (noopComponent) Unmount()                {}
-func (noopComponent) OnMount()                {}
-func (noopComponent) OnUnmount()              {}
-func (noopComponent) GetName() string         { return "noop" }
-func (noopComponent) GetID() string           { return "noop" }
-func (noopComponent) SetSlots(map[string]any) {}
+func (noopComponent) Render() string             { return "" }
+func (noopComponent) Mount()                     {}
+func (noopComponent) Unmount()                   {}
+func (noopComponent) OnMount()                   {}
+func (noopComponent) OnUnmount()                 {}
+func (noopComponent) GetName() string            { return "noop" }
+func (noopComponent) GetID() string              { return "noop" }
+func (noopComponent) SetSlots(map[string]any)    {}
+func (noopComponent) IsMounted() bool            { return false }
+func (noopComponent) OnParams(map[string]string) {}
 
 func TestRegisterComponentDuplicate(t *testing.T) {
 	// reset registry

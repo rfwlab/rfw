@@ -10,14 +10,16 @@ import (
 
 type trailingComponent struct{}
 
-func (c *trailingComponent) Render() string          { return "" }
-func (c *trailingComponent) Mount()                  {}
-func (c *trailingComponent) Unmount()                {}
-func (c *trailingComponent) OnMount()                {}
-func (c *trailingComponent) OnUnmount()              {}
-func (c *trailingComponent) GetName() string         { return "trailing" }
-func (c *trailingComponent) GetID() string           { return "" }
-func (c *trailingComponent) SetSlots(map[string]any) {}
+func (c *trailingComponent) Render() string             { return "" }
+func (c *trailingComponent) Mount()                     {}
+func (c *trailingComponent) Unmount()                   {}
+func (c *trailingComponent) OnMount()                   {}
+func (c *trailingComponent) OnUnmount()                 {}
+func (c *trailingComponent) GetName() string            { return "trailing" }
+func (c *trailingComponent) GetID() string              { return "" }
+func (c *trailingComponent) SetSlots(map[string]any)    {}
+func (c *trailingComponent) IsMounted() bool            { return false }
+func (c *trailingComponent) OnParams(map[string]string) {}
 
 func TestNavigateTrailingSlash(t *testing.T) {
 	Reset()

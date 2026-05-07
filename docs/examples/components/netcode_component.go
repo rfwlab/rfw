@@ -20,6 +20,13 @@ type ncState struct {
 	X float64 `json:"x"`
 }
 
+type NetcodeComponent struct {
+	*core.HTMLComponent
+	client *netcode.Client[ncState]
+	stop   chan struct{}
+	tick   int64
+}
+
 func decodeState(m map[string]any) ncState {
 	b, _ := json.Marshal(m)
 	var s ncState
@@ -33,21 +40,44 @@ func lerp(a, b ncState, alpha float64) ncState {
 
 // NewNetcodeComponent renders a simple netcode demo.
 func NewNetcodeComponent() *core.HTMLComponent {
-	// hostclient.EnableDebug()
-	c := core.NewComponent("NetcodeComponent", netcodeComponentTpl, nil)
-	client := netcode.NewClient[ncState]("NetcodeHost", decodeState, lerp)
-	var tick int64
+	c := &NetcodeComponent{}
+	c.HTMLComponent = core.NewComponentWith("NetcodeComponent", netcodeComponentTpl, nil, c)
+	dom.RegisterHandlerFunc("move", c.move)
+	return c.HTMLComponent
+}
+
+func (c *NetcodeComponent) OnMount() {
+	c.client = netcode.NewClient[ncState]("NetcodeHost", decodeState, lerp)
+	c.stop = make(chan struct{})
+	c.tick = 0
 	go func() {
 		ticker := time.NewTicker(50 * time.Millisecond)
-		for range ticker.C {
-			tick += 50
-			client.Flush(tick)
-			s := client.State(tick)
-			dom.Doc().ByID("pos").SetText(fmt.Sprintf("x: %.1f", s.X))
+		defer ticker.Stop()
+		for {
+			select {
+			case <-c.stop:
+				return
+			case <-ticker.C:
+				c.tick += 50
+				c.client.Flush(c.tick)
+				s := c.client.State(c.tick)
+				dom.Doc().ByID("pos").SetText(fmt.Sprintf("x: %.1f", s.X))
+			}
 		}
 	}()
-	dom.RegisterHandlerFunc("move", func() {
-		client.Enqueue(map[string]any{"dx": 1.0})
-	})
-	return c
+}
+
+func (c *NetcodeComponent) OnUnmount() {
+	if c.stop != nil {
+		close(c.stop)
+		c.stop = nil
+	}
+	c.client = nil
+}
+
+func (c *NetcodeComponent) move() {
+	if c.client == nil {
+		return
+	}
+	c.client.Enqueue(map[string]any{"dx": 1.0})
 }

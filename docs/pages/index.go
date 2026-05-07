@@ -12,5 +12,5 @@ import (
 func Index() core.Component {
 	seo.SetTitle("Docs")
 	seo.SetMeta("description", "rfw documentation")
-	return components.NewHomeComponent()
+	return components.NewDocsComponent()
 }

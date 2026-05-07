@@ -308,6 +308,7 @@ func navigateImpl(fullPath string) {
 	dom.UpdateDOM(r.component.GetID(), r.component.Render())
 	r.component.Mount()
 	core.TriggerMount(r.component)
+	r.component.OnParams(params)
 	core.TriggerRouter(fullPath)
 	activePathSig.Set(fullPath)
 	js.History().Call("pushState", nil, "", fullPath)

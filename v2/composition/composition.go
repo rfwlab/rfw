@@ -238,12 +238,15 @@ func New(v any) (*View, error) {
 
 	var userOnParams func(map[string]string)
 	if m, ok := ptrType.MethodByName("OnParams"); ok {
-		if m.Type.NumIn() == 2 && m.Type.Out(0).Kind() == reflect.Map && m.Type.Out(0).Key().Kind() == reflect.String {
-			if fn, ok := val.Addr().MethodByName("OnParams").Interface().(func(map[string]string)); ok {
-				userOnParams = fn
+		if m.Type.NumIn() == 1 && m.Type.NumOut() == 1 && m.Type.Out(0).Kind() == reflect.Map && m.Type.Out(0).Key().Kind() == reflect.String {
+			if fn, ok := val.Addr().MethodByName("OnParams").Interface().(func() map[string]string); ok {
+				capturedFn := fn
+				userOnParams = func(params map[string]string) {
+					_ = capturedFn()
+				}
 			}
 		}
-		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
+		if m.Type.NumIn() == 2 && m.Type.NumOut() == 0 {
 			if method := val.Addr().MethodByName("OnParams"); method.IsValid() {
 				if fn, ok := method.Interface().(func(map[string]string)); ok {
 					userOnParams = fn

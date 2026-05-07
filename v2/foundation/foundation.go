@@ -117,14 +117,10 @@ func NewEffectPipeline() *EffectPipeline {
 
 // Use registers middleware. Middleware receives EffectInput and can call next.
 func (ep *EffectPipeline) Use(mw fnpipeline.Middleware[EffectInput, struct{}]) {
-	// Rebuild pipeline with new middleware on top.
-	// Foundation's pipeline does not expose a direct Use after Then, so we store
-	// middlewares and rebuild.
 	if ep.pip == nil {
 		return
 	}
-	// In foundation v0.3.0, Pipeline is immutable-ish after Then.
-	// To keep it simple we store middleware slice and rebuild in Process.
+	ep.pip.Use(mw)
 }
 
 // Process executes the pipeline for a signal change.
@@ -137,7 +133,7 @@ func (ep *EffectPipeline) Process(ctx context.Context, in EffectInput) {
 // Result re-exports foundation's Result monad for async UI ops.
 type Result[T any] = fnresult.Result[T]
 
-func Ok[T any](v T) Result[T]     { return fnresult.Ok[T](v) }
+func Ok[T any](v T) Result[T]      { return fnresult.Ok[T](v) }
 func Err[T any](e error) Result[T] { return fnresult.Err[T](e) }
 
 // ── Options ─────────────────────────────────────────────────────────────────
@@ -177,8 +173,8 @@ type Meta struct {
 
 // Field-level metadata structs.
 type SignalMeta struct {
-	Field  reflect.StructField
-	Name   string // defaults to field name
+	Field reflect.StructField
+	Name  string // defaults to field name
 }
 type StoreMeta struct {
 	Field reflect.StructField

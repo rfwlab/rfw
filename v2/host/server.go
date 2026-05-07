@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"expvar"
 	"math/big"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +37,14 @@ func NewMux(root string) *http.ServeMux {
 	root = ResolveRoot(root)
 	staticRoot := filepath.Join(root, "..", "static")
 	mux := http.NewServeMux()
+	if os.Getenv("RFW_DEVTOOLS") != "" {
+		mux.Handle("/debug/vars", expvar.Handler())
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
 	fs := http.FileServer(http.Dir(root))
 	var sfs http.Handler
 	if _, err := os.Stat(staticRoot); err == nil {

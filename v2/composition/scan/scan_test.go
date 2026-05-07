@@ -11,18 +11,18 @@ import (
 )
 
 type TestPage struct {
-	Count    types.Int
-	Name     types.String
-	Active   types.Bool
-	Price    types.Float
-	Items    *types.Slice[string]
-	Cart     *types.Store
-	Input    *types.Ref
-	Content  *types.View
-	Visits   types.HInt
-	Message  types.HString
-	Logger   *types.Inject[any]
-	Hist     *types.History
+	Count   types.Int
+	Name    types.String
+	Active  types.Bool
+	Price   types.Float
+	Items   *types.Slice[string]
+	Cart    *types.Store
+	Input   *types.Ref
+	Content *types.View
+	Visits  types.HInt
+	Message types.HString
+	Logger  *types.Inject[any]
+	Hist    *types.History
 }
 
 func TestScanDetectsSignalTypes(t *testing.T) {
@@ -109,6 +109,19 @@ func TestScanTemplateConvention(t *testing.T) {
 	}
 	if meta.TemplateName != "TestPage" {
 		t.Errorf("expected template name TestPage, got: %s", meta.TemplateName)
+	}
+}
+
+func TestScanTemplateNameOverride(t *testing.T) {
+	type CustomTemplatePage struct {
+		TemplateName string
+	}
+	meta, err := Scan(&CustomTemplatePage{TemplateName: "docs/detail"})
+	if err != nil {
+		t.Fatalf("Scan failed: %v", err)
+	}
+	if meta.TemplateName != "docs/detail" {
+		t.Errorf("expected template override docs/detail, got: %s", meta.TemplateName)
 	}
 }
 
