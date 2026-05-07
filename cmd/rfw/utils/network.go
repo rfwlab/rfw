@@ -3,6 +3,9 @@ package utils
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/pkg/browser"
 )
@@ -23,5 +26,11 @@ func GetLocalIP() (string, error) {
 }
 
 func OpenBrowser(url string) error {
+	if configured := os.Getenv("BROWSER"); configured != "" {
+		cmd := strings.Fields(configured)[0]
+		if _, err := exec.LookPath(cmd); err != nil {
+			return err
+		}
+	}
 	return browser.OpenURL(url)
 }
