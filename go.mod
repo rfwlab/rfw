@@ -18,7 +18,7 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mirkobrombin/go-foundation v1.0.0 // indirect
+	github.com/mirkobrombin/go-foundation v1.1.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.3 // indirect
 	golang.org/x/net v0.53.0 // indirect

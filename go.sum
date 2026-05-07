@@ -13,8 +13,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mirkobrombin/go-cli-builder v1.0.0 h1:oLFch1y2HIaZ6MqwKGwDayXXhQfC3HAjrLpC/7xCrr8=
 github.com/mirkobrombin/go-cli-builder v1.0.0/go.mod h1:fOd36mpPgiOZubwnBaoKU4MMwZpdlsWZYulyHsYgNY8=
-github.com/mirkobrombin/go-foundation v1.0.0 h1:tTeH3WR2DesGstOBi2+uZC4zyRDJJcegU3b2ciSyQZQ=
-github.com/mirkobrombin/go-foundation v1.0.0/go.mod h1:ScQBotKzuC5Lxi61Wyw0h8NaeGKsuwp4xHwPj5Mj9DY=
+github.com/mirkobrombin/go-foundation v1.1.0 h1:/fDbOI7NRIowfqH6cEU+krxqj/XGjJ92qXzqcOtpU5M=
+github.com/mirkobrombin/go-foundation v1.1.0/go.mod h1:ScQBotKzuC5Lxi61Wyw0h8NaeGKsuwp4xHwPj5Mj9DY=
 github.com/mirkobrombin/go-logger v0.2.0 h1:qAdo9oCIAvgGOuQIRah5kbFQa3IoHxSjgwYdP3bA6Xw=
 github.com/mirkobrombin/go-logger v0.2.0/go.mod h1:6YeeNrLAEswz0W5eJZ9AWhO/KpFaunznHWzUhpG4jRE=
 github.com/mirkobrombin/go-signal/v2 v2.0.0 h1:8XHnop9mdysg+Mlk1KYKkbIhDk3I6TQHh7dJh8aJo9E=
