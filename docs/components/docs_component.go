@@ -3,6 +3,7 @@
 package components
 
 import (
+	"embed"
 	"strconv"
 	"strings"
 	"time"
@@ -19,9 +20,16 @@ import (
 	"github.com/rfwlab/rfw/v2/types"
 )
 
+//go:embed templates
+var templatesFS embed.FS
+
+func init() {
+	composition.RegisterFS(&templatesFS)
+}
+
 type DocsComponent struct {
-	Page   types.String
-	Search types.String
+	Page      types.String
+	Search    types.String
 	SidebarEl *types.Ref
 	ContentEl *types.Ref
 	TocEl     *types.Ref
@@ -42,50 +50,6 @@ func NewDocsComponent() *core.HTMLComponent {
 	}
 	d.hc = v
 	return v
-}
-
-func (d *DocsComponent) Template() string {
-	return `<root>
-  <div class="flex flex-col min-h-screen">
-      <nav class="z-10 bg-lightbg dark:bg-darkbg sticky top-0 flex flex-wrap items-stretch gap-4 px-6 sm:px-10 md:px-14 bg-lightbg dark:bg-darkbg dark:text-white border-b border-gray-200 dark:border-zinc-700 h-14">
-        <a href="/" class="text-2xl font-bold flex items-center">
-          <picture>
-              <source srcset="/rfw-logo-white.png" media="(prefers-color-scheme: dark)">
-                  <img src="/rfw-logo-black.png"
-                      alt="rfw logo" class="inline-block h-6 w-11 mr-2">
-          </picture>
-        </a>
-        <div class="text-xl text-black/50 dark:text-white/30 hidden sm:flex items-center">/</div>
-        <div class="flex gap-3 sm:gap-5 items-center">
-          <a href="/index" class="text-black/90 dark:text-zinc-400 font-semibold hover:text--500">Docs</a>
-          <a href="https://github.com/rfwlab/rfw" class="text-black/90 dark:text-zinc-400 font-semibold hover:text-rose-500">GitHub</a>
-        </div>
-        <div class="relative mx-auto h-full flex items-stretch">
-          <span class="material-symbols-outlined absolute mt-3.5 ml-3.5 dark:text-white/40 text-black/40">search</span>
-          <input id="doc-search" type="text" placeholder="Why rfw?" class="h-full w-100 px-10 border-x border-y-0 border-gray-300 dark:border-zinc-700 bg-transparent text-black dark:text-white outline-none focus:bg-white/10 text-center">
-          <div id="search-results" class="absolute z-10 left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 shadow hidden"></div>
-        </div>
-      </nav>
-    <div class="flex flex-1 flex-col md:flex-row">
-      <aside id="sidebar" class="sticky top-14 w-full md:w-64 max-h-[calc(100vh-56px)] p-6 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-700 overflow-y-auto"></aside>
-      <main class="flex-1 p-6 sm:p-8">
-        <div id="doc-content" class="prose dark:prose-invert"></div>
-        <div id="doc-nav" class="mt-8 flex flex-wrap justify-between text-sm text-gray-700 dark:text-gray-300"></div>
-      </main>
-      <aside id="toc" class="lg:block sticky top-14 w-64 max-h-[calc(100vh-56px)] p-6 border-l border-zinc-200 dark:border-zinc-700 overflow-y-auto"></aside>
-    </div>
-    <footer class="p-6 text-center text-gray-500 dark:text-gray-400">
-      <div class="flex flex-wrap items-center justify-center space-x-2">
-        <span>&copy; &nbsp; rfw by <a href="//bromb.in" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">Mirko Brombin</a></span>
-        <a href="https://github.com/rfwlab" aria-label="GitHub" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.167 6.839 9.489.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.621.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.528 2.341 1.087 2.91.832.091-.647.35-1.087.636-1.338-2.22-.252-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.681-.103-.253-.446-1.271.098-2.65 0 0 .84-.269 2.75 1.025A9.563 9.563 0 0 1 12 6.844c.851.004 1.705.115 2.503.337 1.909-1.294 2.748-1.025 2.748-1.025.546 1.379.203 2.397.1 2.65.64.697 1.028 1.59 1.028 2.681 0 3.842-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .268.18.58.688.481A10.013 10.013 0 0 0 22 12c0-5.523-4.477-10-10-10Z" clip-rule="evenodd" />
-          </svg>
-        </a>
-      </div>
-    </footer>
-  </div>
-</root>`
 }
 
 func (d *DocsComponent) OnMount() {

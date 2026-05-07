@@ -12,15 +12,15 @@ import (
 )
 
 type Meta struct {
-	Signals    []Signal
-	Stores     []Store
-	Props      []Prop
-	Refs       []Ref
-	Hosts      []Host
-	Events     []Event
-	Includes   []Include
-	Injections []Injection
-	Histories  []History
+	Signals      []Signal
+	Stores       []Store
+	Props        []Prop
+	Refs         []Ref
+	Hosts        []Host
+	Events       []Event
+	Includes     []Include
+	Injections   []Injection
+	Histories    []History
 	TemplateName string
 }
 
@@ -148,9 +148,19 @@ func Scan(v any) (*Meta, error) {
 	}
 
 	m := &Meta{TemplateName: typ.Name()}
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if field := val.FieldByName("TemplateName"); field.IsValid() && field.Kind() == reflect.String && field.String() != "" {
+		m.TemplateName = field.String()
+	}
 
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
+		if field.Name == "TemplateName" && field.Type.Kind() == reflect.String {
+			continue
+		}
 
 		if !field.IsExported() {
 			continue

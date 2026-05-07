@@ -17,9 +17,9 @@ type signalStub[T any] struct {
 	chCreated  bool
 }
 
-func (s *signalStub[T]) Get() T      { return s.value }
-func (s *signalStub[T]) Set(v T)     { s.value = v; s.notifyOnChange(v) }
-func (s *signalStub[T]) Read() any   { return s.value }
+func (s *signalStub[T]) Get() T    { return s.value }
+func (s *signalStub[T]) Set(v T)   { s.value = v; s.notifyOnChange(v) }
+func (s *signalStub[T]) Read() any { return s.value }
 func (s *signalStub[T]) SetFromHost(raw any) {
 	if v, ok := raw.(T); ok {
 		s.Set(v)
@@ -28,19 +28,19 @@ func (s *signalStub[T]) SetFromHost(raw any) {
 	switch any(s.value).(type) {
 	case int:
 		if f, ok := raw.(float64); ok {
-			s.Set(int(f))
+			s.Set(any(int(f)).(T))
 		}
 	case float64:
 		if f, ok := raw.(float64); ok {
-			s.Set(f)
+			s.Set(any(f).(T))
 		}
 	case string:
 		if str, ok := raw.(string); ok {
-			s.Set(str)
+			s.Set(any(str).(T))
 		}
 	case bool:
 		if b, ok := raw.(bool); ok {
-			s.Set(b)
+			s.Set(any(b).(T))
 		}
 	}
 }
@@ -143,7 +143,7 @@ type HInt struct {
 }
 
 type HString struct {
-	*signalStub[String]
+	*signalStub[string]
 }
 
 type HBool struct {
@@ -187,13 +187,13 @@ type History struct {
 func NewHistory(max int) *History { return &History{max: max} }
 func (h *History) Undo()          {}
 func (h *History) Redo()          {}
-func (h *History) Snapshot()       {}
+func (h *History) Snapshot()      {}
 
-func NewInt(v int) *Int          { return &Int{signalStub: &signalStub[int]{value: v}} }
-func NewString(v string) *String { return &String{signalStub: &signalStub[string]{value: v}} }
-func NewBool(v bool) *Bool       { return &Bool{signalStub: &signalStub[bool]{value: v}} }
-func NewFloat(v float64) *Float  { return &Float{signalStub: &signalStub[float64]{value: v}} }
-func NewAny(v any) *Any          { return &Any{signalStub: &signalStub[any]{value: v}} }
+func NewInt(v int) *Int          { return &signalStub[int]{value: v} }
+func NewString(v string) *String { return &signalStub[string]{value: v} }
+func NewBool(v bool) *Bool       { return &signalStub[bool]{value: v} }
+func NewFloat(v float64) *Float  { return &signalStub[float64]{value: v} }
+func NewAny(v any) *Any          { return &signalStub[any]{value: v} }
 func NewSlice[T any](v ...[]T) *Slice[T] {
 	var initial []T
 	if len(v) > 0 {
@@ -208,7 +208,7 @@ func NewMap[K comparable, V any](v ...map[K]V) *Map[K, V] {
 	}
 	return &Map[K, V]{signalStub: &signalStub[map[K]V]{value: initial}}
 }
-func NewRef() *Ref    { return &Ref{} }
+func NewRef() *Ref                { return &Ref{} }
 func NewProp[T any](v T) *Prop[T] { return &Prop[T]{value: v} }
 
 type Viewer interface {
