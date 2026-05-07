@@ -19,3 +19,5 @@ rfw_*.go
 
 demo/build/
 v2/scan.test
+
+check-tests.md
