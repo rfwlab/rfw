@@ -10,14 +10,16 @@ import (
 
 type reloadComponent struct{}
 
-func (c *reloadComponent) Render() string          { return "" }
-func (c *reloadComponent) Mount()                  {}
-func (c *reloadComponent) Unmount()                {}
-func (c *reloadComponent) OnMount()                {}
-func (c *reloadComponent) OnUnmount()              {}
-func (c *reloadComponent) GetName() string         { return "reload" }
-func (c *reloadComponent) GetID() string           { return "" }
-func (c *reloadComponent) SetSlots(map[string]any) {}
+func (c *reloadComponent) Render() string             { return "" }
+func (c *reloadComponent) Mount()                     {}
+func (c *reloadComponent) Unmount()                   {}
+func (c *reloadComponent) OnMount()                   {}
+func (c *reloadComponent) OnUnmount()                 {}
+func (c *reloadComponent) GetName() string            { return "reload" }
+func (c *reloadComponent) GetID() string              { return "" }
+func (c *reloadComponent) SetSlots(map[string]any)    {}
+func (c *reloadComponent) IsMounted() bool            { return false }
+func (c *reloadComponent) OnParams(map[string]string) {}
 
 func TestNavigateReloadsRouteEachTime(t *testing.T) {
 	Reset()

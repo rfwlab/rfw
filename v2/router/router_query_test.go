@@ -21,6 +21,8 @@ func (c *testComponent) OnUnmount()                         {}
 func (c *testComponent) GetName() string                    { return "test" }
 func (c *testComponent) GetID() string                      { return "" }
 func (c *testComponent) SetSlots(map[string]any)            {}
+func (c *testComponent) IsMounted() bool                    { return false }
+func (c *testComponent) OnParams(p map[string]string)       { c.params = p }
 func (c *testComponent) SetRouteParams(p map[string]string) { c.params = p }
 
 func TestNavigateQueryParams(t *testing.T) {

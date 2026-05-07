@@ -10,14 +10,16 @@ import (
 
 type routeComponent struct{}
 
-func (routeComponent) Render() string          { return "" }
-func (routeComponent) Mount()                  {}
-func (routeComponent) Unmount()                {}
-func (routeComponent) OnMount()                {}
-func (routeComponent) OnUnmount()              {}
-func (routeComponent) GetName() string         { return "route" }
-func (routeComponent) GetID() string           { return "route" }
-func (routeComponent) SetSlots(map[string]any) {}
+func (routeComponent) Render() string             { return "" }
+func (routeComponent) Mount()                     {}
+func (routeComponent) Unmount()                   {}
+func (routeComponent) OnMount()                   {}
+func (routeComponent) OnUnmount()                 {}
+func (routeComponent) GetName() string            { return "route" }
+func (routeComponent) GetID() string              { return "route" }
+func (routeComponent) SetSlots(map[string]any)    {}
+func (routeComponent) IsMounted() bool            { return false }
+func (routeComponent) OnParams(map[string]string) {}
 
 func TestRegisteredRoutes(t *testing.T) {
 	Reset()
