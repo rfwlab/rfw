@@ -165,6 +165,10 @@ type routeParamReceiver interface {
 	SetRouteParams(map[string]string)
 }
 
+type routeParamHandler interface {
+	OnParams(map[string]string)
+}
+
 func matchRoute(routes []route, path string) (*route, []Guard, map[string]string) {
 	for i := range routes {
 		r := &routes[i]
@@ -246,6 +250,9 @@ func Navigate(fullPath string) {
 	}
 
 	currentComponent = r.component
+	if handler, ok := r.component.(routeParamHandler); ok {
+		handler.OnParams(params)
+	}
 }
 
 func CanNavigate(fullPath string) bool {

@@ -17,16 +17,16 @@ import (
 )
 
 type SidebarItem struct {
-	Title       string         `json:"title"`
-	Path        string         `json:"path"`
-	Description string         `json:"description"`
-	Children    []SidebarItem  `json:"children"`
+	Title       string        `json:"title"`
+	Path        string        `json:"path"`
+	Description string        `json:"description"`
+	Children    []SidebarItem `json:"children"`
 }
 
 type ArticleData struct {
-	Path      string
-	Content   string
-	Headings  []Heading
+	Path     string
+	Content  string
+	Headings []Heading
 }
 
 type Heading struct {
@@ -36,16 +36,16 @@ type Heading struct {
 }
 
 type Plugin struct {
-	Sidebar      string
+	Sidebar     string
 	disableSEO  bool
-	loader       js.Func
-	sidebarData  *state.Signal[[]SidebarItem]
-	articleData  *state.Signal[*ArticleData]
-	sidebarOnce  sync.Once
+	loader      js.Func
+	sidebarData *state.Signal[[]SidebarItem]
+	articleData *state.Signal[*ArticleData]
+	sidebarOnce sync.Once
 }
 
 func New(sidebar string, disableSEO ...bool) *Plugin {
-	sidebar = fmt.Sprintf("%s?%s", sidebar, time.Now().Unix())
+	sidebar = fmt.Sprintf("%s?%d", sidebar, time.Now().Unix())
 	p := &Plugin{Sidebar: sidebar}
 	if len(disableSEO) > 0 {
 		p.disableSEO = disableSEO[0]
@@ -66,9 +66,9 @@ func (p *Plugin) Optional() []core.Plugin {
 
 func (p *Plugin) Provide() map[string]any {
 	return map[string]any{
-		"sidebar":  p.sidebarData,
-		"article":  p.articleData,
-		"loadDoc":  p.loadArticle,
+		"sidebar": p.sidebarData,
+		"article": p.articleData,
+		"loadDoc": p.loadArticle,
 	}
 }
 
