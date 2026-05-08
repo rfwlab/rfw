@@ -78,9 +78,8 @@ type Route struct {
 ```
 
 `Component` forms:
-- `*View` - singleton, reused
-- `func() *View` - factory, called each navigation
-- `func() core.Component` - factory (legacy)
+- `*types.View` - singleton, reused
+- `func() *types.View` - factory, called each navigation
 
 `Guard` is `func(map[string]string) bool`. Return `false` to block navigation.
 
