@@ -103,10 +103,10 @@ import _ "your/module/pages"
 ```
 
 A working example can be found under `docs/examples/pages`, which
-contains `index.go`, `about.go` and `posts/[id].go` demonstrating the
+contains `index.go`, `about.go` and `posts/id.go` demonstrating the
 generated routes `/`, `/about` and `/posts/:id`. The documentation site in
 this repository uses the `pages` plugin for its home (`/`) and about (`/about`)
 pages, while the `docs` plugin continues to power the documentation
 content itself.
 
-For more details and best practices, see the [Pages Plugin guide](./docs/articles/guide/pages-plugin.md).
+For more details and best practices, see the [Pages Plugin guide](./docs/articles/plugins/pages.md).
