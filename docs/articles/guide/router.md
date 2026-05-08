@@ -65,9 +65,8 @@ router.RegisterRoute(router.Route{
 
 | Form | Behavior |
 |------|----------|
-| `func() *types.View` | Called each navigation, fresh instance every time |
-| `*types.View` | Singleton, reused every navigation |
-| `func() core.Component` | Called each navigation (legacy) |
+| `func() *types.View` | Factory, called each navigation for a fresh instance |
+| `*types.View` | Singleton, the same instance is reused every navigation |
 
 ```go
 // Fresh instance each navigation
