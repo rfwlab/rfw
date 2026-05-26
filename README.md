@@ -7,26 +7,58 @@
 </picture>
 
 <hr />
-<p>rfw (Reactive Framework) is a Go-based reactive framework for building web applications with WebAssembly. The framework source code lives in <code>v2/</code>, while an example application can be found in <code>docs/</code>.</p>
+
+### Real-time dashboards and internal tools, written entirely in Go. No JavaScript. No glue code.
+
+![rfw counter demo with live updates](docs/assets/hero-counter.gif)
+
+[Documentation](./docs/articles/index.md)
 </div>
+
+rfw is "Phoenix LiveView for Go". It lets you build interactive, real-time web apps using Server Side Computed (SSC) components. 
+
+Instead of writing a REST API and a frontend framework, you write Go. rfw handles the WebSocket synchronization and DOM updates for you. It is ideal for:
+- Real-time dashboards
+- Internal admin tools
+- Control planes
+- Any app where server state needs to reflect instantly in the UI
+
+## Why rfw?
+
+If you are using `templ` + `htmx` (or `datastar`), you are already moving toward server-driven UI. rfw takes this further by providing a full state-synchronization engine. You get the productivity of a frontend framework (like React or Vue) but with the simplicity of a single Go binary and type-safe end to end.
 
 ## Getting Started
 
 ```bash
-# install the CLI
-curl -L https://github.com/rfwlab/rfw/releases/download/continuous/rfw -o ~/.local/bin/rfw && chmod +x ~/.local/bin/rfw
-
-# ensure ~/.local/bin is in your PATH, if not, add it
-export PATH=$PATH:~/.local/bin
-
-# bootstrap a project
-rfw init github.com/username/project-name
-
-# run the development server
+go install github.com/rfwlab/rfw/cmd/rfw@latest
+rfw init github.com/user/app
 rfw dev
+```
 
-# build for production
-rfw build
+Minimal hello-world component:
+
+```go
+package main
+
+import (
+    "embed"
+
+    "github.com/rfwlab/rfw/v1/composition"
+    cmp "github.com/rfwlab/rfw/v1/components"
+)
+
+//go:embed templates/hello.rtml
+var helloTpl []byte
+
+func main() {
+    composition.Wrap(cmp.New("Hello", helloTpl))
+}
+```
+
+`templates/hello.rtml`:
+
+```html
+<h1>Hello {{ .Name }}</h1>
 ```
 
 By default the development server listens on port `8080`. Override it with
@@ -39,21 +71,24 @@ RFW_PORT=3000 rfw dev
 Control server log verbosity with the `RFW_LOG_LEVEL` environment variable.
 Possible values are `debug`, `info`, `warn`, and `error` (default is `info`):
 
-```
+```bash
 RFW_LOG_LEVEL=debug rfw dev
 ```
 
 Enable the in-browser debugging overlay with the `--debug` flag:
 
-```
+```bash
 rfw dev --debug
 ```
 
 Use `Ctrl`+`Shift`+`D` in the browser to toggle the overlay that shows the
 component tree and console logs with basic runtime metrics.
 
-Read the [documentation](./docs/articles/index.md) for a complete guide to the framework.
+## Server Side Computed (SSC)
 
+SSC is the core of rfw. Most application logic runs on the server, while the browser loads a lightweight binary to hydrate the HTML. The server and client keep state synchronized through a persistent WebSocket connection. 
+
+Components use host signal types (`t.HInt`, `t.HString`, etc.) to declare server-synced bindings. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
 
 ## Testing
 
@@ -65,10 +100,6 @@ go test ./...
 
 Continuous Integration runs the same command on every push. See the [testing guide](./docs/articles/testing.md) for more details.
 
-
-## Server Side Computed (SSC)
-
-SSC mode runs most application logic on the server while the browser loads a lightweight Wasm bundle to hydrate server-rendered HTML. The server and client keep state synchronized through a persistent WebSocket connection. Components use host signal types (`t.HInt`, `t.HString`, etc.) to declare server-synced bindings. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
 
 ## Build-level Plugins
 
@@ -115,3 +146,6 @@ pages, while the `docs` plugin continues to power the documentation
 content itself.
 
 For more details and best practices, see the [Pages Plugin guide](./docs/articles/plugins/pages.md).
+
+---
+*rfw uses WebAssembly (Wasm) to bridge the server-client gap, but you only ever write Go.*
