@@ -6,7 +6,7 @@ import (
 )
 
 func TestComponentNamesForTemplate(t *testing.T) {
-	tmpl := filepath.Join("..", "..", "..", "docs", "examples", "components", "templates", "input_component.rtml")
+	tmpl := filepath.Join("testdata", "components", "templates", "input_component.rtml")
 	names := componentNamesForTemplate(tmpl)
 	t.Logf("names: %v", names)
 	if len(names) == 0 {
@@ -25,7 +25,7 @@ func TestComponentNamesForTemplate(t *testing.T) {
 }
 
 func TestComponentNamesForTemplateGenerics(t *testing.T) {
-	tmpl := filepath.Join("..", "..", "..", "docs", "examples", "components", "templates", "webgl_component.rtml")
+	tmpl := filepath.Join("testdata", "components", "templates", "webgl_component.rtml")
 	names := componentNamesForTemplate(tmpl)
 	t.Logf("names: %v", names)
 	found := false

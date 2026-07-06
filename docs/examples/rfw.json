@@ -1,9 +1,0 @@
-{
-    "plugins": {
-        "tailwind": {
-            "input": "input.css",
-            "output": "tailwind.css"
-        },
-        "env": {}
-    }
-}

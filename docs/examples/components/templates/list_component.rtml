@@ -1,5 +1,0 @@
-<root>
-    @for:item in items
-        @prop:item
-    @endfor
-</root>
