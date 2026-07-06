@@ -24,7 +24,7 @@ import (
 	"github.com/rfwlab/rfw/cmd/rfw/build"
 	"github.com/rfwlab/rfw/cmd/rfw/plugins"
 	"github.com/rfwlab/rfw/cmd/rfw/utils"
-	hostpkg "github.com/rfwlab/rfw/v2/host"
+	hostpkg "github.com/rfwlab/rfw/host"
 )
 
 var rebuilds = expvar.NewInt("rebuilds")
