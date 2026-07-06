@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,17 +65,54 @@ func connect() {
 	})
 }
 
-func connectionLoop() {
+// hostWSURL builds the WebSocket URL the client uses to reach its host.
+// The endpoint is resolved in order of precedence: a full URL in
+// window.RFW_HOST_URL (ws, wss, http, https, or a bare host[:port] with an
+// optional path), the legacy host[:port] in window.RFW_HOST, or the page
+// origin. The path defaults to /ws when the endpoint carries none.
+func hostWSURL() string {
+	if u := js.Get("RFW_HOST_URL"); u.Truthy() {
+		if s := normalizeWSURL(u.String()); s != "" {
+			return s
+		}
+	}
 	host := js.Location().Get("host").String()
 	if h := js.Get("RFW_HOST"); h.Truthy() {
 		host = h.String()
 	}
-	scheme := "wss"
-	if js.Location().Get("protocol").String() == "http:" {
-		scheme = "ws"
+	return normalizeWSURL(host)
+}
+
+// normalizeWSURL turns a configured endpoint into a WebSocket URL: http and
+// https map to ws and wss, a bare host takes the page scheme, and /ws is
+// appended when the endpoint carries no path.
+func normalizeWSURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
 	}
+	switch {
+	case strings.HasPrefix(raw, "ws://"), strings.HasPrefix(raw, "wss://"):
+	case strings.HasPrefix(raw, "http://"):
+		raw = "ws://" + strings.TrimPrefix(raw, "http://")
+	case strings.HasPrefix(raw, "https://"):
+		raw = "wss://" + strings.TrimPrefix(raw, "https://")
+	default:
+		scheme := "wss"
+		if js.Location().Get("protocol").String() == "http:" {
+			scheme = "ws"
+		}
+		raw = scheme + "://" + raw
+	}
+	if rest := raw[strings.Index(raw, "://")+3:]; !strings.Contains(rest, "/") {
+		raw = strings.TrimRight(raw, "/") + "/ws"
+	}
+	return raw
+}
+
+func connectionLoop() {
 	for {
-		url := fmt.Sprintf("%s://%s/ws", scheme, host)
+		url := hostWSURL()
 
 		err := fnres.Retry(context.Background(), func() error {
 			return cb.Execute(func() error {
