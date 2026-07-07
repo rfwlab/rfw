@@ -5,7 +5,7 @@ package composition
 import (
 	"testing"
 
-	"github.com/rfwlab/rfw/dom"
+	"github.com/rfwlab/rfw/v2/dom"
 )
 
 func TestBind(t *testing.T) {

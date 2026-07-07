@@ -2,7 +2,7 @@
 
 package dom
 
-import js "github.com/rfwlab/rfw/js"
+import js "github.com/rfwlab/rfw/v2/js"
 
 // Document wraps the global document object.
 type Document struct{ js.Value }

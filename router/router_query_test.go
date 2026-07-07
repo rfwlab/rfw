@@ -5,7 +5,7 @@ package router
 import (
 	"testing"
 
-	"github.com/rfwlab/rfw/core"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 // testComponent implements core.Component and routeParamReceiver for testing.

@@ -13,8 +13,8 @@ import (
 	fncaching "github.com/mirkobrombin/go-foundation/pkg/caching"
 	fnres "github.com/mirkobrombin/go-foundation/pkg/resiliency"
 
-	dom "github.com/rfwlab/rfw/dom"
-	js "github.com/rfwlab/rfw/js"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	js "github.com/rfwlab/rfw/v2/js"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )

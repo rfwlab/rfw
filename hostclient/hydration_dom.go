@@ -5,7 +5,7 @@ package hostclient
 import (
 	"fmt"
 
-	dom "github.com/rfwlab/rfw/dom"
+	dom "github.com/rfwlab/rfw/v2/dom"
 )
 
 type domComponentRoot struct{ dom.Element }

@@ -3,8 +3,8 @@
 package input
 
 import (
-	"github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // New creates a Manager and wires browser event listeners.

@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
-	"github.com/rfwlab/rfw/markdown"
-	"github.com/rfwlab/rfw/plugins/seo"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/markdown"
+	"github.com/rfwlab/rfw/v2/plugins/seo"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 type SidebarItem struct {

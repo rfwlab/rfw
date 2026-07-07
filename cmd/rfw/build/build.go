@@ -10,17 +10,17 @@ import (
 	"strings"
 
 	"github.com/andybalholm/brotli"
-	"github.com/rfwlab/rfw/cmd/rfw/plugins"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/assets"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/bundler"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/copy"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/docs"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/env"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/pages"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/seo"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/tailwind"
-	_ "github.com/rfwlab/rfw/cmd/rfw/plugins/test"
-	"github.com/rfwlab/rfw/cmd/rfw/utils"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/assets"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/bundler"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/copy"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/docs"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/env"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/pages"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/seo"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/tailwind"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/test"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
 )
 
 type buildOptions struct {

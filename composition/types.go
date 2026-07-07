@@ -3,9 +3,9 @@
 package composition
 
 import (
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/state"
-	t "github.com/rfwlab/rfw/types"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/state"
+	t "github.com/rfwlab/rfw/v2/types"
 )
 
 type (

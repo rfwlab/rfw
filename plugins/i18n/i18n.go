@@ -6,9 +6,9 @@ package i18n
 import (
 	"encoding/json"
 
-	"github.com/rfwlab/rfw/core"
-	js "github.com/rfwlab/rfw/js"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/core"
+	js "github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Plugin installs basic internationalisation helpers. It exposes two

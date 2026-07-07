@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	v1http "github.com/rfwlab/rfw/http"
+	v1http "github.com/rfwlab/rfw/v2/http"
 )
 
 func waitImage(t *testing.T, fn func() (Image, error)) Image {

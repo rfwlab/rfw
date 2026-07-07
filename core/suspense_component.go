@@ -5,7 +5,7 @@ package core
 import (
 	"errors"
 
-	http "github.com/rfwlab/rfw/http"
+	http "github.com/rfwlab/rfw/v2/http"
 )
 
 // Suspense renders a fallback while the render function returns http.ErrPending.

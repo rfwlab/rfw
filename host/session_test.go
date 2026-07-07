@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func TestSessionIsolation(t *testing.T) {

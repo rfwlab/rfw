@@ -1,6 +1,6 @@
 package host
 
-import "github.com/rfwlab/rfw/state"
+import "github.com/rfwlab/rfw/v2/state"
 
 // Handler processes inbound payloads for a HostComponent and returns a
 // response payload to send back to the wasm runtime. Returning nil results in

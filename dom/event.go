@@ -2,7 +2,7 @@
 
 package dom
 
-import js "github.com/rfwlab/rfw/js"
+import js "github.com/rfwlab/rfw/v2/js"
 
 // Event wraps a browser event.
 type Event struct{ js.Value }

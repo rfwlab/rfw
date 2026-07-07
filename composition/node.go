@@ -5,7 +5,7 @@ package composition
 import (
 	"fmt"
 
-	"github.com/rfwlab/rfw/dom"
+	"github.com/rfwlab/rfw/v2/dom"
 )
 
 // Node represents a DOM node that can be appended to other nodes.

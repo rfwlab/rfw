@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/js"
 )
 
 type Options struct {

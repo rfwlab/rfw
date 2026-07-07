@@ -5,9 +5,9 @@ package virtual
 import (
 	"fmt"
 
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // VirtualList renders only the portion of a list that is visible within its container.

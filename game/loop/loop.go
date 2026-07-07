@@ -5,7 +5,7 @@ package loop
 import (
 	"time"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // Ticker provides timing information for each frame.
