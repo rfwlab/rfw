@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	root "github.com/mirkobrombin/go-cli-builder/v1/root"
-	"github.com/rfwlab/rfw/cmd/rfw/commands"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/commands"
 )
 
 // TestRootCommandSetup ensures main registers expected subcommands.

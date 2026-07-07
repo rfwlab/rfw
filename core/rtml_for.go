@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func resolveNestedKey(m map[string]any, key string) (any, bool) {

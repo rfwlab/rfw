@@ -8,7 +8,7 @@ import (
 stdhttp "net/http"
 "sync"
 
-"github.com/rfwlab/rfw/http"
+"github.com/rfwlab/rfw/v2/http"
 )
 
 // Image is a placeholder for non-WASM builds.

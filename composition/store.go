@@ -3,8 +3,8 @@
 package composition
 
 import (
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Store creates a new state store namespaced to the component's ID.

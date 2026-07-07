@@ -5,10 +5,10 @@ package composition
 import (
 	"testing"
 
-	core "github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/js"
-	"github.com/rfwlab/rfw/state"
+	core "github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func TestWrap(t *testing.T) {

@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	fndi "github.com/mirkobrombin/go-foundation/pkg/di"
-	"github.com/rfwlab/rfw/composition/scan"
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/router"
-	"github.com/rfwlab/rfw/state"
-	"github.com/rfwlab/rfw/types"
+	"github.com/rfwlab/rfw/v2/composition/scan"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/router"
+	"github.com/rfwlab/rfw/v2/state"
+	"github.com/rfwlab/rfw/v2/types"
 )
 
 var defaultContainer = fndi.New()

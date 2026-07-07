@@ -3,7 +3,7 @@
 package state
 
 import (
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // ExposeUpdateStore exposes a JS function to update store values.

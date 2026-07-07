@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/dom"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/dom"
 )
 
 type Plugin struct{}

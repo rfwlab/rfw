@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rfwlab/rfw/state"
-	types "github.com/rfwlab/rfw/types"
+	"github.com/rfwlab/rfw/v2/state"
+	types "github.com/rfwlab/rfw/v2/types"
 )
 
 type TestPage struct {

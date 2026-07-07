@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	dom "github.com/rfwlab/rfw/dom"
-	js "github.com/rfwlab/rfw/js"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // query returns the first element matching sel.

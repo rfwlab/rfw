@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/rfwlab/rfw/cmd/rfw/utils"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
 )
 
 type devMessage struct {
