@@ -97,15 +97,17 @@ func UpdateDOM(componentID string, html string) {
 		return
 	}
 
-	if componentID == "" {
-		// Root render (a route change): the mounted component is being swapped
-		// wholesale, so replace the content instead of positionally diffing two
-		// different <root> trees, which leaves stale nodes from the previous
-		// route. Component-internal reactive updates (componentID != "") still
-		// go through patchInnerHTML to preserve focus/selection.
-		element.Value.Set("innerHTML", html)
-	} else {
+	// Diff-patch only when the resolved element is the component's OWN root: that
+	// is an in-place reactive update, where patching preserves focus/selection.
+	// Otherwise the target is the #app fallback (a fresh mount or a route change,
+	// since ComponentRoot falls back to #app when the component root is not yet
+	// in the DOM). There, positionally diffing two different <root> trees leaves
+	// stale nodes from the previous component, so replace wholesale instead.
+	elID := element.Value.Call("getAttribute", "data-component-id")
+	if componentID != "" && elID.Truthy() && elID.String() == componentID {
 		patchInnerHTML(element.Value, html)
+	} else {
+		element.Value.Set("innerHTML", html)
 	}
 
 	if TemplateHook != nil {
