@@ -5,9 +5,9 @@ package monitor
 import (
 	"encoding/json"
 
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // Plugin observes DOM mutations and intersections and exposes channels for monitoring.

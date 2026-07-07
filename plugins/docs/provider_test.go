@@ -5,7 +5,7 @@ package docs
 import (
 	"testing"
 
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func TestPluginProviderAndOptional(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/js"
 )
 
 // ErrPending is returned when a fetch request is still in flight.

@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"sync"
 
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Session represents per-connection state for a WebSocket client.

@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rfwlab/rfw/dom"
-	hostclient "github.com/rfwlab/rfw/hostclient"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/dom"
+	hostclient "github.com/rfwlab/rfw/v2/hostclient"
+	"github.com/rfwlab/rfw/v2/state"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	tdJs "github.com/tdewolff/minify/v2/js"

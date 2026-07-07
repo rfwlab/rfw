@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rfwlab/rfw/core"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 type Options struct {

@@ -5,7 +5,7 @@ package dom
 import (
 	"testing"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // Ensure UpdateDOM handles nodes without attributes (e.g. comments) without panicking.

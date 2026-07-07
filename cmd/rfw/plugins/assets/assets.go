@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rfwlab/rfw/cmd/rfw/logging"
-	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/logging"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
 )
 
 type plugin struct {

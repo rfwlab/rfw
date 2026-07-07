@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/rfwlab/rfw/core"
-	dom "github.com/rfwlab/rfw/dom"
-	js "github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 type Plugin struct{}

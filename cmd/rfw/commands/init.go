@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/mirkobrombin/go-cli-builder/v1/command"
-	"github.com/rfwlab/rfw/cmd/rfw/initproj"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/initproj"
 )
 
 // NewInitCommand returns the init command.

@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // Plugin listens for keyboard combinations and runs registered handlers.

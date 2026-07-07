@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rfwlab/rfw/cmd/rfw/logging"
-	"github.com/rfwlab/rfw/cmd/rfw/plugins"
-	"github.com/rfwlab/rfw/cmd/rfw/utils"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/logging"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/html"

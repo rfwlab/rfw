@@ -5,8 +5,8 @@ package plugin
 import (
 	"encoding/json"
 
-	"github.com/rfwlab/rfw/core"
-	js "github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/core"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // jsPlugin wraps a JavaScript object and adapts it to the core.Plugin interface.

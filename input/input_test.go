@@ -3,7 +3,7 @@ package input
 import (
 	"testing"
 
-	"github.com/rfwlab/rfw/math"
+	"github.com/rfwlab/rfw/v2/math"
 )
 
 func TestKeyBinding(t *testing.T) {

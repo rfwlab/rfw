@@ -21,10 +21,10 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	signalbus "github.com/mirkobrombin/go-signal/v2/pkg/bus"
-	"github.com/rfwlab/rfw/cmd/rfw/build"
-	"github.com/rfwlab/rfw/cmd/rfw/plugins"
-	"github.com/rfwlab/rfw/cmd/rfw/utils"
-	hostpkg "github.com/rfwlab/rfw/host"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/build"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
+	hostpkg "github.com/rfwlab/rfw/v2/host"
 )
 
 var rebuilds = expvar.NewInt("rebuilds")

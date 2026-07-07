@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/state"
-	"github.com/rfwlab/rfw/types"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/state"
+	"github.com/rfwlab/rfw/v2/types"
 )
 
 type Guard func(map[string]string) bool

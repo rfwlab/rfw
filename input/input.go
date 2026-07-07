@@ -1,6 +1,6 @@
 package input
 
-import "github.com/rfwlab/rfw/math"
+import "github.com/rfwlab/rfw/v2/math"
 
 // Camera represents a simple 2D camera state.
 type Camera struct {

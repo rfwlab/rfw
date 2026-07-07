@@ -3,8 +3,8 @@
 package types
 
 import (
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/state"
 	"syscall/js"
 )
 

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/rfwlab/rfw/cmd/rfw/utils"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
 )
 
 func TestShouldRebuild(t *testing.T) {

@@ -5,7 +5,7 @@ package core
 import (
 	"testing"
 
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 func TestProvideInject(t *testing.T) {

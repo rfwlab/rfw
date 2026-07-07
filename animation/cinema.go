@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	events "github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
+	events "github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 type Scene struct {

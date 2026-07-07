@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 var globalOverlay = &errorOverlay{}

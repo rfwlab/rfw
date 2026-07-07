@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	m "github.com/rfwlab/rfw/math"
+	m "github.com/rfwlab/rfw/v2/math"
 )
 
 func TestRequestGridPathFindsPath(t *testing.T) {

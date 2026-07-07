@@ -8,7 +8,7 @@ import (
 	"math"
 	"sync"
 
-	m "github.com/rfwlab/rfw/math"
+	m "github.com/rfwlab/rfw/v2/math"
 )
 
 // Grid represents a 2D grid where 0 cells are walkable and 1 are blocked.

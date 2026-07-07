@@ -5,8 +5,8 @@ package core
 import (
 	"encoding/json"
 
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Plugin defines interface for plugins to register hooks on the App. Plugins can

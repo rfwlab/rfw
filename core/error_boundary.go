@@ -2,7 +2,7 @@
 
 package core
 
-import "github.com/rfwlab/rfw/dom"
+import "github.com/rfwlab/rfw/v2/dom"
 
 // ErrorBoundary wraps a child component and renders a fallback UI when the
 // child panics during Render or Mount. Once a panic occurs, the fallback UI is

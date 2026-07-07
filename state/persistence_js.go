@@ -5,7 +5,7 @@ package state
 import (
 	"encoding/json"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // loadPersistedState retrieves persisted state from localStorage.

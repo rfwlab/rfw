@@ -1,6 +1,6 @@
 package router
 
-import "github.com/rfwlab/rfw/core"
+import "github.com/rfwlab/rfw/v2/core"
 
 // NavigateTo is an alias for Navigate.
 func NavigateTo(fullPath string) { Navigate(fullPath) }

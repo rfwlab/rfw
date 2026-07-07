@@ -5,7 +5,7 @@ package highlightjs
 import (
 	"testing"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 func TestRegisterLanguage(t *testing.T) {

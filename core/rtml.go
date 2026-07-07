@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rfwlab/rfw/dom"
-	"github.com/rfwlab/rfw/rtmlast"
-	"github.com/rfwlab/rfw/rtmleval"
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/rtmlast"
+	"github.com/rfwlab/rfw/v2/rtmleval"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 var (

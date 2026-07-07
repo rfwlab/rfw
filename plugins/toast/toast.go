@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	core "github.com/rfwlab/rfw/core"
-	dom "github.com/rfwlab/rfw/dom"
+	core "github.com/rfwlab/rfw/v2/core"
+	dom "github.com/rfwlab/rfw/v2/dom"
 )
 
 // Plugin displays temporary toast notifications stacked in the bottom right.

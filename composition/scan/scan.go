@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/rfwlab/rfw/state"
-	"github.com/rfwlab/rfw/types"
+	"github.com/rfwlab/rfw/v2/state"
+	"github.com/rfwlab/rfw/v2/types"
 )
 
 type Meta struct {
@@ -62,7 +62,7 @@ func isSignalType(t reflect.Type) bool {
 	if t.Kind() != reflect.Struct {
 		return false
 	}
-	if t.PkgPath() == "github.com/rfwlab/rfw/state" && t.Name() == "Signal" {
+	if t.PkgPath() == "github.com/rfwlab/rfw/v2/state" && t.Name() == "Signal" {
 		return true
 	}
 	_, hasGet := reflect.PtrTo(t).MethodByName("Get")
@@ -78,21 +78,21 @@ func isSliceType(t reflect.Type) bool {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	return t.Kind() == reflect.Struct && t.Name() == "Slice" && t.PkgPath() == "github.com/rfwlab/rfw/types"
+	return t.Kind() == reflect.Struct && t.Name() == "Slice" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 func isMapType(t reflect.Type) bool {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	return t.Kind() == reflect.Struct && t.Name() == "Map" && t.PkgPath() == "github.com/rfwlab/rfw/types"
+	return t.Kind() == reflect.Struct && t.Name() == "Map" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 func isPropType(t reflect.Type) bool {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	return t.Kind() == reflect.Struct && t.Name() == "Prop" && t.PkgPath() == "github.com/rfwlab/rfw/types"
+	return t.Kind() == reflect.Struct && t.Name() == "Prop" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 func isHostType(t reflect.Type) bool {
@@ -102,13 +102,13 @@ func isHostType(t reflect.Type) bool {
 	if t.Kind() != reflect.Struct {
 		return false
 	}
-	if hostTypes[t.Name()] && t.PkgPath() == "github.com/rfwlab/rfw/types" {
+	if hostTypes[t.Name()] && t.PkgPath() == "github.com/rfwlab/rfw/v2/types" {
 		return true
 	}
-	if t.Name() == "HSlice" && t.PkgPath() == "github.com/rfwlab/rfw/types" {
+	if t.Name() == "HSlice" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types" {
 		return true
 	}
-	if t.Name() == "HMap" && t.PkgPath() == "github.com/rfwlab/rfw/types" {
+	if t.Name() == "HMap" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types" {
 		return true
 	}
 	return false
@@ -122,7 +122,7 @@ func isInjectType(t reflect.Type) bool {
 	if elem.Kind() != reflect.Struct {
 		return false
 	}
-	return elem.Name() == "Inject" && elem.PkgPath() == "github.com/rfwlab/rfw/types"
+	return elem.Name() == "Inject" && elem.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 var componentMethods = map[string]struct{}{

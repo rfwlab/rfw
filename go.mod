@@ -1,4 +1,4 @@
-module github.com/rfwlab/rfw
+module github.com/rfwlab/rfw/v2
 
 go 1.25.0
 

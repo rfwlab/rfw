@@ -5,7 +5,7 @@ package state
 import (
 	"testing"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 func TestExposeUpdateStoreBool(t *testing.T) {

@@ -5,8 +5,8 @@ package draw
 import (
 	"math"
 
-	dom "github.com/rfwlab/rfw/dom"
-	js "github.com/rfwlab/rfw/js"
+	dom "github.com/rfwlab/rfw/v2/dom"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 type canvas2D struct {

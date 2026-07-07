@@ -2,7 +2,7 @@
 
 package docs
 
-import js "github.com/rfwlab/rfw/js"
+import js "github.com/rfwlab/rfw/v2/js"
 
 // LoadArticle fetches and renders the markdown document at the given path.
 // It relies on the rfwLoadDoc loader injected by the docs plugin and should

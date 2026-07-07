@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/rfwlab/rfw/host"
+	"github.com/rfwlab/rfw/v2/host"
 )
 
 func TestSSCEventBus(t *testing.T) {
