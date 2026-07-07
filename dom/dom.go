@@ -97,7 +97,16 @@ func UpdateDOM(componentID string, html string) {
 		return
 	}
 
-	patchInnerHTML(element.Value, html)
+	if componentID == "" {
+		// Root render (a route change): the mounted component is being swapped
+		// wholesale, so replace the content instead of positionally diffing two
+		// different <root> trees, which leaves stale nodes from the previous
+		// route. Component-internal reactive updates (componentID != "") still
+		// go through patchInnerHTML to preserve focus/selection.
+		element.Value.Set("innerHTML", html)
+	} else {
+		patchInnerHTML(element.Value, html)
+	}
 
 	if TemplateHook != nil {
 		TemplateHook(componentID, html)
