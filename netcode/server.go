@@ -3,7 +3,7 @@ package netcode
 import (
 	"sync"
 
-	"github.com/rfwlab/rfw/host"
+	"github.com/rfwlab/rfw/v2/host"
 )
 
 // Server applies commands and broadcasts state snapshots.

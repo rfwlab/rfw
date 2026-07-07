@@ -3,7 +3,7 @@
 package highlightjs
 
 import (
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // RegisterLanguage wires a Highlight.js language definition from Go.

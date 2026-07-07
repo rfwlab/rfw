@@ -6,8 +6,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/rfwlab/rfw/http"
-	"github.com/rfwlab/rfw/js"
+	"github.com/rfwlab/rfw/v2/http"
+	"github.com/rfwlab/rfw/v2/js"
 )
 
 // loadImageFn loads an image and invokes done on completion.

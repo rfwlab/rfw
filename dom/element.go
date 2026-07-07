@@ -2,7 +2,7 @@
 
 package dom
 
-import js "github.com/rfwlab/rfw/js"
+import js "github.com/rfwlab/rfw/v2/js"
 
 // Element wraps a DOM element and provides typed helpers.
 type Element struct{ js.Value }

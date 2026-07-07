@@ -16,7 +16,7 @@ import (
 	fnsafemap "github.com/mirkobrombin/go-foundation/pkg/safemap"
 	fnworker "github.com/mirkobrombin/go-foundation/pkg/worker"
 
-	"github.com/rfwlab/rfw/host"
+	"github.com/rfwlab/rfw/v2/host"
 	"golang.org/x/net/websocket"
 )
 

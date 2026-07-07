@@ -5,7 +5,7 @@ package events
 import (
 	"sync"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // Event is a type-safe application event identifier.

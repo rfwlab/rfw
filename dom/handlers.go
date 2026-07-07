@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 // OnHandlerPanic, if set, is called when a registered handler panics.

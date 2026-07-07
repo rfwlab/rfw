@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mirkobrombin/go-cli-builder/v1/command"
-	"github.com/rfwlab/rfw/cmd/rfw/server"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/server"
 )
 
 // NewDevCommand returns the dev command.

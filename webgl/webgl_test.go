@@ -5,7 +5,7 @@ package webgl
 import (
 	"testing"
 
-	js "github.com/rfwlab/rfw/js"
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 func TestWrappersInvokeContext(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/mirkobrombin/go-cli-builder/v1/root"
-	"github.com/rfwlab/rfw/cmd/rfw/commands"
-	"github.com/rfwlab/rfw/cmd/rfw/utils"
-	"github.com/rfwlab/rfw/core"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/commands"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 func main() {

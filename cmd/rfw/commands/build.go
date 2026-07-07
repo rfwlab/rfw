@@ -2,7 +2,7 @@ package commands
 
 import (
 	"github.com/mirkobrombin/go-cli-builder/v1/command"
-	"github.com/rfwlab/rfw/cmd/rfw/build"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/build"
 )
 
 // NewBuildCommand returns the build command.

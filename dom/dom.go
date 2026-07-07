@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	events "github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
-	"github.com/rfwlab/rfw/state"
+	events "github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // componentSignals tracks signals associated with each component instance.

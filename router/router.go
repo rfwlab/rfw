@@ -10,12 +10,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rfwlab/rfw/core"
-	"github.com/rfwlab/rfw/dom"
-	events "github.com/rfwlab/rfw/events"
-	js "github.com/rfwlab/rfw/js"
-	"github.com/rfwlab/rfw/state"
-	"github.com/rfwlab/rfw/types"
+	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/dom"
+	events "github.com/rfwlab/rfw/v2/events"
+	js "github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/state"
+	"github.com/rfwlab/rfw/v2/types"
 )
 
 // Guard is a function that determines whether navigation to a route is

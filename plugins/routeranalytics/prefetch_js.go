@@ -5,7 +5,7 @@ package routeranalytics
 import (
 	"sync"
 
-	"github.com/rfwlab/rfw/netcode"
+	"github.com/rfwlab/rfw/v2/netcode"
 )
 
 type prefetchSnapshot struct {

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/rfwlab/rfw/core"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 const githubRepo = "rfwlab/rfw"

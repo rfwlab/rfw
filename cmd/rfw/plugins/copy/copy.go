@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/rfwlab/rfw/cmd/rfw/logging"
-	"github.com/rfwlab/rfw/cmd/rfw/plugins"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/logging"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
 )
 
 type rule struct {

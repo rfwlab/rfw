@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 type HTMLComponent interface {

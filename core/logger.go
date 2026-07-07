@@ -3,7 +3,7 @@ package core
 import (
 	"log"
 
-	"github.com/rfwlab/rfw/state"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Logger defines logging interface used by the framework.
