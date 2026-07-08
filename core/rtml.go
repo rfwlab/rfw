@@ -1152,7 +1152,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 			if store != nil {
 				if val := store.Get(key); val != nil {
 					unsubscribe := store.OnChange(key, func(newValue any) {
-						dom.UpdateDOM(c.ID, c.Render())
+						dom.UpdateDOM(c.ID, c.RenderFresh())
 					})
 					c.unsubscribes.Add(unsubscribe)
 					switch v := val.(type) {
@@ -1228,7 +1228,7 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 				if store != nil {
 					collection = store.Get(key)
 					unsubscribe := store.OnChange(key, func(newValue any) {
-						dom.UpdateDOM(c.ID, c.Render())
+						dom.UpdateDOM(c.ID, c.RenderFresh())
 					})
 					c.unsubscribes.Add(unsubscribe)
 				} else {
