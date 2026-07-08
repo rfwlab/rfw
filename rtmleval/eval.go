@@ -333,6 +333,18 @@ func (p *parser) readIdent() {
 		p.readChar()
 	}
 	val := p.input[start : p.pos-1]
+	// Allow qualified store:/signal:/prop: references as a single identifier so
+	// @if/@expr conditions can reference reactive sources (same refs @for uses).
+	// The ternary ':' always follows an expression/space, never one of these
+	// bare prefixes immediately, so this does not clash with ternary parsing.
+	if (val == "store" || val == "signal" || val == "prop") && p.ch == ':' {
+		p.readChar()
+		for isIdentPart(p.ch) || p.ch == '-' {
+			p.readChar()
+		}
+		p.cur = token{tIdent, p.input[start : p.pos-1]}
+		return
+	}
 	switch val {
 	case "true":
 		p.cur = token{tTrue, val}
