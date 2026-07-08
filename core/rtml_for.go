@@ -76,7 +76,7 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 				if store != nil {
 					collection = store.Get(key)
 					unsubscribe := store.OnChange(key, func(newValue any) {
-						dom.UpdateDOM(c.ID, c.Render())
+						dom.UpdateDOM(c.ID, c.RenderFresh())
 					})
 					c.unsubscribes.Add(unsubscribe)
 				} else {
