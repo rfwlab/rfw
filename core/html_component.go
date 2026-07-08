@@ -126,6 +126,17 @@ func (c *HTMLComponent) Init(store *state.Store) {
 	}
 }
 
+// RenderFresh clears the render cache and re-renders. Reactive updates (store
+// OnChange, signal effects) call this so a state change always produces
+// up-to-date HTML instead of a stale cached render. Fixes the bug where a
+// store.Set did not re-render @for / @expr / store-bound templates because the
+// cache key hashes only Props/Dependencies, not the bound store state.
+func (c *HTMLComponent) RenderFresh() string {
+	c.cache = nil
+	c.lastCacheKey = ""
+	return c.Render()
+}
+
 func (c *HTMLComponent) Render() (renderedTemplate string) {
 	start := time.Now()
 	defer c.recordRender(time.Since(start))
