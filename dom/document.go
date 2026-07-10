@@ -12,16 +12,25 @@ func Doc() Document { return Document{js.Doc()} }
 
 // ByID fetches an element by id.
 func (d Document) ByID(id string) Element {
+	if !d.Truthy() {
+		return Element{js.Null()}
+	}
 	return Element{d.Call("getElementById", id)}
 }
 
 // Query returns the first element matching the selector.
 func (d Document) Query(sel string) Element {
+	if !d.Truthy() {
+		return Element{js.Null()}
+	}
 	return Element{d.Call("querySelector", sel)}
 }
 
 // QueryAll returns all elements matching the selector.
 func (d Document) QueryAll(sel string) Element {
+	if !d.Truthy() {
+		return Element{js.Null()}
+	}
 	return Element{d.Call("querySelectorAll", sel)}
 }
 
