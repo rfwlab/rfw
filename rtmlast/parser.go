@@ -82,7 +82,7 @@ func (l *Lexer) Lex() []Token {
 }
 
 func isCommandPrefix(s string) bool {
-	prefixes := []string{"if:", "else-if:", "else", "endif", "for:", "endfor", "foreach:", "endforeach", "include:", "slot:", "endslot", "on:", "store:", "signal:", "prop:", "h:", "plugin:", "expr:"}
+	prefixes := []string{"if:", "else-if:", "else", "endif", "for:", "endfor", "include:", "slot:", "endslot", "on:", "store:", "signal:", "prop:", "h:", "plugin:", "expr:"}
 	for _, p := range prefixes {
 		if len(s) > len(p) && s[:len(p)] == p {
 			return true
@@ -176,8 +176,6 @@ func (p *parser) parseCommand(cmdText string) (Node, bool, error) {
 			return nil, false, nil
 		case "endslot":
 			return nil, false, nil
-		case "endforeach":
-			return nil, false, nil
 		}
 		return CommandNode{Kind: cmdText, Value: ""}, true, nil
 	}
@@ -191,9 +189,6 @@ func (p *parser) parseCommand(cmdText string) (Node, bool, error) {
 		return node, true, err
 	case "for":
 		node, err := p.parseFor(rest)
-		return node, true, err
-	case "foreach":
-		node, err := p.parseForeach(rest)
 		return node, true, err
 	case "include":
 		return IncludeNode{Name: rest, Props: nil}, true, nil
@@ -255,20 +250,6 @@ func (p *parser) parseFor(detail string) (Node, error) {
 		alias = strings.TrimSpace(alias[:commaIdx])
 	}
 	return ForNode{Alias: alias, KeyAlias: keyAlias, Expr: ParseExpr(exprStr), Body: body}, nil
-}
-
-func (p *parser) parseForeach(detail string) (Node, error) {
-	parts := strings.SplitN(detail, " as ", 2)
-	exprStr := strings.TrimSpace(parts[0])
-	alias := ""
-	if len(parts) > 1 {
-		alias = strings.TrimSpace(parts[1])
-	}
-	body, _ := p.parseUntilCommands("endforeach")
-	if p.peek().Type == TokenCommand && p.peek().Value == "endforeach" {
-		p.next()
-	}
-	return ForNode{Alias: alias, Expr: ParseExpr(exprStr), Body: body}, nil
 }
 
 func (p *parser) parseSlot(name string) (Node, bool, error) {
