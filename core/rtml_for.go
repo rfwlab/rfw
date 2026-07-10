@@ -119,6 +119,12 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 		}
 
 		switch col := collection.(type) {
+		case nil:
+			// unset store key: render nothing; the OnChange subscription
+			// above re-renders once the key is set. Returning the raw match
+			// leaked the template row into the DOM and keyed patches never
+			// removed it.
+			return ""
 		case []any:
 			var result strings.Builder
 			alias := aliases[0]
@@ -129,9 +135,9 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 					c.AddDependency(placeholder, comp)
 					iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("@include:%s", placeholder))
 				} else if itemMap, ok := item.(map[string]any); ok {
-					fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+(?:\\.\\w+)*)", alias))
-					iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
-						fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+					rawRegex := regexp.MustCompile(fmt.Sprintf("@rawprop:%s\\.(\\w+(?:\\.\\w+)*)", alias))
+					iterContent = rawRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
+						fieldParts := rawRegex.FindStringSubmatch(fieldMatch)
 						if len(fieldParts) == 2 {
 							if fieldValue, ok := resolveNestedKey(itemMap, fieldParts[1]); ok {
 								return fmt.Sprintf("%v", fieldValue)
@@ -139,8 +145,18 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 						}
 						return fieldMatch
 					})
+					fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+(?:\\.\\w+)*)", alias))
+					iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
+						fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+						if len(fieldParts) == 2 {
+							if fieldValue, ok := resolveNestedKey(itemMap, fieldParts[1]); ok {
+								return escapeValue(fieldValue)
+							}
+						}
+						return fieldMatch
+					})
 				} else {
-					iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", item))
+					iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", alias), escapeValue(item))
 				}
 				iterContent = insertDataKey(iterContent, idx)
 				result.WriteString(iterContent)
