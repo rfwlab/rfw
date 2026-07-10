@@ -396,68 +396,125 @@ func patchInnerHTML(element js.Value, html string) {
 }
 
 func patchChildren(oldParent, newParent js.Value) {
-	oldChildren := oldParent.Get("childNodes")
-	newChildren := newParent.Get("childNodes")
+	// Snapshot the significant children (elements and non-blank text).
+	// Whitespace-only text nodes are formatting noise: pairing them
+	// positionally shifts the diff whenever a keyed list grows or a
+	// conditional toggles, morphing unrelated siblings into each other.
+	oldKids := significantChildren(oldParent)
+	newKids := significantChildren(newParent)
 
 	keyed := make(map[string]js.Value)
-	for i := 0; i < oldChildren.Length(); i++ {
-		child := oldChildren.Index(i)
+	for _, child := range oldKids {
 		if key := getDataKey(child); key != "" {
 			keyed[key] = child
 		}
 	}
 
-	index := 0
-	for i := 0; i < newChildren.Length(); i++ {
-		newChild := newChildren.Index(i)
-		key := getDataKey(newChild)
-		if key != "" {
+	consumed := make([]bool, len(oldKids))
+	oi := 0
+	// cursor returns the first unconsumed old node: inserts anchor before it.
+	cursor := func() js.Value {
+		for i := oi; i < len(oldKids); i++ {
+			if !consumed[i] {
+				return oldKids[i]
+			}
+		}
+		return js.Null()
+	}
+	insertAtCursor := func(node js.Value) {
+		if ref := cursor(); ref.Truthy() {
+			oldParent.Call("insertBefore", node, ref)
+		} else {
+			oldParent.Call("appendChild", node)
+		}
+	}
+
+	for _, newChild := range newKids {
+		if key := getDataKey(newChild); key != "" {
 			if oldChild, ok := keyed[key]; ok {
 				patchNode(oldChild, newChild)
-				ref := oldParent.Get("childNodes").Index(index)
-				if !oldChild.Equal(ref) {
-					if ref.Truthy() {
-						oldParent.Call("insertBefore", oldChild, ref)
-					} else {
-						oldParent.Call("appendChild", oldChild)
+				if ref := cursor(); !oldChild.Equal(ref) {
+					insertAtCursor(oldChild)
+				} else {
+					// already in position: consume it
+					for i := oi; i < len(oldKids); i++ {
+						if oldKids[i].Equal(oldChild) {
+							consumed[i] = true
+							break
+						}
 					}
 				}
 				delete(keyed, key)
 			} else {
-				clone := newChild.Call("cloneNode", true)
-				ref := oldParent.Get("childNodes").Index(index)
-				if ref.Truthy() {
-					oldParent.Call("insertBefore", clone, ref)
-				} else {
-					oldParent.Call("appendChild", clone)
-				}
+				insertAtCursor(newChild.Call("cloneNode", true))
 			}
-			index++
 			continue
 		}
 
-		oldChild := oldParent.Get("childNodes").Index(index)
-		if oldChild.Truthy() && getDataKey(oldChild) == "" {
-			patchNode(oldChild, newChild)
-		} else {
-			clone := newChild.Call("cloneNode", true)
-			ref := oldParent.Get("childNodes").Index(index)
-			if ref.Truthy() {
-				oldParent.Call("insertBefore", clone, ref)
-			} else {
-				oldParent.Call("appendChild", clone)
-			}
+		// advance past keyed leftovers (handled through the map above)
+		for oi < len(oldKids) && (consumed[oi] || getDataKey(oldKids[oi]) != "") {
+			oi++
 		}
-		index++
+		if oi < len(oldKids) && samePatchType(oldKids[oi], newChild) {
+			patchNode(oldKids[oi], newChild)
+			consumed[oi] = true
+			oi++
+		} else if oi < len(oldKids) {
+			oldParent.Call("replaceChild", newChild.Call("cloneNode", true), oldKids[oi])
+			consumed[oi] = true
+			oi++
+		} else {
+			oldParent.Call("appendChild", newChild.Call("cloneNode", true))
+		}
 	}
 
+	// leftover keyed nodes not reused by the new render
 	for _, child := range keyed {
 		child.Call("remove")
 	}
-
-	for oldParent.Get("childNodes").Length() > index {
-		oldParent.Get("childNodes").Index(index).Call("remove")
+	// leftover unkeyed significant nodes past the new list
+	for i := 0; i < len(oldKids); i++ {
+		if !consumed[i] && getDataKey(oldKids[i]) == "" {
+			oldKids[i].Call("remove")
+		}
 	}
+}
+
+// significantChildren returns the child nodes that participate in diffing:
+// elements and text nodes with non-whitespace content.
+func significantChildren(parent js.Value) []js.Value {
+	children := parent.Get("childNodes")
+	out := make([]js.Value, 0, children.Length())
+	for i := 0; i < children.Length(); i++ {
+		child := children.Index(i)
+		if child.Get("nodeType").Int() == 3 && strings.TrimSpace(child.Get("nodeValue").String()) == "" {
+			continue
+		}
+		out = append(out, child)
+	}
+	return out
+}
+
+// samePatchType reports whether two nodes may be patched in place: same node
+// name and, for conditional wrappers, the same data-condition identity (a
+// wrapper morphing into an unrelated sibling emptied whole sections).
+func samePatchType(oldNode, newNode js.Value) bool {
+	if oldNode.Get("nodeName").String() != newNode.Get("nodeName").String() {
+		return false
+	}
+	if oldNode.Get("nodeType").Int() != 1 {
+		return true
+	}
+	oc := oldNode.Call("getAttribute", "data-condition")
+	nc := newNode.Call("getAttribute", "data-condition")
+	os, ns := "", ""
+	if !oc.IsNull() {
+		os = oc.String()
+	}
+	if !nc.IsNull() {
+		ns = nc.String()
+	}
+	return os == ns
 }
 
 func getDataKey(node js.Value) string {
