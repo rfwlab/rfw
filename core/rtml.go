@@ -24,9 +24,11 @@ var (
 	reSlotNamed       = regexp.MustCompile(`@slot:(\w+)(?:\.(\w+))?([\s\S]*?)@endslot`)
 	reSlotDefault     = regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
 	reStore           = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
+	reRawStore        = regexp.MustCompile(`@rawstore:(\w+)\.(\w+)\.(\w+)`)
 	reSignal          = regexp.MustCompile(`@signal:(\w+)(:w)?`)
 	reExpr            = regexp.MustCompile(`@expr:([^<@|\n)]+)`)
 	reProp            = regexp.MustCompile(`@prop:(\w+)`)
+	reRawProp         = regexp.MustCompile(`@rawprop:(\w+)`)
 	rePluginVar       = regexp.MustCompile(`\{plugin:(\w+)\.(\w+)\}`)
 	rePluginCmd       = regexp.MustCompile(`@plugin:(\w+)\.(\w+)([\s>/])`)
 	reHelperVar       = regexp.MustCompile(`\{h:(\w+)\}`)
@@ -39,7 +41,6 @@ var (
 	reForeach         = regexp.MustCompile(`@foreach:(\S+)\s+as\s+(\w+)([\s\S]*?)@endforeach`)
 	depRegex          = regexp.MustCompile(`(?:store:\w+\.\w+\.\w+|signal:\w+|prop:\w+|\w+(?:\.\w+)*)`)
 )
-
 
 // AST structures for template parsing
 type Node interface {
@@ -245,7 +246,33 @@ func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+// escapeValue renders a substituted value HTML-escaped: template bindings are
+// text by default; @rawstore/@rawprop opt into trusted markup injection.
+func escapeValue(v any) string {
+	return html.EscapeString(fmt.Sprintf("%v", v))
+}
+
 func replaceStorePlaceholders(template string, c *HTMLComponent) string {
+	template = reRawStore.ReplaceAllStringFunc(template, func(match string) string {
+		parts := reRawStore.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+		module, storeName, key := parts[1], parts[2], parts[3]
+		store := state.GlobalStoreManager.GetStore(module, storeName)
+		if store == nil {
+			return match
+		}
+		value := store.Get(key)
+		if value == nil {
+			value = ""
+		}
+		unsubscribe := store.OnChange(key, func(newValue any) {
+			updateStoreBindings(c, module, storeName, key, newValue)
+		})
+		c.unsubscribes.Add(unsubscribe)
+		return fmt.Sprintf(`<span data-store-raw="%s.%s.%s">%v</span>`, module, storeName, key, value)
+	})
 	storeRegex := reStore
 	return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := storeRegex.FindStringSubmatch(match)
@@ -273,7 +300,7 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 			if isWriteable {
 				return match
 			} else {
-				return fmt.Sprintf(`<span data-store="%s.%s.%s">%v</span>`, module, storeName, key, value)
+				return fmt.Sprintf(`<span data-store="%s.%s.%s">%s</span>`, module, storeName, key, escapeValue(value))
 			}
 		}
 		if DevMode {
@@ -714,6 +741,16 @@ func updateClassExprBindings(c *HTMLComponent, exprID string, newValue any) {
 }
 
 func replacePropPlaceholders(template string, c *HTMLComponent) string {
+	template = reRawProp.ReplaceAllStringFunc(template, func(match string) string {
+		parts := reRawProp.FindStringSubmatch(match)
+		if len(parts) != 2 {
+			return match
+		}
+		if value, exists := c.Props[parts[1]]; exists {
+			return fmt.Sprintf("%v", value)
+		}
+		return match
+	})
 	propRegex := reProp
 	idx := 0
 	return propRegex.ReplaceAllStringFunc(template, func(match string) string {
@@ -730,7 +767,7 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 				c.AddDependency(placeholder, v)
 				return fmt.Sprintf("@include:%s", placeholder)
 			default:
-				return fmt.Sprintf("%v", v)
+				return escapeValue(v)
 			}
 		}
 		if DevMode {
@@ -1010,8 +1047,12 @@ func updateStoreBindings(c *HTMLComponent, module, storeName, key string, newVal
 	selector := fmt.Sprintf(`[data-store="%s.%s.%s"]`, module, storeName, key)
 	nodes := element.Call("querySelectorAll", selector)
 	for i := 0; i < nodes.Length(); i++ {
-		node := nodes.Index(i)
-		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
+		nodes.Index(i).Set("textContent", fmt.Sprintf("%v", newValue))
+	}
+	rawSelector := fmt.Sprintf(`[data-store-raw="%s.%s.%s"]`, module, storeName, key)
+	rawNodes := element.Call("querySelectorAll", rawSelector)
+	for i := 0; i < rawNodes.Length(); i++ {
+		rawNodes.Index(i).Set("innerHTML", fmt.Sprintf("%v", newValue))
 	}
 
 	placeholder := fmt.Sprintf("@store:%s.%s.%s:w", module, storeName, key)
@@ -1244,6 +1285,11 @@ func legacyReplaceForPlaceholders(template string, c *HTMLComponent) string {
 		}
 
 		switch col := collection.(type) {
+		case nil:
+			// unset store key: render nothing; the subscription above
+			// re-renders once the key is set (raw output leaked the
+			// template row into the DOM and keyed patches never removed it)
+			return ""
 		case []any:
 			var result strings.Builder
 			alias := aliases[0]
@@ -1385,27 +1431,27 @@ func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
 		for i := 0; i < val.Len(); i++ {
 			item := val.Index(i).Interface()
 			iter := content
-		if itemMap, ok := item.(map[string]any); ok {
-			fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+(?:\\.\\w+)*)`, alias))
-			iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-				fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
-				if len(fieldParts) == 2 {
-					if fieldValue, ok := resolveNestedKey(itemMap, fieldParts[1]); ok {
-						return fmt.Sprintf("%v", fieldValue)
+			if itemMap, ok := item.(map[string]any); ok {
+				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+(?:\\.\\w+)*)`, alias))
+				iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, ok := resolveNestedKey(itemMap, fieldParts[1]); ok {
+							return fmt.Sprintf("%v", fieldValue)
+						}
 					}
-				}
-				return fieldMatch
-			})
-			propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+(?:\\.\\w+)*)`, alias))
-			iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-				fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
-				if len(fieldParts) == 2 {
-					if fieldValue, ok := resolveNestedKey(itemMap, fieldParts[1]); ok {
-						return fmt.Sprintf("%v", fieldValue)
+					return fieldMatch
+				})
+				propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+(?:\\.\\w+)*)`, alias))
+				iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, ok := resolveNestedKey(itemMap, fieldParts[1]); ok {
+							return fmt.Sprintf("%v", fieldValue)
+						}
 					}
-				}
-				return fieldMatch
-			})
+					return fieldMatch
+				})
 			}
 			iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", item))
 			iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", item))
@@ -1422,27 +1468,27 @@ func renderForeachLoop(c *HTMLComponent, expr, alias, content string) string {
 		for _, k := range keys {
 			v := val.MapIndex(k).Interface()
 			iter := content
-		if vMap, ok := v.(map[string]any); ok {
-			fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+(?:\\.\\w+)*)`, alias))
-			iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-				fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
-				if len(fieldParts) == 2 {
-					if fieldValue, ok := resolveNestedKey(vMap, fieldParts[1]); ok {
-						return fmt.Sprintf("%v", fieldValue)
+			if vMap, ok := v.(map[string]any); ok {
+				fieldRegex := regexp.MustCompile(fmt.Sprintf(`@%s\\.(\\w+(?:\\.\\w+)*)`, alias))
+				iter = fieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, ok := resolveNestedKey(vMap, fieldParts[1]); ok {
+							return fmt.Sprintf("%v", fieldValue)
+						}
 					}
-				}
-				return fieldMatch
-			})
-			propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+(?:\\.\\w+)*)`, alias))
-			iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
-				fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
-				if len(fieldParts) == 2 {
-					if fieldValue, ok := resolveNestedKey(vMap, fieldParts[1]); ok {
-						return fmt.Sprintf("%v", fieldValue)
+					return fieldMatch
+				})
+				propFieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\\.(\\w+(?:\\.\\w+)*)`, alias))
+				iter = propFieldRegex.ReplaceAllStringFunc(iter, func(fieldMatch string) string {
+					fieldParts := propFieldRegex.FindStringSubmatch(fieldMatch)
+					if len(fieldParts) == 2 {
+						if fieldValue, ok := resolveNestedKey(vMap, fieldParts[1]); ok {
+							return fmt.Sprintf("%v", fieldValue)
+						}
 					}
-				}
-				return fieldMatch
-			})
+					return fieldMatch
+				})
 			}
 			iter = strings.ReplaceAll(iter, fmt.Sprintf("@%s", alias), fmt.Sprintf("%v", v))
 			iter = strings.ReplaceAll(iter, fmt.Sprintf("@prop:%s", alias), fmt.Sprintf("%v", v))
