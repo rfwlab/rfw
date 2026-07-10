@@ -47,17 +47,16 @@ type HTMLComponent struct {
 	Slots             map[string]any
 	HostComponent     string
 	conditionContents map[string]ConditionContent
-	foreachContents   map[string]ForeachConfig
 	exprContents      map[string]string
 	classExprContents map[string]string
 	hostVars          []string
 	hostCmds          []string
 	component         Component
-	mounted        bool
-	onMount        func(*HTMLComponent)
-	onUnmount      func(*HTMLComponent)
-	onParams       func(*HTMLComponent, map[string]string)
-	parent         *HTMLComponent
+	mounted           bool
+	onMount           func(*HTMLComponent)
+	onUnmount         func(*HTMLComponent)
+	onParams          func(*HTMLComponent, map[string]string)
+	parent            *HTMLComponent
 	provides          map[string]any
 	cache             map[string]string
 	lastCacheKey      string
@@ -94,7 +93,6 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTM
 		Props:             props,
 		Slots:             make(map[string]any),
 		conditionContents: make(map[string]ConditionContent),
-		foreachContents:   make(map[string]ForeachConfig),
 		exprContents:      make(map[string]string),
 		classExprContents: make(map[string]string),
 	}
@@ -181,9 +179,8 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle @include:componentName syntax for dependencies
 	renderedTemplate = replaceIncludePlaceholders(c, renderedTemplate)
 
-	// Handle @for loops and legacy @foreach syntax
+	// Handle @for loops
 	renderedTemplate = replaceForPlaceholders(renderedTemplate, c)
-	renderedTemplate = replaceForeachPlaceholders(renderedTemplate, c)
 
 	renderedTemplate = replaceStorePlaceholders(renderedTemplate, c)
 	renderedTemplate = replaceSignalPlaceholders(renderedTemplate, c)
