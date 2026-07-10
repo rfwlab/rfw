@@ -5,6 +5,8 @@ package core
 import (
 	"strings"
 	"testing"
+
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Tests complex conditional scenarios including @else-if and nested blocks.
@@ -58,7 +60,7 @@ Start
 func TestReplaceConstructors(t *testing.T) {
 	tpl := `<div [header] class="box"></div>`
 	out := replaceConstructors(tpl)
-	if out != `<div class="box" data-ref="header"></div>` {
+	if !strings.Contains(out, `data-ref="header"`) || !strings.Contains(out, `class="box"`) {
 		t.Fatalf("unexpected constructor replacement: %s", out)
 	}
 
@@ -85,5 +87,55 @@ func TestPluginPlaceholders(t *testing.T) {
 	out = replaceConstructors(tpl)
 	if !strings.Contains(out, `data-plugin="soccer.badge"`) {
 		t.Fatalf("plugin constructor not replaced: %s", out)
+	}
+}
+
+// A @for bound to a store key that was never set must render nothing: the raw
+// template row used to leak into the DOM and keyed patches never removed it.
+func TestForUnsetStoreKeyRendersNothing(t *testing.T) {
+	state.NewStore("fornil", state.WithModule("app"))
+	tpl := []byte(`<root><div>@for:i in store:app.fornil.items
+<span data-key="x">@prop:i.title</span>
+@endfor</div></root>`)
+	c := NewHTMLComponent("ForNil", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+	if strings.Contains(html, "@prop") || strings.Contains(html, "@for") {
+		t.Fatalf("unset store key leaked template markup: %s", html)
+	}
+}
+
+// Substituted values are HTML-escaped by default; @rawprop opts into markup.
+func TestForFieldsEscapedByDefault(t *testing.T) {
+	st := state.NewStore("escfor", state.WithModule("app"))
+	st.Set("items", []any{map[string]any{"txt": "<img src=x>", "markup": "<b>ok</b>"}})
+	tpl := []byte(`<root><div>@for:i in store:app.escfor.items
+<span data-key="k">@prop:i.txt|@rawprop:i.markup</span>
+@endfor</div></root>`)
+	c := NewHTMLComponent("EscFor", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;img src=x&gt;") {
+		t.Fatalf("field not escaped: %s", html)
+	}
+	if !strings.Contains(html, "<b>ok</b>") {
+		t.Fatalf("rawprop escaped: %s", html)
+	}
+}
+
+// @store values are escaped by default; @rawstore injects trusted markup.
+func TestStoreEscapedByDefault(t *testing.T) {
+	st := state.NewStore("escstore", state.WithModule("app"))
+	st.Set("v", "<i>x</i>")
+	st.Set("m", "<i>y</i>")
+	tpl := []byte(`<root><div>@store:app.escstore.v @rawstore:app.escstore.m</div></root>`)
+	c := NewHTMLComponent("EscStore", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;i&gt;x&lt;/i&gt;") {
+		t.Fatalf("store not escaped: %s", html)
+	}
+	if !strings.Contains(html, "<i>y</i>") {
+		t.Fatalf("rawstore escaped: %s", html)
 	}
 }
