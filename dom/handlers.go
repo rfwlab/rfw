@@ -44,6 +44,27 @@ func RegisterHandlerEvent(name string, fn func(js.Value)) {
 	})
 }
 
+// RegisterHandlerElem registers a handler that receives the element carrying
+// the data-on-* attribute (resolved by event delegation, so it works for
+// markup injected at runtime) together with the event. This is the idiomatic
+// way to handle clicks on list rows: render rows with data-on-click="name"
+// and read the row's data-* attributes from el.
+func RegisterHandlerElem(name string, fn func(el Element, evt Event)) {
+	RegisterHandler(name, func(this js.Value, args []js.Value) any {
+		var evt, el js.Value
+		if len(args) > 0 {
+			evt = args[0]
+		}
+		if len(args) > 1 {
+			el = args[1]
+		} else if evt.Truthy() {
+			el = evt.Get("target")
+		}
+		fn(Element{el}, Event{evt})
+		return nil
+	})
+}
+
 // GetHandler retrieves a registered handler by name.
 func GetHandler(name string) js.Func {
 	if v, ok := handlerRegistry[name]; ok {
