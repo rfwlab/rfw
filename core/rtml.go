@@ -31,7 +31,6 @@ var (
 	rePluginCmd       = regexp.MustCompile(`@plugin:(\w+)\.(\w+)([\s>/])`)
 	reHelperVar       = regexp.MustCompile(`\{h:(\w+)\}`)
 	reHelperCmd       = regexp.MustCompile(`@h:(\w+)`)
-	reEvent           = regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)([\s>/])`)
 	reRtIs            = regexp.MustCompile(`<([a-zA-Z0-9]+)([^>]*)rt-is="([^"]+)"[^>]*/?>`)
 	reTagName         = regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
 	reConditionalAttr = regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
@@ -827,30 +826,7 @@ func replaceHostPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceEventHandlers(template string) string {
-	// Match event directives ensuring they are terminated by whitespace,
-	// a self-closing slash or the end of the tag. The terminating
-	// character is captured so it can be preserved in the replacement.
-	eventRegex := reEvent
-	return eventRegex.ReplaceAllStringFunc(template, func(match string) string {
-		parts := eventRegex.FindStringSubmatch(match)
-		if len(parts) != 5 {
-			return match
-		}
-		fullEvent := parts[2]
-		handler := parts[3]
-		suffix := parts[4]
-		eventParts := strings.Split(fullEvent, ".")
-		event := eventParts[0]
-		modifiers := []string{}
-		if len(eventParts) > 1 {
-			modifiers = eventParts[1:]
-		}
-		attr := fmt.Sprintf("data-on-%s=\"%s\"", event, handler)
-		if len(modifiers) > 0 {
-			attr += fmt.Sprintf(" data-on-%s-modifiers=\"%s\"", event, strings.Join(modifiers, ","))
-		}
-		return attr + suffix
-	})
+	return dom.ExpandEvents(template)
 }
 
 // replaceRtIsAttributes scans the template for elements decorated with the
