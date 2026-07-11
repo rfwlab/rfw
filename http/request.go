@@ -61,3 +61,54 @@ func Request(url string, opts RequestOptions, cb func(status int, body string)) 
 	})
 	js.Fetch(url, o).Call("then", onResp).Call("catch", onErr)
 }
+
+// RequestBytes performs an uncached fetch like Request but delivers the raw
+// response bytes via arrayBuffer, so binary payloads (images, chunks,
+// downloads) survive intact; Request's text decoding would corrupt them.
+func RequestBytes(url string, opts RequestOptions, cb func(status int, body []byte)) {
+	o := js.Object().New()
+	if opts.Method != "" {
+		o.Set("method", opts.Method)
+	}
+	if len(opts.Headers) > 0 {
+		h := js.Object().New()
+		for k, v := range opts.Headers {
+			h.Set(k, v)
+		}
+		o.Set("headers", h)
+	}
+	if opts.Body != "" {
+		o.Set("body", opts.Body)
+	}
+
+	status := 0
+	var onResp, onBuf, onErr js.Func
+	release := func() {
+		onResp.Release()
+		onBuf.Release()
+		onErr.Release()
+	}
+	onBuf = js.FuncOf(func(_ js.Value, a []js.Value) any {
+		u8 := js.Uint8Array().New(a[0])
+		body := make([]byte, u8.Get("length").Int())
+		js.CopyBytesToGo(body, u8)
+		release()
+		if cb != nil {
+			cb(status, body)
+		}
+		return nil
+	})
+	onResp = js.FuncOf(func(_ js.Value, a []js.Value) any {
+		status = a[0].Get("status").Int()
+		a[0].Call("arrayBuffer").Call("then", onBuf)
+		return nil
+	})
+	onErr = js.FuncOf(func(_ js.Value, a []js.Value) any {
+		release()
+		if cb != nil {
+			cb(0, nil)
+		}
+		return nil
+	})
+	js.Global().Call("fetch", url, o).Call("then", onResp).Call("catch", onErr)
+}
