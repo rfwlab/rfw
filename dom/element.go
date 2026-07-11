@@ -80,3 +80,29 @@ func (e Element) Length() int { return e.Get("length").Int() }
 
 // Index retrieves the element at the given position when representing a collection.
 func (e Element) Index(i int) Element { return Element{e.Value.Index(i)} }
+
+// Val returns the element's value property (inputs, selects, textareas).
+// Named Val because the embedded js.Value field occupies Value.
+func (e Element) Val() string { return e.Get("value").String() }
+
+// SetValue sets the element's value property.
+func (e Element) SetValue(v string) { e.Set("value", v) }
+
+// Checked reports whether a checkbox or radio input is checked.
+func (e Element) Checked() bool { return e.Get("checked").Bool() }
+
+// Data reads a data-* attribute by its dataset key (camelCase: data-item-id
+// becomes Data("itemId")).
+func (e Element) Data(key string) string {
+	v := e.Get("dataset").Get(key)
+	if !v.Truthy() {
+		return ""
+	}
+	return v.String()
+}
+
+// Closest returns the nearest ancestor (or the element itself) matching the
+// selector; check IsNull on the result for no match.
+func (e Element) Closest(sel string) Element {
+	return Element{e.Call("closest", sel)}
+}

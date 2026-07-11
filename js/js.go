@@ -191,6 +191,10 @@ func WebAssembly() Value { return Get("WebAssembly") }
 // Uint8Array returns the Uint8Array constructor.
 func Uint8Array() Value { return Get("Uint8Array") }
 
+// CopyBytesToGo copies bytes from a Uint8Array into dst and returns the
+// number of bytes copied, mirroring syscall/js.
+func CopyBytesToGo(dst []byte, src Value) int { return jst.CopyBytesToGo(dst, src) }
+
 // Float32Array returns the Float32Array constructor.
 func Float32Array() Value { return Get("Float32Array") }
 
