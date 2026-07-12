@@ -140,7 +140,13 @@ func connectionLoop() {
 				for _, msg := range pend {
 					sendMessage(c, msg)
 				}
+				mu.RLock()
+				names := make([]string, 0, len(bindings))
 				for name := range bindings {
+					names = append(names, name)
+				}
+				mu.RUnlock()
+				for _, name := range names {
 					sendMessage(c, message{name: name, payload: map[string]any{"init": true}})
 				}
 
@@ -211,7 +217,11 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			sessionID = msg.Session
 			sessionMu.Unlock()
 		}
-		if h, ok := handlers[msg.Component]; ok {
+		mu.RLock()
+		h, hasHandler := handlers[msg.Component]
+		b, hasBinding := bindings[msg.Component]
+		mu.RUnlock()
+		if hasHandler {
 			payload := msg.Payload
 			if payload == nil {
 				payload = make(map[string]any)
@@ -222,7 +232,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			h(payload)
 			continue
 		}
-		if b, ok := bindings[msg.Component]; ok {
+		if hasBinding {
 			rootEl := dom.ComponentRoot(b.id)
 			if !rootEl.Truthy() {
 				continue
@@ -233,7 +243,9 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 				applyInitSnapshot(root, snap)
 				if len(snap.Vars) > 0 {
 					b.vars = append([]string(nil), snap.Vars...)
+					mu.Lock()
 					bindings[msg.Component] = b
+					mu.Unlock()
 				}
 				continue
 			}
