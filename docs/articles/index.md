@@ -12,10 +12,19 @@
   scaffold, stores, `@for` lists, event handlers, and a live data feed.
 - [Dynamic lists and events](guide/dynamic-lists.md): fetch data, render
   rows, handle clicks; the pattern behind every real page.
+- [Server Side Computed (SSC)](guide/ssc.md): host components, host
+  signals, broadcasts and serving; the server-driven half of rfw.
 - [SSC security model](guide/ssc-security.md): what crosses the wire, what
   stays on the server, and the auth work rfw leaves to you.
 - [Hot reload: what is instant, what is not](guide/hot-reload.md): measured
   rebuild times and the honest limits of the dev loop.
+- [Testing](testing.md): native tests, browser (wasm) tests with
+  wasmbrowsertest, race testing and golden templates.
+
+## Plugins
+
+- [Pages plugin](plugins/pages.md): file-based routing generated from the
+  `pages/` directory.
 
 ## Measurements
 
