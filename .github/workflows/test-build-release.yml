@@ -78,8 +78,12 @@ jobs:
           sudo chmod +x /usr/bin/google-chrome
           google-chrome --version
 
+      # wasm_exec.js forwards the whole environment to the wasm process and
+      # Go's js runtime caps argv+env; the runner env is huge, so trim it.
       - name: Run wasm tests in headless Chrome
-        run: GOOS=js GOARCH=wasm go test -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
+        run: |
+          exec env -i HOME="$HOME" PATH="$PATH" \
+            GOOS=js GOARCH=wasm go test -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
 
   scan:
     name: EUProvGuard Scan
