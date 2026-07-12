@@ -14,3 +14,10 @@
   rows, handle clicks; the pattern behind every real page.
 - [SSC security model](guide/ssc-security.md): what crosses the wire, what
   stays on the server, and the auth work rfw leaves to you.
+- [Hot reload: what is instant, what is not](guide/hot-reload.md): measured
+  rebuild times and the honest limits of the dev loop.
+
+## Measurements
+
+- [Benchmarks](benchmarks.md): TodoMVC and live updates vs Svelte, Solid and
+  htmx; bundle sizes, load, interaction and memory.
