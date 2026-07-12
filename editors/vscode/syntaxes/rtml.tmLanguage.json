@@ -1,0 +1,335 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "RTML",
+  "scopeName": "text.html.rtml",
+  "fileTypes": ["rtml"],
+  "injections": {
+    "L:text.html.rtml -comment": {
+      "patterns": [
+        { "include": "#interpolation" },
+        { "include": "#host-placeholder" },
+        { "include": "#directives" }
+      ]
+    },
+    "L:text.html.rtml meta.tag -string -comment": {
+      "patterns": [
+        { "include": "#constructor-marker" }
+      ]
+    }
+  },
+  "patterns": [
+    { "include": "#interpolation" },
+    { "include": "#host-placeholder" },
+    { "include": "#directives" },
+    { "include": "text.html.basic" }
+  ],
+  "repository": {
+    "directives": {
+      "patterns": [
+        { "include": "#control-if" },
+        { "include": "#control-for" },
+        { "include": "#control-slot" },
+        { "include": "#control-end" },
+        { "include": "#include-directive" },
+        { "include": "#store-binding" },
+        { "include": "#signal-binding" },
+        { "include": "#prop-binding" },
+        { "include": "#expr-directive" },
+        { "include": "#plugin-directive" },
+        { "include": "#host-command" },
+        { "include": "#on-event" },
+        { "include": "#shorthand-event" }
+      ]
+    },
+    "control-if": {
+      "comment": "@if:EXPR and @else-if:EXPR; the lexer terminates the command at a newline or '<'",
+      "match": "(@)(if|else-if)(:)([^<\\r\\n]*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "keyword.control.conditional.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": {
+          "name": "meta.expression.rtml",
+          "patterns": [{ "include": "#expression" }]
+        }
+      }
+    },
+    "control-for": {
+      "comment": "@for:alias in EXPR or @for:alias,key in EXPR",
+      "match": "(@)(for)(:)\\s*(\\w+)\\s*(?:(,)\\s*(\\w+))?\\s+(in)\\s+([^<\\r\\n]*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "keyword.control.loop.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "variable.other.iteration.rtml" },
+        "5": { "name": "punctuation.separator.comma.rtml" },
+        "6": { "name": "variable.other.iteration.key.rtml" },
+        "7": { "name": "keyword.operator.in.rtml" },
+        "8": {
+          "name": "meta.expression.rtml",
+          "patterns": [{ "include": "#expression" }]
+        }
+      }
+    },
+    "control-slot": {
+      "comment": "@slot, @slot:name and @slot:name.modifier blocks",
+      "match": "(@)(slot)(?:(:)(\\w+)(?:(\\.)(\\w+))?)?(?![\\w:])",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "keyword.control.slot.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "entity.name.tag.slot.rtml" },
+        "5": { "name": "punctuation.accessor.rtml" },
+        "6": { "name": "entity.other.attribute-name.slot-modifier.rtml" }
+      }
+    },
+    "control-end": {
+      "match": "(@)(endif|endfor|endslot|else)\\b",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "keyword.control.rtml" }
+      }
+    },
+    "include-directive": {
+      "comment": "@include:Component with optional inline props @include:Component:{key:\"value\"}",
+      "match": "(@)(include)(:)([\\w-]+)(?:(:)(\\{)([^}]*)(\\}))?",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "support.function.include.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "entity.name.class.component.rtml" },
+        "5": { "name": "punctuation.separator.directive.rtml" },
+        "6": { "name": "punctuation.definition.props.begin.rtml" },
+        "7": {
+          "name": "meta.include-props.rtml",
+          "patterns": [
+            {
+              "match": "(\\w+)(:)(\"[^\"]*\")",
+              "captures": {
+                "1": { "name": "variable.parameter.prop.rtml" },
+                "2": { "name": "punctuation.separator.key-value.rtml" },
+                "3": { "name": "string.quoted.double.rtml" }
+              }
+            }
+          ]
+        },
+        "8": { "name": "punctuation.definition.props.end.rtml" }
+      }
+    },
+    "store-binding": {
+      "comment": "@store:module.store.key with optional :w two-way suffix; @rawstore has no :w",
+      "patterns": [
+        {
+          "match": "(@)(store)(:)(\\w+)(\\.)(\\w+)(\\.)(\\w+)(:w)?",
+          "captures": {
+            "1": { "name": "punctuation.definition.directive.rtml" },
+            "2": { "name": "support.function.binding.rtml" },
+            "3": { "name": "punctuation.separator.directive.rtml" },
+            "4": { "name": "variable.other.store.module.rtml" },
+            "5": { "name": "punctuation.accessor.rtml" },
+            "6": { "name": "variable.other.store.name.rtml" },
+            "7": { "name": "punctuation.accessor.rtml" },
+            "8": { "name": "variable.other.store.key.rtml" },
+            "9": { "name": "storage.modifier.writeable.rtml" }
+          }
+        },
+        {
+          "match": "(@)(rawstore)(:)(\\w+)(\\.)(\\w+)(\\.)(\\w+)",
+          "captures": {
+            "1": { "name": "punctuation.definition.directive.rtml" },
+            "2": { "name": "support.function.binding.raw.rtml" },
+            "3": { "name": "punctuation.separator.directive.rtml" },
+            "4": { "name": "variable.other.store.module.rtml" },
+            "5": { "name": "punctuation.accessor.rtml" },
+            "6": { "name": "variable.other.store.name.rtml" },
+            "7": { "name": "punctuation.accessor.rtml" },
+            "8": { "name": "variable.other.store.key.rtml" }
+          }
+        }
+      ]
+    },
+    "signal-binding": {
+      "comment": "@signal:name with optional :w two-way suffix",
+      "match": "(@)(signal)(:)(\\w+)(:w)?",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "support.function.binding.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "variable.other.signal.rtml" },
+        "5": { "name": "storage.modifier.writeable.rtml" }
+      }
+    },
+    "prop-binding": {
+      "comment": "@prop:name and @rawprop:name",
+      "match": "(@)(rawprop|prop)(:)(\\w+(?:\\.\\w+)*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "support.function.binding.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "variable.other.prop.rtml" }
+      }
+    },
+    "expr-directive": {
+      "comment": "@expr:EXPR; the parser stops at '<', '@', '|', ')' or newline",
+      "match": "(@)(expr)(:)([^<@|\\r\\n)]+)",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "keyword.other.expr.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": {
+          "name": "meta.expression.rtml",
+          "patterns": [{ "include": "#expression" }]
+        }
+      }
+    },
+    "plugin-directive": {
+      "comment": "@plugin:module.command",
+      "match": "(@)(plugin)(:)(\\w+)(\\.)(\\w+)",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "support.function.plugin.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "variable.other.plugin.module.rtml" },
+        "5": { "name": "punctuation.accessor.rtml" },
+        "6": { "name": "entity.name.function.plugin-command.rtml" }
+      }
+    },
+    "host-command": {
+      "comment": "@h:command binds a host component command",
+      "match": "(@)(h)(:)(\\w+)",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "support.function.host.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "entity.name.function.host-command.rtml" }
+      }
+    },
+    "host-placeholder": {
+      "comment": "{h:name} host component variable placeholder",
+      "match": "(\\{)(h)(:)(\\w+)(\\})",
+      "name": "meta.host-placeholder.rtml",
+      "captures": {
+        "1": { "name": "punctuation.definition.host-placeholder.begin.rtml" },
+        "2": { "name": "support.function.host.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "variable.other.host.rtml" },
+        "5": { "name": "punctuation.definition.host-placeholder.end.rtml" }
+      }
+    },
+    "on-event": {
+      "comment": "@on:event:handler with optional dot modifiers, e.g. @on:keydown.enter:submit",
+      "match": "(@)(on)(:)(\\w+(?:\\.\\w+)*)(:)(\\w+)(?=[\\s>/])",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "support.function.event.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "constant.other.event-name.rtml" },
+        "5": { "name": "punctuation.separator.directive.rtml" },
+        "6": { "name": "entity.name.function.handler.rtml" }
+      }
+    },
+    "shorthand-event": {
+      "comment": "@event:handler shorthand, e.g. @click:save; terminated by whitespace, '>' or '/'",
+      "match": "(@)(\\w+(?:\\.\\w+)*)(:)(\\w+)(?=[\\s>/])",
+      "captures": {
+        "1": { "name": "punctuation.definition.directive.rtml" },
+        "2": { "name": "constant.other.event-name.rtml" },
+        "3": { "name": "punctuation.separator.directive.rtml" },
+        "4": { "name": "entity.name.function.handler.rtml" }
+      }
+    },
+    "constructor-marker": {
+      "comment": "[ref], [key expr] and [plugin:name] constructor markers inside a start tag",
+      "patterns": [
+        {
+          "match": "(\\[)(key)\\s+([^\\]]+)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.marker.begin.rtml" },
+            "2": { "name": "keyword.other.key.rtml" },
+            "3": {
+              "name": "meta.expression.rtml",
+              "patterns": [{ "include": "#expression" }]
+            },
+            "4": { "name": "punctuation.definition.marker.end.rtml" }
+          }
+        },
+        {
+          "match": "(\\[)(plugin)(:)([^\\] ]+)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.marker.begin.rtml" },
+            "2": { "name": "support.function.plugin.rtml" },
+            "3": { "name": "punctuation.separator.directive.rtml" },
+            "4": { "name": "variable.other.plugin.rtml" },
+            "5": { "name": "punctuation.definition.marker.end.rtml" }
+          }
+        },
+        {
+          "match": "(\\[)([\\w-]+)(\\])",
+          "captures": {
+            "1": { "name": "punctuation.definition.marker.begin.rtml" },
+            "2": { "name": "variable.other.ref.rtml" },
+            "3": { "name": "punctuation.definition.marker.end.rtml" }
+          }
+        }
+      ]
+    },
+    "interpolation": {
+      "comment": "{{ expression }} interpolation",
+      "begin": "\\{\\{",
+      "end": "\\}\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.begin.rtml" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.end.rtml" }
+      },
+      "name": "meta.embedded.expression.rtml",
+      "patterns": [{ "include": "#expression" }]
+    },
+    "expression": {
+      "comment": "The rtml expression language (rtmlast.ParseExpr)",
+      "patterns": [
+        {
+          "name": "string.quoted.double.rtml",
+          "begin": "\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.single.rtml",
+          "begin": "'",
+          "end": "'"
+        },
+        {
+          "comment": "store:module.store.key, signal:name, prop:name references",
+          "match": "\\b(store|signal|prop)(:)([\\w.]+)",
+          "captures": {
+            "1": { "name": "support.type.reference.rtml" },
+            "2": { "name": "punctuation.separator.directive.rtml" },
+            "3": { "name": "variable.other.reference.rtml" }
+          }
+        },
+        {
+          "name": "keyword.operator.word.rtml",
+          "match": "\\b(and|or|not|is not|is|then|else)\\b"
+        },
+        {
+          "name": "constant.numeric.rtml",
+          "match": "\\b\\d+(\\.\\d+)?\\b"
+        },
+        {
+          "name": "keyword.operator.rtml",
+          "match": "(\\|\\||&&|==|!=|<=|>=|[<>+*/?!-]|:)"
+        },
+        {
+          "comment": "function call",
+          "match": "\\b(\\w+)(?=\\()",
+          "name": "entity.name.function.rtml"
+        },
+        {
+          "name": "variable.other.rtml",
+          "match": "\\b[A-Za-z_]\\w*\\b"
+        }
+      ]
+    }
+  }
+}
