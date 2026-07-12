@@ -176,15 +176,25 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 			var result strings.Builder
 			for idx, k := range keys {
 				v := col[k]
-				iterContent := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", keyAlias), k)
+				iterContent := strings.ReplaceAll(loopContent, fmt.Sprintf("@prop:%s", keyAlias), escapeValue(k))
 				if len(aliases) > 1 {
 					if vMap, ok := v.(map[string]any); ok {
+						rawRegex := regexp.MustCompile(fmt.Sprintf("@rawprop:%s\\.(\\w+(?:\\.\\w+)*)", valAlias))
+						iterContent = rawRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
+							fieldParts := rawRegex.FindStringSubmatch(fieldMatch)
+							if len(fieldParts) == 2 {
+								if fieldValue, ok := resolveNestedKey(vMap, fieldParts[1]); ok {
+									return fmt.Sprintf("%v", fieldValue)
+								}
+							}
+							return fieldMatch
+						})
 						fieldRegex := regexp.MustCompile(fmt.Sprintf("@prop:%s\\.(\\w+(?:\\.\\w+)*)", valAlias))
 						iterContent = fieldRegex.ReplaceAllStringFunc(iterContent, func(fieldMatch string) string {
 							fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
 							if len(fieldParts) == 2 {
 								if fieldValue, ok := resolveNestedKey(vMap, fieldParts[1]); ok {
-									return fmt.Sprintf("%v", fieldValue)
+									return escapeValue(fieldValue)
 								}
 							}
 							return fieldMatch
@@ -194,7 +204,8 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 						c.AddDependency(placeholder, comp)
 						iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", valAlias), fmt.Sprintf("@include:%s", placeholder))
 					} else {
-						iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", valAlias), fmt.Sprintf("%v", v))
+						iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@rawprop:%s", valAlias), fmt.Sprintf("%v", v))
+						iterContent = strings.ReplaceAll(iterContent, fmt.Sprintf("@prop:%s", valAlias), escapeValue(v))
 					}
 				}
 				iterContent = insertDataKey(iterContent, k)
