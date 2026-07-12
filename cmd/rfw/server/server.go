@@ -1,3 +1,5 @@
+//go:build !js
+
 package server
 
 import (
@@ -30,12 +32,12 @@ import (
 var rebuilds = expvar.NewInt("rebuilds")
 
 type Server struct {
-	Port      string
-	Host      bool
-	stopCh    chan os.Signal
-	watcher   *fsnotify.Watcher
-	hostCmd   *exec.Cmd
-	buildType string
+	Port        string
+	Host        bool
+	stopCh      chan os.Signal
+	watcher     *fsnotify.Watcher
+	hostCmd     *exec.Cmd
+	buildType   string
 	hostPort    string
 	ignoreUntil time.Time
 	hmrMu       sync.Mutex
@@ -46,9 +48,9 @@ const ignoreDelay = 200 * time.Millisecond
 
 func NewServer(port string, host bool) *Server {
 	return &Server{
-		Port:     port,
-		Host:     host,
-		stopCh:   make(chan os.Signal, 1),
+		Port:       port,
+		Host:       host,
+		stopCh:     make(chan os.Signal, 1),
 		hmrClients: make(map[chan []byte]struct{}),
 	}
 }
