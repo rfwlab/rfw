@@ -1,3 +1,5 @@
+//go:build !js
+
 package server
 
 import signalbus "github.com/mirkobrombin/go-signal/v2/pkg/bus"
