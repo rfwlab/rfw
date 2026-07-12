@@ -119,18 +119,25 @@ func Broadcast(name string, payload any, opts ...BroadcastOption) {
 		opt(&options)
 	}
 
-	connMu.RLock()
-	conns := connections[name]
-	connMu.RUnlock()
-	if len(conns) == 0 {
-		return
+	// Snapshot the (conn, session) pairs under the lock: wsHandler mutates the
+	// connection map on subscribe/disconnect, so iterating it after releasing
+	// connMu races with those writes. Sends happen outside the lock.
+	type target struct {
+		ws      *websocket.Conn
+		session *Session
 	}
+	connMu.RLock()
+	targets := make([]target, 0, len(connections[name]))
+	for ws, session := range connections[name] {
+		targets = append(targets, target{ws: ws, session: session})
+	}
+	connMu.RUnlock()
 
-	for ws, session := range conns {
-		if options.Session != "" && session.ID() != options.Session {
+	for _, t := range targets {
+		if options.Session != "" && t.session.ID() != options.Session {
 			continue
 		}
-		sendToConn(ws, Outbound{Component: name, Payload: payload, Session: session.ID()})
+		sendToConn(t.ws, Outbound{Component: name, Payload: payload, Session: t.session.ID()})
 	}
 }
 
