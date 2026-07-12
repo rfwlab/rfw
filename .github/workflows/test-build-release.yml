@@ -70,6 +70,14 @@ jobs:
       - name: Allow Chrome sandbox (Ubuntu 24 AppArmor)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
+      - name: Wrap Chrome with --no-sandbox for chromedp
+        run: |
+          real="$(readlink -f /usr/bin/google-chrome)"
+          sudo rm /usr/bin/google-chrome
+          printf '#!/bin/sh\nexec %s --no-sandbox "$@"\n' "$real" | sudo tee /usr/bin/google-chrome > /dev/null
+          sudo chmod +x /usr/bin/google-chrome
+          google-chrome --version
+
       - name: Run wasm tests in headless Chrome
         run: GOOS=js GOARCH=wasm go test -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
 
