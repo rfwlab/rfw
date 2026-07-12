@@ -242,3 +242,48 @@ func TestOnChangeDoesNotFireAfterStop(t *testing.T) {
 		t.Fatalf("expected calls to stay 1 after Stop, got %d", calls)
 	}
 }
+
+func TestSetFromHostConversions(t *testing.T) {
+	i64 := NewSignal[int64](0)
+	i64.SetFromHost(float64(42))
+	if i64.Get() != 42 {
+		t.Fatalf("int64: got %d", i64.Get())
+	}
+	f32 := NewSignal[float32](0)
+	f32.SetFromHost(float64(1.5))
+	if f32.Get() != 1.5 {
+		t.Fatalf("float32: got %v", f32.Get())
+	}
+	u := NewSignal[uint](0)
+	u.SetFromHost(float64(7))
+	if u.Get() != 7 {
+		t.Fatalf("uint: got %d", u.Get())
+	}
+	type point struct {
+		X int    `json:"x"`
+		Y string `json:"y"`
+	}
+	p := NewSignal[point](point{})
+	p.SetFromHost(map[string]any{"x": float64(3), "y": "hi"})
+	if got := p.Get(); got.X != 3 || got.Y != "hi" {
+		t.Fatalf("struct: got %+v", got)
+	}
+	sl := NewSignal[[]int](nil)
+	sl.SetFromHost([]any{float64(1), float64(2)})
+	if got := sl.Get(); len(got) != 2 || got[1] != 2 {
+		t.Fatalf("slice: got %v", got)
+	}
+	// Incompatible payloads leave the value untouched.
+	n := NewSignal[int](9)
+	n.SetFromHost("not a number")
+	if n.Get() != 9 {
+		t.Fatalf("mismatch should be ignored, got %d", n.Get())
+	}
+	notify := 0
+	m := NewSignal[int](0)
+	m.OnChange(func(int) { notify++ })
+	m.SetFromHost(float64(5))
+	if m.Get() != 5 || notify != 1 {
+		t.Fatalf("notify: value %d, calls %d", m.Get(), notify)
+	}
+}
