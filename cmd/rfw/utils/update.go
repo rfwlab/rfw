@@ -181,7 +181,30 @@ func getAssetName() string {
 	return fmt.Sprintf("rfw-%s-%s%s", goos, goarch, ext)
 }
 
+// shouldSkipUpdateCheck reports whether the update check must not run at all:
+// explicit opt-out via RFW_NO_UPDATE_CHECK, or a non-interactive session (CI,
+// scripts, pipes) where a network call and an update prompt would get in the
+// way.
+func shouldSkipUpdateCheck(noUpdateEnv string, stdinTTY, stdoutTTY bool) bool {
+	if noUpdateEnv != "" {
+		return true
+	}
+	return !stdinTTY || !stdoutTTY
+}
+
+// isTerminal reports whether f is attached to a character device.
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
 func CheckForUpdate() {
+	if shouldSkipUpdateCheck(os.Getenv("RFW_NO_UPDATE_CHECK"), isTerminal(os.Stdin), isTerminal(os.Stdout)) {
+		return
+	}
 	if !shouldCheckUpdate() {
 		return
 	}
