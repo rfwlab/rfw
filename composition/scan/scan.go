@@ -62,14 +62,28 @@ func isSignalType(t reflect.Type) bool {
 	if t.Kind() != reflect.Struct {
 		return false
 	}
-	if t.PkgPath() == "github.com/rfwlab/rfw/v2/state" && t.Name() == "Signal" {
+	// Instantiated generics report a name like "Signal[int]", so match the
+	// prefix rather than the bare name.
+	if t.PkgPath() == "github.com/rfwlab/rfw/v2/state" &&
+		(t.Name() == "Signal" || strings.HasPrefix(t.Name(), "Signal[")) {
 		return true
 	}
 	_, hasGet := reflect.PtrTo(t).MethodByName("Get")
 	_, hasSet := reflect.PtrTo(t).MethodByName("Set")
 	_, hasRead := reflect.PtrTo(t).MethodByName("Read")
-	if hasGet && hasSet && hasRead && t.NumField() >= 1 && t.Field(0).Name == "value" {
+	if hasGet && hasSet && hasRead && hasFieldNamed(t, "value") {
 		return true
+	}
+	return false
+}
+
+// hasFieldNamed reports whether the struct has a field of the given name, in
+// any position (Signal gained a leading mutex, so field order is not stable).
+func hasFieldNamed(t reflect.Type, name string) bool {
+	for i := 0; i < t.NumField(); i++ {
+		if t.Field(i).Name == name {
+			return true
+		}
 	}
 	return false
 }
