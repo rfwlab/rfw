@@ -1,0 +1,22 @@
+<root>
+  <div class="p-4">
+    <h1 class="text-2xl font-bold">Live dashboard</h1>
+    <p>Status: @store:app.metrics.status</p>
+    <button @on:click:togglePause>Pause / resume</button>
+
+    <div class="grid grid-cols-3 gap-4 my-4">
+      <div>CPU: @store:app.metrics.cpu%</div>
+      <div>Memory: @store:app.metrics.mem MiB</div>
+      <div>Requests: @store:app.metrics.requests</div>
+    </div>
+
+    <h2 class="font-bold">Recent events</h2>
+    <ul>
+      @for:e in store:app.metrics.events
+      <li>@prop:e.time - @prop:e.msg</li>
+      @endfor
+    </ul>
+
+    <p class="my-4"><a href="/about">About this demo</a></p>
+  </div>
+</root>
