@@ -20,16 +20,16 @@ type (
 )
 
 type (
-	Slice[T any]         = t.Slice[T]
-	Map[K comparable, V any] = t.Map[K, V]
-	Ref               = t.Ref
-	Prop[T any]       = t.Prop[T]
-	HInt              = t.HInt
-	HString           = t.HString
-	HBool              = t.HBool
-	HFloat             = t.HFloat
-	HAny               = t.HAny
-	HSlice[T any]     = t.HSlice[T]
+	Slice[T any]              = t.Slice[T]
+	Map[K comparable, V any]  = t.Map[K, V]
+	Ref                       = t.Ref
+	Prop[T any]               = t.Prop[T]
+	HInt                      = t.HInt
+	HString                   = t.HString
+	HBool                     = t.HBool
+	HFloat                    = t.HFloat
+	HAny                      = t.HAny
+	HSlice[T any]             = t.HSlice[T]
 	HMap[K comparable, V any] = t.HMap[K, V]
 )
 
@@ -44,9 +44,9 @@ var (
 	NewRef    = t.NewRef
 )
 
-func NewSlice[T any](v ...[]T) *t.Slice[T] { return t.NewSlice(v...) }
+func NewSlice[T any](v ...[]T) *t.Slice[T]                  { return t.NewSlice(v...) }
 func NewMap[K comparable, V any](v ...map[K]V) *t.Map[K, V] { return t.NewMap(v...) }
-func NewProp[T any](v T) *t.Prop[T]          { return t.NewProp(v) }
+func NewProp[T any](v T) *t.Prop[T]                         { return t.NewProp(v) }
 
 func SetDevMode(v bool) { core.SetDevMode(v) }
 

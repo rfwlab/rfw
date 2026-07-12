@@ -14,8 +14,8 @@ type Event string
 // Framework events
 const (
 	EventSidebarLoaded   Event = "rfw:sidebar-loaded"
-	EventArticleLoaded    Event = "rfw:article-loaded"
-	EventRouterNavigated  Event = "rfw:router-navigated"
+	EventArticleLoaded   Event = "rfw:article-loaded"
+	EventRouterNavigated Event = "rfw:router-navigated"
 )
 
 // bus is the application-level event bus for framework and plugin events.

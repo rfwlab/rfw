@@ -368,8 +368,10 @@ func (p *parser) readIdent() {
 }
 
 func isIdentStart(ch byte) bool { return unicode.IsLetter(rune(ch)) || ch == '_' }
-func isIdentPart(ch byte) bool  { return unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '_' || ch == '.' }
-func isDigit(ch byte) bool      { return '0' <= ch && ch <= '9' }
+func isIdentPart(ch byte) bool {
+	return unicode.IsLetter(rune(ch)) || unicode.IsDigit(rune(ch)) || ch == '_' || ch == '.'
+}
+func isDigit(ch byte) bool { return '0' <= ch && ch <= '9' }
 
 // ── Recursive descent ────────────────────────────────────────────────────────
 

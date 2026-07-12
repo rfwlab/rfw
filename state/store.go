@@ -8,27 +8,52 @@ import (
 )
 
 func valEqual(a, b any) bool {
-	if a == nil && b == nil { return true }
-	if a == nil || b == nil { return false }
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
 	switch av := a.(type) {
-	case string: if bv, ok := b.(string); ok { return av == bv }
-	case int: if bv, ok := b.(int); ok { return av == bv }
-	case float64: if bv, ok := b.(float64); ok { return av == bv }
-	case bool: if bv, ok := b.(bool); ok { return av == bv }
-	case int64: if bv, ok := b.(int64); ok { return av == bv }
-	case float32: if bv, ok := b.(float32); ok { return av == bv }
+	case string:
+		if bv, ok := b.(string); ok {
+			return av == bv
+		}
+	case int:
+		if bv, ok := b.(int); ok {
+			return av == bv
+		}
+	case float64:
+		if bv, ok := b.(float64); ok {
+			return av == bv
+		}
+	case bool:
+		if bv, ok := b.(bool); ok {
+			return av == bv
+		}
+	case int64:
+		if bv, ok := b.(int64); ok {
+			return av == bv
+		}
+	case float32:
+		if bv, ok := b.(float32); ok {
+			return av == bv
+		}
 	}
 	return reflect.DeepEqual(a, b)
 }
 
 func depsChanged(current, last map[string]any) bool {
-	if len(current) != len(last) { return true }
+	if len(current) != len(last) {
+		return true
+	}
 	for k, v := range current {
-		if lv, ok := last[k]; !ok || !valEqual(v, lv) { return true }
+		if lv, ok := last[k]; !ok || !valEqual(v, lv) {
+			return true
+		}
 	}
 	return false
 }
-
 
 type Logger interface {
 	Debug(format string, args ...any)
@@ -421,7 +446,8 @@ func snapshotDeps(state map[string]any, deps []string) map[string]any {
 }
 
 func (sm *StoreManager) DumpState() {
-	sm.mu.RLock(); defer sm.mu.RUnlock()
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
 	for mod, stores := range sm.modules {
 		for name, st := range stores {
 			logger.Debug("[rfw] DumpState %s/%s: %v", mod, name, st.state)

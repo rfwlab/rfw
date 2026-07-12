@@ -7,15 +7,15 @@ type Node interface {
 	node()
 }
 
-func (TextNode) node()      {}
-func (VarNode) node()       {}
-func (ExprNode) node()      {}
-func (ElementNode) node()   {}
-func (CommandNode) node()   {}
-func (IfNode) node()        {}
-func (ForNode) node()       {}
-func (SlotNode) node()      {}
-func (IncludeNode) node()   {}
+func (TextNode) node()    {}
+func (VarNode) node()     {}
+func (ExprNode) node()    {}
+func (ElementNode) node() {}
+func (CommandNode) node() {}
+func (IfNode) node()      {}
+func (ForNode) node()     {}
+func (SlotNode) node()    {}
+func (IncludeNode) node() {}
 
 // TextNode is literal text.
 type TextNode struct {
@@ -39,9 +39,9 @@ type ElementNode struct {
 	Attrs      []Attr
 	BoundAttrs []BoundAttr
 	Children   []Node
-	Ref        string   // from [ref] constructor
-	Key        Expr     // from [key {expr}] constructor
-	IsVoid     bool     // self-closing
+	Ref        string // from [ref] constructor
+	Key        Expr   // from [key {expr}] constructor
+	IsVoid     bool   // self-closing
 }
 
 // Attr is a static HTML attribute.
@@ -65,10 +65,10 @@ type CommandNode struct {
 
 // IfNode is a conditional block.
 type IfNode struct {
-	Cond      Expr
-	Then      []Node
-	ElseIf    []ElseIfBranch
-	Else      []Node
+	Cond   Expr
+	Then   []Node
+	ElseIf []ElseIfBranch
+	Else   []Node
 }
 
 // ElseIfBranch is an @else-if branch.
@@ -79,10 +79,10 @@ type ElseIfBranch struct {
 
 // ForNode is a list loop.
 type ForNode struct {
-	Alias   string      // e.g. "item"
-	KeyAlias string     // e.g. "key" in @for:key,val in obj
-	Expr    Expr        // collection expression
-	Body    []Node
+	Alias    string // e.g. "item"
+	KeyAlias string // e.g. "key" in @for:key,val in obj
+	Expr     Expr   // collection expression
+	Body     []Node
 }
 
 // SlotNode is a named/placeholder slot.
@@ -103,13 +103,13 @@ type Expr interface {
 	expr()
 }
 
-func (IdentExpr) expr()      {}
-func (LiteralExpr) expr()    {}
-func (BinaryExpr) expr()     {}
-func (UnaryExpr) expr()      {}
-func (CallExpr) expr()       {}
-func (FieldExpr) expr()      {}
-func (TernaryExpr) expr()    {}
+func (IdentExpr) expr()   {}
+func (LiteralExpr) expr() {}
+func (BinaryExpr) expr()  {}
+func (UnaryExpr) expr()   {}
+func (CallExpr) expr()    {}
+func (FieldExpr) expr()   {}
+func (TernaryExpr) expr() {}
 
 // IdentExpr is a variable reference by name.
 type IdentExpr struct {
