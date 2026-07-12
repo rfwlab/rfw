@@ -33,6 +33,7 @@ func (e *ErrorBoundary) Render() (out string) {
 	defer func() {
 		if r := recover(); r != nil {
 			e.err = r
+			ReportError(r, "Boundary render: "+e.Child.GetName())
 			out = e.fallbackHTML()
 		}
 	}()
@@ -48,6 +49,7 @@ func (e *ErrorBoundary) Mount() {
 	defer func() {
 		if r := recover(); r != nil {
 			e.err = r
+			ReportError(r, "Boundary mount: "+e.Child.GetName())
 			dom.UpdateDOM(e.Child.GetID(), e.Fallback)
 		}
 	}()

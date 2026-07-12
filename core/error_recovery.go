@@ -15,7 +15,7 @@ import (
 func TryRender(c Component) string {
 	defer func() {
 		if r := recover(); r != nil {
-			ShowErrorOverlay(r, fmt.Sprintf("Render: %s (ID: %s)", c.GetName(), c.GetID()))
+			ReportError(r, fmt.Sprintf("Render: %s (ID: %s)", c.GetName(), c.GetID()))
 		}
 	}()
 	return c.Render()
@@ -25,7 +25,7 @@ func TryRender(c Component) string {
 func TryMount(c Component) {
 	defer func() {
 		if r := recover(); r != nil {
-			ShowErrorOverlay(r, fmt.Sprintf("Mount: %s (ID: %s)", c.GetName(), c.GetID()))
+			ReportError(r, fmt.Sprintf("Mount: %s (ID: %s)", c.GetName(), c.GetID()))
 		}
 	}()
 	c.Mount()
@@ -35,7 +35,7 @@ func TryMount(c Component) {
 func TryUnmount(c Component) {
 	defer func() {
 		if r := recover(); r != nil {
-			ShowErrorOverlay(r, fmt.Sprintf("Unmount: %s (ID: %s)", c.GetName(), c.GetID()))
+			ReportError(r, fmt.Sprintf("Unmount: %s (ID: %s)", c.GetName(), c.GetID()))
 		}
 	}()
 	c.Unmount()
@@ -45,7 +45,7 @@ func TryUnmount(c Component) {
 func TryNavigate(path string, fn func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			ShowErrorOverlay(r, fmt.Sprintf("Navigate: %s", path))
+			ReportError(r, fmt.Sprintf("Navigate: %s", path))
 		}
 	}()
 	fn()
@@ -56,7 +56,7 @@ func TryEffect(fn func() func()) func() {
 	return state.Effect(func() func() {
 		defer func() {
 			if r := recover(); r != nil {
-				ShowErrorOverlay(r, "Effect")
+				ReportError(r, "Effect")
 				debug.PrintStack()
 			}
 		}()
@@ -68,7 +68,7 @@ func TryEffect(fn func() func()) func() {
 func TryTemplateLoad(fn func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			ShowErrorOverlay(r, "Template / Composition")
+			ReportError(r, "Template / Composition")
 		}
 	}()
 	fn()
