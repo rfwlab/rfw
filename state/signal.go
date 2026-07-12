@@ -3,11 +3,14 @@ package state
 import (
 	"encoding/json"
 	"sync"
+	"sync/atomic"
 )
 
 // effect represents a reactive computation registered via Effect.
 type effect struct {
-	run     func() func()
+	run func() func()
+
+	mu      sync.Mutex
 	deps    []subscriber
 	cleanup func()
 }
@@ -16,9 +19,13 @@ type subscriber interface {
 	remove(*effect)
 }
 
-var (
-	currentEffect *effect
-)
+// currentEffect tracks the effect whose run function is executing so that
+// Signal.Get can register dependencies. It is an atomic pointer so background
+// goroutines that Set/Get signal values do not race with effect execution,
+// but dependency tracking itself assumes effects never run in parallel:
+// effects re-run on the goroutine that calls Set, and Effect registration is
+// expected to happen on the render goroutine.
+var currentEffect atomic.Pointer[effect]
 
 // Subscription represents a cancellable listener returned by OnChange.
 type Subscription struct {
@@ -32,7 +39,10 @@ func (s *Subscription) Stop() {
 }
 
 // Signal holds a value of type T and tracks which effects depend on it.
+// Get/Set are safe for concurrent use, so background goroutines may feed a
+// signal; dependent effects run synchronously on the goroutine calling Set.
 type Signal[T any] struct {
+	mu    sync.Mutex
 	value T
 	subs  map[*effect]struct{}
 
@@ -53,14 +63,21 @@ func (s *Signal[T]) Get() T {
 		var zero T
 		return zero
 	}
-	if currentEffect != nil {
+	if eff := currentEffect.Load(); eff != nil {
+		s.mu.Lock()
 		if s.subs == nil {
 			s.subs = make(map[*effect]struct{})
 		}
-		s.subs[currentEffect] = struct{}{}
-		currentEffect.deps = append(currentEffect.deps, s)
+		s.subs[eff] = struct{}{}
+		s.mu.Unlock()
+		eff.mu.Lock()
+		eff.deps = append(eff.deps, s)
+		eff.mu.Unlock()
 	}
-	return s.value
+	s.mu.Lock()
+	v := s.value
+	s.mu.Unlock()
+	return v
 }
 
 // Read implements a generic getter for use without knowing T.
@@ -84,8 +101,10 @@ func (s *Signal[T]) SetFromHost(raw any) {
 		return
 	}
 	if val, ok := raw.(float64); ok {
-		// Fast paths for the common numeric targets.
-		switch p := any(&s.value).(type) {
+		// Fast paths for the common numeric targets. The conversion happens
+		// on a local value so it never touches s.value outside the lock.
+		var conv T
+		switch p := any(&conv).(type) {
 		case *int:
 			*p = int(val)
 		case *int8:
@@ -114,7 +133,7 @@ func (s *Signal[T]) SetFromHost(raw any) {
 			s.setViaJSON(raw)
 			return
 		}
-		s.Set(s.value)
+		s.Set(conv)
 		return
 	}
 	s.setViaJSON(raw)
@@ -134,20 +153,20 @@ func (s *Signal[T]) setViaJSON(raw any) {
 	s.Set(v)
 }
 
-// Set updates the signal's value and notifies dependent effects.
+// Set updates the signal's value and notifies dependent effects. Effects run
+// synchronously on the calling goroutine, outside the signal's lock.
 func (s *Signal[T]) Set(v T) {
 	if s == nil {
 		return
 	}
+	s.mu.Lock()
 	s.value = v
-	if s.subs == nil {
-		s.subs = make(map[*effect]struct{})
-	}
-	snapshot := make(map[*effect]struct{}, len(s.subs))
+	snapshot := make([]*effect, 0, len(s.subs))
 	for eff := range s.subs {
-		snapshot[eff] = struct{}{}
+		snapshot = append(snapshot, eff)
 	}
-	for eff := range snapshot {
+	s.mu.Unlock()
+	for _, eff := range snapshot {
 		eff.runEffect()
 	}
 	s.notifyOnChange(v)
@@ -214,42 +233,49 @@ func (s *Signal[T]) notifyOnChange(v T) {
 }
 
 func (s *Signal[T]) SubCount() int {
-	if s.subs == nil {
-		return 0
-	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return len(s.subs)
 }
 
 func (s *Signal[T]) remove(e *effect) {
+	s.mu.Lock()
 	if s.subs != nil {
 		delete(s.subs, e)
+	}
+	s.mu.Unlock()
+}
+
+// detach runs the pending cleanup and unsubscribes the effect from all of its
+// dependencies, leaving it ready to re-track (runEffect) or stopped for good.
+func (e *effect) detach() {
+	e.mu.Lock()
+	cleanup := e.cleanup
+	e.cleanup = nil
+	deps := e.deps
+	e.deps = nil
+	e.mu.Unlock()
+	if cleanup != nil {
+		cleanup()
+	}
+	for _, dep := range deps {
+		dep.remove(e)
 	}
 }
 
 func (e *effect) runEffect() {
-	if e.cleanup != nil {
-		e.cleanup()
-		e.cleanup = nil
-	}
-	for _, dep := range e.deps {
-		dep.remove(e)
-	}
-	e.deps = nil
-	prev := currentEffect
-	currentEffect = e
-	e.cleanup = e.run()
-	currentEffect = prev
+	e.detach()
+	prev := currentEffect.Load()
+	currentEffect.Store(e)
+	cleanup := e.run()
+	currentEffect.Store(prev)
+	e.mu.Lock()
+	e.cleanup = cleanup
+	e.mu.Unlock()
 }
 
 func (e *effect) stop() {
-	if e.cleanup != nil {
-		e.cleanup()
-		e.cleanup = nil
-	}
-	for _, dep := range e.deps {
-		dep.remove(e)
-	}
-	e.deps = nil
+	e.detach()
 }
 
 // Effect registers a reactive computation that automatically re-runs when its
