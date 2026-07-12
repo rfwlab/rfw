@@ -76,3 +76,25 @@ func TestSSCWithSessionTargetDelegatesHostOption(t *testing.T) {
 		t.Fatalf("expected session abc, got %q", opts.Session)
 	}
 }
+
+// The /ws endpoint honours host.MuxOption guards; by default it stays open.
+func TestSSCServerWSOriginAllowlist(t *testing.T) {
+	root := t.TempDir()
+	s := NewSSCServer(":0", root, host.WithOriginAllowlist("https://app.example.com"))
+	srv := httptest.NewServer(s.Mux)
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/ws", nil)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	req.Header.Set("Origin", "http://evil.example")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403 for unlisted origin, got %d", resp.StatusCode)
+	}
+}
