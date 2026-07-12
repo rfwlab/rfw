@@ -320,6 +320,7 @@ func (c *HTMLComponent) Unmount() {
 	}
 
 	dom.RemoveComponentSignals(c.ID)
+	dom.ReleaseInputBindings(c.ID)
 	root := dom.ComponentRoot(c.ID)
 	if !root.IsNull() && !root.IsUndefined() {
 		dom.RemoveDelegatedEvents(c.ID, root.Value)
