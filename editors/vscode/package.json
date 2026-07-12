@@ -1,0 +1,59 @@
+{
+  "name": "rtml",
+  "displayName": "RTML (rfw templates)",
+  "description": "Syntax highlighting and snippets for rfw .rtml component templates.",
+  "version": "0.1.0",
+  "publisher": "rfwlab",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rfwlab/rfw.git",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "rfw",
+    "rtml",
+    "go",
+    "wasm",
+    "template"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rtml",
+        "aliases": [
+          "RTML",
+          "rtml"
+        ],
+        "extensions": [
+          ".rtml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "rtml",
+        "scopeName": "text.html.rtml",
+        "path": "./syntaxes/rtml.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.css": "css",
+          "source.js": "javascript"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "rtml",
+        "path": "./snippets/rtml.json"
+      }
+    ]
+  }
+}
