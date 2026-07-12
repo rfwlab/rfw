@@ -79,6 +79,12 @@ func Wrap(c *core.HTMLComponent) *Component {
 func (c *Component) Unwrap() *core.HTMLComponent { return c.HTMLComponent }
 
 func (c *Component) On(name string, fn func()) {
+	if name == "" {
+		panic("composition.On: empty handler name")
+	}
+	if fn == nil {
+		panic("composition.On: nil fn")
+	}
 	dom.RegisterHandlerFunc(name, fn)
 }
 

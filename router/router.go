@@ -88,6 +88,8 @@ var NotFoundCallback func(string)
 func Reset() {
 	routes = nil
 	currentComponent = nil
+	NotFoundComponent = nil
+	NotFoundCallback = nil
 }
 
 // RegisterRoute adds a new Route to the router's configuration.
