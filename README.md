@@ -29,37 +29,67 @@ If you are using `templ` + `htmx` (or `datastar`), you are already moving toward
 
 ## Getting Started
 
+rfw requires Go 1.25 or newer. Coming from Node and never installed Go? See
+[Getting started from Node](./docs/articles/guide/getting-started-from-node.md).
+
 ```bash
-go install github.com/rfwlab/rfw/cmd/rfw@latest
+go install github.com/rfwlab/rfw/v2/cmd/rfw@latest
 rfw init github.com/user/app
+cd app
 rfw dev
 ```
 
-Minimal hello-world component:
+`rfw init` takes a Go module path and creates the project in a directory named
+after its last segment (`app` here). The scaffold is a working hello world: a
+page, a component, and an RTML template. The component
+(`components/app_component.go`):
 
 ```go
-package main
+//go:build js && wasm
+
+package components
 
 import (
-    "embed"
+	_ "embed"
 
-    "github.com/rfwlab/rfw/v1/composition"
-    cmp "github.com/rfwlab/rfw/v1/components"
+	"github.com/rfwlab/rfw/v2/core"
 )
 
-//go:embed templates/hello.rtml
-var helloTpl []byte
+//go:embed templates/app_component.rtml
+var appComponentTpl []byte
 
-func main() {
-    composition.Wrap(cmp.New("Hello", helloTpl))
+type AppComponent struct {
+	*core.HTMLComponent
+}
+
+func NewAppComponent() *AppComponent {
+	c := &AppComponent{
+		HTMLComponent: core.NewHTMLComponent("AppComponent", appComponentTpl, nil),
+	}
+	c.SetComponent(c)
+	c.Init(nil)
+	return c
 }
 ```
 
-`templates/hello.rtml`:
+Its template (`components/templates/app_component.rtml`):
 
 ```html
-<h1>Hello {{ .Name }}</h1>
+<root>
+  <div class="p-4">
+    <h1 class="text-2xl font-bold">Hello from app!</h1>
+    <p>Edit the component to get started.</p>
+  </div>
+</root>
 ```
+
+Templates use RTML directives, not Go `html/template` syntax: `@store:module.store.key`
+binds reactive state, `@on:click:handler` binds events, `@for ... @endfor` renders
+lists, and `@if ... @endif` renders conditionally. The scaffold also wires an SSC
+host component whose values render through `{h:name}` placeholders.
+
+For a full walkthrough, build the
+[real-time dashboard in 30 minutes](./docs/articles/guide/realtime-dashboard-tutorial.md).
 
 By default the development server listens on port `8080`. Override it with
 the `--port` flag or the `RFW_PORT` environment variable:
@@ -68,21 +98,20 @@ the `--port` flag or the `RFW_PORT` environment variable:
 RFW_PORT=3000 rfw dev
 ```
 
-Control server log verbosity with the `RFW_LOG_LEVEL` environment variable.
-Possible values are `debug`, `info`, `warn`, and `error` (default is `info`):
+Control the SSC host's log verbosity with the `RFW_LOG_LEVEL` environment
+variable. Possible values are `debug`, `info`, `warn`, and `error` (default is
+`info`):
 
 ```bash
 RFW_LOG_LEVEL=debug rfw dev
 ```
 
-Enable the in-browser debugging overlay with the `--debug` flag:
+## Used by
 
-```bash
-rfw dev --debug
-```
+- The rfw documentation site: the docs under [`docs/articles`](./docs/articles/index.md), built and served with rfw itself.
+- FVS Hub: the dashboard of the FVS version control suite ([fvs-lab](https://github.com/fvs-lab)).
 
-Use `Ctrl`+`Shift`+`D` in the browser to toggle the overlay that shows the
-component tree and console logs with basic runtime metrics.
+Using rfw in production or in a side project? Open a PR and add yourself here.
 
 ## Server Side Computed (SSC)
 
