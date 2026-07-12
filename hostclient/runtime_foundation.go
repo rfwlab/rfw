@@ -31,6 +31,7 @@ var (
 	mu        sync.RWMutex
 	pending   []message
 	handlers  = map[string]func(map[string]any){}
+	dedup     = map[string]struct{}{}
 	debug     bool
 	cb        *fnres.CircuitBreaker
 	sendCache *fncaching.InMemoryCache[string]
@@ -271,13 +272,33 @@ func RegisterComponent(id, name string, vars []string) {
 	connect()
 }
 
+// EnableSendDedup turns on payload-based deduplication for the named channel:
+// identical payloads sent within a 5 second window are dropped. Dedup is off
+// by default because repeated identical messages are usually intentional user
+// actions (e.g. clicking +1 twice); opt in only for channels where duplicate
+// suppression is the desired semantic.
+func EnableSendDedup(name string) {
+	mu.Lock()
+	dedup[name] = struct{}{}
+	mu.Unlock()
+}
+
+func dedupEnabled(name string) bool {
+	mu.RLock()
+	_, ok := dedup[name]
+	mu.RUnlock()
+	return ok
+}
+
 func Send(name string, payload any) {
 	connect()
-	key := fmt.Sprintf("%v", payload)
-	if _, ok, _ := sendCache.Get(context.Background(), key); ok {
-		return
+	if dedupEnabled(name) {
+		key := fmt.Sprintf("%s|%v", name, payload)
+		if _, ok, _ := sendCache.Get(context.Background(), key); ok {
+			return
+		}
+		sendCache.Set(context.Background(), key, "sent", 5*time.Second)
 	}
-	sendCache.Set(context.Background(), key, "sent", 5*time.Second)
 
 	mu.RLock()
 	c := conn
