@@ -27,6 +27,9 @@ func NewVirtualList(containerID string, total, itemHeight int, render func(i int
 		ItemHeight: itemHeight,
 		Render:     render,
 	}
+	if v.Container.IsNull() || v.Container.IsUndefined() {
+		return v
+	}
 	v.stopScroll = events.OnScroll(v.Container.Value, func(js.Value) {
 		v.update()
 	})
@@ -36,6 +39,9 @@ func NewVirtualList(containerID string, total, itemHeight int, render func(i int
 
 // update recalculates the visible range and mounts the required items.
 func (v *VirtualList) update() {
+	if v.Container.IsNull() || v.Container.IsUndefined() {
+		return
+	}
 	height := v.Container.Get("clientHeight").Int()
 	scrollTop := v.Container.Get("scrollTop").Int()
 	start := max(0, scrollTop/v.ItemHeight)

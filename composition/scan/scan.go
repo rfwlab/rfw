@@ -122,7 +122,11 @@ func isInjectType(t reflect.Type) bool {
 	if elem.Kind() != reflect.Struct {
 		return false
 	}
-	return elem.Name() == "Inject" && elem.PkgPath() == "github.com/rfwlab/rfw/v2/types"
+	// Instantiated generics carry the type argument in Name(), e.g.
+	// "Inject[interface {}]".
+	name := elem.Name()
+	return (name == "Inject" || strings.HasPrefix(name, "Inject[")) &&
+		elem.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 var componentMethods = map[string]struct{}{
