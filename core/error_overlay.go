@@ -119,7 +119,7 @@ func (eo *errorOverlay) buildMainHTML(errStr, goStack, context string) string {
 	cat := eo.categorize(errStr)
 	hint := eo.hintHTML(errStr, context)
 
-	versionStr := Version
+	versionStr := Version()
 	if versionStr == "" {
 		versionStr = "dev"
 	}
