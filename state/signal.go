@@ -1,6 +1,9 @@
 package state
 
-import "sync"
+import (
+	"encoding/json"
+	"sync"
+)
 
 // effect represents a reactive computation registered via Effect.
 type effect struct {
@@ -69,45 +72,66 @@ func (s *Signal[T]) Read() any {
 }
 
 // SetFromHost sets the signal value from an untyped host payload.
-// JSON decodes numbers as float64, so we convert explicitly.
+// JSON decodes numbers as float64 and composites as []any/map[string]any,
+// so payloads that do not assert directly to T are converted through a
+// JSON round-trip into T. Payloads that cannot represent T are ignored.
 func (s *Signal[T]) SetFromHost(raw any) {
 	if s == nil {
 		return
 	}
-	v, ok := raw.(T)
-	if ok {
+	if v, ok := raw.(T); ok {
 		s.Set(v)
 		return
 	}
-	// JSON decodes numbers as float64 — try explicit conversion.
-	switch val := raw.(type) {
-	case float64:
+	if val, ok := raw.(float64); ok {
+		// Fast paths for the common numeric targets.
 		switch p := any(&s.value).(type) {
 		case *int:
 			*p = int(val)
+		case *int8:
+			*p = int8(val)
+		case *int16:
+			*p = int16(val)
+		case *int32:
+			*p = int32(val)
+		case *int64:
+			*p = int64(val)
+		case *uint:
+			*p = uint(val)
+		case *uint8:
+			*p = uint8(val)
+		case *uint16:
+			*p = uint16(val)
+		case *uint32:
+			*p = uint32(val)
+		case *uint64:
+			*p = uint64(val)
+		case *float32:
+			*p = float32(val)
 		case *float64:
 			*p = val
 		default:
+			s.setViaJSON(raw)
 			return
 		}
-	case string:
-		switch p := any(&s.value).(type) {
-		case *string:
-			*p = val
-		default:
-			return
-		}
-	case bool:
-		switch p := any(&s.value).(type) {
-		case *bool:
-			*p = val
-		default:
-			return
-		}
-	default:
+		s.Set(s.value)
 		return
 	}
-	s.Set(s.value)
+	s.setViaJSON(raw)
+}
+
+// setViaJSON converts an arbitrary decoded payload into T by re-encoding it,
+// covering structs, slices and maps that arrive as map[string]any/[]any.
+func (s *Signal[T]) setViaJSON(raw any) {
+	blob, err := json.Marshal(raw)
+	if err != nil {
+		return
+	}
+	var v T
+	if err := json.Unmarshal(blob, &v); err != nil {
+		return
+	}
+	s.Set(v)
 }
 
 // Set updates the signal's value and notifies dependent effects.
