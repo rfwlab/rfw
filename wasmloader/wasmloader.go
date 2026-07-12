@@ -104,7 +104,8 @@ func removeBar(bar, intervalID js.Value, intervalFn js.Func) {
 }
 
 func instantiate(resp js.Value, opts Options, bar, intervalID js.Value, intervalFn js.Func) {
-	arrayBufFn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	arrayBufFn := js.Func{}
+	arrayBufFn = js.FuncOf(func(this js.Value, args []js.Value) any {
 		bytes := args[0]
 		finishBar(bar, intervalID, intervalFn)
 		wasm := js.WebAssembly()
