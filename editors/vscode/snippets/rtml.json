@@ -1,0 +1,138 @@
+{
+  "Component template skeleton": {
+    "prefix": "root",
+    "body": [
+      "<root>",
+      "  <div class=\"${1:p-4}\">",
+      "    $0",
+      "  </div>",
+      "</root>"
+    ],
+    "description": "rtml component template wrapped in <root>"
+  },
+  "For loop": {
+    "prefix": "@for",
+    "body": [
+      "@for:${1:item} in ${2:store:app.list.items}",
+      "  $0",
+      "@endfor"
+    ],
+    "description": "@for ... @endfor loop"
+  },
+  "For loop with key alias": {
+    "prefix": "@fork",
+    "body": [
+      "@for:${1:item},${2:i} in ${3:store:app.list.items}",
+      "  $0",
+      "@endfor"
+    ],
+    "description": "@for with item and key aliases"
+  },
+  "If block": {
+    "prefix": "@if",
+    "body": [
+      "@if:${1:condition}",
+      "  $0",
+      "@endif"
+    ],
+    "description": "@if ... @endif conditional"
+  },
+  "If / else block": {
+    "prefix": "@ifelse",
+    "body": [
+      "@if:${1:condition}",
+      "  ${2}",
+      "@else",
+      "  $0",
+      "@endif"
+    ],
+    "description": "@if ... @else ... @endif conditional"
+  },
+  "If / else-if / else block": {
+    "prefix": "@ifelseif",
+    "body": [
+      "@if:${1:condition}",
+      "  ${2}",
+      "@else-if:${3:condition}",
+      "  ${4}",
+      "@else",
+      "  $0",
+      "@endif"
+    ],
+    "description": "@if ... @else-if ... @else ... @endif conditional"
+  },
+  "Event handler": {
+    "prefix": "@on",
+    "body": "@on:${1:click}:${2:handler}",
+    "description": "@on:event:handler event binding"
+  },
+  "Event handler with modifier": {
+    "prefix": "@onmod",
+    "body": "@on:${1:keydown}.${2:enter}:${3:handler}",
+    "description": "@on:event.modifier:handler event binding"
+  },
+  "Store binding": {
+    "prefix": "@store",
+    "body": "@store:${1:module}.${2:store}.${3:key}",
+    "description": "One-way store binding"
+  },
+  "Two-way store binding": {
+    "prefix": "@storew",
+    "body": "@store:${1:module}.${2:store}.${3:key}:w",
+    "description": "Two-way (writeable) store binding"
+  },
+  "Raw store binding": {
+    "prefix": "@rawstore",
+    "body": "@rawstore:${1:module}.${2:store}.${3:key}",
+    "description": "Store binding rendered as trusted markup"
+  },
+  "Signal binding": {
+    "prefix": "@signal",
+    "body": "@signal:${1:name}",
+    "description": "Signal binding (append :w for two-way)"
+  },
+  "Prop binding": {
+    "prefix": "@prop",
+    "body": "@prop:${1:name}",
+    "description": "Component prop binding"
+  },
+  "Raw prop binding": {
+    "prefix": "@rawprop",
+    "body": "@rawprop:${1:name}",
+    "description": "Prop binding rendered as trusted markup"
+  },
+  "Include component": {
+    "prefix": "@include",
+    "body": "@include:${1:ComponentName}",
+    "description": "Include a registered component"
+  },
+  "Include component with props": {
+    "prefix": "@includeprops",
+    "body": "@include:${1:ComponentName}:{${2:key}:\"${3:value}\"}",
+    "description": "Include a component with inline props"
+  },
+  "Slot with fallback": {
+    "prefix": "@slot",
+    "body": [
+      "@slot:${1:name}",
+      "  $0",
+      "@endslot"
+    ],
+    "description": "@slot ... @endslot with fallback content"
+  },
+  "Expression": {
+    "prefix": "@expr",
+    "body": "@expr:${1:expression}",
+    "description": "Inline reactive expression"
+  },
+  "Interpolation": {
+    "prefix": "{{",
+    "body": "{{${1:expression}}}",
+    "description": "{{ expression }} interpolation"
+  },
+  "Host variable placeholder": {
+    "prefix": "{h",
+    "body": "{h:${1:name}}",
+    "description": "{h:name} host component variable placeholder"
+  }
+}
