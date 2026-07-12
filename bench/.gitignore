@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.wasm
+htmx-server
+htmx.min.js
+package-lock.json

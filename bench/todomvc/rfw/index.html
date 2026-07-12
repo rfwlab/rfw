@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>rfw TodoMVC bench</title>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script src="/wasm_exec.js"></script>
+        <script src="/wasm_loader.js"></script>
+        <script>
+            var go = new Go();
+            WasmLoader.load("/app.wasm", { go: go, skipLoader: true });
+        </script>
+    </body>
+</html>

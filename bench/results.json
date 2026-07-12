@@ -1,0 +1,261 @@
+{
+  "date": "2026-07-12T07:38:34.951Z",
+  "runs": 3,
+  "live_scenario": {
+    "ticks": 30,
+    "interval_ms": 100,
+    "expected_ms": 3000
+  },
+  "sizes": {
+    "rfw": {
+      "raw": 8906195,
+      "gzip": 2429763,
+      "detail": {
+        "app.wasm (optimized -s -w)": {
+          "raw": 8885550,
+          "gzip": 2424066
+        },
+        "wasm_exec.js": {
+          "raw": 16992,
+          "gzip": 4348
+        },
+        "wasm_loader.js": {
+          "raw": 3231,
+          "gzip": 1107
+        },
+        "index.html": {
+          "raw": 422,
+          "gzip": 242
+        }
+      },
+      "unoptimized_wasm": {
+        "raw": 9066901,
+        "gzip": 2467467
+      }
+    },
+    "svelte": {
+      "raw": 38848,
+      "gzip": 15061,
+      "detail": {
+        "index.html": {
+          "raw": 253,
+          "gzip": 199
+        },
+        "index-BqI83VPQ.js": {
+          "raw": 38595,
+          "gzip": 14862
+        }
+      }
+    },
+    "solid": {
+      "raw": 15518,
+      "gzip": 6364,
+      "detail": {
+        "index.html": {
+          "raw": 252,
+          "gzip": 195
+        },
+        "index-BZuGTGcl.js": {
+          "raw": 15266,
+          "gzip": 6169
+        }
+      }
+    },
+    "htmx": {
+      "raw": 52221,
+      "gzip": 17045,
+      "detail": {
+        "htmx.min.js": {
+          "raw": 51238,
+          "gzip": 16585
+        },
+        "initial page (server-rendered)": {
+          "raw": 983,
+          "gzip": 460
+        }
+      }
+    }
+  },
+  "results": {
+    "rfw": {
+      "runs": [
+        {
+          "loadMs": 379.1000000089407,
+          "heap": 2292752,
+          "wasmMem": 40370176,
+          "add100Ms": 489.69999998807907,
+          "live": {
+            "elapsed": 3009.7999999970198,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 352.20000000298023,
+          "heap": 2287120,
+          "wasmMem": 40370176,
+          "add100Ms": 500.20000000298023,
+          "live": {
+            "elapsed": 3010,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 394.09999999403954,
+          "heap": 2292748,
+          "wasmMem": 40370176,
+          "add100Ms": 316.19999998807907,
+          "live": {
+            "elapsed": 3007.1000000089407,
+            "updates": 30,
+            "final": "30"
+          }
+        }
+      ],
+      "median": {
+        "load_ms": 379.1000000089407,
+        "add100_ms": 489.69999998807907,
+        "live_elapsed_ms": 3009.7999999970198,
+        "live_updates": 30,
+        "heap_bytes": 2292748,
+        "wasm_memory_bytes": 40370176
+      }
+    },
+    "svelte": {
+      "runs": [
+        {
+          "loadMs": 97.5,
+          "heap": 2027236,
+          "wasmMem": 0,
+          "add100Ms": 507.5,
+          "live": {
+            "elapsed": 3008.8999999910593,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 72.09999999403954,
+          "heap": 2027224,
+          "wasmMem": 0,
+          "add100Ms": 442.29999999701977,
+          "live": {
+            "elapsed": 3010.8999999910593,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 104,
+          "heap": 2027116,
+          "wasmMem": 0,
+          "add100Ms": 478.20000000298023,
+          "live": {
+            "elapsed": 3005.5,
+            "updates": 30,
+            "final": "30"
+          }
+        }
+      ],
+      "median": {
+        "load_ms": 97.5,
+        "add100_ms": 478.20000000298023,
+        "live_elapsed_ms": 3008.8999999910593,
+        "live_updates": 30,
+        "heap_bytes": 2027224,
+        "wasm_memory_bytes": 0
+      }
+    },
+    "solid": {
+      "runs": [
+        {
+          "loadMs": 75,
+          "heap": 1904320,
+          "wasmMem": 0,
+          "add100Ms": 44.79999999701977,
+          "live": {
+            "elapsed": 3008.4000000059605,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 89.3999999910593,
+          "heap": 1904440,
+          "wasmMem": 0,
+          "add100Ms": 51.599999994039536,
+          "live": {
+            "elapsed": 3010.5999999940395,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 34,
+          "heap": 1904320,
+          "wasmMem": 0,
+          "add100Ms": 41.400000005960464,
+          "live": {
+            "elapsed": 3006.7000000029802,
+            "updates": 30,
+            "final": "30"
+          }
+        }
+      ],
+      "median": {
+        "load_ms": 75,
+        "add100_ms": 44.79999999701977,
+        "live_elapsed_ms": 3008.4000000059605,
+        "live_updates": 30,
+        "heap_bytes": 1904320,
+        "wasm_memory_bytes": 0
+      }
+    },
+    "htmx": {
+      "runs": [
+        {
+          "loadMs": 90.70000000298023,
+          "heap": 2014972,
+          "wasmMem": 0,
+          "add100Ms": 1147.8999999910593,
+          "live": {
+            "elapsed": 3981.7000000029802,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 69.5,
+          "heap": 2098656,
+          "wasmMem": 0,
+          "add100Ms": 2985.2999999970198,
+          "live": {
+            "elapsed": 3886.4000000059605,
+            "updates": 30,
+            "final": "30"
+          }
+        },
+        {
+          "loadMs": 77.40000000596046,
+          "heap": 2230444,
+          "wasmMem": 0,
+          "add100Ms": 4271.20000000298,
+          "live": {
+            "elapsed": 3872.2000000029802,
+            "updates": 30,
+            "final": "30"
+          }
+        }
+      ],
+      "median": {
+        "load_ms": 77.40000000596046,
+        "add100_ms": 2985.2999999970198,
+        "live_elapsed_ms": 3886.4000000059605,
+        "live_updates": 30,
+        "heap_bytes": 2098656,
+        "wasm_memory_bytes": 0
+      }
+    }
+  }
+}
