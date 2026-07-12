@@ -322,7 +322,7 @@ func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
 				if isWriteable {
 					return match
 				}
-				return fmt.Sprintf(`<span data-signal="%s">%v</span>`, name, val)
+				return fmt.Sprintf(`<span data-signal="%s">%s</span>`, name, escapeValue(val))
 			}
 		}
 		if DevMode {
@@ -358,7 +358,7 @@ func replaceExprPlaceholders(template string, c *HTMLComponent) string {
 		})
 		c.unsubscribes.Add(unsub)
 
-		return fmt.Sprintf(`<span data-expr="%s">%v</span>`, exprID, initialVal)
+		return fmt.Sprintf(`<span data-expr="%s">%s</span>`, exprID, escapeValue(initialVal))
 	})
 }
 
@@ -696,7 +696,7 @@ func updateExprBindings(c *HTMLComponent, exprID string, newValue any) {
 	nodes := element.Call("querySelectorAll", selector)
 	for i := 0; i < nodes.Length(); i++ {
 		node := nodes.Index(i)
-		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
+		node.Set("textContent", fmt.Sprintf("%v", newValue))
 	}
 }
 
@@ -1069,7 +1069,7 @@ func updateSignalBindings(c *HTMLComponent, name string, newValue any) {
 	nodes := element.Call("querySelectorAll", selector)
 	for i := 0; i < nodes.Length(); i++ {
 		node := nodes.Index(i)
-		node.Set("innerHTML", fmt.Sprintf("%v", newValue))
+		node.Set("textContent", fmt.Sprintf("%v", newValue))
 	}
 
 	placeholder := fmt.Sprintf("@signal:%s:w", name)
