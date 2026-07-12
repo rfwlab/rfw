@@ -4,10 +4,17 @@ package rtmlast
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	"github.com/rfwlab/rfw/v2/state"
 )
+
+// escapeValue renders a substituted value HTML-escaped, matching the
+// escape-by-default policy of the production renderer in core.
+func escapeValue(v any) string {
+	return html.EscapeString(fmt.Sprintf("%v", v))
+}
 
 type HTMLComponent interface {
 	GetID() string
@@ -54,12 +61,12 @@ func renderNode(n Node, ctx *RenderContext) string {
 
 func renderVar(v VarNode, ctx *RenderContext) string {
 	val := evalExpr(v.Expr, ctx)
-	return fmt.Sprintf(`<span data-var>%v</span>`, val)
+	return fmt.Sprintf(`<span data-var>%s</span>`, escapeValue(val))
 }
 
 func renderExprNode(v ExprNode, ctx *RenderContext) string {
 	val := evalExpr(v.Expr, ctx)
-	return fmt.Sprintf(`<span data-expr>%v</span>`, val)
+	return fmt.Sprintf(`<span data-expr>%s</span>`, escapeValue(val))
 }
 
 func renderIf(v IfNode, ctx *RenderContext) string {
@@ -156,7 +163,7 @@ func renderStoreCmd(val string, ctx *RenderContext) string {
 		store := ctx.StoreMgr.GetStore(parts[0], parts[1])
 		if store != nil {
 			v := store.Get(parts[2])
-			return fmt.Sprintf(`<span data-store="%s">%v</span>`, val, v)
+			return fmt.Sprintf(`<span data-store="%s">%s</span>`, val, escapeValue(v))
 		}
 	}
 	return fmt.Sprintf(`@store:%s`, val)
@@ -172,7 +179,7 @@ func renderSignalCmd(val string, ctx *RenderContext) string {
 	if prop, ok := ctx.Props[name]; ok {
 		if sig, ok := prop.(interface{ Read() any }); ok {
 			v := sig.Read()
-			return fmt.Sprintf(`<span data-signal="%s">%v</span>`, name, v)
+			return fmt.Sprintf(`<span data-signal="%s">%s</span>`, name, escapeValue(v))
 		}
 	}
 	return fmt.Sprintf(`@signal:%s`, name)
@@ -180,7 +187,7 @@ func renderSignalCmd(val string, ctx *RenderContext) string {
 
 func renderPropCmd(val string, ctx *RenderContext) string {
 	if v, ok := ctx.Props[val]; ok {
-		return fmt.Sprintf("%v", v)
+		return escapeValue(v)
 	}
 	return fmt.Sprintf(`@prop:%s`, val)
 }

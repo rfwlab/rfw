@@ -1,5 +1,11 @@
 // Package rtmlast defines the abstract syntax tree for RTML templates.
-// It replaces the regex-based parser in v1/core/rtml.go.
+//
+// Experimental: this package is meant to eventually replace the regex
+// renderer in core, but today production rendering goes through core's
+// pipeline and only ParseExpr is consumed there. The AST renderer
+// (RenderNodes) follows the same escape-by-default policy as core, yet its
+// output and this API may change or be removed without notice; do not depend
+// on it outside the framework.
 package rtmlast
 
 // Node is the root of the AST.
