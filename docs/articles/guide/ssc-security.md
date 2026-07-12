@@ -104,11 +104,12 @@ The recommended pattern until you have something better:
   Validate types and ranges in the handler, on the server, every time.
   Client-side validation in wasm is UX, not security.
 - **Escape what you render.** The server-side HTML helpers (`host.Span`,
-  `host.Div`, `host.P`, `host.Tag`) interpolate the value into markup
-  without HTML-escaping it, and `InitSnapshot.HTML` is injected into the
-  DOM as raw HTML on the client. If any user-derived data ends up in a
-  host variable's initial render or in a snapshot, HTML-escape it yourself
-  (e.g. `html.EscapeString`) before building the fragment. Subsequent
+  `host.Div`, `host.P`, `host.Tag`) HTML-escape the value by default, so
+  user-derived data in a host variable's initial render stays text.
+  `InitSnapshot.HTML` is still injected into the DOM as raw HTML on the
+  client: build snapshots from the escaping helpers, and reach for
+  `host.RawTag` (unescaped value) or `host.Raw` (unescaped fragment) only
+  with markup you generated or sanitized yourself. Subsequent
   host-variable *updates* are applied as text content and are safe from
   injection.
 - **Broadcast scope.** `host.Broadcast(name, payload)` sends to every

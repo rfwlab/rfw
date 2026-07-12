@@ -51,6 +51,31 @@ func TestTag(t *testing.T) {
 	}
 }
 
+// Helper values are HTML-escaped by default so user-derived data cannot
+// inject markup through the initial snapshot.
+func TestHelpersEscapeValues(t *testing.T) {
+	got := Span("msg", `<img src=x onerror=alert(1)>`)
+	if !strings.Contains(got, "&lt;img src=x onerror=alert(1)&gt;") {
+		t.Fatalf("value not escaped: %s", got)
+	}
+	if strings.Contains(got, "><img") {
+		t.Fatalf("markup injected: %s", got)
+	}
+	// The expectation hash still covers the unescaped value: the client
+	// hashes the element's text content, which the browser unescapes.
+	if !strings.Contains(got, encodeExpected(`<img src=x onerror=alert(1)>`)) {
+		t.Fatalf("expected hash over raw value: %s", got)
+	}
+}
+
+// RawTag is the explicit trust API: the value passes through unescaped.
+func TestRawTag(t *testing.T) {
+	got := RawTag("div", "content", `<b>ok</b>`)
+	if !strings.Contains(got, "><b>ok</b></div>") {
+		t.Fatalf("raw value escaped: %s", got)
+	}
+}
+
 func TestRaw(t *testing.T) {
 	html := `<div class="custom">foo</div>`
 	if got := Raw(html); got != html {
