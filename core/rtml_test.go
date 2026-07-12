@@ -195,6 +195,45 @@ func TestCurlyPropEscapedByDefault(t *testing.T) {
 	}
 }
 
+// @for over a map collection escapes keys, scalar values and map fields just
+// like the slice path; @rawprop opts into trusted markup.
+func TestForMapFieldsEscapedByDefault(t *testing.T) {
+	st := state.NewStore("escformap", state.WithModule("app"))
+	st.Set("items", map[string]any{
+		"<key>": map[string]any{"txt": "<img src=x>", "markup": "<b>ok</b>"},
+	})
+	tpl := []byte(`<root><div>@for:k,v in store:app.escformap.items
+<span data-key="m">@prop:k|@prop:v.txt|@rawprop:v.markup</span>
+@endfor</div></root>`)
+	c := NewHTMLComponent("EscForMap", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;key&gt;") {
+		t.Fatalf("map key not escaped: %s", html)
+	}
+	if !strings.Contains(html, "&lt;img src=x&gt;") {
+		t.Fatalf("map field not escaped: %s", html)
+	}
+	if !strings.Contains(html, "<b>ok</b>") {
+		t.Fatalf("rawprop escaped: %s", html)
+	}
+}
+
+// @for over a map of scalars escapes values by default.
+func TestForMapScalarsEscapedByDefault(t *testing.T) {
+	st := state.NewStore("escformapscalar", state.WithModule("app"))
+	st.Set("items", map[string]any{"a": "<i>x</i>"})
+	tpl := []byte(`<root><div>@for:k,v in store:app.escformapscalar.items
+<span data-key="s">@prop:v</span>
+@endfor</div></root>`)
+	c := NewHTMLComponent("EscForMapScalar", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;i&gt;x&lt;/i&gt;") {
+		t.Fatalf("map scalar not escaped: %s", html)
+	}
+}
+
 // @store values are escaped by default; @rawstore injects trusted markup.
 func TestStoreEscapedByDefault(t *testing.T) {
 	st := state.NewStore("escstore", state.WithModule("app"))
