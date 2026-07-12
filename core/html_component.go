@@ -152,7 +152,7 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			ShowErrorOverlay(r, fmt.Sprintf("Render: %s (ID: %s)", c.Name, c.ID))
+			ReportError(r, fmt.Sprintf("Render: %s (ID: %s)", c.Name, c.ID))
 			renderedTemplate = ""
 		}
 	}()
