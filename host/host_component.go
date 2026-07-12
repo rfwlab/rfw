@@ -18,7 +18,11 @@ type HostComponent struct {
 	initSnapshot   func(*Session, map[string]any) *InitSnapshot
 }
 
-// InitSnapshot represents markup the host can send to force the client to repaint a fragment.
+// InitSnapshot represents markup the host can send to force the client to
+// repaint a fragment. HTML is injected into the component root as raw HTML on
+// the client, so build it from the escaping helpers (Span, Div, P, Tag); any
+// unescaped user-derived data in it is an XSS vector. Use Raw/RawTag only for
+// markup you generated or sanitized yourself.
 type InitSnapshot struct {
 	HTML string   `json:"html"`
 	Vars []string `json:"vars,omitempty"`
