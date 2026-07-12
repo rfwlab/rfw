@@ -127,7 +127,7 @@ func TestScanTemplateNameOverride(t *testing.T) {
 
 func TestIsSignalTypeValue(t *testing.T) {
 	var x types.Int
-	typ := reflect.TypeOf(x)
+	typ := reflect.TypeOf(&x).Elem()
 	if !isSignalType(typ) {
 		t.Errorf("expected types.Int (value type) to be detected as signal, got type: %v", typ)
 	}
@@ -143,7 +143,7 @@ func TestIsSignalTypePointer(t *testing.T) {
 
 func TestIsSignalTypeStateSignal(t *testing.T) {
 	var x state.Signal[int]
-	typ := reflect.TypeOf(x)
+	typ := reflect.TypeOf(&x).Elem()
 	if !isSignalType(typ) {
 		t.Errorf("expected state.Signal[int] to be detected as signal, got type: %v", typ)
 	}

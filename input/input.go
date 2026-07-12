@@ -73,7 +73,7 @@ func (m *Manager) Camera() Camera { return m.camera }
 
 // Pan translates the camera by dx, dy.
 func (m *Manager) Pan(dx, dy float32) {
-	m.camera.Position = m.camera.Position.Add(math.Vec2{dx, dy})
+	m.camera.Position = m.camera.Position.Add(math.Vec2{X: dx, Y: dy})
 }
 
 // Zoom adjusts the camera zoom level.
@@ -100,10 +100,10 @@ func (m *Manager) handleMouseDown(button int, x, y float32) {
 	}
 	if button == 0 {
 		m.dragging = true
-		m.dragStart = math.Vec2{x, y}
+		m.dragStart = math.Vec2{X: x, Y: y}
 		m.dragEnd = m.dragStart
 	}
-	m.lastPos = math.Vec2{x, y}
+	m.lastPos = math.Vec2{X: x, Y: y}
 }
 
 func (m *Manager) handleMouseUp(button int, x, y float32) {
@@ -113,11 +113,11 @@ func (m *Manager) handleMouseUp(button int, x, y float32) {
 	if button == 0 {
 		m.dragging = false
 	}
-	m.lastPos = math.Vec2{x, y}
+	m.lastPos = math.Vec2{X: x, Y: y}
 }
 
 func (m *Manager) handleMouseMove(x, y float32) {
-	pos := math.Vec2{x, y}
+	pos := math.Vec2{X: x, Y: y}
 	if m.dragging {
 		m.dragEnd = pos
 	}
