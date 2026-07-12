@@ -21,6 +21,32 @@ var (
 	componentSignalsMu sync.RWMutex
 )
 
+// inputBindingStops tracks the stop functions of input listeners created via
+// events.Listen for each component, so rebinding and unmount can release the
+// previous listeners instead of leaking them.
+var (
+	inputBindingStops   = make(map[string][]func())
+	inputBindingStopsMu sync.Mutex
+)
+
+func addInputBindingStop(componentID string, stop func()) {
+	inputBindingStopsMu.Lock()
+	inputBindingStops[componentID] = append(inputBindingStops[componentID], stop)
+	inputBindingStopsMu.Unlock()
+}
+
+// ReleaseInputBindings stops all input listeners registered for a component.
+// UpdateDOM calls it before rebinding and core calls it on unmount.
+func ReleaseInputBindings(componentID string) {
+	inputBindingStopsMu.Lock()
+	stops := inputBindingStops[componentID]
+	delete(inputBindingStops, componentID)
+	inputBindingStopsMu.Unlock()
+	for _, stop := range stops {
+		stop()
+	}
+}
+
 var (
 	reStoreWrite  = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+):w`)
 	reSignalWrite = regexp.MustCompile(`@signal:(\w+):w`)
@@ -114,6 +140,10 @@ func UpdateDOM(componentID string, html string) {
 		TemplateHook(componentID, html)
 	}
 
+	// Release the listeners of the previous render: rebinding below attaches
+	// fresh ones and stale listeners on replaced nodes would leak.
+	ReleaseInputBindings(componentID)
+
 	BindStoreInputsForComponent(componentID, element.Value)
 	BindSignalInputs(componentID, element.Value)
 	BindASTStoreInputs(componentID, element.Value)
@@ -147,7 +177,8 @@ func BindASTStoreInputs(componentID string, element js.Value) {
 				if b, ok := storeValue.(bool); ok {
 					input.Set("checked", b)
 				}
-				ch := events.Listen("change", input)
+				ch, stop := events.Listen("change", input)
+				addInputBindingStop(componentID, stop)
 				go func(in js.Value, st *state.Store, k string) {
 					for range ch {
 						st.Set(k, in.Get("checked").Bool())
@@ -160,7 +191,8 @@ func BindASTStoreInputs(componentID string, element js.Value) {
 			storeValue = ""
 		}
 		input.Set("value", fmt.Sprintf("%v", storeValue))
-		ch := events.Listen("input", input)
+		ch, stop := events.Listen("input", input)
+		addInputBindingStop(componentID, stop)
 		go func(in js.Value, st *state.Store, k string) {
 			for range ch {
 				st.Set(k, in.Get("value").String())
@@ -191,7 +223,8 @@ func BindASTSignalInputs(componentID string, element js.Value) {
 					if b, ok := s.Read().(bool); ok {
 						input.Set("checked", b)
 					}
-					ch := events.Listen("change", input)
+					ch, stop := events.Listen("change", input)
+					addInputBindingStop(componentID, stop)
 					go func(in js.Value, sg interface{ Set(bool) }) {
 						for range ch {
 							sg.Set(in.Get("checked").Bool())
@@ -206,7 +239,8 @@ func BindASTSignalInputs(componentID string, element js.Value) {
 			Set(string)
 		}); ok {
 			input.Set("value", fmt.Sprintf("%v", s.Read()))
-			ch := events.Listen("input", input)
+			ch, stop := events.Listen("input", input)
+			addInputBindingStop(componentID, stop)
 			go func(in js.Value, sg interface{ Set(string) }) {
 				for range ch {
 					sg.Set(in.Get("value").String())
@@ -258,7 +292,8 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 		if usesChecked {
 			boolVal, _ := storeValue.(bool)
 			input.Set("checked", boolVal)
-			ch := events.Listen("change", input)
+			ch, stop := events.Listen("change", input)
+			addInputBindingStop(componentID, stop)
 			go func(in js.Value, st *state.Store, k string) {
 				for range ch {
 					st.Set(k, in.Get("checked").Bool())
@@ -271,7 +306,8 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 			storeValue = ""
 		}
 		input.Set("value", fmt.Sprintf("%v", storeValue))
-		ch := events.Listen("input", input)
+		ch, stop := events.Listen("input", input)
+		addInputBindingStop(componentID, stop)
 		go func(in js.Value, st *state.Store, k string) {
 			for range ch {
 				st.Set(k, in.Get("value").String())
@@ -325,7 +361,8 @@ func BindSignalInputs(componentID string, element js.Value) {
 				if b, ok := s.Read().(bool); ok {
 					input.Set("checked", b)
 				}
-				ch := events.Listen("change", input)
+				ch, stop := events.Listen("change", input)
+				addInputBindingStop(componentID, stop)
 				go func(in js.Value, sg interface{ Set(bool) }) {
 					for range ch {
 						sg.Set(in.Get("checked").Bool())
@@ -340,7 +377,8 @@ func BindSignalInputs(componentID string, element js.Value) {
 			Set(string)
 		}); ok {
 			input.Set("value", fmt.Sprintf("%v", s.Read()))
-			ch := events.Listen("input", input)
+			ch, stop := events.Listen("input", input)
+			addInputBindingStop(componentID, stop)
 			go func(in js.Value, sg interface{ Set(string) }) {
 				for range ch {
 					sg.Set(in.Get("value").String())
