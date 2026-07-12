@@ -14,6 +14,10 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **breaking:** the `ai/pathfinding`, `game`, `webgl`, `netcode` and `animation` packages moved to their own repositories: `github.com/rfwlab/rfw-ai`, `rfw-game`, `rfw-webgl`, `rfw-netcode`, `rfw-animation`. Update imports from `github.com/rfwlab/rfw/v2/<pkg>` to `github.com/rfwlab/rfw-<pkg>`; the APIs are unchanged. The router analytics prefetcher now talks to `hostclient` directly (same wire format).
+
 ## [2.0.0-beta.8] - 2026-07-12
 
 Developer-experience release: event delegation works end to end for runtime
