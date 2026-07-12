@@ -230,35 +230,38 @@ func (s *Server) watchFiles() {
 					plugins.NeedsRebuild(event.Name) {
 					rebuilds.Add(1)
 					utils.Info("Changes detected, rebuilding...")
-					if err := build.Build(); err != nil {
-						if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: false, Error: err.Error()}); emitErr != nil {
-							utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
-						}
-						utils.Fatal("Failed to rebuild project: ", err)
-					}
-					if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: true}); emitErr != nil {
-						utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
-					}
+					// Template edits stream to the browser immediately: the
+					// hot swap does not depend on the wasm rebuild, which
+					// then runs to keep dist consistent for full reloads.
+					templateSwapped := false
 					if strings.HasSuffix(event.Name, ".rtml") {
-						markup, err := os.ReadFile(event.Name)
-						if err == nil {
+						if markup, err := os.ReadFile(event.Name); err == nil {
 							if comps := componentNamesForTemplate(event.Name); len(comps) > 0 {
+								templateSwapped = true
 								for _, name := range comps {
 									if err := s.broadcastTemplateUpdate(event.Name, name, string(markup)); err != nil {
 										utils.Debug(fmt.Sprintf("template broadcast failed: %v", err))
 									}
 								}
-							} else {
-								if err := s.broadcastReload(event.Name); err != nil {
-									utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
-								}
 							}
 						} else {
 							utils.Debug(fmt.Sprintf("failed reading template %s: %v", event.Name, err))
-							if err := s.broadcastReload(event.Name); err != nil {
-								utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
-							}
 						}
+					}
+					if err := build.Build(); err != nil {
+						if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: false, Error: err.Error()}); emitErr != nil {
+							utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
+						}
+						// A compile error must not kill the dev server: keep
+						// watching so the next save can succeed.
+						utils.Error("Failed to rebuild project: ", err)
+						continue
+					}
+					if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: true}); emitErr != nil {
+						utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
+					}
+					if templateSwapped {
+						// Browser state already updated by the template swap.
 					} else {
 						if err := s.broadcastReload(event.Name); err != nil {
 							utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
