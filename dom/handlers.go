@@ -104,7 +104,7 @@ func DelegateEvents(componentID string, root js.Value) {
 								}
 							}
 						}()
-						h.Invoke(evt)
+						h.Invoke(evt, target)
 						evt.Call("stopPropagation")
 						return nil
 					}
