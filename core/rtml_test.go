@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rfwlab/rfw/v2/dom"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -120,6 +121,59 @@ func TestForFieldsEscapedByDefault(t *testing.T) {
 	}
 	if !strings.Contains(html, "<b>ok</b>") {
 		t.Fatalf("rawprop escaped: %s", html)
+	}
+}
+
+// @signal values are escaped by default: a signal carrying user-supplied
+// markup must render as text, not execute as HTML.
+func TestSignalEscapedByDefault(t *testing.T) {
+	sig := state.NewSignal("<img src=x onerror=alert(1)>")
+	tpl := []byte(`<root><div>@signal:v</div></root>`)
+	c := NewHTMLComponent("EscSignal", tpl, map[string]any{"v": sig})
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;img src=x onerror=alert(1)&gt;") {
+		t.Fatalf("signal not escaped: %s", html)
+	}
+	if strings.Contains(html, "<img") {
+		t.Fatalf("signal injected markup: %s", html)
+	}
+}
+
+// @expr output is escaped by default, matching @store/@prop policy.
+func TestExprEscapedByDefault(t *testing.T) {
+	tpl := []byte(`<root><div>@expr:msg</div></root>`)
+	c := NewHTMLComponent("EscExpr", tpl, map[string]any{"msg": "<b>bad</b>"})
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;b&gt;bad&lt;/b&gt;") {
+		t.Fatalf("expr not escaped: %s", html)
+	}
+	if strings.Contains(html, "<b>bad</b>") {
+		t.Fatalf("expr injected markup: %s", html)
+	}
+}
+
+// Signal updates go through textContent so later values cannot inject HTML.
+func TestSignalUpdateUsesTextContent(t *testing.T) {
+	sig := state.NewSignal("safe")
+	tpl := []byte(`<root><div>@signal:v</div></root>`)
+	c := NewHTMLComponent("EscSignalUpdate", tpl, map[string]any{"v": sig})
+	c.Init(nil)
+	html := c.Render()
+	container := dom.Doc().CreateElement("div")
+	container.Set("innerHTML", html)
+	dom.Doc().Get("body").Call("appendChild", container.Value)
+	defer container.Call("remove")
+	sig.Set("<img src=x onerror=alert(1)>")
+	root := dom.ComponentRoot(c.ID)
+	node := root.Query(`[data-signal="v"]`)
+	if node.IsNull() || node.IsUndefined() {
+		t.Fatalf("signal binding not found")
+	}
+	inner := node.Get("innerHTML").String()
+	if !strings.Contains(inner, "&lt;img") {
+		t.Fatalf("signal update not applied as text: %s", inner)
 	}
 }
 
