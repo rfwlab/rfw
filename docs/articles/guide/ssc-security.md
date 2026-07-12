@@ -65,13 +65,13 @@ the browser. Any string compiled into client code (tokens, endpoints,
 "hidden" logic) is extractable. Treat client Go code exactly like you would
 treat JavaScript.
 
-## Authentication and authorization: rfw does neither
+## Authentication and authorization: rfw defaults to open
 
 This is the most important paragraph on this page. As implemented today:
 
-- The `/ws` endpoint accepts any connection. `wsHandler` allocates a
-  session for every socket, unconditionally. There is no login, no token
-  check, and no `Origin` allowlist in the framework.
+- By default the `/ws` endpoint accepts any connection. `wsHandler`
+  allocates a session for every socket, unconditionally. There is no login
+  and no `Origin` check unless you opt in with the guard options below.
 - Host components are addressed by name in a global registry. Any connected
   client can send any payload to any registered component. The component
   name in a message is data chosen by the client, not a routing decision
@@ -82,11 +82,24 @@ This is the most important paragraph on this page. As implemented today:
 
 The recommended pattern until you have something better:
 
-1. **Authenticate at the HTTP layer.** Build your mux with `host.NewMux`
-   and wrap it (or serve it via `host.ListenAndServeWithMux`) behind your
-   own middleware that validates a session cookie or token *before* the
-   WebSocket upgrade, and rejects unauthenticated upgrades of `/ws`.
-   A reverse proxy enforcing auth and an `Origin` check works too.
+1. **Gate the upgrade with the built-in guards.** `host.NewMux` and
+   `ssc.NewSSCServer` accept `host.WithOriginAllowlist(...)` and
+   `host.WithAuthFunc(...)`:
+
+   ```go
+   mux := host.NewMux(root,
+       host.WithOriginAllowlist("https://app.example.com"),
+       host.WithAuthFunc(func(r *http.Request) bool {
+           return validSessionCookie(r)
+       }),
+   )
+   ```
+
+   The allowlist rejects upgrades whose `Origin` header is missing or
+   unlisted (403) before a session is allocated; the auth func sees the
+   full upgrade request (cookies, headers) and returning false rejects
+   with 401. Both default to off. Your own middleware in front of the mux
+   (or a reverse proxy enforcing auth and an `Origin` check) works too.
 2. **Bind identity to the session.** After verifying credentials (from the
    upgrade request, or from a first authenticated message), store the user
    identity with `session.ContextSet("user", ...)`. Handlers receive the

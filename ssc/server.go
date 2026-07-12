@@ -53,10 +53,16 @@ type SSCServer struct {
 	Addr string
 	Root string
 	Mux  *http.ServeMux
+
+	opts []host.MuxOption
 }
 
-func NewSSCServer(addr, root string) *SSCServer {
-	s := &SSCServer{Addr: addr, Root: root}
+// NewSSCServer builds an SSC server serving files from root and the WebSocket
+// endpoint at /ws. Options such as host.WithAuthFunc and
+// host.WithOriginAllowlist gate the WebSocket endpoint; by default it accepts
+// any origin and identity.
+func NewSSCServer(addr, root string, opts ...host.MuxOption) *SSCServer {
+	s := &SSCServer{Addr: addr, Root: root, opts: opts}
 	s.Mux = s.buildMux()
 	return s
 }
@@ -76,8 +82,9 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 			sfs.ServeHTTP(w, r)
 		})))
 	}
+	wsGuarded := host.GuardWS(websocket.Handler(wsHandler), s.opts...)
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		websocket.Handler(wsHandler).ServeHTTP(w, r)
+		wsGuarded.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if sfs != nil {

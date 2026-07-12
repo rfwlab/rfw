@@ -31,9 +31,68 @@ func ResolveRoot(root string) string {
 	return root
 }
 
+// MuxOption configures optional behaviour of the mux returned by NewMux,
+// currently the guards applied to the /ws WebSocket endpoint.
+type MuxOption func(*wsGuardConfig)
+
+type wsGuardConfig struct {
+	authFunc func(*http.Request) bool
+	origins  []string
+}
+
+// WithAuthFunc registers a callback invoked before the WebSocket upgrade at
+// /ws. It receives the upgrade request (cookies, headers, URL) and returning
+// false rejects the connection with 401 before a session is allocated. The
+// default remains open: without this option any client can connect.
+func WithAuthFunc(fn func(*http.Request) bool) MuxOption {
+	return func(cfg *wsGuardConfig) { cfg.authFunc = fn }
+}
+
+// WithOriginAllowlist restricts /ws upgrades to requests whose Origin header
+// exactly matches one of the given origins (e.g. "https://app.example.com").
+// Requests without an Origin header or with an unlisted one are rejected with
+// 403. The default remains open: without this option any origin is accepted.
+func WithOriginAllowlist(origins ...string) MuxOption {
+	return func(cfg *wsGuardConfig) { cfg.origins = append(cfg.origins, origins...) }
+}
+
+// GuardWS wraps a WebSocket handler with the origin and auth checks configured
+// through MuxOptions. It is used by NewMux and ssc.NewSSCServer to gate /ws.
+func GuardWS(next http.Handler, opts ...MuxOption) http.Handler {
+	var cfg wsGuardConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	if cfg.authFunc == nil && len(cfg.origins) == 0 {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(cfg.origins) > 0 {
+			origin := r.Header.Get("Origin")
+			allowed := false
+			for _, o := range cfg.origins {
+				if origin == o {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				http.Error(w, "origin not allowed", http.StatusForbidden)
+				return
+			}
+		}
+		if cfg.authFunc != nil && !cfg.authFunc(r) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // NewMux returns an HTTP mux that serves static files from root and the
-// WebSocket handler at /ws.
-func NewMux(root string) *http.ServeMux {
+// WebSocket handler at /ws. Options gate the WebSocket endpoint; by default it
+// accepts any origin and identity.
+func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 	root = ResolveRoot(root)
 	staticRoot := filepath.Join(root, "..", "static")
 	mux := http.NewServeMux()
@@ -80,7 +139,7 @@ func NewMux(root string) *http.ServeMux {
 		}
 		http.NotFound(w, r)
 	})
-	mux.Handle("/ws", websocket.Handler(wsHandler))
+	mux.Handle("/ws", GuardWS(websocket.Handler(wsHandler), opts...))
 	return mux
 }
 
