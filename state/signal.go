@@ -189,8 +189,6 @@ func (s *Signal[T]) notifyOnChange(v T) {
 	}
 }
 
-
-
 func (s *Signal[T]) SubCount() int {
 	if s.subs == nil {
 		return 0
