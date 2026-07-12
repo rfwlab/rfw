@@ -8,9 +8,20 @@ import (
 	"github.com/rfwlab/rfw/v2/dom"
 )
 
+// mount appends a container with the given markup to the body and removes it
+// when the test ends. Replacing body's HTML wholesale would destroy the test
+// harness page.
+func mount(t *testing.T, html string) {
+	t.Helper()
+	c := dom.CreateElement("div")
+	c.SetHTML(html)
+	dom.Doc().Body().AppendChild(c)
+	t.Cleanup(func() { c.Call("remove") })
+}
+
 func TestBind(t *testing.T) {
 	doc := dom.Doc()
-	doc.Body().SetHTML("<div id='root'><span>old</span></div>")
+	mount(t, "<div id='root'><span>old</span></div>")
 
 	Bind("#root", func(el El) {
 		el.Clear()
@@ -25,7 +36,7 @@ func TestBind(t *testing.T) {
 
 func TestBindEl(t *testing.T) {
 	doc := dom.Doc()
-	doc.Body().SetHTML("<div id='root'><span>old</span></div>")
+	mount(t, "<div id='root'><span>old</span></div>")
 
 	BindEl(doc.ByID("root"), func(el El) {
 		el.Clear()
@@ -40,7 +51,7 @@ func TestBindEl(t *testing.T) {
 
 func TestFor(t *testing.T) {
 	doc := dom.Doc()
-	doc.Body().SetHTML("<div id='list'></div>")
+	mount(t, "<div id='list'></div>")
 	items := []string{"a", "b"}
 	i := 0
 

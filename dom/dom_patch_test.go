@@ -13,7 +13,7 @@ func TestUpdateDOMSkipsNonElementNodes(t *testing.T) {
 	body := js.Doc().Get("body")
 	root := CreateElement("div")
 	root.Set("id", "root")
-	body.Call("appendChild", root)
+	body.Call("appendChild", root.Value)
 	defer root.Call("remove")
 
 	SetInnerHTML(root, "<!--old-->")
