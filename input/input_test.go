@@ -27,7 +27,7 @@ func TestDragRect(t *testing.T) {
 	if !dragging {
 		t.Fatalf("expected dragging state")
 	}
-	if start != (math.Vec2{10, 20}) || end != (math.Vec2{30, 40}) {
+	if start != (math.Vec2{X: 10, Y: 20}) || end != (math.Vec2{X: 30, Y: 40}) {
 		t.Fatalf("unexpected drag rect %v %v", start, end)
 	}
 	m.handleMouseUp(0, 30, 40)
@@ -43,7 +43,7 @@ func TestCameraControls(t *testing.T) {
 	m.handleMouseDown(1, 0, 0)
 	m.handleMouseMove(5, -5)
 	cam := m.Camera()
-	if cam.Position != (math.Vec2{5, -5}) {
+	if cam.Position != (math.Vec2{X: 5, Y: -5}) {
 		t.Fatalf("pan not applied, got %v", cam.Position)
 	}
 	m.handleWheel(-120)

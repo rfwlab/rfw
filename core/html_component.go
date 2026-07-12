@@ -137,7 +137,7 @@ func (c *HTMLComponent) RenderFresh() string {
 
 func (c *HTMLComponent) Render() (renderedTemplate string) {
 	start := time.Now()
-	defer c.recordRender(time.Since(start))
+	defer func() { c.recordRender(time.Since(start)) }()
 	key := c.cacheKey()
 	if c.cache != nil {
 		if val, ok := c.cache[key]; ok {
