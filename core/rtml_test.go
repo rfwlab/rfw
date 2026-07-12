@@ -177,6 +177,24 @@ func TestSignalUpdateUsesTextContent(t *testing.T) {
 	}
 }
 
+// {{prop}} substitutions are escaped by default like @prop; @rawprop stays
+// the trusted markup escape hatch.
+func TestCurlyPropEscapedByDefault(t *testing.T) {
+	tpl := []byte(`<root><div>{{msg}}|@rawprop:markup</div></root>`)
+	c := NewHTMLComponent("EscCurly", tpl, map[string]any{
+		"msg":    "<script>alert(1)</script>",
+		"markup": "<b>ok</b>",
+	})
+	c.Init(nil)
+	html := c.Render()
+	if !strings.Contains(html, "&lt;script&gt;alert(1)&lt;/script&gt;") {
+		t.Fatalf("curly prop not escaped: %s", html)
+	}
+	if !strings.Contains(html, "<b>ok</b>") {
+		t.Fatalf("rawprop escaped: %s", html)
+	}
+}
+
 // @store values are escaped by default; @rawstore injects trusted markup.
 func TestStoreEscapedByDefault(t *testing.T) {
 	st := state.NewStore("escstore", state.WithModule("app"))

@@ -168,9 +168,11 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Replace this component's slot placeholders with provided content or fallbacks
 	renderedTemplate = replaceSlotPlaceholders(renderedTemplate, c)
 
+	// {{prop}} substitutions are HTML-escaped like @prop; @rawprop remains the
+	// explicit escape hatch for trusted markup.
 	for key, value := range c.Props {
 		placeholder := fmt.Sprintf("{{%s}}", key)
-		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, fmt.Sprintf("%v", value))
+		renderedTemplate = strings.ReplaceAll(renderedTemplate, placeholder, escapeValue(value))
 	}
 
 	// Register @include directives that supply inline props
