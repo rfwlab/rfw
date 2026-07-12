@@ -46,6 +46,41 @@ type Server struct {
 
 const ignoreDelay = 200 * time.Millisecond
 
+// rebuildDebounce coalesces bursts of file events (editor save storms, git
+// checkouts) into a single rebuild.
+const rebuildDebounce = 150 * time.Millisecond
+
+// hostStopTimeout bounds how long stopHost waits for a graceful exit after
+// SIGTERM before killing the process.
+const hostStopTimeout = 3 * time.Second
+
+// debouncer coalesces bursts of triggers into a single fire on C after the
+// configured delay; every trigger during the window restarts the countdown.
+type debouncer struct {
+	timer *time.Timer
+	C     <-chan time.Time
+}
+
+func (d *debouncer) trigger(delay time.Duration) {
+	if d.timer == nil {
+		d.timer = time.NewTimer(delay)
+		d.C = d.timer.C
+		return
+	}
+	if !d.timer.Stop() {
+		select {
+		case <-d.timer.C:
+		default:
+		}
+	}
+	d.timer.Reset(delay)
+}
+
+func (d *debouncer) fired() {
+	d.timer = nil
+	d.C = nil
+}
+
 func NewServer(port string, host bool) *Server {
 	return &Server{
 		Port:       port,
@@ -199,6 +234,11 @@ func drainWatcher(w *fsnotify.Watcher) {
 }
 
 func (s *Server) watchFiles() {
+	var (
+		deb         debouncer
+		pendingPath string
+		pendingSwap bool
+	)
 	for {
 		select {
 		case event, ok := <-s.watcher.Events:
@@ -228,16 +268,13 @@ func (s *Server) watchFiles() {
 					strings.HasSuffix(event.Name, ".rtml") ||
 					strings.HasSuffix(event.Name, ".md") ||
 					plugins.NeedsRebuild(event.Name) {
-					rebuilds.Add(1)
-					utils.Info("Changes detected, rebuilding...")
 					// Template edits stream to the browser immediately: the
 					// hot swap does not depend on the wasm rebuild, which
 					// then runs to keep dist consistent for full reloads.
-					templateSwapped := false
 					if strings.HasSuffix(event.Name, ".rtml") {
 						if markup, err := os.ReadFile(event.Name); err == nil {
 							if comps := componentNamesForTemplate(event.Name); len(comps) > 0 {
-								templateSwapped = true
+								pendingSwap = true
 								for _, name := range comps {
 									if err := s.broadcastTemplateUpdate(event.Name, name, string(markup)); err != nil {
 										utils.Debug(fmt.Sprintf("template broadcast failed: %v", err))
@@ -248,35 +285,15 @@ func (s *Server) watchFiles() {
 							utils.Debug(fmt.Sprintf("failed reading template %s: %v", event.Name, err))
 						}
 					}
-					if err := build.Build(); err != nil {
-						if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: false, Error: err.Error()}); emitErr != nil {
-							utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
-						}
-						// A compile error must not kill the dev server: keep
-						// watching so the next save can succeed.
-						utils.Error("Failed to rebuild project: ", err)
-						continue
-					}
-					if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: event.Name, Success: true}); emitErr != nil {
-						utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
-					}
-					if templateSwapped {
-						// Browser state already updated by the template swap.
-					} else {
-						if err := s.broadcastReload(event.Name); err != nil {
-							utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
-						}
-					}
-					if s.buildType == "ssc" {
-						s.stopHost()
-						if err := s.startHost(); err != nil {
-							utils.Fatal("Failed to restart host server: ", err)
-						}
-					}
-					s.ignoreUntil = time.Now().Add(ignoreDelay)
-					drainWatcher(s.watcher)
+					// Coalesce bursts of events into a single rebuild.
+					pendingPath = event.Name
+					deb.trigger(rebuildDebounce)
 				}
 			}
+		case <-deb.C:
+			deb.fired()
+			s.rebuild(pendingPath, pendingSwap)
+			pendingSwap = false
 		case err, ok := <-s.watcher.Errors:
 			if !ok {
 				return
@@ -288,6 +305,42 @@ func (s *Server) watchFiles() {
 			return
 		}
 	}
+}
+
+// rebuild runs a full project build for a change at path, reporting timing and
+// streaming the result to connected browsers.
+func (s *Server) rebuild(path string, templateSwapped bool) {
+	rebuilds.Add(1)
+	utils.Info("Changes detected, rebuilding...")
+	start := time.Now()
+	if err := build.Build(); err != nil {
+		if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: path, Success: false, Error: err.Error()}); emitErr != nil {
+			utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
+		}
+		// A compile error must not kill the dev server: keep
+		// watching so the next save can succeed.
+		utils.Error("Failed to rebuild project: ", err)
+		return
+	}
+	if emitErr := signalbus.Emit(context.Background(), RebuildBus, RebuildEvent{Path: path, Success: true}); emitErr != nil {
+		utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
+	}
+	utils.Info(fmt.Sprintf("Rebuilt in %s", time.Since(start).Round(time.Millisecond)))
+	if templateSwapped {
+		// Browser state already updated by the template swap.
+	} else {
+		if err := s.broadcastReload(path); err != nil {
+			utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
+		}
+	}
+	if s.buildType == "ssc" {
+		s.stopHost()
+		if err := s.startHost(); err != nil {
+			utils.Fatal("Failed to restart host server: ", err)
+		}
+	}
+	s.ignoreUntil = time.Now().Add(ignoreDelay)
+	drainWatcher(s.watcher)
 }
 
 // readBuildType reads the build type from rfw.json if present.
@@ -323,10 +376,29 @@ func (s *Server) startHost() error {
 	return s.hostCmd.Start()
 }
 
+// stopHost asks the host process to exit with SIGTERM so it can close its
+// sockets cleanly, then kills it if it has not exited within hostStopTimeout.
 func (s *Server) stopHost() {
-	if s.hostCmd != nil && s.hostCmd.Process != nil {
-		_ = s.hostCmd.Process.Kill()
-		_, _ = s.hostCmd.Process.Wait()
+	if s.hostCmd == nil || s.hostCmd.Process == nil {
+		s.hostCmd = nil
+		return
 	}
+	proc := s.hostCmd.Process
+	if err := proc.Signal(syscall.SIGTERM); err == nil {
+		done := make(chan struct{})
+		go func() {
+			_, _ = proc.Wait()
+			close(done)
+		}()
+		select {
+		case <-done:
+			s.hostCmd = nil
+			return
+		case <-time.After(hostStopTimeout):
+			utils.Debug("host did not exit after SIGTERM, killing")
+		}
+	}
+	_ = proc.Kill()
+	_, _ = proc.Wait()
 	s.hostCmd = nil
 }
