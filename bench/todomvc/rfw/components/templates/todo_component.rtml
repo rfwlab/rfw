@@ -1,0 +1,20 @@
+<root>
+  <div class="todoapp">
+    <h1>todos</h1>
+    <div class="entry">
+      <input id="new-todo" type="text" placeholder="What needs to be done?" @on:keydown:newTodoKeydown />
+      <button id="add-todo" @on:click:addTodo>Add</button>
+    </div>
+    <ul id="todo-list"></ul>
+    <footer>
+      <span id="todo-count">@store:app.todos.active items left</span>
+      <button @on:click:setFilter data-filter="all">All</button>
+      <button @on:click:setFilter data-filter="active">Active</button>
+      <button @on:click:setFilter data-filter="done">Done</button>
+    </footer>
+    <div class="live">
+      <button id="start-live" @on:click:startLive>Start live</button>
+      <span id="live-counter">@store:app.todos.live</span>
+    </div>
+  </div>
+</root>
