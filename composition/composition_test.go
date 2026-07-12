@@ -11,8 +11,11 @@ import (
 	"github.com/rfwlab/rfw/v2/state"
 )
 
+// testTpl is a minimal valid template: Init panics on an empty one.
+var testTpl = []byte("<root><div></div></root>")
+
 func TestWrap(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	if c.HTMLComponent != hc {
 		t.Fatalf("expected %v, got %v", hc, c.HTMLComponent)
@@ -20,7 +23,7 @@ func TestWrap(t *testing.T) {
 }
 
 func TestUnwrap(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	if c.Unwrap() != hc {
 		t.Fatalf("expected %v, got %v", hc, c.Unwrap())
@@ -28,7 +31,7 @@ func TestUnwrap(t *testing.T) {
 }
 
 func TestOnRegistersHandler(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	called := false
 	c.On("onTest", func() { called = true })
@@ -43,7 +46,7 @@ func TestOnRegistersHandler(t *testing.T) {
 }
 
 func TestOnInvalidArgs(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	assertPanics(t, func() { c.On("", func() {}) })
 	assertPanics(t, func() { c.On("x", nil) })
@@ -54,7 +57,7 @@ func TestWrapNilPanics(t *testing.T) {
 }
 
 func TestProp(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	sig := state.NewSignal(1)
 	c.Prop("count", sig)
@@ -65,7 +68,7 @@ func TestProp(t *testing.T) {
 }
 
 func TestPropOverwrite(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	first := state.NewSignal(1)
 	second := state.NewSignal(2)
@@ -82,7 +85,7 @@ func TestStoreNamespaced(t *testing.T) {
 	state.GlobalStoreManager = state.NewStoreManager()
 	defer func() { state.GlobalStoreManager = oldGSM }()
 
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	s := c.Store("local")
 	if state.GlobalStoreManager.GetStore(c.ID, "local") != s {
@@ -91,7 +94,7 @@ func TestStoreNamespaced(t *testing.T) {
 }
 
 func TestStoreEmptyNamePanics(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	assertPanics(t, func() { c.Store("") })
 }
@@ -101,7 +104,7 @@ func TestHistoryRegistersHandlers(t *testing.T) {
 	state.GlobalStoreManager = state.NewStoreManager()
 	defer func() { state.GlobalStoreManager = oldGSM }()
 
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	s := c.Store("hist", state.WithHistory(5))
 	s.Set("v", 1)
@@ -121,7 +124,7 @@ func TestHistoryRegistersHandlers(t *testing.T) {
 }
 
 func TestHistoryInvalidArgs(t *testing.T) {
-	hc := core.NewComponent("test", nil, nil)
+	hc := core.NewComponent("test", testTpl, nil)
 	c := Wrap(hc)
 	s := c.Store("hist")
 	assertPanics(t, func() { c.History(nil, "u", "r") })
