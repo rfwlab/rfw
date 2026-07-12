@@ -46,6 +46,7 @@ type HTMLComponent struct {
 	Props             map[string]any
 	Slots             map[string]any
 	HostComponent     string
+	hostComponents    []string
 	conditionContents map[string]ConditionContent
 	exprContents      map[string]string
 	classExprContents map[string]string
@@ -196,7 +197,7 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	renderedTemplate = replacePluginPlaceholders(renderedTemplate)
 
 	// Handle host variable and command placeholders
-	if c.HostComponent != "" {
+	if len(c.hostComponentNames()) > 0 {
 		renderedTemplate = replaceHostPlaceholders(renderedTemplate, c)
 	}
 
@@ -215,8 +216,8 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle constructor decorators like [ref] and [key expr]
 	renderedTemplate = replaceConstructors(renderedTemplate)
 
-	if c.HostComponent != "" {
-		hostclient.RegisterComponent(c.ID, c.HostComponent, c.hostVars)
+	for _, name := range c.hostComponentNames() {
+		hostclient.RegisterComponent(c.ID, name, c.hostVars)
 	}
 
 	renderedTemplate = minifyInline(renderedTemplate)
@@ -467,9 +468,31 @@ func (c *HTMLComponent) SetRouteParams(params map[string]string) {
 
 // AddHostComponent links this HTML component to a server-side HostComponent
 // by name. When running in SSC mode, messages from the wasm runtime will be
-// routed to the corresponding host component on the server.
+// routed to the corresponding host component on the server. It may be called
+// multiple times (e.g. a composition struct with several host fields): every
+// name is registered, and HostComponent keeps the first one as the primary.
 func (c *HTMLComponent) AddHostComponent(name string) {
-	c.HostComponent = name
+	for _, n := range c.hostComponents {
+		if n == name {
+			return
+		}
+	}
+	c.hostComponents = append(c.hostComponents, name)
+	if c.HostComponent == "" {
+		c.HostComponent = name
+	}
+}
+
+// hostComponentNames returns every host component linked to this component,
+// including a HostComponent assigned directly to the exported field.
+func (c *HTMLComponent) hostComponentNames() []string {
+	if len(c.hostComponents) > 0 {
+		return c.hostComponents
+	}
+	if c.HostComponent != "" {
+		return []string{c.HostComponent}
+	}
+	return nil
 }
 
 func (c *HTMLComponent) cacheKey() string {
