@@ -192,13 +192,13 @@ func CheckForUpdate() {
 	}
 	markChecked()
 
-	if !isNewer(core.Version, latest) {
+	if !isNewer(core.Version(), latest) {
 		return
 	}
 
 	assetName := getAssetName()
 	fmt.Println()
-	Info(fmt.Sprintf("Update available: %s → %s", faint(core.Version), boldCyan(latest)))
+	Info(fmt.Sprintf("Update available: %s → %s", faint(core.Version()), boldCyan(latest)))
 
 	fmt.Print(indent, red("➜ "), bold("Update now? [y/N] "))
 	var answer string

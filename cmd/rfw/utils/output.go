@@ -31,7 +31,7 @@ func ClearScreen() {
 }
 
 func PrintStartupInfo(port, httpsPort, localIP string, host bool) {
-	fmt.Println(indent, boldRed("rfw"), faint(core.Version))
+	fmt.Println(indent, boldRed("rfw"), faint(core.Version()))
 	fmt.Println()
 	fmt.Println(indent, red("➜ "), bold("Local:"), red(fmt.Sprintf("http://localhost:%s/ - https://localhost:%s/", port, httpsPort)))
 
@@ -55,6 +55,12 @@ func Info(message string) {
 
 func Fatal(message string, err error) {
 	log.Fatalf(boldRed("[rfw] "), message, err)
+}
+
+// Error reports a failure without terminating the process, for loops that
+// must survive it (e.g. the dev watcher across compile errors).
+func Error(message string, err error) {
+	log.Printf("%s%s%v", boldRed("[rfw] "), message, err)
 }
 
 func EnableDebug(d bool) { dbg = d }
