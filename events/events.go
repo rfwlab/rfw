@@ -19,24 +19,34 @@ const (
 )
 
 // bus is the application-level event bus for framework and plugin events.
-var bus = &eventBus{handlers: make(map[Event][]func(any))}
+var bus = &eventBus{handlers: make(map[Event][]busHandler)}
+
+// busHandler pairs a handler with a stable ID so unsubscribe can remove it:
+// comparing function values is not valid in Go, so removal goes by ID.
+type busHandler struct {
+	id int
+	fn func(any)
+}
 
 type eventBus struct {
 	mu       sync.RWMutex
-	handlers map[Event][]func(any)
+	handlers map[Event][]busHandler
+	nextID   int
 }
 
 // On registers a handler for an application event and returns an unsubscribe function.
 func (b *eventBus) On(event Event, handler func(any)) func() {
 	b.mu.Lock()
-	b.handlers[event] = append(b.handlers[event], handler)
+	b.nextID++
+	id := b.nextID
+	b.handlers[event] = append(b.handlers[event], busHandler{id: id, fn: handler})
 	b.mu.Unlock()
 	return func() {
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		handlers := b.handlers[event]
 		for i, h := range handlers {
-			if &h == &handler {
+			if h.id == id {
 				b.handlers[event] = append(handlers[:i], handlers[i+1:]...)
 				return
 			}
@@ -47,11 +57,11 @@ func (b *eventBus) On(event Event, handler func(any)) func() {
 // Emit dispatches an application event to all registered handlers.
 func (b *eventBus) Emit(event Event, data any) {
 	b.mu.RLock()
-	handlers := make([]func(any), len(b.handlers[event]))
+	handlers := make([]busHandler, len(b.handlers[event]))
 	copy(handlers, b.handlers[event])
 	b.mu.RUnlock()
 	for _, h := range handlers {
-		h(data)
+		h.fn(data)
 	}
 }
 
@@ -118,9 +128,12 @@ func OnKeyUp(handler func(js.Value)) func() {
 	return On("keyup", js.Window(), handler)
 }
 
-// Listen attaches an event listener to target and returns a channel
-// that receives the first argument of the event callback.
-func Listen(event string, target js.Value) <-chan js.Value {
+// Listen attaches an event listener to target and returns a channel that
+// receives the first argument of the event callback, plus a stop function.
+// The stop function removes the listener, releases the underlying js.Func and
+// closes the channel so range loops over it terminate; without calling it
+// every Listen leaks a listener and its goroutine across bind/unmount cycles.
+func Listen(event string, target js.Value) (<-chan js.Value, func()) {
 	ch := make(chan js.Value)
 	fn := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
@@ -131,7 +144,12 @@ func Listen(event string, target js.Value) <-chan js.Value {
 		return nil
 	})
 	target.Call("addEventListener", event, fn)
-	return ch
+	stop := func() {
+		target.Call("removeEventListener", event, fn)
+		fn.Release()
+		close(ch)
+	}
+	return ch, stop
 }
 
 // ObserveMutations observes DOM mutations on the first node matching sel.

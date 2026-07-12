@@ -396,7 +396,9 @@ func (g *GroupBuilder) Page(path string, component any, guards ...Guard) {
 func InitRouter() {
 	ExposeNavigate()
 
-	ch := events.Listen("popstate", js.Window())
+	// The popstate listener lives for the whole app lifetime; the stop
+	// function is intentionally discarded.
+	ch, _ := events.Listen("popstate", js.Window())
 	go func() {
 		for range ch {
 			path := js.Location().Get("pathname").String() + js.Location().Get("search").String()
