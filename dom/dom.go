@@ -150,6 +150,43 @@ func UpdateDOM(componentID string, html string) {
 	BindASTSignalInputs(componentID, element.Value)
 }
 
+// UpdateMountedDOM patches a component's subtree only when its own root is in
+// the DOM. Reactive updates (store/signal changes) go through here: a change
+// hitting a component that is not mounted yet (a constructor-time Set) or not
+// anymore must be a no-op, not a wholesale replacement of the #app fallback.
+func UpdateMountedDOM(componentID, html string) {
+	el := ComponentRoot(componentID)
+	if el.IsNull() || el.IsUndefined() {
+		return
+	}
+	id := el.Value.Call("getAttribute", "data-component-id")
+	if !id.Truthy() || id.String() != componentID {
+		return
+	}
+	UpdateDOM(componentID, html)
+}
+
+// UpdateDOMIn renders html into an explicit target element (the router
+// outlet). The subtree is replaced wholesale: across different component
+// trees a positional diff would leave stale nodes behind.
+func UpdateDOMIn(target Element, componentID, html string) {
+	if target.IsNull() || target.IsUndefined() {
+		return
+	}
+	target.Value.Set("innerHTML", html)
+
+	if TemplateHook != nil {
+		TemplateHook(componentID, html)
+	}
+
+	ReleaseInputBindings(componentID)
+
+	BindStoreInputsForComponent(componentID, target.Value)
+	BindSignalInputs(componentID, target.Value)
+	BindASTStoreInputs(componentID, target.Value)
+	BindASTSignalInputs(componentID, target.Value)
+}
+
 // BindASTStoreInputs binds input elements that have data-bind-store attributes
 // (emitted by the AST renderer) to their store variables.
 func BindASTStoreInputs(componentID string, element js.Value) {
