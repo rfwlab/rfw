@@ -259,7 +259,11 @@ func navigateImpl(fullPath string) {
 			}
 			if c != nil {
 				currentComponent = c
-				dom.UpdateDOM(c.GetID(), core.TryRender(c))
+				if liveOutlet != nil {
+					liveOutlet.renderChild(c)
+				} else {
+					dom.UpdateDOM(c.GetID(), core.TryRender(c))
+				}
 				core.TryMount(c)
 				core.TriggerMount(c)
 				core.TriggerRouter(fullPath)
@@ -307,7 +311,11 @@ func navigateImpl(fullPath string) {
 		currentComponent.Unmount()
 	}
 	currentComponent = r.component
-	dom.UpdateDOM(r.component.GetID(), r.component.Render())
+	if liveOutlet != nil {
+		liveOutlet.renderChild(r.component)
+	} else {
+		dom.UpdateDOM(r.component.GetID(), r.component.Render())
+	}
 	r.component.Mount()
 	core.TriggerMount(r.component)
 	r.component.OnParams(params)
