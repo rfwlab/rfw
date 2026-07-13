@@ -1160,7 +1160,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 			if store != nil {
 				if val := store.Get(key); val != nil {
 					unsubscribe := store.OnChange(key, func(newValue any) {
-						dom.UpdateDOM(c.ID, c.RenderFresh())
+						dom.UpdateMountedDOM(c.ID, c.RenderFresh())
 					})
 					c.unsubscribes.Add(unsubscribe)
 					switch v := val.(type) {
