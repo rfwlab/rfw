@@ -315,6 +315,14 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 }
 
 func (c *HTMLComponent) Unmount() {
+	// Idempotence guard: component IDs are deterministic (name+props), so a
+	// second Unmount (e.g. the GC finalizer firing on a discarded instance
+	// after a same-route remount) would resolve ComponentRoot to the LIVE
+	// instance's DOM and strip its delegated handlers.
+	if !c.mounted {
+		return
+	}
+	c.mounted = false
 	devUnregisterComponent(c)
 	if c.component != nil {
 		c.component.OnUnmount()
