@@ -3,6 +3,7 @@
 package js
 
 import (
+	"runtime/debug"
 	jst "syscall/js"
 )
 
@@ -130,6 +131,36 @@ func TypedArrayOf(slice any) jst.Value {
 
 // FuncOf wraps a Go function for use in JavaScript.
 func FuncOf(fn func(this Value, args []Value) any) Func { return jst.FuncOf(fn) }
+
+// OnFuncPanic, if set, is called when a SafeFuncOf-wrapped callback panics,
+// with the recovered value and the stack captured at recovery. Raw FuncOf
+// leaves a panicking callback unrecovered, which under wasm aborts the whole
+// instance; SafeFuncOf routes it here instead.
+var OnFuncPanic func(r any, stack []byte)
+
+// SafeFuncOf is FuncOf with a recover guard: a panic in fn is recovered and
+// handed to OnFuncPanic (if set) rather than propagating out of the JavaScript
+// call, where under wasm it would abort the runtime. The wrapped function
+// returns nil to JavaScript when fn panics.
+func SafeFuncOf(fn func(this Value, args []Value) any) Func {
+	return jst.FuncOf(func(this Value, args []Value) (res any) {
+		defer func() {
+			if r := recover(); r != nil {
+				if OnFuncPanic != nil {
+					// Guard the hook itself: a panic here would be
+					// unrecovered and abort the runtime, the very failure
+					// this wrapper prevents.
+					func() {
+						defer func() { _ = recover() }()
+						OnFuncPanic(r, debug.Stack())
+					}()
+				}
+				res = nil
+			}
+		}()
+		return fn(this, args)
+	})
+}
 
 // Window returns the window object.
 func Window() Value { return Get("window") }
