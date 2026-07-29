@@ -25,7 +25,53 @@ func NewOutlet() *Outlet {
 	c := &Outlet{HTMLComponent: core.NewHTMLComponent("RouterOutlet", outletTpl, nil)}
 	c.SetComponent(c)
 	c.Init(nil)
+	installOutletRepaint()
 	return c
+}
+
+var (
+	outletRepaintInstalled bool
+	repainting             bool
+)
+
+// installOutletRepaint keeps the routed subtree alive across re-renders of the
+// shell around it. A persistent root bound to a store re-renders whenever that
+// store changes, and its fresh markup carries an empty outlet: without this
+// the routed page would disappear on the first store write after a navigation.
+// Registered once, when the first outlet is built.
+func installOutletRepaint() {
+	if outletRepaintInstalled {
+		return
+	}
+	outletRepaintInstalled = true
+	core.OnTemplate(func(componentID, _ string) {
+		if liveOutlet == nil || currentComponent == nil {
+			return
+		}
+		if componentID == currentComponent.GetID() {
+			return
+		}
+		liveOutlet.repaint()
+	})
+}
+
+// repaint re-renders the routed component when its markup is no longer inside
+// the outlet.
+func (o *Outlet) repaint() {
+	if repainting || currentComponent == nil {
+		return
+	}
+	root := dom.ComponentRoot(o.GetID())
+	if root.IsNull() || root.IsUndefined() {
+		return
+	}
+	if child := root.Query("[data-component-id='" + currentComponent.GetID() + "']"); !child.IsNull() && !child.IsUndefined() {
+		return
+	}
+	repainting = true
+	defer func() { repainting = false }()
+	o.renderChild(currentComponent)
+	currentComponent.Mount()
 }
 
 // OnMount registers this outlet as the live navigation target. If a route

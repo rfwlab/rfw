@@ -30,6 +30,15 @@ follow semver: they only land in a new major version.
 
 ### Fixed
 
+- an `@if` on a store key never reacted when the component had no other
+  binding on that store: the condition now subscribes to the keys it reads.
+- a routed page vanished when the shell around its outlet re-rendered (a
+  store-driven `@for` or `@if` in a `MountRoot` shell); the outlet repaints
+  its child instead.
+- `dom.DelegateEvents` stacked a second set of listeners when a component was
+  delegated twice, firing every handler twice and leaking a `js.Func` per
+  event; it now replaces the previous set, and `RemoveDelegatedEvents`
+  releases callbacks even when the root is already gone.
 - `http.Request` released only the callback that fired and leaked the other
   two per request; both outcomes now release all three, and a rejected body
   promise no longer leaks silently.
