@@ -25,6 +25,16 @@ follow semver: they only land in a new major version.
   `SetAttr` and `Closest`.
 - `js.FileReader`, `js.FormData` and `js.WebSocket` constructor accessors, plus
   `js.OnAnimationFrame` for scheduling a plain Go func on the next frame.
+- `http.RequestOptions.BodyValue` carries a browser-side body (FormData, Blob,
+  ArrayBuffer) for multipart uploads, which the string `Body` cannot express.
+
+### Fixed
+
+- `http.Request` released only the callback that fired and leaked the other
+  two per request; both outcomes now release all three, and a rejected body
+  promise no longer leaks silently.
+- `http.RequestBytes` reached for `js.Global().Call("fetch", ...)` instead of
+  `js.Fetch`.
 
 ### Changed
 
