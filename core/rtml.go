@@ -116,6 +116,30 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 	})
 	c.unsubscribes.Add(unsub)
 
+	// The effect above tracks signals only. A condition reading a store key
+	// has to subscribe to it as well, otherwise a component whose template
+	// carries no other binding on that store (an @if and nothing else) renders
+	// once and never reacts.
+	for _, br := range cn.Branches {
+		if br.Condition == "" {
+			continue
+		}
+		deps, _ := getConditionDependencies(br.Condition)
+		for _, dep := range deps {
+			if dep.module == "" || dep.storeName == "" || dep.key == "" {
+				continue
+			}
+			store := state.GlobalStoreManager.GetStore(dep.module, dep.storeName)
+			if store == nil {
+				continue
+			}
+			unsub := store.OnChange(dep.key, func(any) {
+				updateConditionBindings(c, conditionID)
+			})
+			c.unsubscribes.Add(unsub)
+		}
+	}
+
 	return fmt.Sprintf(`<div data-condition="%s">%s</div>`, conditionID, chosen)
 }
 

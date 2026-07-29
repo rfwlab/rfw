@@ -199,6 +199,13 @@ func OnNavigate(fn func(string)) {
 	app.routerHooks = append(app.routerHooks, fn)
 }
 
+// OnTemplate registers a function called with the rendered HTML every time a
+// component paints, the hook for work that must follow a render it does not
+// own (the router outlet repainting itself inside a re-rendered shell).
+func OnTemplate(fn func(componentID, html string)) {
+	app.templateHooks = append(app.templateHooks, fn)
+}
+
 // TriggerStore invokes store hooks for a mutation.
 func TriggerStore(module, store, key string, value any) {
 	for _, h := range app.storeHooks {

@@ -35,5 +35,6 @@ func TriggerMount(c Component)                          {}
 func TriggerUnmount(c Component)                        {}
 func TriggerTemplate(componentID, html string)          {}
 func OnNavigate(fn func(string))                        {}
+func OnTemplate(fn func(componentID, html string))      {}
 
 func RegisterPluginVar(plugin, name string, val any) {}

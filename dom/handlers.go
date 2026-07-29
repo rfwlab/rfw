@@ -76,7 +76,13 @@ func GetHandler(name string) js.Func {
 // DelegateEvents attaches delegated event listeners on the component root
 // element. Bubbling events bubble up to root where data-on-* attributes
 // are resolved to registered handlers.
+//
+// Delegating twice for the same component (a remount, a root replaced by a
+// re-render of the surrounding markup) replaces the previous set: keeping it
+// would fire every handler twice and leak one js.Func per event per remount.
 func DelegateEvents(componentID string, root js.Value) {
+	RemoveDelegatedEvents(componentID, root)
+
 	var handlers []js.Func
 	events := []string{"click", "submit", "input", "change", "keydown", "keyup", "focus", "blur"}
 	for _, evtName := range events {
@@ -129,13 +135,18 @@ func RemoveDelegatedEvents(componentID string, root js.Value) {
 		delete(delegates, componentID)
 	}
 	delegateMu.Unlock()
-	if !ok || !root.Truthy() {
+	if !ok {
 		return
 	}
+	// A root that is already gone (its subtree was replaced) cannot have its
+	// listeners detached, but the callbacks still have to be released.
+	live := root.Truthy()
 	events := []string{"click", "submit", "input", "change", "keydown", "keyup", "focus", "blur"}
 	for i, evtName := range events {
 		if i < len(handlers) {
-			root.Call("removeEventListener", evtName, handlers[i].Value)
+			if live {
+				root.Call("removeEventListener", evtName, handlers[i].Value)
+			}
 			handlers[i].Release()
 		}
 	}
