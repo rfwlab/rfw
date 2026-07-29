@@ -32,9 +32,13 @@ follow semver: they only land in a new major version.
 
 - an `@if` on a store key never reacted when the component had no other
   binding on that store: the condition now subscribes to the keys it reads.
-- a routed page vanished when the shell around its outlet re-rendered (a
-  store-driven `@for` or `@if` in a `MountRoot` shell); the outlet repaints
-  its child instead.
+- a routed page vanished, and any DOM it had built for itself after mount was
+  wiped, when the shell around its outlet re-rendered (a store-driven `@for`
+  or `@if` in a `MountRoot` shell). The outlet subtree is now the router's:
+  the patcher leaves it alone and the outlet repaints its child if it is lost.
+- an included component was frozen by the parent's render cache, which keys on
+  props and dependency identity but not on the store state a template binds
+  to: a dependency gated on a shared store key never followed it.
 - `dom.DelegateEvents` stacked a second set of listeners when a component was
   delegated twice, firing every handler twice and leaking a `js.Func` per
   event; it now replaces the previous set, and `RemoveDelegatedEvents`
