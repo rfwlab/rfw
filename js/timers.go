@@ -6,7 +6,7 @@ package js
 // timer id. It wraps window.setTimeout so callers need not touch the global.
 func SetTimeout(fn func(), delayMs int) Value {
 	var cb Func
-	cb = FuncOf(func(_ Value, _ []Value) any {
+	cb = SafeFuncOf(func(_ Value, _ []Value) any {
 		fn()
 		cb.Release()
 		return nil

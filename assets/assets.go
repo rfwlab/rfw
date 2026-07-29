@@ -13,11 +13,11 @@ import (
 // loadImageFn loads an image and invokes done on completion.
 var loadImageFn = func(url string, done func(js.Value, error)) {
 	img := js.Image().New()
-	onload := js.FuncOf(func(this js.Value, args []js.Value) any {
+	onload := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		done(img, nil)
 		return nil
 	})
-	onerror := js.FuncOf(func(this js.Value, args []js.Value) any {
+	onerror := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		done(js.Value{}, errors.New("assets: image load failed"))
 		return nil
 	})
@@ -29,10 +29,10 @@ var loadImageFn = func(url string, done func(js.Value, error)) {
 // loadBinaryFn fetches binary data and invokes done on completion.
 var loadBinaryFn = func(url string, done func([]byte, error)) {
 	js.Fetch(url).Call("then",
-		js.FuncOf(func(this js.Value, args []js.Value) any {
+		js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 			resp := args[0]
 			resp.Call("arrayBuffer").Call("then",
-				js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					buf := js.Uint8Array().New(args[0])
 					length := buf.Get("length").Int()
 					data := make([]byte, length)
@@ -42,14 +42,14 @@ var loadBinaryFn = func(url string, done func([]byte, error)) {
 					done(data, nil)
 					return nil
 				}),
-				js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					done(nil, errors.New(args[0].String()))
 					return nil
 				}),
 			)
 			return nil
 		}),
-		js.FuncOf(func(this js.Value, args []js.Value) any {
+		js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 			done(nil, errors.New(args[0].String()))
 			return nil
 		}),
