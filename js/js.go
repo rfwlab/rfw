@@ -216,6 +216,16 @@ func CustomEvent() Value { return Get("CustomEvent") }
 // Image returns the Image constructor.
 func Image() Value { return Get("Image") }
 
+// FileReader returns the FileReader constructor.
+func FileReader() Value { return Get("FileReader") }
+
+// FormData returns the FormData constructor, the body type for multipart
+// uploads passed to http.RequestOptions.BodyValue.
+func FormData() Value { return Get("FormData") }
+
+// WebSocket returns the WebSocket constructor.
+func WebSocket() Value { return Get("WebSocket") }
+
 // WebAssembly returns the WebAssembly object.
 func WebAssembly() Value { return Get("WebAssembly") }
 
@@ -243,6 +253,19 @@ func RequestAnimationFrame(cb Func) { Call("requestAnimationFrame", cb) }
 
 // RAF is an alias for RequestAnimationFrame.
 func RAF(cb Func) { RequestAnimationFrame(cb) }
+
+// OnAnimationFrame schedules fn on the next animation frame and releases the
+// underlying callback once it runs. RequestAnimationFrame takes a Func, which
+// pushes FuncOf and its Release bookkeeping onto every caller.
+func OnAnimationFrame(fn func()) Value {
+	var cb Func
+	cb = FuncOf(func(_ Value, _ []Value) any {
+		cb.Release()
+		fn()
+		return nil
+	})
+	return Call("requestAnimationFrame", cb)
+}
 
 // Fetch wraps the global fetch function.
 func Fetch(args ...any) Value { return Call("fetch", args...) }

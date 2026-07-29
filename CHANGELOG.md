@@ -14,6 +14,18 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+### Added
+
+- `events.Once` attaches a one-shot listener that removes itself and releases
+  its callback when the event lands, so FileReader/Image style callbacks no
+  longer push `js.FuncOf` and manual `Release` onto application code.
+- `dom.From` wraps a raw value into `dom.Element`, the missing entry point for
+  elements arriving from an event target or a NodeList.
+- `dom.Element.RemoveAttr` and `dom.Element.Matches`, the counterparts of
+  `SetAttr` and `Closest`.
+- `js.FileReader`, `js.FormData` and `js.WebSocket` constructor accessors, plus
+  `js.OnAnimationFrame` for scheduling a plain Go func on the next frame.
+
 ### Changed
 
 - **breaking:** the `ai/pathfinding`, `game`, `webgl`, `netcode` and `animation` packages moved to their own repositories: `github.com/rfwlab/rfw-ai`, `rfw-game`, `rfw-webgl`, `rfw-netcode`, `rfw-animation`. Update imports from `github.com/rfwlab/rfw/v2/<pkg>` to `github.com/rfwlab/rfw-<pkg>`; the APIs are unchanged. The router analytics prefetcher now talks to `hostclient` directly (same wire format).
