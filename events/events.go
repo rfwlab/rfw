@@ -79,7 +79,7 @@ func EmitApp(event Event, data any) {
 // Optional opts are forwarded to addEventListener as-is.
 // It returns a function that removes the listener and releases resources.
 func On(event string, target js.Value, handler func(js.Value), opts ...any) func() {
-	fn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			handler(args[0])
 		} else {
@@ -115,7 +115,7 @@ func Once(event string, target js.Value, handler func(js.Value)) func() {
 		target.Call("removeEventListener", event, fn)
 		fn.Release()
 	}
-	fn = js.FuncOf(func(this js.Value, args []js.Value) any {
+	fn = js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		evt := js.Null()
 		if len(args) > 0 {
 			evt = args[0]
@@ -165,7 +165,7 @@ func OnKeyUp(handler func(js.Value)) func() {
 // every Listen leaks a listener and its goroutine across bind/unmount cycles.
 func Listen(event string, target js.Value) (<-chan js.Value, func()) {
 	ch := make(chan js.Value)
-	fn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			ch <- args[0]
 		} else {
@@ -188,7 +188,7 @@ func Listen(event string, target js.Value) (<-chan js.Value, func()) {
 func ObserveMutations(sel string) (<-chan js.Value, func()) {
 	ch := make(chan js.Value)
 	node := js.Document().Call("querySelector", sel)
-	fn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		mutations := args[0]
 		for i := 0; i < mutations.Length(); i++ {
 			m := mutations.Index(i)
@@ -220,7 +220,7 @@ func ObserveMutations(sel string) (<-chan js.Value, func()) {
 // stop function to disconnect the observer and release resources.
 func ObserveIntersections(sel string, opts js.Value) (<-chan js.Value, func()) {
 	ch := make(chan js.Value)
-	fn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		entries := args[0]
 		for i := 0; i < entries.Length(); i++ {
 			ch <- entries.Index(i)

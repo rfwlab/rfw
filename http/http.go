@@ -54,11 +54,11 @@ func FetchJSON(url string, v any) error {
 			}
 			start := time.Now()
 			js.Fetch(url).Call("then",
-				js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					resp := args[0]
 					status := resp.Get("status").Int()
 					resp.Call("json").Call("then",
-						js.FuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							obj := args[0]
 							jsonStr := js.JSON().Call("stringify", obj).String()
 							ce.data = []byte(jsonStr)
@@ -68,7 +68,7 @@ func FetchJSON(url string, v any) error {
 							}
 							return nil
 						}),
-						js.FuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
 							close(ce.ready)
 							if httpHook != nil {
@@ -79,7 +79,7 @@ func FetchJSON(url string, v any) error {
 					)
 					return nil
 				}),
-				js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
 					close(ce.ready)
 					if httpHook != nil {
@@ -115,11 +115,11 @@ func FetchText(url string) (string, error) {
 			}
 			start := time.Now()
 			js.Fetch(url).Call("then",
-				js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					resp := args[0]
 					status := resp.Get("status").Int()
 					resp.Call("text").Call("then",
-						js.FuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							ce.text = args[0].String()
 							close(ce.ready)
 							if httpHook != nil {
@@ -127,7 +127,7 @@ func FetchText(url string) (string, error) {
 							}
 							return nil
 						}),
-						js.FuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
 							close(ce.ready)
 							if httpHook != nil {
@@ -138,7 +138,7 @@ func FetchText(url string) (string, error) {
 					)
 					return nil
 				}),
-				js.FuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
 					close(ce.ready)
 					if httpHook != nil {

@@ -21,7 +21,7 @@ func RegisterHandler(name string, fn func(this js.Value, args []js.Value) any) {
 	if old, ok := handlerRegistry[name]; ok {
 		old.Release()
 	}
-	handlerRegistry[name] = js.FuncOf(fn)
+	handlerRegistry[name] = js.SafeFuncOf(fn)
 }
 
 // RegisterHandlerFunc registers a no-argument Go function in the handler registry.
@@ -87,7 +87,7 @@ func DelegateEvents(componentID string, root js.Value) {
 	events := []string{"click", "submit", "input", "change", "keydown", "keyup", "focus", "blur"}
 	for _, evtName := range events {
 		captured := evtName
-		fn := js.FuncOf(func(this js.Value, args []js.Value) any {
+		fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 			if len(args) == 0 {
 				return nil
 			}

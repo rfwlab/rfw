@@ -14,6 +14,15 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+### Changed
+
+- the framework's own callbacks (`events.On`/`Once`/`Listen`, the observers,
+  `dom.Element.On`, delegated handlers, `http.Request`/`RequestBytes`,
+  `js.SetTimeout`, `js.OnAnimationFrame`) now go through `js.SafeFuncOf`. A
+  panicking handler aborted the wasm instance and froze the page; it is now
+  recovered and routed to `js.OnFuncPanic`. Applications no longer have to wrap
+  their own handlers to get the guard.
+
 ## [2.0.0-beta.17] - 2026-07-29
 
 ### Changed

@@ -93,7 +93,7 @@ func (eo *errorOverlay) bindActions(overlay js.Value) {
 
 	reload := doc.Call("getElementById", "rfw-error-reload")
 	if reload.Truthy() {
-		reload.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) any {
+		reload.Call("addEventListener", "click", js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 			js.Location().Call("reload")
 			return nil
 		}))
@@ -101,7 +101,7 @@ func (eo *errorOverlay) bindActions(overlay js.Value) {
 
 	copyBtn := doc.Call("getElementById", "rfw-error-copy")
 	if copyBtn.Truthy() {
-		copyBtn.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) any {
+		copyBtn.Call("addEventListener", "click", js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 			pre := doc.Call("getElementById", "rfw-error-full")
 			if pre.Truthy() {
 				text := pre.Get("textContent").String()
