@@ -96,7 +96,7 @@ jobs:
 
       - name: Download euprovguard
         run: |
-          curl -sL https://github.com/mirkobrombin/euprovguard/releases/latest/download/euprovguard-linux-amd64 -o euprovguard
+          curl -sL https://github.com/fabricatorsltd/euprovguard/releases/latest/download/euprovguard-linux-amd64 -o euprovguard
           chmod +x euprovguard
 
       - name: Run EUProvGuard Scan
