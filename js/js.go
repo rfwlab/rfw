@@ -259,7 +259,7 @@ func RAF(cb Func) { RequestAnimationFrame(cb) }
 // pushes FuncOf and its Release bookkeeping onto every caller.
 func OnAnimationFrame(fn func()) Value {
 	var cb Func
-	cb = FuncOf(func(_ Value, _ []Value) any {
+	cb = SafeFuncOf(func(_ Value, _ []Value) any {
 		cb.Release()
 		fn()
 		return nil

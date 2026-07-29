@@ -55,19 +55,19 @@ func Request(url string, opts RequestOptions, cb func(status int, body string)) 
 		onText.Release()
 		onErr.Release()
 	}
-	onText = js.FuncOf(func(_ js.Value, a []js.Value) any {
+	onText = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		release()
 		if cb != nil {
 			cb(status, a[0].String())
 		}
 		return nil
 	})
-	onResp = js.FuncOf(func(_ js.Value, a []js.Value) any {
+	onResp = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		status = a[0].Get("status").Int()
 		a[0].Call("text").Call("then", onText).Call("catch", onErr)
 		return nil
 	})
-	onErr = js.FuncOf(func(_ js.Value, a []js.Value) any {
+	onErr = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		release()
 		if cb != nil {
 			cb(0, "")
@@ -88,7 +88,7 @@ func RequestBytes(url string, opts RequestOptions, cb func(status int, body []by
 		onBuf.Release()
 		onErr.Release()
 	}
-	onBuf = js.FuncOf(func(_ js.Value, a []js.Value) any {
+	onBuf = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		u8 := js.Uint8Array().New(a[0])
 		body := make([]byte, u8.Get("length").Int())
 		js.CopyBytesToGo(body, u8)
@@ -98,12 +98,12 @@ func RequestBytes(url string, opts RequestOptions, cb func(status int, body []by
 		}
 		return nil
 	})
-	onResp = js.FuncOf(func(_ js.Value, a []js.Value) any {
+	onResp = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		status = a[0].Get("status").Int()
 		a[0].Call("arrayBuffer").Call("then", onBuf).Call("catch", onErr)
 		return nil
 	})
-	onErr = js.FuncOf(func(_ js.Value, a []js.Value) any {
+	onErr = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		release()
 		if cb != nil {
 			cb(0, nil)
