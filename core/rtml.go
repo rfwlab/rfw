@@ -106,6 +106,18 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 
 	c.conditionContents[conditionID] = content
 
+	// A hidden branch keeps its bindings, but they have no node to patch while
+	// the block is out of the DOM, so the markup captured here goes stale. A
+	// branch that carries bindings therefore comes back through a render; a
+	// static one is just swapped in.
+	refresh := func() {
+		if conditionNeedsRender(c, conditionID) {
+			dom.UpdateMountedDOM(c.ID, c.RenderFresh())
+			return
+		}
+		updateConditionBindings(c, conditionID)
+	}
+
 	unsub := state.Effect(func() func() {
 		for _, br := range cn.Branches {
 			if br.Condition != "" {
@@ -135,7 +147,7 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 				continue
 			}
 			unsub := store.OnChange(dep.key, func(any) {
-				updateConditionBindings(c, conditionID)
+				refresh()
 			})
 			c.unsubscribes.Add(unsub)
 		}
@@ -1214,6 +1226,19 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 		}
 	}
 	return 0, fmt.Errorf("invalid number")
+}
+
+// conditionNeedsRender reports whether any branch of a conditional carries a
+// binding whose value could have moved while the branch was hidden.
+func conditionNeedsRender(c *HTMLComponent, conditionID string) bool {
+	for _, br := range c.conditionContents[conditionID].Branches {
+		for _, marker := range []string{"data-store=", "data-store-raw=", "data-signal=", "data-expr=", "data-expr-class="} {
+			if strings.Contains(br.Content, marker) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
