@@ -30,6 +30,10 @@ follow semver: they only land in a new major version.
 
 ### Fixed
 
+- two `@if` blocks carrying the same condition shared one id, so they shared
+  one content entry and a store change patched the second block's markup into
+  the first (an app shell gating its sidebar and its top bar on the same flag
+  lost the sidebar). Conditional ids are now positional within the render.
 - an `@if` on a store key never reacted when the component had no other
   binding on that store: the condition now subscribes to the keys it reads.
 - a routed page vanished, and any DOM it had built for itself after mount was
