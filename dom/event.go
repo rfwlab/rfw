@@ -9,7 +9,7 @@ type Event struct{ js.Value }
 
 // On attaches a listener for event to the element and returns a stop function.
 func (e Element) On(event string, handler func(Event)) func() {
-	fn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 		var evt js.Value
 		if len(args) > 0 {
 			evt = args[0]
