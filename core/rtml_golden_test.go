@@ -120,8 +120,8 @@ func TestGoldenForSliceDirective(t *testing.T) {
 	st.Set("items", []any{map[string]any{"t": "<b>a</b>"}})
 	tpl := `<root><ul>@for:i in store:app.g2.items <li>@prop:i.t</li>@endfor</ul></root>`
 	got, c := renderGolden(t, "GoldenForSlice", tpl, nil)
-	want := fmt.Sprintf(`<root data-component-id="%s"><ul> <li data-key="0">&lt;b&gt;a&lt;/b&gt;</li></ul></root>
-`, c.ID)
+	want := fmt.Sprintf(`<root data-component-id="%s"><ul><template data-for-anchor="for-%s-0"></template> <li data-key="0" data-for="for-%s-0">&lt;b&gt;a&lt;/b&gt;</li></ul></root>
+`, c.ID, c.ID, c.ID)
 	expectGolden(t, got, want)
 }
 
@@ -130,8 +130,8 @@ func TestGoldenForMapDirective(t *testing.T) {
 	st.Set("items", map[string]any{"k": "<b>v</b>"})
 	tpl := `<root><ul>@for:k,v in store:app.g3.items <li>@prop:k=@prop:v</li>@endfor</ul></root>`
 	got, c := renderGolden(t, "GoldenForMap", tpl, nil)
-	want := fmt.Sprintf(`<root data-component-id="%s"><ul> <li data-key="k">k=&lt;b&gt;v&lt;/b&gt;</li></ul></root>
-`, c.ID)
+	want := fmt.Sprintf(`<root data-component-id="%s"><ul><template data-for-anchor="for-%s-0"></template> <li data-key="k" data-for="for-%s-0">k=&lt;b&gt;v&lt;/b&gt;</li></ul></root>
+`, c.ID, c.ID, c.ID)
 	expectGolden(t, got, want)
 }
 

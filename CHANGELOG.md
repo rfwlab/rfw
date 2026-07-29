@@ -28,8 +28,21 @@ follow semver: they only land in a new major version.
 - `http.RequestOptions.BodyValue` carries a browser-side body (FormData, Blob,
   ArrayBuffer) for multipart uploads, which the string `Body` cannot express.
 
+### Changed
+
+- a store-driven `@for` now patches its own rows instead of re-rendering the
+  whole component: the loop marks its rows with a `data-for` id and inserts
+  them after a `<template data-for-anchor>` anchor. A shell whose nav list
+  changes on every navigation no longer repaints its dependencies and the
+  routed page under it (measured on a real app: ~500ms down to ~20ms per
+  navigation). Bodies that pull in components, open their own conditional or
+  render more than one root per row still take the full render.
+
 ### Fixed
 
+- a conditional branch that was hidden while the state it binds to changed came
+  back showing the value it had when it left the DOM; a branch carrying
+  bindings now returns through a render.
 - two `@if` blocks carrying the same condition shared one id, so they shared
   one content entry and a store change patched the second block's markup into
   the first (an app shell gating its sidebar and its top bar on the same flag

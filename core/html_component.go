@@ -51,7 +51,10 @@ type HTMLComponent struct {
 	// condSeq numbers the conditional blocks of one render pass: two @if
 	// blocks carrying the same condition would otherwise hash to the same id,
 	// share one content entry and patch each other's markup.
-	condSeq           int
+	condSeq int
+	// forSeq numbers the loops of one render pass so every loop keeps the id
+	// its rows carry in the DOM and can be patched on its own
+	forSeq            int
 	exprContents      map[string]string
 	classExprContents map[string]string
 	hostVars          []string
