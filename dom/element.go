@@ -87,6 +87,25 @@ func (e Element) SetAttr(name, value string) {
 	e.Call("setAttribute", name, value)
 }
 
+// RemoveAttr drops an attribute from the element, the counterpart of SetAttr
+// (needed for boolean attributes such as disabled, where an empty value still
+// reads as set).
+func (e Element) RemoveAttr(name string) {
+	if e.missing() {
+		return
+	}
+	e.Call("removeAttribute", name)
+}
+
+// Matches reports whether the element itself satisfies the selector, the
+// non-walking counterpart of Closest.
+func (e Element) Matches(sel string) bool {
+	if e.missing() {
+		return false
+	}
+	return e.Call("matches", sel).Bool()
+}
+
 // SetStyle sets an inline style property on the element.
 func (e Element) SetStyle(prop, value string) {
 	if e.missing() {
