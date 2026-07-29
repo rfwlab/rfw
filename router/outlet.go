@@ -96,14 +96,20 @@ func (o *Outlet) OnUnmount() {
 
 // renderChild replaces the outlet subtree with the routed component's render.
 // Route swaps replace wholesale on purpose: positionally diffing two
-// different component trees leaves stale nodes behind.
+// different component trees leaves stale nodes behind. The marker div stays
+// in place as the anchor, so a re-render of the shell around it can recognise
+// the subtree as the router's and leave it alone.
 func (o *Outlet) renderChild(c core.Component) {
 	root := dom.ComponentRoot(o.GetID())
 	if root.IsNull() || root.IsUndefined() {
 		dom.UpdateDOM(c.GetID(), core.TryRender(c))
 		return
 	}
-	dom.UpdateDOMIn(root, c.GetID(), core.TryRender(c))
+	target := root.Query("[data-router-outlet]")
+	if target.IsNull() || target.IsUndefined() {
+		target = root
+	}
+	dom.UpdateDOMIn(target, c.GetID(), core.TryRender(c))
 }
 
 // mountedRoot pins the persistent root: without a live reference the GC
