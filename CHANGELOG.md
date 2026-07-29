@@ -14,6 +14,8 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+## [2.0.0-beta.17] - 2026-07-29
+
 ### Changed
 
 - **breaking (build):** the module now depends on `go-foundation/v2`. The
@@ -136,7 +138,8 @@ module builds cleanly for wasm.
   unavailable instead of panicking, making the wasm test suite runnable
   headlessly.
 
-[Unreleased]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.16...HEAD
+[Unreleased]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.17...HEAD
+[2.0.0-beta.17]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.16...v2.0.0-beta.17
 [2.0.0-beta.16]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.15...v2.0.0-beta.16
 [2.0.0-beta.8]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.7...v2.0.0-beta.8
 [2.0.0-beta.7]: https://github.com/rfwlab/rfw/releases/tag/v2.0.0-beta.7
