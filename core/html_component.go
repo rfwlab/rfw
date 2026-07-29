@@ -131,9 +131,24 @@ func (c *HTMLComponent) Init(store *state.Store) {
 // store.Set did not re-render @for / @expr / store-bound templates because the
 // cache key hashes only Props/Dependencies, not the bound store state.
 func (c *HTMLComponent) RenderFresh() string {
+	c.Invalidate()
+	return c.Render()
+}
+
+// Invalidate drops the render cache of this component and of everything it
+// includes. The cache key covers props and dependency identity, never the
+// store state a template binds to, so an included component handed back its
+// first render forever: a dependency whose markup depends on a shared store
+// key (an @if on a global flag) froze at the value it had when the parent
+// first painted.
+func (c *HTMLComponent) Invalidate() {
 	c.cache = nil
 	c.lastCacheKey = ""
-	return c.Render()
+	for _, dep := range c.Dependencies {
+		if d, ok := dep.(interface{ Invalidate() }); ok {
+			d.Invalidate()
+		}
+	}
 }
 
 func (c *HTMLComponent) Render() (renderedTemplate string) {

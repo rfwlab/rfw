@@ -605,6 +605,15 @@ func getDataKey(node js.Value) string {
 
 func patchNode(oldNode, newNode js.Value) {
 	nodeType := newNode.Get("nodeType").Int()
+
+	// The router owns whatever sits inside an outlet. A shell that re-renders
+	// (a store-driven list or condition in a MountRoot root) must not diff the
+	// routed page away, and must not undo the DOM a mounted page built for
+	// itself after its own render.
+	if nodeType == 1 && isRouterOutlet(oldNode) && isRouterOutlet(newNode) {
+		patchAttributes(oldNode, newNode)
+		return
+	}
 	if nodeType == 3 { // Text node
 		if oldNode.Get("nodeValue").String() != newNode.Get("nodeValue").String() {
 			oldNode.Set("nodeValue", newNode.Get("nodeValue"))
@@ -621,6 +630,14 @@ func patchNode(oldNode, newNode js.Value) {
 		patchAttributes(oldNode, newNode)
 	}
 	patchChildren(oldNode, newNode)
+}
+
+// isRouterOutlet reports whether the node is the router's outlet marker.
+func isRouterOutlet(node js.Value) bool {
+	if node.Get("nodeType").Int() != 1 {
+		return false
+	}
+	return node.Call("hasAttribute", "data-router-outlet").Bool()
 }
 
 func patchAttributes(oldNode, newNode js.Value) {
