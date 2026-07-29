@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	fndi "github.com/mirkobrombin/go-foundation/pkg/di"
+	fndi "github.com/mirkobrombin/go-foundation/v2/app/di"
 	"github.com/rfwlab/rfw/v2/composition/scan"
 	"github.com/rfwlab/rfw/v2/core"
 	"github.com/rfwlab/rfw/v2/dom"

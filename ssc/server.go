@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	fncaching "github.com/mirkobrombin/go-foundation/pkg/caching"
-	fnevents "github.com/mirkobrombin/go-foundation/pkg/events"
-	fnsafemap "github.com/mirkobrombin/go-foundation/pkg/safemap"
-	fnworker "github.com/mirkobrombin/go-foundation/pkg/worker"
+	fncaching "github.com/mirkobrombin/go-foundation/v2/core/caching"
+	fnevents "github.com/mirkobrombin/go-foundation/v2/core/events"
+	fnsafemap "github.com/mirkobrombin/go-foundation/v2/core/safemap"
+	fnworker "github.com/mirkobrombin/go-foundation/v2/core/worker"
 
 	"github.com/rfwlab/rfw/v2/host"
 	"golang.org/x/net/websocket"

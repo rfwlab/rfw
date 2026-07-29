@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"reflect"
 
-	fndi "github.com/mirkobrombin/go-foundation/pkg/di"
-	fnevents "github.com/mirkobrombin/go-foundation/pkg/events"
-	fnhooks "github.com/mirkobrombin/go-foundation/pkg/hooks"
-	fnpipeline "github.com/mirkobrombin/go-foundation/pkg/pipeline"
-	fnresult "github.com/mirkobrombin/go-foundation/pkg/result"
+	fndi "github.com/mirkobrombin/go-foundation/v2/app/di"
+	fnevents "github.com/mirkobrombin/go-foundation/v2/core/events"
+	fnhooks "github.com/mirkobrombin/go-foundation/v2/core/hooks"
+	fnpipeline "github.com/mirkobrombin/go-foundation/v2/core/pipeline"
+	fnresult "github.com/mirkobrombin/go-foundation/v2/core/result"
 )
 
 // ── DI ──────────────────────────────────────────────────────────────────────
