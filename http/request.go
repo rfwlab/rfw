@@ -12,6 +12,30 @@ type RequestOptions struct {
 	Headers map[string]string
 	// Body is the request body for POST/PUT/PATCH (JSON string, etc.).
 	Body string
+	// BodyValue is a browser-side body that is not a string: FormData for
+	// multipart uploads, Blob, ArrayBuffer. It takes precedence over Body.
+	BodyValue js.Value
+}
+
+// apply builds the fetch init object for the request.
+func (o RequestOptions) apply() js.Value {
+	init := js.Object().New()
+	if o.Method != "" {
+		init.Set("method", o.Method)
+	}
+	if len(o.Headers) > 0 {
+		h := js.Object().New()
+		for k, v := range o.Headers {
+			h.Set(k, v)
+		}
+		init.Set("headers", h)
+	}
+	if o.BodyValue.Truthy() {
+		init.Set("body", o.BodyValue)
+	} else if o.Body != "" {
+		init.Set("body", o.Body)
+	}
+	return init
 }
 
 // Request performs an uncached fetch with a custom method, headers and body and
@@ -22,65 +46,41 @@ type RequestOptions struct {
 // supplies Authorization / workspace headers via RequestOptions.Headers). cb is
 // invoked on the JS event loop; it may be nil.
 func Request(url string, opts RequestOptions, cb func(status int, body string)) {
-	o := js.Object().New()
-	if opts.Method != "" {
-		o.Set("method", opts.Method)
-	}
-	if len(opts.Headers) > 0 {
-		h := js.Object().New()
-		for k, v := range opts.Headers {
-			h.Set(k, v)
-		}
-		o.Set("headers", h)
-	}
-	if opts.Body != "" {
-		o.Set("body", opts.Body)
-	}
-
 	status := 0
 	var onResp, onText, onErr js.Func
+	// Every callback is released on both outcomes: releasing only the one that
+	// fired leaks the other two for the lifetime of the page.
+	release := func() {
+		onResp.Release()
+		onText.Release()
+		onErr.Release()
+	}
 	onText = js.FuncOf(func(_ js.Value, a []js.Value) any {
+		release()
 		if cb != nil {
 			cb(status, a[0].String())
 		}
-		onText.Release()
 		return nil
 	})
 	onResp = js.FuncOf(func(_ js.Value, a []js.Value) any {
 		status = a[0].Get("status").Int()
-		a[0].Call("text").Call("then", onText)
-		onResp.Release()
+		a[0].Call("text").Call("then", onText).Call("catch", onErr)
 		return nil
 	})
 	onErr = js.FuncOf(func(_ js.Value, a []js.Value) any {
+		release()
 		if cb != nil {
 			cb(0, "")
 		}
-		onErr.Release()
 		return nil
 	})
-	js.Fetch(url, o).Call("then", onResp).Call("catch", onErr)
+	js.Fetch(url, opts.apply()).Call("then", onResp).Call("catch", onErr)
 }
 
 // RequestBytes performs an uncached fetch like Request but delivers the raw
 // response bytes via arrayBuffer, so binary payloads (images, chunks,
 // downloads) survive intact; Request's text decoding would corrupt them.
 func RequestBytes(url string, opts RequestOptions, cb func(status int, body []byte)) {
-	o := js.Object().New()
-	if opts.Method != "" {
-		o.Set("method", opts.Method)
-	}
-	if len(opts.Headers) > 0 {
-		h := js.Object().New()
-		for k, v := range opts.Headers {
-			h.Set(k, v)
-		}
-		o.Set("headers", h)
-	}
-	if opts.Body != "" {
-		o.Set("body", opts.Body)
-	}
-
 	status := 0
 	var onResp, onBuf, onErr js.Func
 	release := func() {
@@ -100,7 +100,7 @@ func RequestBytes(url string, opts RequestOptions, cb func(status int, body []by
 	})
 	onResp = js.FuncOf(func(_ js.Value, a []js.Value) any {
 		status = a[0].Get("status").Int()
-		a[0].Call("arrayBuffer").Call("then", onBuf)
+		a[0].Call("arrayBuffer").Call("then", onBuf).Call("catch", onErr)
 		return nil
 	})
 	onErr = js.FuncOf(func(_ js.Value, a []js.Value) any {
@@ -110,5 +110,5 @@ func RequestBytes(url string, opts RequestOptions, cb func(status int, body []by
 		}
 		return nil
 	})
-	js.Global().Call("fetch", url, o).Call("then", onResp).Call("catch", onErr)
+	js.Fetch(url, opts.apply()).Call("then", onResp).Call("catch", onErr)
 }
