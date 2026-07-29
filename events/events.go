@@ -98,6 +98,36 @@ func On(event string, target js.Value, handler func(js.Value), opts ...any) func
 	}
 }
 
+// Once attaches a handler that fires at most one time: the listener is removed
+// and its callback released as soon as the event lands. One-shot browser
+// callbacks (FileReader load, Image load, transitionend) otherwise leak a
+// js.Func per call, since there is no natural moment to call the stop function.
+// The returned function cancels a listener that has not fired yet and is a
+// no-op afterwards.
+func Once(event string, target js.Value, handler func(js.Value)) func() {
+	var fn js.Func
+	fired := false
+	release := func() {
+		if fired {
+			return
+		}
+		fired = true
+		target.Call("removeEventListener", event, fn)
+		fn.Release()
+	}
+	fn = js.FuncOf(func(this js.Value, args []js.Value) any {
+		evt := js.Null()
+		if len(args) > 0 {
+			evt = args[0]
+		}
+		release()
+		handler(evt)
+		return nil
+	})
+	target.Call("addEventListener", event, fn)
+	return release
+}
+
 // OnClick attaches a click handler to target.
 func OnClick(target js.Value, handler func(js.Value)) func() {
 	return On("click", target, handler)

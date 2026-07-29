@@ -2,8 +2,16 @@
 
 package dom
 
+import js "github.com/rfwlab/rfw/v2/js"
+
 // CreateElement returns a new element with the given tag name.
 func CreateElement(tag string) Element { return Doc().CreateElement(tag) }
+
+// From wraps a raw value into the typed element API. Elements that reach
+// application code from outside the query helpers (an event target, a NodeList
+// entry, a node returned by a browser API) have no other way in, and without
+// it callers fall back to getAttribute/classList/closest by hand.
+func From(v js.Value) Element { return Element{v} }
 
 // ByID fetches an element by its id attribute.
 func ByID(id string) Element { return Doc().ByID(id) }
