@@ -14,6 +14,13 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **breaking (build):** the module now depends on `go-foundation/v2`. The
+  packages rfw uses moved from `pkg/<name>` to `core/<name>` (and `pkg/di` to
+  `app/di`); the APIs rfw touches are unchanged. An application pinning
+  go-foundation v1 has to bump with it.
+
 ## [2.0.0-beta.16] - 2026-07-29
 
 ### Added
