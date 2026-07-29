@@ -81,7 +81,8 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 	for _, br := range cn.Branches {
 		conditions = append(conditions, br.Condition)
 	}
-	conditionID := fmt.Sprintf("cond-%x", sha1.Sum([]byte(strings.Join(conditions, "|"))))
+	conditionID := fmt.Sprintf("cond-%x-%d", sha1.Sum([]byte(strings.Join(conditions, "|"))), c.condSeq)
+	c.condSeq++
 
 	var content ConditionContent
 	var chosen string
@@ -954,6 +955,9 @@ func replaceConditionals(template string, c *HTMLComponent) string {
 	if err != nil {
 		return template
 	}
+	// the ids are positional: restart the numbering so a re-render maps every
+	// block back onto the node it painted before
+	c.condSeq = 0
 	var sb strings.Builder
 	for _, n := range nodes {
 		sb.WriteString(n.Render(c))

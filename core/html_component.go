@@ -48,6 +48,10 @@ type HTMLComponent struct {
 	HostComponent     string
 	hostComponents    []string
 	conditionContents map[string]ConditionContent
+	// condSeq numbers the conditional blocks of one render pass: two @if
+	// blocks carrying the same condition would otherwise hash to the same id,
+	// share one content entry and patch each other's markup.
+	condSeq           int
 	exprContents      map[string]string
 	classExprContents map[string]string
 	hostVars          []string

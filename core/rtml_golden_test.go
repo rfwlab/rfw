@@ -139,7 +139,9 @@ func TestGoldenConditionalDirective(t *testing.T) {
 	tpl := "<root>\n@if:prop:v==\"1\"\nOne\n@else-if:prop:v==\"2\"\nTwo\n@else\nOther\n@endif\n</root>"
 	got, c := renderGolden(t, "GoldenIf", tpl, map[string]any{"v": "2"})
 	conds := []string{`@if:prop:v=="1"`, `@else-if:prop:v=="2"`, ""}
-	condID := fmt.Sprintf("cond-%x", sha1.Sum([]byte(strings.Join(conds, "|"))))
+	// the trailing index numbers the block within the render pass: two @if
+	// blocks with the same condition are distinct blocks
+	condID := fmt.Sprintf("cond-%x-0", sha1.Sum([]byte(strings.Join(conds, "|"))))
 	want := fmt.Sprintf("<root data-component-id=\"%s\">\n<div data-condition=\"%s\">Two\n</div></root>\n", c.ID, condID)
 	expectGolden(t, got, want)
 }
