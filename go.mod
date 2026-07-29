@@ -8,7 +8,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/mirkobrombin/go-cli-builder v1.0.0
-	github.com/mirkobrombin/go-foundation v1.1.0
+	github.com/mirkobrombin/go-foundation/v2 v2.1.0
 	github.com/mirkobrombin/go-logger v0.2.0
 	github.com/mirkobrombin/go-signal/v2 v2.0.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c

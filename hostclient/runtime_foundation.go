@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	fncaching "github.com/mirkobrombin/go-foundation/pkg/caching"
-	fnres "github.com/mirkobrombin/go-foundation/pkg/resiliency"
+	fncaching "github.com/mirkobrombin/go-foundation/v2/core/caching"
+	fnres "github.com/mirkobrombin/go-foundation/v2/core/resiliency"
 
 	dom "github.com/rfwlab/rfw/v2/dom"
 	js "github.com/rfwlab/rfw/v2/js"
