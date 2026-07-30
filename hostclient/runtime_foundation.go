@@ -45,6 +45,7 @@ var (
 	sessionID string
 
 	deliveryMu   sync.Mutex
+	sendMu       sync.Mutex
 	resumeToken  string
 	nextOutbound uint64
 	lastInbound  uint64
@@ -61,6 +62,18 @@ type message struct {
 	payload  any
 	sequence uint64
 }
+
+type wireMessage struct {
+	Component   string `json:"component,omitempty"`
+	Action      string `json:"action,omitempty"`
+	ID          string `json:"id,omitempty"`
+	Payload     any    `json:"payload,omitempty"`
+	Sequence    uint64 `json:"sequence"`
+	Ack         uint64 `json:"ack,omitempty"`
+	ResumeToken string `json:"resumeToken,omitempty"`
+}
+
+type messageWriter func(context.Context, *websocket.Conn, wireMessage) error
 
 type actionReply struct {
 	payload any
@@ -163,6 +176,7 @@ func connectionLoop() {
 					return derr
 				}
 
+				sendMu.Lock()
 				mu.Lock()
 				conn = c
 				pend := pending
@@ -195,13 +209,13 @@ func connectionLoop() {
 				deliveryMu.Unlock()
 				initialized := make(map[string]struct{})
 				for _, msg := range unacknowledged {
-					sendMessage(c, msg)
+					sendMessageUnlocked(c, msg)
 					if name, ok := initMessageName(msg); ok {
 						initialized[name] = struct{}{}
 					}
 				}
 				for _, msg := range pend {
-					sendMessage(c, msg)
+					sendMessageUnlocked(c, msg)
 					if name, ok := initMessageName(msg); ok {
 						initialized[name] = struct{}{}
 					}
@@ -210,8 +224,9 @@ func connectionLoop() {
 					if _, sent := initialized[name]; sent {
 						continue
 					}
-					sendMessage(c, message{name: name, payload: map[string]any{"init": true}})
+					sendMessageUnlocked(c, message{name: name, payload: map[string]any{"init": true}})
 				}
+				sendMu.Unlock()
 
 				ctx2, cancel2 := context.WithCancel(context.Background())
 				defer cancel2()
@@ -284,6 +299,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 		if debug {
 			log.Printf("hostclient: recv %s %v", msg.Component, msg.Payload)
 		}
+		prepareInboundDelivery(msg.Session, msg.Control)
 		deliveryMu.Lock()
 		for sequence := range outbox {
 			if sequence <= msg.Ack {
@@ -306,11 +322,6 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			resumeToken = msg.ResumeToken
 		}
 		deliveryMu.Unlock()
-		if msg.Session != "" {
-			sessionMu.Lock()
-			sessionID = msg.Session
-			sessionMu.Unlock()
-		}
 		if msg.ID != "" {
 			callMu.Lock()
 			replyChannel := pendingCalls[msg.ID]
@@ -384,6 +395,22 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			}
 		}
 	}
+}
+
+func prepareInboundDelivery(remoteSession, control string) {
+	sessionMu.Lock()
+	previousSession := sessionID
+	if remoteSession != "" {
+		sessionID = remoteSession
+	}
+	sessionMu.Unlock()
+	if control != "resume_rejected" && (remoteSession == "" || previousSession == "" || remoteSession == previousSession) {
+		return
+	}
+	deliveryMu.Lock()
+	lastInbound = 0
+	resumeToken = ""
+	deliveryMu.Unlock()
 }
 
 func RegisterComponent(id, name string, vars []string) {
@@ -464,6 +491,20 @@ func SessionID() string {
 }
 
 func sendMessage(c *websocket.Conn, msg message) {
+	sendMessageWithWriter(c, msg, writeMessage)
+}
+
+func sendMessageWithWriter(c *websocket.Conn, msg message, writer messageWriter) {
+	sendMu.Lock()
+	defer sendMu.Unlock()
+	sendMessageUnlockedWithWriter(c, msg, writer)
+}
+
+func sendMessageUnlocked(c *websocket.Conn, msg message) {
+	sendMessageUnlockedWithWriter(c, msg, writeMessage)
+}
+
+func sendMessageUnlockedWithWriter(c *websocket.Conn, msg message, writer messageWriter) {
 	deliveryMu.Lock()
 	if msg.sequence == 0 {
 		nextOutbound++
@@ -473,15 +514,7 @@ func sendMessage(c *websocket.Conn, msg message) {
 	token := resumeToken
 	ack := lastInbound
 	deliveryMu.Unlock()
-	m := struct {
-		Component   string `json:"component,omitempty"`
-		Action      string `json:"action,omitempty"`
-		ID          string `json:"id,omitempty"`
-		Payload     any    `json:"payload,omitempty"`
-		Sequence    uint64 `json:"sequence"`
-		Ack         uint64 `json:"ack,omitempty"`
-		ResumeToken string `json:"resumeToken,omitempty"`
-	}{
+	outbound := wireMessage{
 		Component:   msg.name,
 		Action:      msg.action,
 		ID:          msg.id,
@@ -491,7 +524,11 @@ func sendMessage(c *websocket.Conn, msg message) {
 		ResumeToken: token,
 	}
 	ctx := context.Background()
-	_ = wsjson.Write(ctx, c, m)
+	_ = writer(ctx, c, outbound)
+}
+
+func writeMessage(ctx context.Context, c *websocket.Conn, message wireMessage) error {
+	return wsjson.Write(ctx, c, message)
 }
 
 func initMessageName(msg message) (string, bool) {

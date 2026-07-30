@@ -41,6 +41,13 @@ func TestNamedRouteURLAndMetadata(t *testing.T) {
 	if path != "/teams/core/users/Ada%20Lovelace?tab=activity" {
 		t.Fatalf("unexpected URL: %s", path)
 	}
+	if err := NavigateContext(context.Background(), "/teams/core/users/Ada%20Lovelace"); err != nil {
+		t.Fatalf("navigate generated URL: %v", err)
+	}
+	component := CurrentComponent().(*recordComponent)
+	if component.params["user"] != "Ada Lovelace" {
+		t.Fatalf("route parameter was not decoded: %#v", component.params)
+	}
 
 	definitions := RegisteredRoutes()
 	child := definitions[0].Children[0]

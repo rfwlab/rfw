@@ -45,14 +45,8 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 	defer runtime.ReleaseConnection()
 	runtime.ConfigureConnection(ws)
 
-	session, err := runtime.NewSession(ws.Request())
-	if err != nil {
-		SendOutbound(ws, Outbound{Error: NewActionError("session_rejected", "session rejected")})
-		ws.Close()
-		return
-	}
+	var session *Session
 	var subscribed []string
-	firstMessage := true
 	defer func() {
 		connMu.Lock()
 		for _, name := range subscribed {
@@ -82,19 +76,22 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 			log.Printf("unmarshal: %v", err)
 			continue
 		}
-		if firstMessage {
-			firstMessage = false
-			if msg.ResumeToken != "" && msg.ResumeToken != session.ResumeToken() {
-				if resumed, ok := ResumeSession(msg.ResumeToken); ok {
-					ReleaseSession(session)
-					session = resumed
-					ReplaySession(ws, session, msg.Ack)
-				} else {
-					SendSessionOutbound(ws, session, Outbound{
-						Control: "resume_rejected",
-						Error:   NewActionError("resume_rejected", "session could not be resumed"),
-					})
-				}
+		if session == nil {
+			var resumed bool
+			var err error
+			session, resumed, err = runtime.OpenSession(ws.Request(), msg.ResumeToken)
+			if err != nil {
+				SendOutbound(ws, Outbound{Error: NewActionError("session_rejected", "session rejected")})
+				return
+			}
+			BindSessionConnection(ws, session)
+			if resumed {
+				ReplaySession(ws, session, msg.Ack)
+			} else if msg.ResumeToken != "" {
+				SendSessionOutbound(ws, session, Outbound{
+					Control: "resume_rejected",
+					Error:   NewActionError("resume_rejected", "session could not be resumed"),
+				})
 			}
 		}
 		session.Acknowledge(msg.Ack)
@@ -234,33 +231,73 @@ func (runtime *WSRuntime) DispatchAction(parent context.Context, session *Sessio
 
 // ReplaySession sends retained messages after the client's acknowledgement.
 func ReplaySession(ws *websocket.Conn, session *Session, acknowledged uint64) {
+	if session == nil {
+		return
+	}
+	session.outboundMu.Lock()
+	defer session.outboundMu.Unlock()
+	if session.connection != ws {
+		return
+	}
+	lock := connectionWriteLock(ws)
+	lock.Lock()
+	defer lock.Unlock()
 	messages, err := session.ReplayAfter(acknowledged)
 	if err != nil {
-		SendSessionOutbound(ws, session, Outbound{
+		sendOutboundUnlocked(ws, session.PrepareOutbound(Outbound{
 			Error: NewActionError("resync_required", "message history is no longer available"),
-		})
+		}))
 		return
 	}
 	for _, message := range messages {
-		SendOutbound(ws, message)
+		sendOutboundUnlocked(ws, message)
 	}
 }
 
 // SendSessionOutbound assigns delivery metadata and sends a message.
 func SendSessionOutbound(ws *websocket.Conn, session *Session, out Outbound) {
-	SendOutbound(ws, session.PrepareOutbound(out))
+	if session == nil {
+		return
+	}
+	session.outboundMu.Lock()
+	defer session.outboundMu.Unlock()
+	if session.connection != ws {
+		return
+	}
+	lock := connectionWriteLock(ws)
+	lock.Lock()
+	defer lock.Unlock()
+	sendOutboundUnlocked(ws, session.PrepareOutbound(out))
+}
+
+// BindSessionConnection marks ws as the active connection for session delivery.
+func BindSessionConnection(ws *websocket.Conn, session *Session) {
+	if session == nil {
+		return
+	}
+	session.outboundMu.Lock()
+	session.connection = ws
+	session.outboundMu.Unlock()
 }
 
 // SendOutbound serializes writes per connection.
 func SendOutbound(ws *websocket.Conn, out Outbound) {
+	lock := connectionWriteLock(ws)
+	lock.Lock()
+	defer lock.Unlock()
+	sendOutboundUnlocked(ws, out)
+}
+
+func connectionWriteLock(ws *websocket.Conn) *sync.Mutex {
+	lockValue, _ := connWrites.LoadOrStore(ws, &sync.Mutex{})
+	return lockValue.(*sync.Mutex)
+}
+
+func sendOutboundUnlocked(ws *websocket.Conn, out Outbound) {
 	b, err := json.Marshal(out)
 	if err != nil {
 		return
 	}
-	lockValue, _ := connWrites.LoadOrStore(ws, &sync.Mutex{})
-	lock := lockValue.(*sync.Mutex)
-	lock.Lock()
-	defer lock.Unlock()
 	if err := websocket.Message.Send(ws, b); err != nil {
 		log.Printf("send: %v", err)
 	}

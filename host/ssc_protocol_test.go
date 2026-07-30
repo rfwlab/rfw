@@ -206,9 +206,13 @@ func TestWSSessionResumeReplaysUnacknowledgedResponse(t *testing.T) {
 		t.Fatalf("register action: %v", err)
 	}
 
+	sessionMu.RLock()
+	maxSessions := len(sessions) + 1
+	sessionMu.RUnlock()
 	server := httptest.NewServer(NewMux(t.TempDir(), WithSSCLimits(SSCLimits{
 		ResumeTTL:      time.Second,
 		ReplayMessages: 8,
+		MaxSessions:    maxSessions,
 	})))
 	defer server.Close()
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
@@ -228,19 +232,34 @@ func TestWSSessionResumeReplaysUnacknowledgedResponse(t *testing.T) {
 	token := second.ResumeToken
 	sessionID := second.Session
 	firstSocket.Close()
-	time.Sleep(20 * time.Millisecond)
 
-	secondSocket := dial()
+	var (
+		secondSocket *websocket.Conn
+		replayed     Outbound
+		current      Outbound
+	)
+	deadline := time.Now().Add(time.Second)
+	for {
+		secondSocket = dial()
+		sendProtocolMessage(t, secondSocket, Inbound{
+			Action:      action,
+			ID:          "three",
+			Sequence:    3,
+			Ack:         first.Sequence,
+			ResumeToken: token,
+		})
+		replayed = receiveProtocolMessage(t, secondSocket)
+		if replayed.Session == sessionID {
+			current = receiveProtocolMessage(t, secondSocket)
+			break
+		}
+		secondSocket.Close()
+		if time.Now().After(deadline) {
+			t.Fatalf("session did not become resumable: %#v", replayed)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 	defer secondSocket.Close()
-	sendProtocolMessage(t, secondSocket, Inbound{
-		Action:      action,
-		ID:          "three",
-		Sequence:    3,
-		Ack:         first.Sequence,
-		ResumeToken: token,
-	})
-	replayed := receiveProtocolMessage(t, secondSocket)
-	current := receiveProtocolMessage(t, secondSocket)
 	if replayed.Sequence != second.Sequence || replayed.ID != "two" {
 		t.Fatalf("unexpected replay: %#v", replayed)
 	}
