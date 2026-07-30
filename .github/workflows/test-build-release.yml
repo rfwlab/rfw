@@ -83,7 +83,7 @@ jobs:
       - name: Run wasm tests in headless Chrome
         run: |
           exec env -i HOME="$HOME" PATH="$PATH" \
-            GOOS=js GOARCH=wasm go test -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
+            GOOS=js GOARCH=wasm go test -p=1 -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
 
   scan:
     name: EUProvGuard Scan
