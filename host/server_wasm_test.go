@@ -30,7 +30,7 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL + "/app.wasm.br")
+	resp, err := http.Get(srv.URL + "/app.wasm.br?v=abc123")
 	if err != nil {
 		t.Fatalf("failed to get wasm: %v", err)
 	}
@@ -45,6 +45,9 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	if ct := resp.Header.Get("Content-Type"); ct != "application/wasm" {
 		t.Fatalf("expected Content-Type application/wasm, got %q", ct)
 	}
+	if cache := resp.Header.Get("Cache-Control"); cache != "public, max-age=31536000, immutable" {
+		t.Fatalf("unexpected Cache-Control header: %q", cache)
+	}
 	if vary := resp.Header.Get("Vary"); vary != "Accept-Encoding" && vary != "Accept-Encoding, Accept-Encoding" {
 		// Allow duplicated value as Go's header may append values depending on environment.
 		t.Fatalf("unexpected Vary header: %q", vary)
@@ -55,5 +58,14 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	}
 	if string(body) != "compressed" {
 		t.Fatalf("unexpected body: %q", string(body))
+	}
+
+	resp, err = http.Get(srv.URL + "/app.wasm.br?v=")
+	if err != nil {
+		t.Fatalf("failed to get unversioned wasm: %v", err)
+	}
+	defer resp.Body.Close()
+	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
+		t.Fatalf("unexpected unversioned Cache-Control header: %q", cache)
 	}
 }

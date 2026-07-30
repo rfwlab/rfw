@@ -111,7 +111,7 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 	}
 	if sfs != nil {
 		mux.Handle("/static/", http.StripPrefix("/static", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			setWasmEncodingHeaders(w, r.URL.Path)
+			setWasmEncodingHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 			sfs.ServeHTTP(w, r)
 		})))
 	}
@@ -119,14 +119,14 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 		if sfs != nil {
 			spath := filepath.Join(staticRoot, r.URL.Path)
 			if st, err := os.Stat(spath); err == nil && !st.IsDir() {
-				setWasmEncodingHeaders(w, spath)
+				setWasmEncodingHeaders(w, spath, r.URL.Query().Get("v") != "")
 				sfs.ServeHTTP(w, r)
 				return
 			}
 		}
 		path := filepath.Join(root, r.URL.Path)
 		if st, err := os.Stat(path); err == nil && !st.IsDir() {
-			setWasmEncodingHeaders(w, path)
+			setWasmEncodingHeaders(w, path, r.URL.Query().Get("v") != "")
 			fs.ServeHTTP(w, r)
 			return
 		}
@@ -188,11 +188,19 @@ func ListenAndServeTLSWithMux(addr string, mux *http.ServeMux) error {
 	return srv.ListenAndServeTLS("", "")
 }
 
-func setWasmEncodingHeaders(w http.ResponseWriter, path string) {
-	if !strings.HasSuffix(path, ".wasm.br") {
+func setWasmEncodingHeaders(w http.ResponseWriter, path string, versioned bool) {
+	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
 		return
 	}
 	header := w.Header()
+	if versioned {
+		header.Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		header.Set("Cache-Control", "no-cache")
+	}
+	if !strings.HasSuffix(path, ".wasm.br") {
+		return
+	}
 	header.Set("Content-Encoding", "br")
 	header.Set("Content-Type", "application/wasm")
 	if vary := header.Get("Vary"); vary == "" {

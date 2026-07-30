@@ -64,3 +64,22 @@ func TestCompressWasmBrotli(t *testing.T) {
 		t.Fatalf("unexpected decompressed content")
 	}
 }
+
+func TestWriteClientConfig(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeClientConfig(dir, "wss://example.com/rfw", "abc123"); err != nil {
+		t.Fatalf("writeClientConfig: %v", err)
+	}
+
+	config, err := os.ReadFile(filepath.Join(dir, "rfw_config.js"))
+	if err != nil {
+		t.Fatalf("read client config: %v", err)
+	}
+	got := string(config)
+	if !strings.Contains(got, `window.RFW_HOST_URL = "wss://example.com/rfw";`) {
+		t.Fatalf("host URL missing from client config: %q", got)
+	}
+	if !strings.Contains(got, `window.RFW_WASM_VERSION = "abc123";`) {
+		t.Fatalf("wasm version missing from client config: %q", got)
+	}
+}

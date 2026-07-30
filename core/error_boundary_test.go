@@ -24,4 +24,12 @@ func TestErrorBoundaryRender(t *testing.T) {
 	if html != expected {
 		t.Fatalf("expected %s, got %s", expected, html)
 	}
+	eb.Mount()
+	if !eb.IsMounted() {
+		t.Fatal("boundary fallback should be mounted")
+	}
+	eb.Unmount()
+	if eb.IsMounted() {
+		t.Fatal("boundary should not be mounted after Unmount")
+	}
 }
