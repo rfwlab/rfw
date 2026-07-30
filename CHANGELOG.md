@@ -31,6 +31,8 @@ follow semver: they only land in a new major version.
   Parent guards and route parameters are preserved.
 - `Suspense` and `ErrorBoundary` now implement the complete wasm `Component`
   lifecycle contract.
+- bundled examples and the TodoMVC benchmark declare the beta.19 dependency
+  set.
 
 ### Fixed
 

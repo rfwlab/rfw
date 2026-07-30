@@ -2,7 +2,7 @@ module github.com/rfwlab/bench/todomvc
 
 go 1.25.0
 
-require github.com/rfwlab/rfw/v2 v2.0.0-beta.18
+require github.com/rfwlab/rfw/v2 v2.0.0-beta.19
 
 require (
 	github.com/mirkobrombin/go-foundation/v2 v2.1.0 // indirect
