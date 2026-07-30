@@ -185,6 +185,24 @@ func TestNestedRouteNavigation(t *testing.T) {
 	}
 }
 
+func TestNestedRouteChildParamShadowsParent(t *testing.T) {
+	resetRouter(t)
+
+	RegisterRoute(Route{
+		Path: "/teams/:id",
+		Children: []Route{{
+			Path:      "users/:id",
+			Component: func() core.Component { return &recordComponent{name: "user"} },
+		}},
+	})
+
+	NavigateTo("/teams/acme/users/alice")
+	rc := mustRecord(t, CurrentComponent())
+	if rc.params["id"] != "alice" {
+		t.Fatalf("expected child id=alice, got %v", rc.params)
+	}
+}
+
 func TestParentRouteDoesNotMatchUnknownChild(t *testing.T) {
 	resetRouter(t)
 
