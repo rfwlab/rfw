@@ -12,7 +12,6 @@ import (
 	fndi "github.com/mirkobrombin/go-foundation/v2/app/di"
 	"github.com/rfwlab/rfw/v2/composition/scan"
 	"github.com/rfwlab/rfw/v2/core"
-	"github.com/rfwlab/rfw/v2/dom"
 	"github.com/rfwlab/rfw/v2/router"
 	"github.com/rfwlab/rfw/v2/state"
 	"github.com/rfwlab/rfw/v2/types"
@@ -79,13 +78,7 @@ func Wrap(c *core.HTMLComponent) *Component {
 func (c *Component) Unwrap() *core.HTMLComponent { return c.HTMLComponent }
 
 func (c *Component) On(name string, fn func()) {
-	if name == "" {
-		panic("composition.On: empty handler name")
-	}
-	if fn == nil {
-		panic("composition.On: nil fn")
-	}
-	dom.RegisterHandlerFunc(name, fn)
+	c.HTMLComponent.On(name, fn)
 }
 
 func (c *Component) Prop(key string, sig signalAny) {

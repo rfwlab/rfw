@@ -2,68 +2,51 @@
 
 ## Current status
 
-rfw is at **v2.0.0-beta.8**. The API surface is close to final; remaining work is
-stabilization, not expansion.
+rfw 2.1 establishes the application framework APIs around its Server Side
+Computed runtime. SSC remains the defining feature: server state, typed
+actions, ordered delivery, and browser hydration share one protocol.
 
-## Scope freeze
+## 2.1
 
-As of beta.8, **no new features land in core until v2.0.0 stable**. Only bug
-fixes, stability work, performance polish, tests, and documentation are
-accepted. Feature proposals are welcome as issues but will be scheduled for
-post-stable. This is project policy, not a temporary pause.
+The 2.1 line covers the framework foundation needed by production
+applications:
 
-## Kill-list: modules leaving core
+- reactive batching, memoized values, asynchronous resources, and component
+  lifecycle scopes;
+- typed SSC actions and forms, authorization hooks, resource limits, ordered
+  delivery, and resumable sessions;
+- route loaders, route names, redirects, metadata, and scroll restoration;
+- component-owned events, DOM hooks, Portal, KeepAlive, Transition, and a
+  browser testkit.
 
-The following packages are out of scope for rfw core and are being extracted
-into separate repositories before stable:
+Work after the release is limited to fixes, measurements, and documentation
+until 2.2 development begins.
 
-- `ai/pathfinding`
-- `game`
-- `webgl`
-- `netcode`
-- `animation`
+## 2.2
 
-They will keep living under the rfwlab organization but release on their own
-cadence and do not block v2.0.0.
+The 2.2 priority is the native rfw component library. It will ship as a
+separate package with accessible primitives, design tokens, form controls,
+navigation, overlays, data display, and documented extension points. The
+library must remain usable without Node or a frontend package manager.
 
-## Milestones
+The same cycle will expand:
 
-### Stability and CI (Q3 2026)
-
-- Green `go test ./...` and `GOOS=js GOARCH=wasm go build ./...` enforced in CI
-  on every push.
-- Fuzz/edge-case coverage for the rtml parser and the DOM patcher (keyed lists,
-  conditionals, escaping).
-- SSC reconnect and host/client lifecycle hardening.
-- Complete the kill-list extractions.
-
-### Developer experience and docs (Q3 to Q4 2026)
-
-- Guides covering every core package under `docs/articles/` (routing, state,
-  SSC, plugins, testing).
-- `rfw` CLI polish: clearer errors, stable flags, documented environment
-  variables.
-- Migration notes for every breaking change shipped during the beta cycle
-  (tracked in CHANGELOG.md).
-
-### Ecosystem (Q4 2026)
-
-- Publish the extracted modules as standalone repos with their own docs.
-- Project templates beyond the default `rfw init` scaffold.
-- Plugin authoring guide and a stable build-plugin interface.
-
-### v2.0.0 stable (target: Q4 2026)
-
-- No known regressions, docs complete, semver guarantees begin.
+- testkit event and accessibility assertions;
+- SSC operational telemetry and deployment examples;
+- router tooling for generated route names;
+- official project templates and plugin authoring documentation.
 
 ## Scope boundaries
 
-rfw core will never include:
+rfw core does not include:
 
-- Game-engine features (rendering pipelines, physics, pathfinding, netcode).
-- A JavaScript component ecosystem or Node-based tooling.
-- An ORM, database layer, or backend framework features beyond what SSC needs.
-- CSS frameworks beyond the existing build-time Tailwind integration.
-
-Core stays focused: components, rtml templating, reactive state, routing, DOM
-interop, HTTP, and Server Side Computed synchronization.
+- server-side rendering. SSC is the server-driven rendering and
+  synchronization model;
+- an ORM or database abstraction. Applications use the Go database and ORM
+  packages that fit their backend;
+- npm, Node-based builds, or a JavaScript component ecosystem. Prebuilt
+  browser libraries can be vendored as static assets and attached through DOM
+  lifecycle hooks;
+- game-engine features such as rendering pipelines, physics, pathfinding, or
+  netcode;
+- a CSS framework beyond the existing build-time Tailwind integration.

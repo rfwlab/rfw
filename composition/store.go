@@ -2,10 +2,7 @@
 
 package composition
 
-import (
-	"github.com/rfwlab/rfw/v2/dom"
-	"github.com/rfwlab/rfw/v2/state"
-)
+import "github.com/rfwlab/rfw/v2/state"
 
 // Store creates a new state store namespaced to the component's ID.
 func (c *Component) Store(name string, opts ...state.StoreOption) *state.Store {
@@ -30,6 +27,6 @@ func (c *Component) History(s *state.Store, undo, redo string) {
 	if undo == "" || redo == "" {
 		panic("composition.History: empty handler name")
 	}
-	dom.RegisterHandlerFunc(undo, s.Undo)
-	dom.RegisterHandlerFunc(redo, s.Redo)
+	c.On(undo, s.Undo)
+	c.On(redo, s.Redo)
 }

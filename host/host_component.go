@@ -1,6 +1,10 @@
 package host
 
-import "github.com/rfwlab/rfw/v2/state"
+import (
+	"sync"
+
+	"github.com/rfwlab/rfw/v2/state"
+)
 
 // Handler processes inbound payloads for a HostComponent and returns a
 // response payload to send back to the wasm runtime. Returning nil results in
@@ -106,14 +110,28 @@ func RegisterComponent(c Component) {
 		name:           c.Name(),
 		sessionHandler: func(s *Session, p map[string]any) any { return c.Serve(s, p) },
 	}
+	registryMu.Lock()
 	registry[c.Name()] = hc
+	registryMu.Unlock()
 }
 
-var registry = make(map[string]*HostComponent)
+var (
+	registryMu sync.RWMutex
+	registry   = make(map[string]*HostComponent)
+)
 
 // Register adds a HostComponent to the global registry so incoming messages
 // can be routed to it.
-func Register(hc *HostComponent) { registry[hc.name] = hc }
+func Register(hc *HostComponent) {
+	registryMu.Lock()
+	registry[hc.name] = hc
+	registryMu.Unlock()
+}
 
 // Get returns a registered HostComponent by name.
-func Get(name string) (*HostComponent, bool) { hc, ok := registry[name]; return hc, ok }
+func Get(name string) (*HostComponent, bool) {
+	registryMu.RLock()
+	hc, ok := registry[name]
+	registryMu.RUnlock()
+	return hc, ok
+}

@@ -96,13 +96,11 @@ func TestGoldenSlotDirective(t *testing.T) {
 `, c.ID)
 	expectGolden(t, got, want)
 
-	// Without provided content the named-slot regex drops the inline fallback
-	// (the second capture group is the optional dotted modifier, not the
-	// body); this golden pins that long-standing behavior.
+	// Without provided content the inline fallback is rendered.
 	c2 := NewHTMLComponent("GoldenSlotFallback", []byte(tpl), nil)
 	c2.Init(nil)
 	got2 := c2.Render()
-	want2 := fmt.Sprintf(`<root data-component-id="%s"><div></div></root>
+	want2 := fmt.Sprintf(`<root data-component-id="%s"><div> fallback</div></root>
 `, c2.ID)
 	expectGolden(t, got2, want2)
 }

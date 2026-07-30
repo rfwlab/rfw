@@ -2,19 +2,16 @@ package ssc
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	fncaching "github.com/mirkobrombin/go-foundation/v2/core/caching"
 	fnevents "github.com/mirkobrombin/go-foundation/v2/core/events"
 	fnsafemap "github.com/mirkobrombin/go-foundation/v2/core/safemap"
-	fnworker "github.com/mirkobrombin/go-foundation/v2/core/worker"
 
 	"github.com/rfwlab/rfw/v2/host"
 	"golang.org/x/net/websocket"
@@ -27,19 +24,9 @@ type SSCEvent struct {
 }
 
 var (
-	bus          = fnevents.New()
-	connMap      = fnsafemap.New[string, *fnsafemap.Map[*websocket.Conn, *host.Session]]()
-	sessionCache *fncaching.InMemoryCache[*host.Session]
-	workerPool   *fnworker.Pool
+	bus     = fnevents.New()
+	connMap = fnsafemap.New[string, *fnsafemap.Map[*websocket.Conn, *host.Session]]()
 )
-
-func init() {
-	sessionCache = fncaching.NewInMemory[*host.Session](
-		fncaching.WithMaxEntries[*host.Session](1024),
-		fncaching.WithTTL[*host.Session](10*time.Minute),
-	)
-	workerPool = fnworker.NewPool(4)
-}
 
 func SubscribeSSC(fn fnevents.Handler[SSCEvent], priority ...fnevents.Priority) {
 	fnevents.Subscribe[SSCEvent](bus, fn, priority...)
@@ -69,6 +56,7 @@ func NewSSCServer(addr, root string, opts ...host.MuxOption) *SSCServer {
 
 func (s *SSCServer) buildMux() *http.ServeMux {
 	mux := http.NewServeMux()
+	runtime := host.NewWSRuntime(s.opts...)
 	root := host.ResolveRoot(s.Root)
 	staticRoot := filepath.Join(root, "..", "static")
 	fs := http.FileServer(http.Dir(root))
@@ -82,7 +70,9 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 			sfs.ServeHTTP(w, r)
 		})))
 	}
-	wsGuarded := host.GuardWS(websocket.Handler(wsHandler), s.opts...)
+	wsGuarded := runtime.Guard(websocket.Handler(func(ws *websocket.Conn) {
+		wsHandler(ws, runtime)
+	}))
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		wsGuarded.ServeHTTP(w, r)
 	})
@@ -115,9 +105,24 @@ func (s *SSCServer) ListenAndServe() error {
 	return http.ListenAndServe(s.Addr, s.Mux)
 }
 
-func wsHandler(ws *websocket.Conn) {
-	session := host.AllocateSession()
+func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
+	if !runtime.AcquireConnection() {
+		host.SendOutbound(ws, host.Outbound{Error: host.NewActionError("connection_limit", "connection limit reached")})
+		ws.Close()
+		return
+	}
+	defer runtime.ReleaseConnection()
+	runtime.ConfigureConnection(ws)
+
+	session, err := runtime.NewSession(ws.Request())
+	if err != nil {
+		host.SendOutbound(ws, host.Outbound{Error: host.NewActionError("session_rejected", "session rejected")})
+		ws.Close()
+		return
+	}
 	var subscribed []string
+	subscribedSet := make(map[string]struct{})
+	firstMessage := true
 	defer func() {
 		for _, name := range subscribed {
 			if m, ok := connMap.Get(name); ok {
@@ -125,7 +130,8 @@ func wsHandler(ws *websocket.Conn) {
 			}
 		}
 		ws.Close()
-		host.ReleaseSession(session)
+		host.ForgetConnection(ws)
+		host.SuspendSession(session, runtime.ResumeTTL())
 	}()
 
 	for {
@@ -136,13 +142,73 @@ func wsHandler(ws *websocket.Conn) {
 			}
 			break
 		}
+		if firstMessage {
+			firstMessage = false
+			if msg.ResumeToken != "" && msg.ResumeToken != session.ResumeToken() {
+				if resumed, ok := host.ResumeSession(msg.ResumeToken); ok {
+					host.ReleaseSession(session)
+					session = resumed
+					host.ReplaySession(ws, session, msg.Ack)
+				} else {
+					host.SendSessionOutbound(ws, session, host.Outbound{
+						Control: "resume_rejected",
+						Error:   host.NewActionError("resume_rejected", "session could not be resumed"),
+					})
+				}
+			}
+		}
+		session.Acknowledge(msg.Ack)
+		if err := session.AcceptInbound(msg.Sequence); err != nil {
+			if errors.Is(err, host.ErrDuplicateMessage) {
+				continue
+			}
+			host.SendSessionOutbound(ws, session, host.Outbound{
+				Action: msg.Action,
+				ID:     msg.ID,
+				Error:  host.NewActionError("sequence_gap", "client message sequence gap"),
+			})
+			continue
+		}
+		if !session.AllowMessage(runtime.MessagesPerMinute()) {
+			host.SendSessionOutbound(ws, session, host.Outbound{
+				Action: msg.Action,
+				ID:     msg.ID,
+				Error:  host.NewActionError("rate_limited", "message rate limit exceeded"),
+			})
+			continue
+		}
+		authorizeCtx, cancelAuthorize := runtime.HandlerContext(context.Background())
+		authorizeErr := runtime.Authorize(authorizeCtx, session, msg)
+		cancelAuthorize()
+		if authorizeErr != nil {
+			host.SendSessionOutbound(ws, session, host.Outbound{
+				Component: msg.Component,
+				Action:    msg.Action,
+				ID:        msg.ID,
+				Error:     host.NewActionError("forbidden", "message forbidden"),
+			})
+			continue
+		}
+		if msg.Action != "" {
+			payload, actionErr := runtime.DispatchAction(context.Background(), session, msg)
+			host.SendSessionOutbound(ws, session, host.Outbound{
+				Action:  msg.Action,
+				ID:      msg.ID,
+				Payload: payload,
+				Error:   actionErr,
+			})
+			continue
+		}
 		name := msg.Component
 		if name == "" {
 			continue
 		}
 		m := connMap.GetOrSet(name, fnsafemap.New[*websocket.Conn, *host.Session]())
 		m.Set(ws, session)
-		subscribed = append(subscribed, name)
+		if _, ok := subscribedSet[name]; !ok {
+			subscribedSet[name] = struct{}{}
+			subscribed = append(subscribed, name)
+		}
 
 		if hc, ok := host.Get(name); ok {
 			resp := hc.HandleWithSession(session, msg.Payload)
@@ -150,40 +216,30 @@ func wsHandler(ws *websocket.Conn) {
 				switch v := resp.(type) {
 				case *host.InitSnapshot:
 					if v != nil {
-						sendToConn(ws, host.Outbound{Component: name, Payload: map[string]any{"initSnapshot": v}, Session: session.ID()})
+						host.SendSessionOutbound(ws, session, host.Outbound{Component: name, ID: msg.ID, Payload: map[string]any{"initSnapshot": v}})
 					}
 					continue
 				case host.InitSnapshot:
-					sendToConn(ws, host.Outbound{Component: name, Payload: map[string]any{"initSnapshot": v}, Session: session.ID()})
+					host.SendSessionOutbound(ws, session, host.Outbound{Component: name, ID: msg.ID, Payload: map[string]any{"initSnapshot": v}})
 					continue
 				default:
-					sendToConn(ws, host.Outbound{Component: name, Payload: resp, Session: session.ID()})
+					host.SendSessionOutbound(ws, session, host.Outbound{Component: name, ID: msg.ID, Payload: resp})
 					continue
 				}
 			}
 			if msg.Payload != nil && msg.Payload["init"] == true {
-				sendToConn(ws, host.Outbound{Component: name, Session: session.ID(), Payload: map[string]any{"session": session.ID()}})
+				host.SendSessionOutbound(ws, session, host.Outbound{Component: name, Payload: map[string]any{"session": session.ID()}})
 			}
 		}
 
-		workerPool.Submit(func(ctx context.Context) error {
-			fnevents.Emit(ctx, bus, SSCEvent{
-				Component: name,
-				Payload:   msg.Payload,
-				Session:   session,
-			})
-			return nil
-		})
-	}
-}
-
-func sendToConn(ws *websocket.Conn, out host.Outbound) {
-	data, err := json.Marshal(out)
-	if err != nil {
-		return
-	}
-	if err := websocket.Message.Send(ws, string(data)); err != nil {
-		log.Printf("ssc send: %v", err)
+		if err := fnevents.Emit(context.Background(), bus, SSCEvent{
+			Component: name,
+			Payload:   msg.Payload,
+			Session:   session,
+		}); err != nil {
+			log.Printf("ssc event: %v", err)
+		}
+		host.SendSessionOutbound(ws, session, host.Outbound{Control: "ack"})
 	}
 }
 
@@ -191,11 +247,6 @@ func Broadcast(component string, payload any, opts ...host.BroadcastOption) {
 	o := host.BroadcastOptions{Session: ""}
 	for _, opt := range opts {
 		opt(&o)
-	}
-	msg := host.Outbound{Component: component, Payload: payload, Session: o.Session}
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return
 	}
 	m, ok := connMap.Get(component)
 	if !ok {
@@ -205,9 +256,7 @@ func Broadcast(component string, payload any, opts ...host.BroadcastOption) {
 		if o.Session != "" && session.ID() != o.Session {
 			return true
 		}
-		if err := websocket.Message.Send(ws, string(data)); err != nil {
-			log.Printf("broadcast send error: %v", err)
-		}
+		host.SendSessionOutbound(ws, session, host.Outbound{Component: component, Payload: payload})
 		return true
 	})
 }
