@@ -10,7 +10,7 @@
         <script src="/wasm_loader.js"></script>
         <script>
             var go = new Go();
-            WasmLoader.load("/app.wasm", { go: go, skipLoader: true });
+            WasmLoader.load("/app.wasm?v=local-benchmark", { go: go, skipLoader: true });
         </script>
     </body>
 </html>

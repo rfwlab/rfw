@@ -11,7 +11,10 @@ type ErrorBoundary struct {
 	Child    Component
 	Fallback string
 	err      any
+	mounted  bool
 }
+
+var _ Component = (*ErrorBoundary)(nil)
 
 // NewErrorBoundary creates a new ErrorBoundary around the provided child
 // component. If the child panics during Render or Mount, the provided fallback
@@ -44,20 +47,26 @@ func (e *ErrorBoundary) Render() (out string) {
 // the child panics during mounting.
 func (e *ErrorBoundary) Mount() {
 	if e.err != nil {
+		e.mounted = true
 		return
 	}
 	defer func() {
 		if r := recover(); r != nil {
 			e.err = r
+			e.mounted = true
 			ReportError(r, "Boundary mount: "+e.Child.GetName())
 			dom.UpdateDOM(e.Child.GetID(), e.Fallback)
 		}
 	}()
 	e.Child.Mount()
+	e.mounted = true
 }
 
 // Unmount delegates to the child component's Unmount method.
-func (e *ErrorBoundary) Unmount() { e.Child.Unmount() }
+func (e *ErrorBoundary) Unmount() {
+	e.Child.Unmount()
+	e.mounted = false
+}
 
 // OnMount is a no-op for ErrorBoundary.
 func (e *ErrorBoundary) OnMount() {}
@@ -76,4 +85,12 @@ func (e *ErrorBoundary) SetSlots(slots map[string]any) {
 	if e.Child != nil {
 		e.Child.SetSlots(slots)
 	}
+}
+
+// IsMounted reports whether the boundary or its fallback is mounted.
+func (e *ErrorBoundary) IsMounted() bool { return e.mounted }
+
+// OnParams delegates route parameters to the wrapped component.
+func (e *ErrorBoundary) OnParams(params map[string]string) {
+	e.Child.OnParams(params)
 }

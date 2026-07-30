@@ -5,6 +5,7 @@ package initproj
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -32,6 +33,21 @@ func TestInitProjectSuccess(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(projDir, "wasm_loader.js")); err != nil {
 		t.Fatalf("wasm_loader.js not created: %v", err)
+	}
+	index, err := os.ReadFile(filepath.Join(projDir, "index.html"))
+	if err != nil {
+		t.Fatalf("read index.html: %v", err)
+	}
+	if strings.Contains(string(index), "Date.now()") ||
+		!strings.Contains(string(index), "RFW_WASM_VERSION") {
+		t.Fatalf("index.html does not use the generated wasm version")
+	}
+	loader, err := os.ReadFile(filepath.Join(projDir, "wasm_loader.js"))
+	if err != nil {
+		t.Fatalf("read wasm_loader.js: %v", err)
+	}
+	if !strings.Contains(string(loader), "instantiateStreaming") {
+		t.Fatalf("wasm_loader.js does not use streaming instantiation")
 	}
 }
 

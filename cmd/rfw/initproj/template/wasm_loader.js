@@ -90,9 +90,32 @@
             throw err;
         }
 
-        const bytes = await response.arrayBuffer();
+        let result;
+        try {
+            if (WebAssembly.instantiateStreaming) {
+                const fallback = response.clone();
+                try {
+                    result = await WebAssembly.instantiateStreaming(
+                        response,
+                        go.importObject,
+                    );
+                } catch {
+                    const bytes = await fallback.arrayBuffer();
+                    result = await WebAssembly.instantiate(
+                        bytes,
+                        go.importObject,
+                    );
+                }
+            } else {
+                const bytes = await response.arrayBuffer();
+                result = await WebAssembly.instantiate(bytes, go.importObject);
+            }
+        } catch (err) {
+            if (bar) bar.finish(false);
+            console.error("Failed to instantiate Wasm bundle", err);
+            throw err;
+        }
         if (bar) bar.finish(true);
-        const result = await WebAssembly.instantiate(bytes, go.importObject);
         go.run(result.instance);
         return result;
     }

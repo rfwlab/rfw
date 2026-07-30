@@ -46,6 +46,7 @@ type route struct {
 	pattern    string
 	regex      *regexp.Regexp
 	paramNames []string
+	matchNames []string
 	component  core.Component
 	loader     func() core.Component
 	singleton  bool
@@ -98,17 +99,29 @@ func RegisterRoute(r Route) {
 }
 
 func buildRoute(r Route) route {
-	segments := strings.Split(strings.Trim(r.Path, "/"), "/")
+	return buildRouteAt(r, "")
+}
+
+func buildRouteAt(r Route, parent string) route {
+	fullPath := resolveRoutePath(parent, r.Path)
+	segments := strings.Split(strings.Trim(fullPath, "/"), "/")
 	regexParts := make([]string, len(segments))
-	paramNames := []string{}
+	matchNames := []string{}
 
 	for i, segment := range segments {
 		if strings.HasPrefix(segment, ":") {
 			name := strings.TrimPrefix(segment, ":")
-			paramNames = append(paramNames, name)
+			matchNames = append(matchNames, name)
 			regexParts[i] = "([^/]+)"
 		} else {
 			regexParts[i] = regexp.QuoteMeta(segment)
+		}
+	}
+
+	paramNames := []string{}
+	for _, segment := range strings.Split(strings.Trim(r.Path, "/"), "/") {
+		if strings.HasPrefix(segment, ":") {
+			paramNames = append(paramNames, strings.TrimPrefix(segment, ":"))
 		}
 	}
 
@@ -118,7 +131,11 @@ func buildRoute(r Route) route {
 		suffix = "(?:/|$)"
 	}
 	if pathRegex == "" {
-		suffix = "$"
+		if len(r.Children) > 0 {
+			suffix = ""
+		} else {
+			suffix = "$"
+		}
 	}
 	pattern := "^/" + pathRegex + suffix
 	var loader func() core.Component
@@ -137,13 +154,14 @@ func buildRoute(r Route) route {
 		pattern:    r.Path,
 		regex:      regexp.MustCompile(pattern),
 		paramNames: paramNames,
+		matchNames: matchNames,
 		loader:     loader,
 		singleton:  singleton,
 		guards:     r.Guards,
 	}
 
 	for _, child := range r.Children {
-		rt.children = append(rt.children, buildRoute(child))
+		rt.children = append(rt.children, buildRouteAt(child, fullPath))
 	}
 
 	return rt
@@ -202,35 +220,60 @@ type routeParamReceiver interface {
 func matchRoute(routes []route, path string) (*route, []Guard, map[string]string) {
 	for i := range routes {
 		r := &routes[i]
-		if matches := r.regex.FindStringSubmatch(path); matches != nil {
-			params := map[string]string{}
-			for i, name := range r.paramNames {
-				if i+1 < len(matches) {
-					params[name] = matches[i+1]
-				}
+		matches := r.regex.FindStringSubmatch(path)
+		if matches == nil {
+			if child, guards, params := matchRoute(r.children, path); child != nil {
+				return child, append(r.guards, guards...), params
 			}
-			if child, guards, childParams := matchRoute(r.children, path); child != nil {
-				for k, v := range params {
-					childParams[k] = v
-				}
-				return child, append(r.guards, guards...), childParams
+			continue
+		}
+		params := map[string]string{}
+		for i, name := range r.matchNames {
+			if i+1 < len(matches) {
+				params[name] = matches[i+1]
 			}
+		}
+		if child, guards, childParams := matchRoute(r.children, path); child != nil {
+			for k, v := range params {
+				childParams[k] = v
+			}
+			return child, append(r.guards, guards...), childParams
+		}
+		matchedPath := strings.TrimSuffix(matches[0], "/")
+		if r.loader != nil && matchedPath == strings.TrimSuffix(path, "/") {
 			return r, r.guards, params
 		}
 	}
 	return nil, nil, nil
 }
 
+type historyMode uint8
+
+const (
+	historyNone historyMode = iota
+	historyPush
+	historyReplace
+)
+
 // Navigate renders the component associated with the specified path if all
 // route guards allow it. The provided path may include a query string which
 // will be parsed and passed to the component via SetRouteParams.
 func Navigate(fullPath string) {
+	navigate(fullPath, historyPush)
+}
+
+// Replace navigates without adding a new browser history entry.
+func Replace(fullPath string) {
+	navigate(fullPath, historyReplace)
+}
+
+func navigate(fullPath string, history historyMode) {
 	core.TryNavigate(fullPath, func() {
-		navigateImpl(fullPath)
+		navigateImpl(fullPath, history)
 	})
 }
 
-func navigateImpl(fullPath string) {
+func navigateImpl(fullPath string, history historyMode) {
 	path := fullPath
 	query := ""
 	if idx := strings.Index(fullPath, "?"); idx != -1 {
@@ -268,6 +311,7 @@ func navigateImpl(fullPath string) {
 				core.TriggerMount(c)
 				core.TriggerRouter(fullPath)
 				activePathSig.Set(fullPath)
+				updateHistory(history, fullPath)
 			}
 		}
 		return
@@ -276,7 +320,7 @@ func navigateImpl(fullPath string) {
 	for _, g := range guards {
 		if !g(params) {
 			if currentComponent == nil && path != "/" {
-				Navigate("/")
+				navigate("/", history)
 			}
 			return
 		}
@@ -321,7 +365,16 @@ func navigateImpl(fullPath string) {
 	r.component.OnParams(params)
 	core.TriggerRouter(fullPath)
 	activePathSig.Set(fullPath)
-	js.History().Call("pushState", nil, "", fullPath)
+	updateHistory(history, fullPath)
+}
+
+func updateHistory(mode historyMode, path string) {
+	switch mode {
+	case historyPush:
+		js.History().Call("pushState", nil, "", path)
+	case historyReplace:
+		js.History().Call("replaceState", nil, "", path)
+	}
 }
 
 // CanNavigate reports whether the specified path matches a registered route.
@@ -410,12 +463,12 @@ func InitRouter() {
 	go func() {
 		for range ch {
 			path := js.Location().Get("pathname").String() + js.Location().Get("search").String()
-			Navigate(path)
+			navigate(path, historyNone)
 		}
 	}()
 
 	currentPath := js.Location().Get("pathname").String() + js.Location().Get("search").String()
-	Navigate(currentPath)
+	navigate(currentPath, historyNone)
 }
 
 // NavItem describes a navigation entry with arbitrary metadata.

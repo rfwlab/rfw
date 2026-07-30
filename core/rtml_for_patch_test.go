@@ -4,8 +4,10 @@ package core
 
 import (
 	"testing"
+	"time"
 
 	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/js"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -13,6 +15,7 @@ func mountForComponent(t *testing.T, name string, tpl []byte) *HTMLComponent {
 	t.Helper()
 	host := dom.Doc().CreateElement("div")
 	dom.Doc().Body().AppendChild(host)
+	t.Cleanup(func() { host.Call("remove") })
 
 	c := NewHTMLComponent(name, tpl, nil)
 	c.SetComponent(c)
@@ -102,5 +105,128 @@ func TestForPatchFallsBackForRichBodies(t *testing.T) {
 	}
 	if !incrementalForBody(`<li class="@prop:it.cls">@prop:it.label</li>`) {
 		t.Fatal("a plain body should be patchable")
+	}
+}
+
+func TestForPatchRebindsInputsOnce(t *testing.T) {
+	st := state.NewStore("forpatch3", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch3")
+	st.Set("name", "")
+	st.Set("ast", "")
+	st.Set("row", "")
+	st.Set("items", []any{map[string]any{"label": "one"}})
+
+	tpl := []byte(`<root><input data-name value="@store:app.forpatch3.name:w"><input data-ast data-bind-store="app.forpatch3.ast"><ul>@for:it in store:app.forpatch3.items <li><input data-row data-bind-store="app.forpatch3.row">@prop:it.label</li>@endfor</ul></root>`)
+	c := mountForComponent(t, "ForPatch3", tpl)
+	defer c.Unmount()
+
+	st.Set("items", []any{map[string]any{"label": "two"}})
+	oldRow := dom.Query("[data-row]")
+	st.Set("items", []any{})
+
+	oldHook := state.StoreHook
+	defer func() { state.StoreHook = oldHook }()
+	sets := make(chan string, 4)
+	state.StoreHook = func(module, store, key string, value any) {
+		if module == "app" && store == "forpatch3" {
+			sets <- key
+		}
+		if oldHook != nil {
+			oldHook(module, store, key, value)
+		}
+	}
+
+	oldRow.Value.Set("value", "detached")
+	oldRow.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	select {
+	case key := <-sets:
+		t.Fatalf("detached row updated store key %q", key)
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	input := dom.Query("[data-name]")
+	input.Value.Set("value", "Mirko")
+	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	expectOneStoreSet(t, sets, "name")
+
+	input = dom.Query("[data-ast]")
+	input.Value.Set("value", "AST")
+	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	expectOneStoreSet(t, sets, "ast")
+}
+
+func expectOneStoreSet(t *testing.T, sets <-chan string, want string) {
+	t.Helper()
+	select {
+	case got := <-sets:
+		if got != want {
+			t.Fatalf("input updated store key %q, want %q", got, want)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("input did not update the store")
+	}
+	select {
+	case got := <-sets:
+		t.Fatalf("input updated store key %q more than once", got)
+	case <-time.After(20 * time.Millisecond):
+	}
+}
+
+func TestForPatchRebindsSignalInputsOnce(t *testing.T) {
+	st := state.NewStore("forpatch4", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch4")
+	st.Set("items", []any{map[string]any{"label": "one"}})
+	legacy := state.NewSignal("legacy")
+	ast := state.NewSignal("ast")
+
+	host := dom.Doc().CreateElement("div")
+	dom.Doc().Body().AppendChild(host)
+	t.Cleanup(func() { host.Call("remove") })
+	tpl := []byte(`<root><input data-legacy value="@signal:legacy:w"><span hidden>@signal:ast</span><input data-ast-signal data-bind-signal="ast"><ul>@for:it in store:app.forpatch4.items <li>@prop:it.label</li>@endfor</ul></root>`)
+	c := NewHTMLComponent("ForPatch4", tpl, map[string]any{
+		"legacy": legacy,
+		"ast":    ast,
+	})
+	c.SetComponent(c)
+	c.Init(nil)
+	host.SetHTML(c.Render())
+	c.Mount()
+	defer c.Unmount()
+
+	st.Set("items", []any{map[string]any{"label": "two"}})
+	st.Set("items", []any{map[string]any{"label": "three"}})
+
+	legacySets := make(chan string, 2)
+	legacySub := legacy.OnChange(func(value string) { legacySets <- value })
+	defer legacySub.Stop()
+	astSets := make(chan string, 2)
+	astSub := ast.OnChange(func(value string) { astSets <- value })
+	defer astSub.Stop()
+
+	input := dom.Query("[data-legacy]")
+	input.Value.Set("value", "legacy-updated")
+	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	expectOneSignalSet(t, legacySets, "legacy-updated")
+
+	input = dom.Query("[data-ast-signal]")
+	input.Value.Set("value", "ast-updated")
+	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	expectOneSignalSet(t, astSets, "ast-updated")
+}
+
+func expectOneSignalSet(t *testing.T, sets <-chan string, want string) {
+	t.Helper()
+	select {
+	case got := <-sets:
+		if got != want {
+			t.Fatalf("signal value = %q, want %q", got, want)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("input did not update the signal")
+	}
+	select {
+	case <-sets:
+		t.Fatal("input updated the signal more than once")
+	case <-time.After(20 * time.Millisecond):
 	}
 }
