@@ -236,7 +236,7 @@ func ReplaySession(ws *websocket.Conn, session *Session, acknowledged uint64) {
 	}
 	session.outboundMu.Lock()
 	defer session.outboundMu.Unlock()
-	if session.connection != ws {
+	if !sessionAcceptsConnection(session, ws, true) {
 		return
 	}
 	lock := connectionWriteLock(ws)
@@ -261,7 +261,7 @@ func SendSessionOutbound(ws *websocket.Conn, session *Session, out Outbound) {
 	}
 	session.outboundMu.Lock()
 	defer session.outboundMu.Unlock()
-	if session.connection != ws {
+	if !sessionAcceptsConnection(session, ws, false) {
 		return
 	}
 	lock := connectionWriteLock(ws)
@@ -271,13 +271,41 @@ func SendSessionOutbound(ws *websocket.Conn, session *Session, out Outbound) {
 }
 
 // BindSessionConnection marks ws as the active connection for session delivery.
+// Custom handlers that resume without ReplaySession must bind the new socket
+// before sending.
 func BindSessionConnection(ws *websocket.Conn, session *Session) {
 	if session == nil {
 		return
 	}
 	session.outboundMu.Lock()
-	session.connection = ws
+	if sessionAcceptsConnection(session, ws, true) {
+		session.connectionManaged = true
+	}
 	session.outboundMu.Unlock()
+}
+
+func sessionAcceptsConnection(session *Session, ws *websocket.Conn, handoff bool) bool {
+	if ws == nil {
+		return false
+	}
+	session.deliveryMu.Lock()
+	active := session.attached && !session.released
+	resumePending := session.resumePending
+	if active && resumePending && handoff {
+		session.resumePending = false
+	}
+	session.deliveryMu.Unlock()
+	if !active || (resumePending && !handoff) {
+		return false
+	}
+	if session.connection == ws {
+		return true
+	}
+	if session.connection != nil || (session.connectionManaged && !handoff) {
+		return false
+	}
+	session.connection = ws
+	return true
 }
 
 // SendOutbound serializes writes per connection.
