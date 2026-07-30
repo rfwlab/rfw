@@ -31,19 +31,32 @@ GOOS=js GOARCH=wasm go test -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
 
 The test binary is loaded in headless Chrome, so tests can create DOM
 nodes, dispatch events and assert on rendered output. This is how the
-framework tests itself; application components can do the same:
+framework tests itself. `testkit.Mount` creates an isolated container, mounts
+the component, and registers cleanup with the test:
 
 ```go
 func TestGreeting(t *testing.T) {
     c := core.NewHTMLComponent("Greeting",
         []byte(`<root><p>@prop:name</p></root>`),
         map[string]any{"name": "Ada"})
+    c.SetComponent(c)
     c.Init(nil)
-    if !strings.Contains(c.Render(), "Ada") {
-        t.Fatal("prop not rendered")
-    }
+
+    view := testkit.Mount(t, c)
+    testkit.AssertContains(t, view.Text(), "Ada")
 }
 ```
+
+The browser harness exposes `Root`, `Query`, `HTML`, `Text`, `Click`, and
+`Input`. `testkit.Eventually` polls asynchronous state with a deadline:
+
+```go
+testkit.Eventually(t, time.Second, func() bool {
+    return view.Query("[data-ready]").Text() == "done"
+})
+```
+
+For a render-only native test, use `testkit.Render(component)`.
 
 ## Golden tests
 

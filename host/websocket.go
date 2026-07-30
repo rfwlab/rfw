@@ -1,24 +1,15 @@
 package host
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"sync"
 
 	"golang.org/x/net/websocket"
 )
-
-type Inbound struct {
-	Component string         `json:"component"`
-	Payload   map[string]any `json:"payload"`
-}
-
-type Outbound struct {
-	Component string `json:"component"`
-	Payload   any    `json:"payload,omitempty"`
-	Session   string `json:"session"`
-}
 
 type broadcastOptions struct {
 	session string
@@ -42,11 +33,26 @@ func WithSessionTarget(sessionID string) BroadcastOption {
 var (
 	connections = make(map[string]map[*websocket.Conn]*Session)
 	connMu      sync.RWMutex
+	connWrites  sync.Map
 )
 
-func wsHandler(ws *websocket.Conn) {
-	session := AllocateSession()
+func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
+	if !runtime.AcquireConnection() {
+		SendOutbound(ws, Outbound{Error: NewActionError("connection_limit", "connection limit reached")})
+		ws.Close()
+		return
+	}
+	defer runtime.ReleaseConnection()
+	runtime.ConfigureConnection(ws)
+
+	session, err := runtime.NewSession(ws.Request())
+	if err != nil {
+		SendOutbound(ws, Outbound{Error: NewActionError("session_rejected", "session rejected")})
+		ws.Close()
+		return
+	}
 	var subscribed []string
+	firstMessage := true
 	defer func() {
 		connMu.Lock()
 		for _, name := range subscribed {
@@ -58,7 +64,8 @@ func wsHandler(ws *websocket.Conn) {
 			}
 		}
 		connMu.Unlock()
-		ReleaseSession(session)
+		SuspendSession(session, runtime.ResumeTTL())
+		ForgetConnection(ws)
 		ws.Close()
 	}()
 	for {
@@ -73,6 +80,63 @@ func wsHandler(ws *websocket.Conn) {
 		var msg Inbound
 		if err := json.Unmarshal(raw, &msg); err != nil {
 			log.Printf("unmarshal: %v", err)
+			continue
+		}
+		if firstMessage {
+			firstMessage = false
+			if msg.ResumeToken != "" && msg.ResumeToken != session.ResumeToken() {
+				if resumed, ok := ResumeSession(msg.ResumeToken); ok {
+					ReleaseSession(session)
+					session = resumed
+					ReplaySession(ws, session, msg.Ack)
+				} else {
+					SendSessionOutbound(ws, session, Outbound{
+						Control: "resume_rejected",
+						Error:   NewActionError("resume_rejected", "session could not be resumed"),
+					})
+				}
+			}
+		}
+		session.Acknowledge(msg.Ack)
+		if err := session.AcceptInbound(msg.Sequence); err != nil {
+			if errors.Is(err, ErrDuplicateMessage) {
+				continue
+			}
+			SendSessionOutbound(ws, session, Outbound{
+				ID:     msg.ID,
+				Action: msg.Action,
+				Error:  NewActionError("sequence_gap", "client message sequence gap"),
+			})
+			continue
+		}
+		if !session.AllowMessage(runtime.MessagesPerMinute()) {
+			SendSessionOutbound(ws, session, Outbound{
+				ID:     msg.ID,
+				Action: msg.Action,
+				Error:  NewActionError("rate_limited", "message rate limit exceeded"),
+			})
+			continue
+		}
+		authorizeCtx, cancelAuthorize := runtime.HandlerContext(context.Background())
+		authorizeErr := runtime.Authorize(authorizeCtx, session, msg)
+		cancelAuthorize()
+		if authorizeErr != nil {
+			SendSessionOutbound(ws, session, Outbound{
+				Component: msg.Component,
+				Action:    msg.Action,
+				ID:        msg.ID,
+				Error:     NewActionError("forbidden", "message forbidden"),
+			})
+			continue
+		}
+		if msg.Action != "" {
+			payload, actionErr := runtime.DispatchAction(context.Background(), session, msg)
+			SendSessionOutbound(ws, session, Outbound{
+				Action:  msg.Action,
+				ID:      msg.ID,
+				Payload: payload,
+				Error:   actionErr,
+			})
 			continue
 		}
 		if hc, ok := Get(msg.Component); ok {
@@ -90,25 +154,26 @@ func wsHandler(ws *websocket.Conn) {
 				switch v := resp.(type) {
 				case *InitSnapshot:
 					if v != nil {
-						sendToConn(ws, Outbound{Component: msg.Component, Payload: map[string]any{"initSnapshot": v}, Session: session.ID()})
+						SendSessionOutbound(ws, session, Outbound{Component: msg.Component, ID: msg.ID, Payload: map[string]any{"initSnapshot": v}})
 					}
 					continue
 				case InitSnapshot:
-					sendToConn(ws, Outbound{Component: msg.Component, Payload: map[string]any{"initSnapshot": v}, Session: session.ID()})
+					SendSessionOutbound(ws, session, Outbound{Component: msg.Component, ID: msg.ID, Payload: map[string]any{"initSnapshot": v}})
 					continue
 				default:
-					sendToConn(ws, Outbound{Component: msg.Component, Payload: resp, Session: session.ID()})
+					SendSessionOutbound(ws, session, Outbound{Component: msg.Component, ID: msg.ID, Payload: resp})
 					continue
 				}
 			}
 			if msg.Payload != nil && msg.Payload["init"] == true {
-				sendToConn(ws, Outbound{
+				SendSessionOutbound(ws, session, Outbound{
 					Component: msg.Component,
-					Session:   session.ID(),
 					Payload:   map[string]any{"session": session.ID()},
 				})
+				continue
 			}
 		}
+		SendSessionOutbound(ws, session, Outbound{Control: "ack"})
 	}
 }
 
@@ -137,16 +202,71 @@ func Broadcast(name string, payload any, opts ...BroadcastOption) {
 		if options.Session != "" && t.session.ID() != options.Session {
 			continue
 		}
-		sendToConn(t.ws, Outbound{Component: name, Payload: payload, Session: t.session.ID()})
+		SendSessionOutbound(t.ws, t.session, Outbound{Component: name, Payload: payload})
 	}
 }
 
-func sendToConn(ws *websocket.Conn, out Outbound) {
+// DispatchAction executes a typed action within the configured handler deadline.
+func (runtime *WSRuntime) DispatchAction(parent context.Context, session *Session, message Inbound) (any, *ActionError) {
+	ctx, cancel := runtime.HandlerContext(parent)
+	defer cancel()
+	type result struct {
+		payload any
+		err     *ActionError
+	}
+	resultChannel := make(chan result, 1)
+	go func() {
+		defer func() {
+			if recover() != nil {
+				resultChannel <- result{err: NewActionError("action_failed", "action failed")}
+			}
+		}()
+		payload, actionErr := DispatchAction(ctx, session, message.Action, message.Payload)
+		resultChannel <- result{payload: payload, err: actionErr}
+	}()
+	select {
+	case response := <-resultChannel:
+		return response.payload, response.err
+	case <-ctx.Done():
+		return nil, NewActionError("action_timeout", "action timed out")
+	}
+}
+
+// ReplaySession sends retained messages after the client's acknowledgement.
+func ReplaySession(ws *websocket.Conn, session *Session, acknowledged uint64) {
+	messages, err := session.ReplayAfter(acknowledged)
+	if err != nil {
+		SendSessionOutbound(ws, session, Outbound{
+			Error: NewActionError("resync_required", "message history is no longer available"),
+		})
+		return
+	}
+	for _, message := range messages {
+		SendOutbound(ws, message)
+	}
+}
+
+// SendSessionOutbound assigns delivery metadata and sends a message.
+func SendSessionOutbound(ws *websocket.Conn, session *Session, out Outbound) {
+	SendOutbound(ws, session.PrepareOutbound(out))
+}
+
+// SendOutbound serializes writes per connection.
+func SendOutbound(ws *websocket.Conn, out Outbound) {
 	b, err := json.Marshal(out)
 	if err != nil {
 		return
 	}
+	lockValue, _ := connWrites.LoadOrStore(ws, &sync.Mutex{})
+	lock := lockValue.(*sync.Mutex)
+	lock.Lock()
+	defer lock.Unlock()
 	if err := websocket.Message.Send(ws, b); err != nil {
 		log.Printf("send: %v", err)
 	}
+}
+
+// ForgetConnection releases the connection write lock.
+func ForgetConnection(ws *websocket.Conn) {
+	connWrites.Delete(ws)
 }

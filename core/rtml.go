@@ -207,7 +207,6 @@ func replaceComponentIncludes(template string, c *HTMLComponent) string {
 			}
 			if hc, ok := comp.(*HTMLComponent); ok {
 				hc.Props = props
-				hc.ID = generateComponentID(hc.Name, hc.Props)
 			}
 			placeholder := fmt.Sprintf("inc-%s-%d", name, idx)
 			idx++
@@ -244,7 +243,7 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 }
 
 func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
-	slotRegex := reSlotNamed
+	slotRegex := reSlotDefault
 	idx := 0
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := slotRegex.FindStringSubmatch(match)

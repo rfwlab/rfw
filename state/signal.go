@@ -27,6 +27,12 @@ type subscriber interface {
 // expected to happen on the render goroutine.
 var currentEffect atomic.Pointer[effect]
 
+var effectScheduler = struct {
+	sync.Mutex
+	depth   int
+	pending map[*effect]struct{}
+}{pending: make(map[*effect]struct{})}
+
 // Subscription represents a cancellable listener returned by OnChange.
 type Subscription struct {
 	cancel func()
@@ -167,7 +173,7 @@ func (s *Signal[T]) Set(v T) {
 	}
 	s.mu.Unlock()
 	for _, eff := range snapshot {
-		eff.runEffect()
+		scheduleEffect(eff)
 	}
 	s.notifyOnChange(v)
 }
@@ -285,4 +291,98 @@ func Effect(fn func() func()) func() {
 	e := &effect{run: fn}
 	e.runEffect()
 	return e.stop
+}
+
+// Batch defers dependent effects until fn completes and runs each effect once.
+func Batch(fn func()) {
+	if fn == nil {
+		return
+	}
+	effectScheduler.Lock()
+	effectScheduler.depth++
+	effectScheduler.Unlock()
+	defer flushBatch()
+	fn()
+}
+
+func scheduleEffect(e *effect) {
+	effectScheduler.Lock()
+	if effectScheduler.depth > 0 {
+		effectScheduler.pending[e] = struct{}{}
+		effectScheduler.Unlock()
+		return
+	}
+	effectScheduler.Unlock()
+	e.runEffect()
+}
+
+func flushBatch() {
+	effectScheduler.Lock()
+	effectScheduler.depth--
+	if effectScheduler.depth > 0 {
+		effectScheduler.Unlock()
+		return
+	}
+	pending := make([]*effect, 0, len(effectScheduler.pending))
+	for effect := range effectScheduler.pending {
+		pending = append(pending, effect)
+	}
+	clear(effectScheduler.pending)
+	effectScheduler.Unlock()
+	for _, effect := range pending {
+		effect.runEffect()
+	}
+}
+
+// Untracked evaluates fn without subscribing the current effect.
+func Untracked[T any](fn func() T) T {
+	previous := currentEffect.Swap(nil)
+	defer currentEffect.Store(previous)
+	return fn()
+}
+
+// MemoValue is a read-only signal derived from other signals.
+type MemoValue[T any] struct {
+	signal *Signal[T]
+	stop   func()
+}
+
+// Memo creates a cached derivation and tracks every signal read by compute.
+func Memo[T any](compute func() T) *MemoValue[T] {
+	var zero T
+	signal := NewSignal(zero)
+	memo := &MemoValue[T]{signal: signal}
+	memo.stop = Effect(func() func() {
+		signal.Set(compute())
+		return nil
+	})
+	return memo
+}
+
+// Get returns the current memoized value and tracks the caller.
+func (m *MemoValue[T]) Get() T {
+	if m == nil || m.signal == nil {
+		var zero T
+		return zero
+	}
+	return m.signal.Get()
+}
+
+// Read returns the current value without knowing T.
+func (m *MemoValue[T]) Read() any { return m.Get() }
+
+// OnChange subscribes to memo changes.
+func (m *MemoValue[T]) OnChange(fn func(T)) *Subscription {
+	if m == nil || m.signal == nil {
+		return &Subscription{cancel: func() {}}
+	}
+	return m.signal.OnChange(fn)
+}
+
+// Stop releases the memo's dependencies.
+func (m *MemoValue[T]) Stop() {
+	if m != nil && m.stop != nil {
+		m.stop()
+		m.stop = nil
+	}
 }

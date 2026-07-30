@@ -5,7 +5,7 @@
 package router
 
 import (
-	"net/url"
+	"context"
 	"regexp"
 	"strings"
 	"sync"
@@ -31,9 +31,13 @@ type Guard func(map[string]string) bool
 //   - A func() core.Component: called each navigation (legacy).
 type Route struct {
 	Path      string
+	Name      string
 	Component any
 	Guards    []Guard
 	Children  []Route
+	Loader    Loader
+	Redirect  string
+	Meta      map[string]any
 }
 
 // Singleton wraps a pre-created View into a Route.Component value.
@@ -44,6 +48,8 @@ func Singleton(v *types.View) any {
 
 type route struct {
 	pattern    string
+	fullPath   string
+	name       string
 	regex      *regexp.Regexp
 	paramNames []string
 	matchNames []string
@@ -52,6 +58,9 @@ type route struct {
 	singleton  bool
 	children   []route
 	guards     []Guard
+	dataLoader Loader
+	redirect   string
+	meta       map[string]any
 }
 
 // RegisteredRoute describes a registered route in a navigable tree form.
@@ -62,10 +71,14 @@ type RegisteredRoute struct {
 	// Path is the fully qualified route path derived from the registration
 	// hierarchy.
 	Path string `json:"path"`
+	// Name is the optional identifier used by URL.
+	Name string `json:"name,omitempty"`
 	// Params lists the dynamic parameters extracted from the template.
 	Params []string `json:"params"`
 	// Children contains nested routes.
 	Children []RegisteredRoute `json:"children"`
+	// Meta contains user-defined route metadata.
+	Meta map[string]any `json:"meta,omitempty"`
 }
 
 var (
@@ -74,6 +87,8 @@ var (
 	exposeNavigateOnce sync.Once
 	activePathSig      = state.NewSignal("/")
 	navItems           []NavItem
+	scrollEnabled      = true
+	scrollPositions    = map[string][2]int{}
 )
 
 // NotFoundComponent, if set, is rendered when no route matches the path.
@@ -91,6 +106,9 @@ func Reset() {
 	currentComponent = nil
 	NotFoundComponent = nil
 	NotFoundCallback = nil
+	activePathSig.Set("/")
+	resetNavigation()
+	scrollPositions = map[string][2]int{}
 }
 
 // RegisterRoute adds a new Route to the router's configuration.
@@ -149,15 +167,24 @@ func buildRouteAt(r Route, parent string) route {
 		loader = func() core.Component { return c() }
 	case func() core.Component:
 		loader = c
+	case core.Component:
+		comp := c
+		loader = func() core.Component { return comp }
+		singleton = true
 	}
 	rt := route{
 		pattern:    r.Path,
+		fullPath:   fullPath,
+		name:       r.Name,
 		regex:      regexp.MustCompile(pattern),
 		paramNames: paramNames,
 		matchNames: matchNames,
 		loader:     loader,
 		singleton:  singleton,
 		guards:     r.Guards,
+		dataLoader: r.Loader,
+		redirect:   r.Redirect,
+		meta:       cloneMeta(r.Meta),
 	}
 
 	for _, child := range r.Children {
@@ -188,8 +215,10 @@ func snapshotRoute(r *route, parent string) RegisteredRoute {
 	return RegisteredRoute{
 		Template: r.pattern,
 		Path:     full,
+		Name:     r.name,
 		Params:   params,
 		Children: children,
+		Meta:     cloneMeta(r.meta),
 	}
 }
 
@@ -237,7 +266,7 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 			return child, append(r.guards, guards...), childParams
 		}
 		matchedPath := strings.TrimSuffix(matches[0], "/")
-		if r.loader != nil && matchedPath == strings.TrimSuffix(path, "/") {
+		if (r.loader != nil || r.redirect != "") && matchedPath == strings.TrimSuffix(path, "/") {
 			return r, r.guards, params
 		}
 	}
@@ -265,12 +294,29 @@ func Replace(fullPath string) {
 }
 
 func navigate(fullPath string, history historyMode) {
+	var navigationErr error
 	core.TryNavigate(fullPath, func() {
-		navigateImpl(fullPath, history)
+		navigationErr = navigateImpl(context.Background(), fullPath, history)
 	})
+	if navigationErr != nil && navigationIsContextError(navigationErr) {
+		return
+	}
 }
 
-func navigateImpl(fullPath string, history historyMode) {
+// NavigateContext loads and commits a route or returns a navigation error.
+func NavigateContext(parent context.Context, fullPath string) error {
+	var navigationErr error
+	core.TryNavigate(fullPath, func() {
+		navigationErr = navigateImpl(parent, fullPath, historyPush)
+	})
+	return navigationErr
+}
+
+func navigateImpl(parent context.Context, fullPath string, history historyMode) error {
+	ctx, navigation := beginNavigation(parent)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	path := fullPath
 	query := ""
 	if idx := strings.Index(fullPath, "?"); idx != -1 {
@@ -284,6 +330,7 @@ func navigateImpl(fullPath string, history historyMode) {
 			NotFoundCallback(fullPath)
 		} else if NotFoundComponent != nil {
 			if currentComponent != nil {
+				saveScroll()
 				core.Log().Debug("Unmounting current component: %s", currentComponent.GetName())
 				core.TriggerUnmount(currentComponent)
 				currentComponent.Unmount()
@@ -309,18 +356,69 @@ func navigateImpl(fullPath string, history historyMode) {
 				core.TriggerRouter(fullPath)
 				activePathSig.Set(fullPath)
 				updateHistory(history, fullPath)
+				restoreScroll(fullPath, history, nil)
+				commitRouteState(nil, nil)
+				return nil
 			}
 		}
-		return
+		failNavigation(ErrRouteNotFound)
+		return ErrRouteNotFound
 	}
 
+	if params == nil {
+		params = map[string]string{}
+	}
+	queryParams, queryValues := routeQuery(query)
+	for key, value := range queryParams {
+		params[key] = value
+	}
 	for _, g := range guards {
 		if !g(params) {
 			if currentComponent == nil && path != "/" {
 				navigate("/", history)
 			}
-			return
+			return ErrNavigationBlocked
 		}
+	}
+
+	if r.redirect != "" {
+		destination, err := redirectPath(r.redirect, params)
+		if err != nil {
+			failNavigation(err)
+			return err
+		}
+		redirectCtx, err := nextRedirectContext(parent)
+		if err != nil {
+			failNavigation(err)
+			return err
+		}
+		return navigateImpl(redirectCtx, destination, historyReplace)
+	}
+
+	var data any
+	if r.dataLoader != nil {
+		state.Batch(func() {
+			navigationError.Set(nil)
+			navigationStatus.Set(NavigationLoading)
+		})
+		loaded, err := r.dataLoader(ctx, LoadContext{
+			Path:   path,
+			Params: cloneStringMap(params),
+			Query:  queryValues,
+		})
+		if err != nil {
+			if navigationIsCurrent(navigation) {
+				failNavigation(err)
+			}
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if !navigationIsCurrent(navigation) {
+			return context.Canceled
+		}
+		data = loaded
 	}
 
 	if r.loader != nil {
@@ -330,22 +428,17 @@ func navigateImpl(fullPath string, history historyMode) {
 			r.component = r.loader()
 		}
 	}
-
-	if params == nil {
-		params = map[string]string{}
-	}
-	if query != "" {
-		if values, err := url.ParseQuery(query); err == nil {
-			for k, v := range values {
-				if len(v) > 0 {
-					params[k] = v[0]
-				}
-			}
-		}
+	if r.component == nil {
+		failNavigation(ErrRouteComponent)
+		return ErrRouteComponent
 	}
 	if receiver, ok := r.component.(routeParamReceiver); ok {
 		receiver.SetRouteParams(params)
 	}
+	if receiver, ok := r.component.(RouteDataReceiver); ok {
+		receiver.SetRouteData(data)
+	}
+	saveScroll()
 	if currentComponent != nil {
 		core.Log().Debug("Unmounting current component: %s", currentComponent.GetName())
 		core.TriggerUnmount(currentComponent)
@@ -363,6 +456,13 @@ func navigateImpl(fullPath string, history historyMode) {
 	core.TriggerRouter(fullPath)
 	activePathSig.Set(fullPath)
 	updateHistory(history, fullPath)
+	restoreScroll(fullPath, history, r.meta)
+	commitRouteState(data, r.meta)
+	return nil
+}
+
+func navigationIsContextError(err error) bool {
+	return err == context.Canceled || err == context.DeadlineExceeded
 }
 
 func updateHistory(mode historyMode, path string) {
@@ -372,6 +472,36 @@ func updateHistory(mode historyMode, path string) {
 	case historyReplace:
 		js.History().Call("replaceState", nil, "", path)
 	}
+}
+
+// SetScrollRestoration enables or disables router-managed scroll positions.
+func SetScrollRestoration(enabled bool) {
+	scrollEnabled = enabled
+}
+
+func saveScroll() {
+	if !scrollEnabled || currentComponent == nil {
+		return
+	}
+	path := activePathSig.Get()
+	scrollPositions[path] = [2]int{
+		js.Window().Get("scrollX").Int(),
+		js.Window().Get("scrollY").Int(),
+	}
+}
+
+func restoreScroll(path string, history historyMode, meta map[string]any) {
+	if !scrollEnabled {
+		return
+	}
+	if preserve, _ := meta["preserveScroll"].(bool); preserve {
+		return
+	}
+	position := [2]int{}
+	if history == historyNone {
+		position = scrollPositions[path]
+	}
+	js.Window().Call("scrollTo", position[0], position[1])
 }
 
 // CanNavigate reports whether the specified path matches a registered route.
