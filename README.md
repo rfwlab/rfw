@@ -27,6 +27,16 @@ Instead of writing a REST API and a frontend framework, you write Go. rfw handle
 
 If you are using `templ` + `htmx` (or `datastar`), you are already moving toward server-driven UI. rfw takes this further by providing a full state-synchronization engine. You get the productivity of a frontend framework (like React or Vue) but with the simplicity of a single Go binary and type-safe end to end.
 
+rfw 2.1 includes:
+
+- batched signals, memo values, asynchronous resources, Suspense, and
+  component lifecycle scopes;
+- typed SSC actions and forms with authorization, limits, ordered delivery,
+  and resumable sessions;
+- route loaders, names, redirects, metadata, and scroll restoration;
+- component-owned events, Portal, KeepAlive, Transition, DOM hooks, and a
+  browser testkit.
+
 ## Getting Started
 
 rfw requires Go 1.25 or newer. Coming from Node and never installed Go? See

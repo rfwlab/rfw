@@ -60,3 +60,18 @@ func TestWSAuthFunc(t *testing.T) {
 		t.Fatalf("accepted auth rejected: %d", code)
 	}
 }
+
+func TestWSConnectionLimit(t *testing.T) {
+	runtime := NewWSRuntime(WithSSCLimits(SSCLimits{MaxConnections: 1}))
+	if !runtime.AcquireConnection() {
+		t.Fatal("first connection was rejected")
+	}
+	if runtime.AcquireConnection() {
+		t.Fatal("second connection exceeded the limit")
+	}
+	runtime.ReleaseConnection()
+	if !runtime.AcquireConnection() {
+		t.Fatal("released connection slot was not reusable")
+	}
+	runtime.ReleaseConnection()
+}

@@ -7,12 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Breaking change policy
 
-While rfw is pre-stable (v2.0.0 betas), breaking changes may land in any beta
-release. Every breaking change is flagged **breaking** in this changelog and
-ships with migration notes. Once v2.0.0 stable is released, breaking changes
-follow semver: they only land in a new major version.
+Stable releases follow semver. Breaking API changes only land in a new major
+version and include migration notes.
 
 ## [Unreleased]
+
+## [2.1.0] - 2026-07-30
+
+### Added
+
+- reactive `state.Batch`, `state.Memo`, `state.Untracked`, and cancellable
+  `state.Resource` APIs with keyed request deduplication, cache expiry, reload,
+  mutation, and `Suspense` integration.
+- component lifecycle scopes for context cancellation, cleanup functions,
+  background work, and effects that stop on unmount.
+- component-owned event handlers and RTML modifiers for capture, once,
+  passive, prevent, stop, self, keyboard filters, exact system keys, debounce,
+  and throttle.
+- typed SSC actions and forms with strict request decoding, correlated
+  responses, field errors, action authorization, handler deadlines, reactive
+  connection state, and typed client calls.
+- SSC message authorization, session initialization, frame, connection, and
+  retained-session limits, per-session rate limits, ordered delivery,
+  acknowledgements, replay, and expiring session resume tokens.
+- named routes, URL generation, redirects, route metadata, cancellable data
+  loaders, reactive navigation state, and browser scroll restoration.
+- `Portal`, `KeepAlive`, `Transition`, component DOM lifecycle hooks, and the
+  `testkit` package for render, browser interaction, and eventual assertions.
+
+### Changed
+
+- every component instance now receives a distinct ID, including repeated
+  instances with the same name and props.
+- delegated handlers resolve component-owned registrations before the legacy
+  global registry, so repeated components may use the same handler names.
+- `Suspense` now patches itself when a tracked resource completes and escapes
+  rendered error messages.
+- SSC writes are serialized per WebSocket connection and every protocol
+  message carries sequence and acknowledgement metadata.
+
+### Fixed
+
+- default slot fallback content is preserved when a parent does not provide
+  the slot.
+- component handler, input binding, effect, context, timer, and DOM hook
+  cleanup now runs with the owning component lifecycle.
 
 ## [2.0.0-beta.19] - 2026-07-30
 
@@ -178,7 +217,8 @@ module builds cleanly for wasm.
   unavailable instead of panicking, making the wasm test suite runnable
   headlessly.
 
-[Unreleased]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.19...HEAD
+[Unreleased]: https://github.com/rfwlab/rfw/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.19...v2.1.0
 [2.0.0-beta.19]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.18...v2.0.0-beta.19
 [2.0.0-beta.18]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.17...v2.0.0-beta.18
 [2.0.0-beta.17]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.16...v2.0.0-beta.17

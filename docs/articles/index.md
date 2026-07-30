@@ -14,6 +14,10 @@
   rows, handle clicks; the pattern behind every real page.
 - [Server Side Computed (SSC)](guide/ssc.md): host components, host
   signals, broadcasts and serving; the server-driven half of rfw.
+- [State and lifecycle](guide/state-and-lifecycle.md): batching, memo values,
+  asynchronous resources, component scopes, and browser library cleanup.
+- [Routing](guide/routing.md): named routes, redirects, cancellable loaders,
+  metadata, scroll restoration, and built-in component wrappers.
 - [SSC security model](guide/ssc-security.md): what crosses the wire, what
   stays on the server, and the auth work rfw leaves to you.
 - [Hot reload: what is instant, what is not](guide/hot-reload.md): measured

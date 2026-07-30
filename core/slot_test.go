@@ -30,7 +30,6 @@ func TestNamedSlotExtraction(t *testing.T) {
 }
 
 func TestIncludePlaceholderPrefixCollision(t *testing.T) {
-	t.Skip("pre-existing: default (unnamed) @slot fallback is not rendered; tracked separately, unrelated to the beta.7 rtml fixes")
 	childTpl := []byte("<root>@slot:avatar<div>fallback-avatar</div>@endslot<div>@slot<p>fallback-details</p>@endslot</div></root>")
 	parentTpl := []byte("<root>@slot:card.avatar<img/>@endslot@slot:card<p>details</p>@endslot@include:card@include:cardFallback</root>")
 
@@ -48,5 +47,14 @@ func TestIncludePlaceholderPrefixCollision(t *testing.T) {
 	}
 	if !strings.Contains(html, "fallback-avatar") || !strings.Contains(html, "fallback-details") {
 		t.Fatalf("fallback content missing: %s", html)
+	}
+}
+
+func TestComponentInstancesHaveDistinctIDs(t *testing.T) {
+	first := NewHTMLComponent("Repeated", []byte("<root></root>"), nil)
+	second := NewHTMLComponent("Repeated", []byte("<root></root>"), nil)
+
+	if first.ID == second.ID {
+		t.Fatalf("component instances share ID %q", first.ID)
 	}
 }

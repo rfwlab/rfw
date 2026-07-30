@@ -3,7 +3,7 @@
 package router
 
 import (
-	"net/url"
+	"context"
 	"regexp"
 	"strings"
 
@@ -16,9 +16,13 @@ type Guard func(map[string]string) bool
 
 type Route struct {
 	Path      string
+	Name      string
 	Component any
 	Guards    []Guard
 	Children  []Route
+	Loader    Loader
+	Redirect  string
+	Meta      map[string]any
 }
 
 func Singleton(v *types.View) any {
@@ -27,6 +31,8 @@ func Singleton(v *types.View) any {
 
 type route struct {
 	pattern    string
+	fullPath   string
+	name       string
 	regex      *regexp.Regexp
 	paramNames []string
 	matchNames []string
@@ -35,13 +41,18 @@ type route struct {
 	singleton  bool
 	children   []route
 	guards     []Guard
+	dataLoader Loader
+	redirect   string
+	meta       map[string]any
 }
 
 type RegisteredRoute struct {
 	Template string            `json:"template"`
 	Path     string            `json:"path"`
+	Name     string            `json:"name,omitempty"`
 	Params   []string          `json:"params"`
 	Children []RegisteredRoute `json:"children"`
+	Meta     map[string]any    `json:"meta,omitempty"`
 }
 
 var (
@@ -59,6 +70,8 @@ func Reset() {
 	currentComponent = nil
 	NotFoundComponent = nil
 	NotFoundCallback = nil
+	activePathSig.Set("/")
+	resetNavigation()
 }
 
 func RegisterRoute(r Route) {
@@ -117,15 +130,24 @@ func buildRouteAt(r Route, parent string) route {
 		loader = func() core.Component { return c() }
 	case func() core.Component:
 		loader = c
+	case core.Component:
+		comp := c
+		loader = func() core.Component { return comp }
+		singleton = true
 	}
 	rt := route{
 		pattern:    r.Path,
+		fullPath:   fullPath,
+		name:       r.Name,
 		regex:      regexp.MustCompile(pattern),
 		paramNames: paramNames,
 		matchNames: matchNames,
 		loader:     loader,
 		singleton:  singleton,
 		guards:     r.Guards,
+		dataLoader: r.Loader,
+		redirect:   r.Redirect,
+		meta:       cloneMeta(r.Meta),
 	}
 
 	for _, child := range r.Children {
@@ -154,8 +176,10 @@ func snapshotRoute(r *route, parent string) RegisteredRoute {
 	return RegisteredRoute{
 		Template: r.pattern,
 		Path:     full,
+		Name:     r.name,
 		Params:   params,
 		Children: children,
+		Meta:     cloneMeta(r.meta),
 	}
 }
 
@@ -207,7 +231,7 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 			return child, append(r.guards, guards...), childParams
 		}
 		matchedPath := strings.TrimSuffix(matches[0], "/")
-		if r.loader != nil && matchedPath == strings.TrimSuffix(path, "/") {
+		if (r.loader != nil || r.redirect != "") && matchedPath == strings.TrimSuffix(path, "/") {
 			return r, r.guards, params
 		}
 	}
@@ -215,6 +239,15 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 }
 
 func Navigate(fullPath string) {
+	_ = NavigateContext(context.Background(), fullPath)
+}
+
+// NavigateContext loads and commits a route or returns a navigation error.
+func NavigateContext(parent context.Context, fullPath string) error {
+	ctx, navigation := beginNavigation(parent)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	path := fullPath
 	query := ""
 	if idx := strings.Index(fullPath, "?"); idx != -1 {
@@ -235,17 +268,69 @@ func Navigate(fullPath string) {
 			case func() core.Component:
 				currentComponent = nc()
 			}
+			activePathSig.Set(fullPath)
+			commitRouteState(nil, nil)
+			return nil
 		}
-		return
+		err := ErrRouteNotFound
+		failNavigation(err)
+		return err
 	}
 
+	if params == nil {
+		params = map[string]string{}
+	}
+	queryParams, queryValues := routeQuery(query)
+	for key, value := range queryParams {
+		params[key] = value
+	}
 	for _, g := range guards {
 		if !g(params) {
 			if currentComponent == nil && path != "/" {
 				Navigate("/")
 			}
-			return
+			return ErrNavigationBlocked
 		}
+	}
+
+	if r.redirect != "" {
+		destination, err := redirectPath(r.redirect, params)
+		if err != nil {
+			failNavigation(err)
+			return err
+		}
+		redirectCtx, err := nextRedirectContext(parent)
+		if err != nil {
+			failNavigation(err)
+			return err
+		}
+		return NavigateContext(redirectCtx, destination)
+	}
+
+	var data any
+	if r.dataLoader != nil {
+		state.Batch(func() {
+			navigationError.Set(nil)
+			navigationStatus.Set(NavigationLoading)
+		})
+		loaded, err := r.dataLoader(ctx, LoadContext{
+			Path:   path,
+			Params: cloneStringMap(params),
+			Query:  queryValues,
+		})
+		if err != nil {
+			if navigationIsCurrent(navigation) {
+				failNavigation(err)
+			}
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if !navigationIsCurrent(navigation) {
+			return context.Canceled
+		}
+		data = loaded
 	}
 
 	if r.loader != nil {
@@ -255,33 +340,33 @@ func Navigate(fullPath string) {
 			r.component = r.loader()
 		}
 	}
-
-	if params == nil {
-		params = map[string]string{}
-	}
-	if query != "" {
-		if values, err := url.ParseQuery(query); err == nil {
-			for k, v := range values {
-				if len(v) > 0 {
-					params[k] = v[0]
-				}
-			}
-		}
+	if r.component == nil {
+		failNavigation(ErrRouteComponent)
+		return ErrRouteComponent
 	}
 	if receiver, ok := r.component.(routeParamReceiver); ok {
 		receiver.SetRouteParams(params)
+	}
+	if receiver, ok := r.component.(RouteDataReceiver); ok {
+		receiver.SetRouteData(data)
 	}
 
 	currentComponent = r.component
 	if handler, ok := r.component.(routeParamHandler); ok {
 		handler.OnParams(params)
 	}
+	activePathSig.Set(fullPath)
+	commitRouteState(data, r.meta)
+	return nil
 }
 
 // Replace behaves like Navigate outside browser builds.
 func Replace(fullPath string) {
 	Navigate(fullPath)
 }
+
+// SetScrollRestoration is a no-op outside browser builds.
+func SetScrollRestoration(bool) {}
 
 func CanNavigate(fullPath string) bool {
 	path := fullPath
@@ -361,4 +446,9 @@ func RouterData() map[string]any {
 		"ActivePath": activePathSig,
 		"NavItems":   NavItemsMap(),
 	}
+}
+
+// ActivePath returns the reactive signal holding the current route path.
+func ActivePath() *state.Signal[string] {
+	return activePathSig
 }

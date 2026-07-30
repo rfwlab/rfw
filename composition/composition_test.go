@@ -35,7 +35,7 @@ func TestOnRegistersHandler(t *testing.T) {
 	c := Wrap(hc)
 	called := false
 	c.On("onTest", func() { called = true })
-	h := dom.GetHandler("onTest")
+	h := dom.GetComponentHandler(c.ID, "onTest")
 	if h.Type() != js.TypeFunction {
 		t.Fatalf("expected function handler")
 	}
@@ -112,12 +112,12 @@ func TestHistoryRegistersHandlers(t *testing.T) {
 
 	c.History(s, "u", "r")
 
-	dom.GetHandler("u").Invoke()
+	dom.GetComponentHandler(c.ID, "u").Invoke()
 	if v := s.Get("v").(int); v != 1 {
 		t.Fatalf("expected 1 after undo, got %d", v)
 	}
 
-	dom.GetHandler("r").Invoke()
+	dom.GetComponentHandler(c.ID, "r").Invoke()
 	if v := s.Get("v").(int); v != 2 {
 		t.Fatalf("expected 2 after redo, got %d", v)
 	}
