@@ -163,3 +163,46 @@ jobs:
             rfw
             checksums.txt
             compliance/*
+
+  # Static analysis (Fabricators standard, see fab/infra code-quality). golangci-lint
+  # runs native and GOOS=js GOARCH=wasm so the //go:build js && wasm components are
+  # analysed too. Not a dependency of `release` (its findings must not block releases).
+  lint:
+    name: golangci (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: native, goos: linux, goarch: amd64 }
+          - { name: wasm, goos: js, goarch: wasm }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
+          args: --output.text.path=stdout --output.sarif.path=golangci-${{ matrix.name }}.sarif
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+      - name: Upload SARIF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golangci-sarif-${{ matrix.name }}
+          path: golangci-${{ matrix.name }}.sarif
+          if-no-files-found: warn
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --results=verified,unknown
