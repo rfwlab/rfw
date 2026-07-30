@@ -4,13 +4,17 @@ package ssc
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/rfwlab/rfw/v2/host"
+	"golang.org/x/net/websocket"
 )
 
 func TestSSCEventBus(t *testing.T) {
@@ -108,5 +112,97 @@ func TestSSCServerWSOriginAllowlist(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("expected 403 for unlisted origin, got %d", resp.StatusCode)
+	}
+}
+
+func TestSSCServerResumesAtSessionLimit(t *testing.T) {
+	type request struct{}
+	type response struct {
+		Count int `json:"count"`
+	}
+	const action = "test.ssc.resume.limit"
+	if err := host.RegisterAction(action, func(_ context.Context, session *host.Session, _ request) (response, error) {
+		count := 0
+		if stored, ok := session.ContextGet("count"); ok {
+			count = stored.(int)
+		}
+		count++
+		session.ContextSet("count", count)
+		return response{Count: count}, nil
+	}); err != nil {
+		t.Fatalf("register action: %v", err)
+	}
+
+	server := httptest.NewServer(NewSSCServer(":0", t.TempDir(), host.WithSSCLimits(host.SSCLimits{
+		MaxSessions:    1,
+		ResumeTTL:      time.Second,
+		ReplayMessages: 8,
+	})).Mux)
+	defer server.Close()
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	dial := func() *websocket.Conn {
+		socket, err := websocket.Dial(wsURL, "", server.URL)
+		if err != nil {
+			t.Fatalf("dial websocket: %v", err)
+		}
+		return socket
+	}
+	send := func(socket *websocket.Conn, message host.Inbound) {
+		data, err := json.Marshal(message)
+		if err != nil {
+			t.Fatalf("marshal message: %v", err)
+		}
+		if err := websocket.Message.Send(socket, data); err != nil {
+			t.Fatalf("send message: %v", err)
+		}
+	}
+	receive := func(socket *websocket.Conn) host.Outbound {
+		var data []byte
+		if err := websocket.Message.Receive(socket, &data); err != nil {
+			t.Fatalf("receive message: %v", err)
+		}
+		var message host.Outbound
+		if err := json.Unmarshal(data, &message); err != nil {
+			t.Fatalf("decode message: %v", err)
+		}
+		return message
+	}
+
+	firstSocket := dial()
+	send(firstSocket, host.Inbound{Action: action, ID: "first", Sequence: 1})
+	first := receive(firstSocket)
+	firstSocket.Close()
+
+	var (
+		secondSocket *websocket.Conn
+		second       host.Outbound
+	)
+	deadline := time.Now().Add(time.Second)
+	for {
+		secondSocket = dial()
+		send(secondSocket, host.Inbound{
+			Action:      action,
+			ID:          "second",
+			Sequence:    2,
+			Ack:         first.Sequence,
+			ResumeToken: first.ResumeToken,
+		})
+		second = receive(secondSocket)
+		if second.Session == first.Session && second.ID == "second" {
+			break
+		}
+		secondSocket.Close()
+		if time.Now().After(deadline) {
+			t.Fatalf("session did not resume at the limit: first=%#v second=%#v", first, second)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	defer secondSocket.Close()
+	payload, ok := second.Payload.(map[string]any)
+	if !ok || payload["count"] != float64(2) {
+		t.Fatalf("session state was not retained: %#v", second.Payload)
+	}
+	if session, ok := host.SessionByID(first.Session); ok {
+		host.ReleaseSession(session)
 	}
 }

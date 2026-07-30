@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rfwlab/rfw/v2/state"
+	"golang.org/x/net/websocket"
 )
 
 // Session represents per-connection state for a WebSocket client.
@@ -21,6 +22,8 @@ type Session struct {
 	ctx   map[string]any
 
 	deliveryMu  sync.Mutex
+	outboundMu  sync.Mutex
+	connection  *websocket.Conn
 	attached    bool
 	released    bool
 	expires     time.Time
@@ -129,22 +132,28 @@ func SuspendSession(session *Session, ttl time.Duration) {
 	if session == nil {
 		return
 	}
+	session.outboundMu.Lock()
 	session.deliveryMu.Lock()
 	if !session.attached {
 		session.deliveryMu.Unlock()
+		session.outboundMu.Unlock()
 		return
 	}
+	session.connection = nil
 	session.attached = false
 	if ttl <= 0 || session.resumeToken == "" {
 		session.deliveryMu.Unlock()
+		session.outboundMu.Unlock()
 		ReleaseSession(session)
 		return
 	}
-	session.expires = time.Now().Add(ttl)
+	expires := time.Now().Add(ttl)
+	session.expires = expires
 	session.expiryTimer = time.AfterFunc(ttl, func() {
-		ReleaseSession(session)
+		releaseSession(session, expires)
 	})
 	session.deliveryMu.Unlock()
+	session.outboundMu.Unlock()
 }
 
 // ResumeSession attaches a disconnected session by opaque token.
@@ -173,12 +182,19 @@ func ResumeSession(token string) (*Session, bool) {
 }
 
 func ReleaseSession(session *Session) {
+	releaseSession(session, time.Time{})
+}
+
+func releaseSession(session *Session, expectedExpiry time.Time) {
 	if session == nil {
 		return
 	}
+	session.outboundMu.Lock()
 	session.deliveryMu.Lock()
-	if session.released {
+	if session.released || (!expectedExpiry.IsZero() &&
+		(session.attached || !session.expires.Equal(expectedExpiry))) {
 		session.deliveryMu.Unlock()
+		session.outboundMu.Unlock()
 		return
 	}
 	session.released = true
@@ -186,8 +202,10 @@ func ReleaseSession(session *Session) {
 		session.expiryTimer.Stop()
 		session.expiryTimer = nil
 	}
+	session.connection = nil
 	session.attached = false
 	session.deliveryMu.Unlock()
+	session.outboundMu.Unlock()
 	sessionMu.Lock()
 	if sessions[session.id] == session {
 		delete(sessions, session.id)

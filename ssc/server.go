@@ -114,24 +114,18 @@ func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 	defer runtime.ReleaseConnection()
 	runtime.ConfigureConnection(ws)
 
-	session, err := runtime.NewSession(ws.Request())
-	if err != nil {
-		host.SendOutbound(ws, host.Outbound{Error: host.NewActionError("session_rejected", "session rejected")})
-		ws.Close()
-		return
-	}
+	var session *host.Session
 	var subscribed []string
 	subscribedSet := make(map[string]struct{})
-	firstMessage := true
 	defer func() {
 		for _, name := range subscribed {
 			if m, ok := connMap.Get(name); ok {
 				m.Delete(ws)
 			}
 		}
-		ws.Close()
-		host.ForgetConnection(ws)
 		host.SuspendSession(session, runtime.ResumeTTL())
+		host.ForgetConnection(ws)
+		ws.Close()
 	}()
 
 	for {
@@ -142,19 +136,22 @@ func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 			}
 			break
 		}
-		if firstMessage {
-			firstMessage = false
-			if msg.ResumeToken != "" && msg.ResumeToken != session.ResumeToken() {
-				if resumed, ok := host.ResumeSession(msg.ResumeToken); ok {
-					host.ReleaseSession(session)
-					session = resumed
-					host.ReplaySession(ws, session, msg.Ack)
-				} else {
-					host.SendSessionOutbound(ws, session, host.Outbound{
-						Control: "resume_rejected",
-						Error:   host.NewActionError("resume_rejected", "session could not be resumed"),
-					})
-				}
+		if session == nil {
+			var resumed bool
+			var err error
+			session, resumed, err = runtime.OpenSession(ws.Request(), msg.ResumeToken)
+			if err != nil {
+				host.SendOutbound(ws, host.Outbound{Error: host.NewActionError("session_rejected", "session rejected")})
+				return
+			}
+			host.BindSessionConnection(ws, session)
+			if resumed {
+				host.ReplaySession(ws, session, msg.Ack)
+			} else if msg.ResumeToken != "" {
+				host.SendSessionOutbound(ws, session, host.Outbound{
+					Control: "resume_rejected",
+					Error:   host.NewActionError("resume_rejected", "session could not be resumed"),
+				})
 			}
 		}
 		session.Acknowledge(msg.Ack)

@@ -201,6 +201,15 @@ func (runtime *WSRuntime) NewSession(request *http.Request) (*Session, error) {
 	return session, nil
 }
 
+// OpenSession resumes a retained session before allocating a new one.
+func (runtime *WSRuntime) OpenSession(request *http.Request, resumeToken string) (*Session, bool, error) {
+	if resumed, ok := ResumeSession(resumeToken); ok {
+		return resumed, true, nil
+	}
+	session, err := runtime.NewSession(request)
+	return session, false, err
+}
+
 // Authorize validates a decoded message.
 func (runtime *WSRuntime) Authorize(ctx context.Context, session *Session, message Inbound) error {
 	if runtime == nil || runtime.authorize == nil {
