@@ -11,7 +11,11 @@
         <script src="/wasm_loader.js"></script>
         <script>
             const go = new Go();
-            WasmLoader.load("/app.wasm?" + Date.now(), {
+            const wasmVersion = window.RFW_WASM_VERSION;
+            const wasmURL = wasmVersion
+                ? `/app.wasm?v=${encodeURIComponent(wasmVersion)}`
+                : "/app.wasm";
+            WasmLoader.load(wasmURL, {
                 go: go,
                 color: "#ff0000",
                 height: "4px",

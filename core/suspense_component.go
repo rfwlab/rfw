@@ -12,7 +12,10 @@ import (
 type Suspense struct {
 	render   func() (string, error)
 	fallback string
+	mounted  bool
 }
+
+var _ Component = (*Suspense)(nil)
 
 // NewSuspense creates a Suspense component with the given render function and fallback HTML.
 func NewSuspense(render func() (string, error), fallback string) *Suspense {
@@ -34,11 +37,11 @@ func (s *Suspense) Render() string {
 	return content
 }
 
-// Mount is a no-op for Suspense.
-func (s *Suspense) Mount() {}
+// Mount marks the Suspense component as mounted.
+func (s *Suspense) Mount() { s.mounted = true }
 
-// Unmount is a no-op for Suspense.
-func (s *Suspense) Unmount() {}
+// Unmount marks the Suspense component as unmounted.
+func (s *Suspense) Unmount() { s.mounted = false }
 
 // OnMount is a no-op for Suspense.
 func (s *Suspense) OnMount() {}
@@ -54,3 +57,9 @@ func (s *Suspense) GetID() string { return "" }
 
 // SetSlots is a no-op since Suspense does not use slots.
 func (s *Suspense) SetSlots(map[string]any) {}
+
+// IsMounted reports whether Suspense is mounted.
+func (s *Suspense) IsMounted() bool { return s.mounted }
+
+// OnParams is a no-op since Suspense does not consume route parameters.
+func (s *Suspense) OnParams(map[string]string) {}

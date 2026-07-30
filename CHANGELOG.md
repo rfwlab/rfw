@@ -14,6 +14,31 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+### Added
+
+- `router.Replace` changes the current browser history entry without adding a
+  new one.
+
+### Changed
+
+- generated clients use a content hash in the wasm URL and instantiate the
+  module with `WebAssembly.instantiateStreaming` when available. Versioned wasm
+  responses from `host` and `ssc` are cached as immutable; plain URLs are
+  revalidated.
+- nested routes match their resolved full path, including absolute children.
+  Parent guards and route parameters are preserved.
+- `Suspense` and `ErrorBoundary` now implement the complete wasm `Component`
+  lifecycle contract.
+
+### Fixed
+
+- incremental `@for` patches release replaced input listeners and restore
+  legacy and AST store/signal bindings, including after the list becomes empty.
+- initial routing, `popstate`, and guard fallbacks no longer add unintended
+  browser history entries.
+- the wasm loader now stops its progress indicator when module instantiation
+  fails.
+
 ## [2.0.0-beta.18] - 2026-07-29
 
 ### Changed

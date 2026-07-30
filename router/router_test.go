@@ -158,3 +158,72 @@ func TestTrailingSlashNormalization(t *testing.T) {
 		t.Fatalf("expected not found for extra segments")
 	}
 }
+
+func TestNestedRouteNavigation(t *testing.T) {
+	resetRouter(t)
+
+	RegisterRoute(Route{
+		Path: "/teams/:team",
+		Children: []Route{{
+			Path:      "projects/:project",
+			Component: func() core.Component { return &recordComponent{name: "project"} },
+		}},
+	})
+
+	NavigateTo("/teams/acme/projects/rfw?tab=issues")
+	rc := mustRecord(t, CurrentComponent())
+	want := map[string]string{
+		"team":    "acme",
+		"project": "rfw",
+		"tab":     "issues",
+	}
+	if !reflect.DeepEqual(rc.params, want) {
+		t.Fatalf("expected params %v, got %v", want, rc.params)
+	}
+	if !CanNavigate("/teams/acme/projects/rfw") {
+		t.Fatal("expected nested route to be navigable")
+	}
+}
+
+func TestParentRouteDoesNotMatchUnknownChild(t *testing.T) {
+	resetRouter(t)
+
+	RegisterRoute(Route{
+		Path:      "/docs",
+		Component: func() core.Component { return &recordComponent{name: "docs"} },
+		Children: []Route{{
+			Path:      "page",
+			Component: func() core.Component { return &recordComponent{name: "page"} },
+		}},
+	})
+	called := false
+	NotFoundCallback = func(string) { called = true }
+
+	NavigateTo("/docs/unknown")
+
+	if !called {
+		t.Fatal("expected unknown child path to be not found")
+	}
+}
+
+func TestAbsoluteNestedRouteNavigation(t *testing.T) {
+	resetRouter(t)
+	guardCalled := false
+	RegisterRoute(Route{
+		Path:   "/admin",
+		Guards: []Guard{func(map[string]string) bool { guardCalled = true; return true }},
+		Children: []Route{{
+			Path:      "/login",
+			Component: func() core.Component { return &recordComponent{name: "login"} },
+		}},
+	})
+
+	NavigateTo("/login")
+
+	if got := mustRecord(t, CurrentComponent()).name; got != "login" {
+		t.Fatalf("expected absolute child route, got %q", got)
+	}
+	if !guardCalled {
+		t.Fatal("expected parent guard to run for absolute child")
+	}
+}
