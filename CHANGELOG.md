@@ -14,6 +14,8 @@ follow semver: they only land in a new major version.
 
 ## [Unreleased]
 
+## [2.0.0-beta.19] - 2026-07-30
+
 ### Added
 
 - `router.Replace` changes the current browser history entry without adding a
@@ -174,7 +176,8 @@ module builds cleanly for wasm.
   unavailable instead of panicking, making the wasm test suite runnable
   headlessly.
 
-[Unreleased]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.18...HEAD
+[Unreleased]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.19...HEAD
+[2.0.0-beta.19]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.18...v2.0.0-beta.19
 [2.0.0-beta.18]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.17...v2.0.0-beta.18
 [2.0.0-beta.17]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.16...v2.0.0-beta.17
 [2.0.0-beta.16]: https://github.com/rfwlab/rfw/compare/v2.0.0-beta.15...v2.0.0-beta.16
