@@ -200,3 +200,107 @@ func TestStaleConnectionDoesNotConsumeSequenceAfterResume(t *testing.T) {
 		t.Fatalf("stale connection consumed a sequence: got %d want 1", message.Sequence)
 	}
 }
+
+func TestCustomHandlerDeliveryBindsAcrossResume(t *testing.T) {
+	oldClient, oldServer, closeOld := openWriteTestSocket(t)
+	defer closeOld()
+	newClient, newServer, closeNew := openWriteTestSocket(t)
+	defer closeNew()
+	session := AllocateResumableSession(4)
+	defer ReleaseSession(session)
+	token := session.ResumeToken()
+
+	SendSessionOutbound(oldServer, session, Outbound{Payload: "first"})
+	first := receiveOrderedMessage(t, oldClient)
+	if first.Sequence != 1 {
+		t.Fatalf("first sequence = %d, want 1", first.Sequence)
+	}
+	SuspendSession(session, time.Second)
+	resumed, ok := ResumeSession(token)
+	if !ok {
+		t.Fatal("session did not resume")
+	}
+
+	staleEntered := make(chan struct{}, 1)
+	SendSessionOutbound(oldServer, resumed, Outbound{Payload: signalingJSONPayload{
+		entered: staleEntered,
+		value:   "stale",
+	}})
+	select {
+	case <-staleEntered:
+		t.Fatal("stale custom handler connection reached the writer")
+	default:
+	}
+
+	ReplaySession(newServer, resumed, 0)
+	replayed := receiveOrderedMessage(t, newClient)
+	if replayed.Sequence != first.Sequence {
+		t.Fatalf("replayed sequence = %d, want %d", replayed.Sequence, first.Sequence)
+	}
+
+	SendSessionOutbound(oldServer, resumed, Outbound{Payload: signalingJSONPayload{
+		entered: staleEntered,
+		value:   "stale",
+	}})
+	select {
+	case <-staleEntered:
+		t.Fatal("stale custom handler connection reached the writer")
+	default:
+	}
+
+	SendSessionOutbound(newServer, resumed, Outbound{Payload: "second"})
+	second := receiveOrderedMessage(t, newClient)
+	if second.Sequence != 2 {
+		t.Fatalf("second sequence = %d, want 2", second.Sequence)
+	}
+}
+
+func TestManagedSessionRejectsAllPriorConnections(t *testing.T) {
+	_, firstServer, closeFirst := openWriteTestSocket(t)
+	defer closeFirst()
+	_, secondServer, closeSecond := openWriteTestSocket(t)
+	defer closeSecond()
+	thirdClient, thirdServer, closeThird := openWriteTestSocket(t)
+	defer closeThird()
+	session := AllocateResumableSession(4)
+	defer ReleaseSession(session)
+	token := session.ResumeToken()
+	BindSessionConnection(firstServer, session)
+
+	SuspendSession(session, time.Second)
+	resumed, ok := ResumeSession(token)
+	if !ok {
+		t.Fatal("first resume failed")
+	}
+	BindSessionConnection(secondServer, resumed)
+	SuspendSession(resumed, time.Second)
+	resumed, ok = ResumeSession(token)
+	if !ok {
+		t.Fatal("second resume failed")
+	}
+	BindSessionConnection(thirdServer, resumed)
+
+	firstEntered := make(chan struct{}, 1)
+	SendSessionOutbound(firstServer, resumed, Outbound{Payload: signalingJSONPayload{
+		entered: firstEntered,
+		value:   "first-stale",
+	}})
+	secondEntered := make(chan struct{}, 1)
+	SendSessionOutbound(secondServer, resumed, Outbound{Payload: signalingJSONPayload{
+		entered: secondEntered,
+		value:   "second-stale",
+	}})
+	select {
+	case <-firstEntered:
+		t.Fatal("first stale connection reached the writer")
+	case <-secondEntered:
+		t.Fatal("second stale connection reached the writer")
+	default:
+	}
+
+	SendSessionOutbound(thirdServer, resumed, Outbound{Payload: "current"})
+	message := receiveOrderedMessage(t, thirdClient)
+	if message.Sequence != 1 {
+		t.Fatalf("stale connection consumed a sequence: got %d want 1", message.Sequence)
+	}
+}
