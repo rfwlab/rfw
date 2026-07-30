@@ -204,9 +204,6 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 			}
 		}
 		if child, guards, childParams := matchRoute(r.children, path); child != nil {
-			for k, v := range params {
-				childParams[k] = v
-			}
 			return child, append(r.guards, guards...), childParams
 		}
 		matchedPath := strings.TrimSuffix(matches[0], "/")
