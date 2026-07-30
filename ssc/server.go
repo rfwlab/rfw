@@ -78,7 +78,7 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 	}
 	if sfs != nil {
 		mux.Handle("/static/", http.StripPrefix("/static", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			setWasmHeaders(w, r.URL.Path)
+			setWasmHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 			sfs.ServeHTTP(w, r)
 		})))
 	}
@@ -90,14 +90,14 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 		if sfs != nil {
 			spath := filepath.Join(staticRoot, r.URL.Path)
 			if st, err := os.Stat(spath); err == nil && !st.IsDir() {
-				setWasmHeaders(w, spath)
+				setWasmHeaders(w, spath, r.URL.Query().Get("v") != "")
 				sfs.ServeHTTP(w, r)
 				return
 			}
 		}
 		path := filepath.Join(root, r.URL.Path)
 		if st, err := os.Stat(path); err == nil && !st.IsDir() {
-			setWasmHeaders(w, path)
+			setWasmHeaders(w, path, r.URL.Query().Get("v") != "")
 			fs.ServeHTTP(w, r)
 			return
 		}
@@ -218,11 +218,19 @@ func WithSessionTarget(sessionID string) host.BroadcastOption {
 	return host.WithSessionTarget(sessionID)
 }
 
-func setWasmHeaders(w http.ResponseWriter, path string) {
-	if !strings.HasSuffix(path, ".wasm.br") {
+func setWasmHeaders(w http.ResponseWriter, path string, versioned bool) {
+	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
 		return
 	}
 	h := w.Header()
+	if versioned {
+		h.Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		h.Set("Cache-Control", "no-cache")
+	}
+	if !strings.HasSuffix(path, ".wasm.br") {
+		return
+	}
 	h.Set("Content-Encoding", "br")
 	h.Set("Content-Type", "application/wasm")
 	if vary := h.Get("Vary"); vary == "" {

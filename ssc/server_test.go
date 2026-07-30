@@ -56,7 +56,7 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 		t.Fatalf("expected index fallback 200, got %d", resp.StatusCode)
 	}
 
-	resp, err = http.Get(ts.URL + "/app.wasm.br")
+	resp, err = http.Get(ts.URL + "/app.wasm.br?v=abc123")
 	if err != nil {
 		t.Fatalf("wasm request failed: %v", err)
 	}
@@ -66,6 +66,18 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	}
 	if resp.Header.Get("Content-Type") != "application/wasm" {
 		t.Fatalf("expected wasm content type, got %q", resp.Header.Get("Content-Type"))
+	}
+	if cache := resp.Header.Get("Cache-Control"); cache != "public, max-age=31536000, immutable" {
+		t.Fatalf("unexpected Cache-Control header: %q", cache)
+	}
+
+	resp, err = http.Get(ts.URL + "/app.wasm.br?v=")
+	if err != nil {
+		t.Fatalf("unversioned wasm request failed: %v", err)
+	}
+	resp.Body.Close()
+	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
+		t.Fatalf("unexpected unversioned Cache-Control header: %q", cache)
 	}
 }
 

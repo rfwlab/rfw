@@ -29,6 +29,7 @@ type route struct {
 	pattern    string
 	regex      *regexp.Regexp
 	paramNames []string
+	matchNames []string
 	component  core.Component
 	loader     func() core.Component
 	singleton  bool
@@ -65,17 +66,29 @@ func RegisterRoute(r Route) {
 }
 
 func buildRoute(r Route) route {
-	segments := strings.Split(strings.Trim(r.Path, "/"), "/")
+	return buildRouteAt(r, "")
+}
+
+func buildRouteAt(r Route, parent string) route {
+	fullPath := resolveRoutePath(parent, r.Path)
+	segments := strings.Split(strings.Trim(fullPath, "/"), "/")
 	regexParts := make([]string, len(segments))
-	paramNames := []string{}
+	matchNames := []string{}
 
 	for i, segment := range segments {
 		if strings.HasPrefix(segment, ":") {
 			name := strings.TrimPrefix(segment, ":")
-			paramNames = append(paramNames, name)
+			matchNames = append(matchNames, name)
 			regexParts[i] = "([^/]+)"
 		} else {
 			regexParts[i] = regexp.QuoteMeta(segment)
+		}
+	}
+
+	paramNames := []string{}
+	for _, segment := range strings.Split(strings.Trim(r.Path, "/"), "/") {
+		if strings.HasPrefix(segment, ":") {
+			paramNames = append(paramNames, strings.TrimPrefix(segment, ":"))
 		}
 	}
 
@@ -85,7 +98,11 @@ func buildRoute(r Route) route {
 		suffix = "(?:/|$)"
 	}
 	if pathRegex == "" {
-		suffix = "$"
+		if len(r.Children) > 0 {
+			suffix = ""
+		} else {
+			suffix = "$"
+		}
 	}
 	pattern := "^/" + pathRegex + suffix
 
@@ -105,13 +122,14 @@ func buildRoute(r Route) route {
 		pattern:    r.Path,
 		regex:      regexp.MustCompile(pattern),
 		paramNames: paramNames,
+		matchNames: matchNames,
 		loader:     loader,
 		singleton:  singleton,
 		guards:     r.Guards,
 	}
 
 	for _, child := range r.Children {
-		rt.children = append(rt.children, buildRoute(child))
+		rt.children = append(rt.children, buildRouteAt(child, fullPath))
 	}
 
 	return rt
@@ -172,19 +190,27 @@ type routeParamHandler interface {
 func matchRoute(routes []route, path string) (*route, []Guard, map[string]string) {
 	for i := range routes {
 		r := &routes[i]
-		if matches := r.regex.FindStringSubmatch(path); matches != nil {
-			params := map[string]string{}
-			for i, name := range r.paramNames {
-				if i+1 < len(matches) {
-					params[name] = matches[i+1]
-				}
+		matches := r.regex.FindStringSubmatch(path)
+		if matches == nil {
+			if child, guards, params := matchRoute(r.children, path); child != nil {
+				return child, append(r.guards, guards...), params
 			}
-			if child, guards, childParams := matchRoute(r.children, path); child != nil {
-				for k, v := range params {
-					childParams[k] = v
-				}
-				return child, append(r.guards, guards...), childParams
+			continue
+		}
+		params := map[string]string{}
+		for i, name := range r.matchNames {
+			if i+1 < len(matches) {
+				params[name] = matches[i+1]
 			}
+		}
+		if child, guards, childParams := matchRoute(r.children, path); child != nil {
+			for k, v := range params {
+				childParams[k] = v
+			}
+			return child, append(r.guards, guards...), childParams
+		}
+		matchedPath := strings.TrimSuffix(matches[0], "/")
+		if r.loader != nil && matchedPath == strings.TrimSuffix(path, "/") {
 			return r, r.guards, params
 		}
 	}
@@ -253,6 +279,11 @@ func Navigate(fullPath string) {
 	if handler, ok := r.component.(routeParamHandler); ok {
 		handler.OnParams(params)
 	}
+}
+
+// Replace behaves like Navigate outside browser builds.
+func Replace(fullPath string) {
+	Navigate(fullPath)
 }
 
 func CanNavigate(fullPath string) bool {

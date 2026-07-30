@@ -47,9 +47,12 @@ func patchForLoop(c *HTMLComponent, loopID string, aliases []string, loopContent
 	if rows != "" {
 		markup := c.renderRowFragment(rows)
 		anchor.Call("insertAdjacentHTML", "afterend", markup)
-		dom.BindStoreInputsForComponent(c.ID, root.Value)
-		dom.BindSignalInputs(c.ID, root.Value)
 	}
+	dom.ReleaseInputBindings(c.ID)
+	dom.BindStoreInputsForComponent(c.ID, root.Value)
+	dom.BindSignalInputs(c.ID, root.Value)
+	dom.BindASTStoreInputs(c.ID, root.Value)
+	dom.BindASTSignalInputs(c.ID, root.Value)
 
 	if dom.TemplateHook != nil {
 		dom.TemplateHook(c.ID, rows)

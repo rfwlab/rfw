@@ -294,7 +294,10 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
 
-		valueAttr := input.Get("value").String()
+		valueAttr := ""
+		if input.Call("hasAttribute", "value").Bool() {
+			valueAttr = input.Call("getAttribute", "value").String()
+		}
 		checkedAttr := ""
 		if input.Call("hasAttribute", "checked").Bool() {
 			checkedAttr = input.Call("getAttribute", "checked").String()
@@ -364,7 +367,10 @@ func BindSignalInputs(componentID string, element js.Value) {
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
 
-		valueAttr := input.Get("value").String()
+		valueAttr := ""
+		if input.Call("hasAttribute", "value").Bool() {
+			valueAttr = input.Call("getAttribute", "value").String()
+		}
 		checkedAttr := ""
 		if input.Call("hasAttribute", "checked").Bool() {
 			checkedAttr = input.Call("getAttribute", "checked").String()
