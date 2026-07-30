@@ -82,3 +82,22 @@ func TestWithoutSSCResumeCreatesEphemeralSession(t *testing.T) {
 	}
 	ReleaseSession(session)
 }
+
+func TestExpiredTimerDoesNotReleaseResumedSession(t *testing.T) {
+	session := AllocateResumableSession(1)
+	defer ReleaseSession(session)
+	token := session.ResumeToken()
+	SuspendSession(session, time.Second)
+	session.deliveryMu.Lock()
+	expectedExpiry := session.expires
+	session.deliveryMu.Unlock()
+	if _, ok := ResumeSession(token); !ok {
+		t.Fatal("session did not resume")
+	}
+
+	releaseSession(session, expectedExpiry)
+
+	if current, ok := SessionByID(session.ID()); !ok || current != session {
+		t.Fatal("stale expiry released the resumed session")
+	}
+}

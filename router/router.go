@@ -6,6 +6,7 @@ package router
 
 import (
 	"context"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -259,7 +260,7 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 		params := map[string]string{}
 		for i, name := range r.matchNames {
 			if i+1 < len(matches) {
-				params[name] = matches[i+1]
+				params[name] = decodeRouteParam(matches[i+1])
 			}
 		}
 		if child, guards, childParams := matchRoute(r.children, path); child != nil {
@@ -271,6 +272,14 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 		}
 	}
 	return nil, nil, nil
+}
+
+func decodeRouteParam(value string) string {
+	decoded, err := url.PathUnescape(value)
+	if err != nil {
+		return value
+	}
+	return decoded
 }
 
 type historyMode uint8
