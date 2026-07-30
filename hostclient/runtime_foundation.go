@@ -4,10 +4,13 @@ package hostclient
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	fncaching "github.com/mirkobrombin/go-foundation/v2/core/caching"
@@ -30,6 +33,7 @@ var (
 	once      sync.Once
 	mu        sync.RWMutex
 	pending   []message
+	outbox    = map[uint64]message{}
 	handlers  = map[string]func(map[string]any){}
 	dedup     = map[string]struct{}{}
 	debug     bool
@@ -39,18 +43,49 @@ var (
 
 	sessionMu sync.RWMutex
 	sessionID string
+
+	deliveryMu   sync.Mutex
+	resumeToken  string
+	nextOutbound uint64
+	lastInbound  uint64
+
+	callSequence atomic.Uint64
+	callMu       sync.Mutex
+	pendingCalls = map[string]chan actionReply{}
 )
 
 type message struct {
-	name    string
+	name     string
+	action   string
+	id       string
+	payload  any
+	sequence uint64
+}
+
+type actionReply struct {
 	payload any
+	err     *ActionError
+}
+
+// ActionError is a machine-readable error returned by a typed host action.
+type ActionError struct {
+	Code    string            `json:"code"`
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields,omitempty"`
+}
+
+func (e *ActionError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.Code + ": " + e.Message
 }
 
 func init() {
 	cb = fnres.NewCircuitBreaker(5, 30*time.Second)
 	cb.OnStateChange(func(from, to fnres.State) {
 		if debug {
-			log.Printf("hostclient: circuit %v → %v", from, to)
+			log.Printf("hostclient: circuit %v -> %v", from, to)
 		}
 	})
 	hydrateCB = fnres.NewCircuitBreaker(3, 15*time.Second)
@@ -114,6 +149,7 @@ func normalizeWSURL(raw string) string {
 func connectionLoop() {
 	for {
 		url := hostWSURL()
+		connectionState.Set(ConnectionConnecting)
 
 		err := fnres.Retry(context.Background(), func() error {
 			return cb.Execute(func() error {
@@ -136,17 +172,44 @@ func connectionLoop() {
 				if debug {
 					log.Printf("hostclient: connected")
 				}
+				connectionState.Set(ConnectionConnected)
 
-				for _, msg := range pend {
-					sendMessage(c, msg)
-				}
 				mu.RLock()
-				names := make([]string, 0, len(bindings))
+				names := make([]string, 0, len(bindings)+len(handlers))
 				for name := range bindings {
 					names = append(names, name)
 				}
+				for name := range handlers {
+					if _, bound := bindings[name]; !bound {
+						names = append(names, name)
+					}
+				}
 				mu.RUnlock()
+				deliveryMu.Lock()
+				unacknowledged := make([]message, 0, len(outbox))
+				for sequence := uint64(1); sequence <= nextOutbound; sequence++ {
+					if msg, ok := outbox[sequence]; ok {
+						unacknowledged = append(unacknowledged, msg)
+					}
+				}
+				deliveryMu.Unlock()
+				initialized := make(map[string]struct{})
+				for _, msg := range unacknowledged {
+					sendMessage(c, msg)
+					if name, ok := initMessageName(msg); ok {
+						initialized[name] = struct{}{}
+					}
+				}
+				for _, msg := range pend {
+					sendMessage(c, msg)
+					if name, ok := initMessageName(msg); ok {
+						initialized[name] = struct{}{}
+					}
+				}
 				for _, name := range names {
+					if _, sent := initialized[name]; sent {
+						continue
+					}
 					sendMessage(c, message{name: name, payload: map[string]any{"init": true}})
 				}
 
@@ -162,6 +225,7 @@ func connectionLoop() {
 				mu.Lock()
 				conn = nil
 				mu.Unlock()
+				connectionState.Set(ConnectionDisconnected)
 				return loopErr
 			})
 		},
@@ -175,6 +239,7 @@ func connectionLoop() {
 		if err != nil && debug {
 			log.Printf("hostclient: connection attempt failed: %v", err)
 		}
+		connectionState.Set(ConnectionDisconnected)
 
 		// Back off before reconnecting to avoid tight loops on persistent failures.
 		time.Sleep(time.Second)
@@ -202,9 +267,16 @@ func pingLoop(ctx context.Context, c *websocket.Conn) error {
 func readLoop(ctx context.Context, c *websocket.Conn) error {
 	for {
 		var msg struct {
-			Component string         `json:"component"`
-			Payload   map[string]any `json:"payload"`
-			Session   string         `json:"session"`
+			Component   string       `json:"component"`
+			Action      string       `json:"action"`
+			Control     string       `json:"control"`
+			ID          string       `json:"id"`
+			Payload     any          `json:"payload"`
+			Error       *ActionError `json:"error"`
+			Session     string       `json:"session"`
+			Sequence    uint64       `json:"sequence"`
+			Ack         uint64       `json:"ack"`
+			ResumeToken string       `json:"resumeToken"`
 		}
 		if err := wsjson.Read(ctx, c, &msg); err != nil {
 			return err
@@ -212,20 +284,57 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 		if debug {
 			log.Printf("hostclient: recv %s %v", msg.Component, msg.Payload)
 		}
+		deliveryMu.Lock()
+		for sequence := range outbox {
+			if sequence <= msg.Ack {
+				delete(outbox, sequence)
+			}
+		}
+		if msg.Sequence != 0 {
+			if msg.Sequence <= lastInbound {
+				deliveryMu.Unlock()
+				continue
+			}
+			if lastInbound != 0 && msg.Sequence != lastInbound+1 {
+				deliveryMu.Unlock()
+				connectionState.Set(ConnectionDesynced)
+				return errors.New("hostclient: server message sequence gap")
+			}
+			lastInbound = msg.Sequence
+		}
+		if msg.ResumeToken != "" {
+			resumeToken = msg.ResumeToken
+		}
+		deliveryMu.Unlock()
 		if msg.Session != "" {
 			sessionMu.Lock()
 			sessionID = msg.Session
 			sessionMu.Unlock()
+		}
+		if msg.ID != "" {
+			callMu.Lock()
+			replyChannel := pendingCalls[msg.ID]
+			if replyChannel != nil {
+				delete(pendingCalls, msg.ID)
+			}
+			callMu.Unlock()
+			if replyChannel != nil {
+				replyChannel <- actionReply{payload: msg.Payload, err: msg.Error}
+				continue
+			}
+		}
+		if msg.Control != "" {
+			continue
+		}
+		payload, _ := msg.Payload.(map[string]any)
+		if payload == nil {
+			payload = make(map[string]any)
 		}
 		mu.RLock()
 		h, hasHandler := handlers[msg.Component]
 		b, hasBinding := bindings[msg.Component]
 		mu.RUnlock()
 		if hasHandler {
-			payload := msg.Payload
-			if payload == nil {
-				payload = make(map[string]any)
-			}
 			if msg.Session != "" {
 				payload["_session"] = msg.Session
 			}
@@ -239,7 +348,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			}
 			root := newComponentRoot(rootEl)
 
-			if snap := decodeInitSnapshotPayload(msg.Payload["initSnapshot"]); snap != nil {
+			if snap := decodeInitSnapshotPayload(payload["initSnapshot"]); snap != nil {
 				applyInitSnapshot(root, snap)
 				if len(snap.Vars) > 0 {
 					b.vars = append([]string(nil), snap.Vars...)
@@ -250,7 +359,7 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 				continue
 			}
 
-			mismatches := handleHostPayload(root, msg.Payload, func(name string, raw any) {
+			mismatches := handleHostPayload(root, payload, func(name string, raw any) {
 				sig := dom.SnapshotComponentSignals(b.id)
 				if sig == nil {
 					return
@@ -280,8 +389,15 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 func RegisterComponent(id, name string, vars []string) {
 	mu.Lock()
 	bindings[name] = componentBinding{id: id, vars: vars}
+	current := conn
+	if current == nil {
+		pending = append(pending, message{name: name, payload: map[string]any{"init": true}})
+	}
 	mu.Unlock()
 	connect()
+	if current != nil {
+		sendMessage(current, message{name: name, payload: map[string]any{"init": true}})
+	}
 }
 
 // EnableSendDedup turns on payload-based deduplication for the named channel:
@@ -330,9 +446,15 @@ func Send(name string, payload any) {
 func RegisterHandler(name string, h func(map[string]any)) {
 	mu.Lock()
 	handlers[name] = h
+	current := conn
+	if current == nil {
+		pending = append(pending, message{name: name, payload: map[string]any{"init": true}})
+	}
 	mu.Unlock()
 	connect()
-	Send(name, map[string]any{"init": true})
+	if current != nil {
+		sendMessage(current, message{name: name, payload: map[string]any{"init": true}})
+	}
 }
 
 func SessionID() string {
@@ -342,12 +464,106 @@ func SessionID() string {
 }
 
 func sendMessage(c *websocket.Conn, msg message) {
+	deliveryMu.Lock()
+	if msg.sequence == 0 {
+		nextOutbound++
+		msg.sequence = nextOutbound
+		outbox[msg.sequence] = msg
+	}
+	token := resumeToken
+	ack := lastInbound
+	deliveryMu.Unlock()
 	m := struct {
-		Component string `json:"component"`
-		Payload   any    `json:"payload"`
-	}{Component: msg.name, Payload: msg.payload}
+		Component   string `json:"component,omitempty"`
+		Action      string `json:"action,omitempty"`
+		ID          string `json:"id,omitempty"`
+		Payload     any    `json:"payload,omitempty"`
+		Sequence    uint64 `json:"sequence"`
+		Ack         uint64 `json:"ack,omitempty"`
+		ResumeToken string `json:"resumeToken,omitempty"`
+	}{
+		Component:   msg.name,
+		Action:      msg.action,
+		ID:          msg.id,
+		Payload:     msg.payload,
+		Sequence:    msg.sequence,
+		Ack:         ack,
+		ResumeToken: token,
+	}
 	ctx := context.Background()
 	_ = wsjson.Write(ctx, c, m)
+}
+
+func initMessageName(msg message) (string, bool) {
+	if msg.name == "" || msg.action != "" {
+		return "", false
+	}
+	payload, ok := msg.payload.(map[string]any)
+	if !ok || payload["init"] != true {
+		return "", false
+	}
+	return msg.name, true
+}
+
+// Call invokes a typed SSC action and waits for its correlated response.
+func Call[Request, Response any](ctx context.Context, action string, request Request) (Response, error) {
+	var zero Response
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if action == "" {
+		return zero, errors.New("hostclient: empty action name")
+	}
+	connect()
+	id := fmt.Sprintf("call-%d", callSequence.Add(1))
+	replyChannel := make(chan actionReply, 1)
+	callMu.Lock()
+	pendingCalls[id] = replyChannel
+	callMu.Unlock()
+
+	msg := message{action: action, id: id, payload: request}
+	mu.RLock()
+	current := conn
+	mu.RUnlock()
+	if current == nil {
+		mu.Lock()
+		pending = append(pending, msg)
+		mu.Unlock()
+	} else {
+		sendMessage(current, msg)
+	}
+
+	select {
+	case reply := <-replyChannel:
+		if reply.err != nil {
+			return zero, reply.err
+		}
+		data, err := json.Marshal(reply.payload)
+		if err != nil {
+			return zero, fmt.Errorf("hostclient: encode action response: %w", err)
+		}
+		if err := json.Unmarshal(data, &zero); err != nil {
+			return zero, fmt.Errorf("hostclient: decode action response: %w", err)
+		}
+		return zero, nil
+	case <-ctx.Done():
+		callMu.Lock()
+		delete(pendingCalls, id)
+		callMu.Unlock()
+		return zero, ctx.Err()
+	}
+}
+
+// FormResponse is the typed result returned by host.RegisterForm.
+type FormResponse[Response any] struct {
+	Data   Response          `json:"data,omitempty"`
+	Fields map[string]string `json:"fields,omitempty"`
+	Valid  bool              `json:"valid"`
+}
+
+// SubmitForm invokes a typed SSC form action.
+func SubmitForm[Values, Response any](ctx context.Context, action string, values Values) (FormResponse[Response], error) {
+	return Call[Values, FormResponse[Response]](ctx, action, values)
 }
 
 func EnableDebug() { debug = true }

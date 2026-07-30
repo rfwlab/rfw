@@ -51,6 +51,49 @@ host component. Repeated identical messages are delivered as-is; call
 `hostclient.EnableSendDedup(name)` if a channel should drop identical
 payloads sent within a 5 second window.
 
+## Typed actions and forms
+
+Typed actions reject unknown request fields before the handler runs and return
+a correlated response:
+
+```go
+type RenameRequest struct {
+    UserID string `json:"userId"`
+    Name   string `json:"name"`
+}
+
+type RenameResponse struct {
+    Updated bool `json:"updated"`
+}
+
+err := host.RegisterAction("users.rename",
+    func(ctx context.Context, session *host.Session, request RenameRequest) (RenameResponse, error) {
+        return renameUser(ctx, session, request)
+    },
+    host.WithActionAuthorizer(func(ctx context.Context, session *host.Session, request RenameRequest) error {
+        return authorizeUserEdit(ctx, session, request.UserID)
+    }),
+)
+```
+
+The wasm client uses the same request and response types:
+
+```go
+result, err := hostclient.Call[RenameRequest, RenameResponse](
+    ctx,
+    "users.rename",
+    RenameRequest{UserID: "42", Name: "Ada"},
+)
+```
+
+`host.RegisterForm` adds field validation before submission. Invalid values
+return `host.FormResponse` with `Valid == false` and a `Fields` map. The client
+counterpart is `hostclient.SubmitForm`.
+
+Use typed actions for commands that need strict input, authorization, a
+deadline, and a result. Existing host components remain useful for continuous
+host-variable synchronization and event streams.
+
 ## Pushing from the server
 
 `host.Broadcast(name, payload)` sends to every connection subscribed to a
@@ -73,12 +116,43 @@ the mux yourself:
 mux := host.NewMux(root,
     host.WithOriginAllowlist("https://app.example.com"),
     host.WithAuthFunc(func(r *http.Request) bool { return validCookie(r) }),
+    host.WithSSCSessionInitializer(func(r *http.Request, session *host.Session) error {
+        session.ContextSet("user", userFromRequest(r))
+        return nil
+    }),
+    host.WithSSCAuthorizer(func(ctx context.Context, session *host.Session, message host.Inbound) error {
+        return authorizeMessage(ctx, session, message)
+    }),
 )
 host.ListenAndServeWithMux(":8080", mux)
 ```
 
 `ssc.NewSSCServer(addr, root, opts...)` accepts the same guard options and
 adds an event bus (`ssc.SubscribeSSC`) fed by every inbound message.
+
+`host.WithSSCLimits` overrides frame size, connection count, per-session
+message rate, handler deadline, resume lifetime, and replay history. The
+defaults are:
+
+```go
+host.SSCLimits{
+    MaxMessageBytes:   1 << 20,
+    MaxConnections:    4096,
+    MaxSessions:       8192,
+    MessagesPerMinute: 600,
+    HandlerTimeout:    15 * time.Second,
+    ResumeTTL:         2 * time.Minute,
+    ReplayMessages:    256,
+}
+```
+
+The protocol assigns sequence numbers in both directions and acknowledges
+received messages. The client retains unacknowledged writes. On reconnect it
+presents an opaque resume token, the host reattaches the session, and retained
+host responses are replayed. `hostclient.ConnectionStateSignal` reports
+`connecting`, `connected`, `disconnected`, or `desynced`.
+Use `host.WithoutSSCResume()` when detached session state must be discarded
+immediately.
 
 During development `rfw dev` detects `"type": "ssc"` in `rfw.json`, builds
 the host binary and restarts it on every rebuild.

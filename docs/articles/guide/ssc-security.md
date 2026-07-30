@@ -15,7 +15,13 @@ All SSC traffic flows over a single WebSocket, served at `/ws` by
 **Client to server** (`host.Inbound`):
 
 ```json
-{ "component": "HelloHost", "payload": { "cmd": "increment" } }
+{
+  "component": "HelloHost",
+  "payload": { "cmd": "increment" },
+  "sequence": 4,
+  "ack": 7,
+  "resumeToken": "<opaque token>"
+}
 ```
 
 The client sends: an `{"init": true}` payload for each bound component on
@@ -25,7 +31,14 @@ and automatic `resync` requests when hydration detects a mismatch.
 **Server to client** (`host.Outbound`):
 
 ```json
-{ "component": "HelloHost", "payload": { "greeting": "hello" }, "session": "<id>" }
+{
+  "component": "HelloHost",
+  "payload": { "greeting": "hello" },
+  "session": "<id>",
+  "sequence": 8,
+  "ack": 4,
+  "resumeToken": "<opaque token>"
+}
 ```
 
 The payload is one of:
@@ -37,11 +50,12 @@ The payload is one of:
 - **An init snapshot** (`host.InitSnapshot`): a rendered HTML fragment plus
   a list of variable names, sent in response to a `resync` request. The
   client injects `snapshot.HTML` into the component root wholesale.
-- **The session ID**, echoed on every outbound message and sent on init.
+- **Delivery metadata.** Session ID, resume token, sequence, and
+  acknowledgement fields support ordered delivery and reconnect replay.
 
-So the wire carries rendered fragments, plain variable values, and session
-IDs. It does not carry code, diffs of your server state, or store contents
-you did not explicitly return.
+Typed actions add an action name, request ID, result, or public
+`host.ActionError`. The wire does not carry code, hidden store contents, or
+state that a handler did not explicitly return.
 
 ## What stays on the server
 
@@ -53,10 +67,11 @@ you did not explicitly return.
   puts it in a return value. The corollary: *everything a handler returns
   becomes public*. Do not return raw database rows or internal structs;
   build the payload explicitly.
-- **Session state.** Each WebSocket connection gets a `host.Session` with
+- **Session state.** Each new WebSocket identity gets a `host.Session` with
   an isolated `state.StoreManager` and a context bag
   (`ContextGet`/`ContextSet`). None of it is sent to the client except the
-  random session ID. Note that `state.GlobalStoreManager` on the server is
+  random session ID and resume token. Detached state remains available for
+  the configured resume lifetime. Note that `state.GlobalStoreManager` is
   shared across all sessions; keep per-user data in the session's store
   manager, never in global stores.
 
@@ -65,22 +80,22 @@ the browser. Any string compiled into client code (tokens, endpoints,
 "hidden" logic) is extractable. Treat client Go code exactly like you would
 treat JavaScript.
 
-## Authentication and authorization: rfw defaults to open
+## Authentication and authorization
 
 This is the most important paragraph on this page. As implemented today:
 
 - By default the `/ws` endpoint accepts any connection. `wsHandler`
-  allocates a session for every socket, unconditionally. There is no login
-  and no `Origin` check unless you opt in with the guard options below.
-- Host components are addressed by name in a global registry. Any connected
-  client can send any payload to any registered component. The component
-  name in a message is data chosen by the client, not a routing decision
-  you made.
-- The session ID identifies a connection; it does not prove an identity.
-  It is 16 bytes from `crypto/rand`, which makes it unguessable, but a
-  session is created for whoever connects.
+  allocates a session after the upgrade guards pass. There is no login or
+  `Origin` check unless you enable the guard options below.
+- Legacy host components are addressed by name in a global registry. Any
+  connected client can send any payload to any registered component. The
+  component name in a message is data chosen by the client, not a routing
+  decision you made.
+- The session ID and resume token identify transport state; neither proves a
+  user identity. Both are generated with `crypto/rand`, but they belong to
+  whoever established the connection.
 
-The recommended pattern until you have something better:
+Apply these controls together:
 
 1. **Gate the upgrade with the built-in guards.** `host.NewMux` and
    `ssc.NewSSCServer` accept `host.WithOriginAllowlist(...)` and
@@ -100,21 +115,31 @@ The recommended pattern until you have something better:
    full upgrade request (cookies, headers) and returning false rejects
    with 401. Both default to off. Your own middleware in front of the mux
    (or a reverse proxy enforcing auth and an `Origin` check) works too.
-2. **Bind identity to the session.** After verifying credentials (from the
-   upgrade request, or from a first authenticated message), store the user
-   identity with `session.ContextSet("user", ...)`. Handlers receive the
-   `*host.Session` and can read it back.
-3. **Authorize in every handler.** Each `Serve`/handler call must check
-   that the session's identity is allowed to perform the requested action.
-   There is no framework hook that does this for you.
+2. **Bind identity to the session.** Use
+   `host.WithSSCSessionInitializer` to copy verified request identity into the
+   session context before its first message:
+
+   ```go
+   host.WithSSCSessionInitializer(func(r *http.Request, session *host.Session) error {
+       session.ContextSet("user", authenticatedUser(r))
+       return nil
+   })
+   ```
+
+3. **Authorize messages and actions.** `host.WithSSCAuthorizer` can reject
+   every decoded message before dispatch. `host.WithActionAuthorizer` applies
+   a typed policy after an action request is decoded. Legacy component
+   handlers should still perform their own object-level checks.
 
 ## Threat notes
 
-- **All client input is untrusted.** Handler payloads are
+- **All client input is untrusted.** Legacy handler payloads are
   `map[string]any` decoded from client JSON. The client is free to send
   payloads your UI would never produce: unexpected keys, wrong types,
   hostile values, messages for components the user never rendered.
-  Validate types and ranges in the handler, on the server, every time.
+  Validate types and ranges in the handler, on the server, every time. Typed
+  actions use `json.Decoder.DisallowUnknownFields`, but tags and field types
+  are only structural validation; validate ranges and business rules too.
   Client-side validation in wasm is UX, not security.
 - **Escape what you render.** The server-side HTML helpers (`host.Span`,
   `host.Div`, `host.P`, `host.Tag`) HTML-escape the value by default, so
@@ -130,17 +155,22 @@ The recommended pattern until you have something better:
   `host.WithSessionTarget(sessionID)` for per-user data; broadcasting a
   payload that contains one user's data sends it to all users on that
   component.
-- **Transport security.** `host.Start` serves HTTP and, on the next port,
+- **Transport security.** A resume token can reattach detached session state.
+  Treat it as a bearer credential, do not log it, and use `wss://`.
+  `host.Start` serves HTTP and, on the next port,
   HTTPS with a self-signed certificate generated at boot. That certificate
   is a development convenience. In production, terminate TLS with real
   certificates (typically at a reverse proxy) so the WebSocket runs over
   `wss://`; otherwise session IDs and payloads travel in cleartext.
-- **Resource exhaustion.** Nothing in the framework rate-limits messages
-  or connections. A hostile client can open sockets and spam handlers.
-  Apply connection and message limits at your proxy, and keep handlers
-  cheap or queue their work.
+- **Resource exhaustion.** The default endpoint caps frames at 1 MiB,
+  connections at 4096, retained sessions at 8192, messages at 600 per session
+  per minute, typed action execution at 15 seconds, and replay history at 256
+  messages. Override these
+  values with `host.WithSSCLimits` for the deployment. Keep proxy limits too.
+  Action handlers should observe their context; a handler that ignores
+  cancellation may continue running after the timeout response.
 
-The summary: rfw's transport keeps your code and state on the server by
-construction, but it deliberately ships no identity layer. Assume every
-inbound message is from an anonymous, possibly hostile client until your
-own middleware and handlers have proven otherwise.
+rfw keeps application code and private state on the server, but it does not
+ship an identity provider. Treat every inbound message as hostile until the
+upgrade guard, session initializer, and authorization policy have established
+the caller and permitted the operation.

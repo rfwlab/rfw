@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rfwlab/rfw/v2/dom"
@@ -21,6 +22,8 @@ import (
 	"github.com/tdewolff/minify/v2/css"
 	tdJs "github.com/tdewolff/minify/v2/js"
 )
+
+var componentSeq atomic.Uint64
 
 type unsubscribes struct {
 	funcs []func()
@@ -64,6 +67,10 @@ type HTMLComponent struct {
 	onMount           func(*HTMLComponent)
 	onUnmount         func(*HTMLComponent)
 	onParams          func(*HTMLComponent, map[string]string)
+	handlers          map[string]func()
+	domHooks          []dom.LifecycleHook
+	domHookStops      []func()
+	scope             *Scope
 	parent            *HTMLComponent
 	provides          map[string]any
 	cache             map[string]string
@@ -100,6 +107,8 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTM
 		Dependencies:      make(map[string]Component),
 		Props:             props,
 		Slots:             make(map[string]any),
+		handlers:          make(map[string]func()),
+		scope:             NewScope(),
 		conditionContents: make(map[string]ConditionContent),
 		exprContents:      make(map[string]string),
 		classExprContents: make(map[string]string),
@@ -337,21 +346,24 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 }
 
 func (c *HTMLComponent) Unmount() {
-	// Idempotence guard: component IDs are deterministic (name+props), so a
-	// second Unmount (e.g. the GC finalizer firing on a discarded instance
-	// after a same-route remount) would resolve ComponentRoot to the LIVE
-	// instance's DOM and strip its delegated handlers.
+	// The idempotence guard keeps finalizers from repeating lifecycle cleanup.
 	if !c.mounted {
 		return
 	}
 	c.mounted = false
 	devUnregisterComponent(c)
 	if c.component != nil {
-		c.component.OnUnmount()
+		c.runLifecycle("OnUnmount", c.component.OnUnmount)
+	}
+	dom.UnmountLifecycleHooks(c.ID)
+	c.releaseDOMHooks()
+	if c.scope != nil {
+		c.scope.Close()
 	}
 
 	dom.RemoveComponentSignals(c.ID)
 	dom.ReleaseInputBindings(c.ID)
+	dom.ReleaseComponentHandlers(c.ID)
 	root := dom.ComponentRoot(c.ID)
 	if !root.IsNull() && !root.IsUndefined() {
 		dom.RemoveDelegatedEvents(c.ID, root.Value)
@@ -360,21 +372,92 @@ func (c *HTMLComponent) Unmount() {
 	c.unsubscribes.Run()
 
 	for _, dep := range c.Dependencies {
-		dep.Unmount()
+		dependency := dep
+		c.runLifecycle("dependency unmount", dependency.Unmount)
 	}
 }
 
 func (c *HTMLComponent) Mount() {
 	c.mounted = true
+	if c.scope == nil || c.scope.Closed() {
+		c.scope = NewScope()
+	}
+	c.registerHandlers()
+	c.registerDOMHooks()
 	for _, dep := range c.Dependencies {
-		dep.Mount()
+		dependency := dep
+		c.runLifecycle("dependency mount", dependency.Mount)
 	}
 	root := dom.ComponentRoot(c.ID)
 	if !root.IsNull() && !root.IsUndefined() {
 		dom.DelegateEvents(c.ID, root.Value)
 	}
 	if c.component != nil {
-		c.component.OnMount()
+		c.runLifecycle("OnMount", c.component.OnMount)
+	}
+	dom.MountLifecycleHooks(c.ID)
+}
+
+func (c *HTMLComponent) runLifecycle(phase string, fn func()) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			ReportError(recovered, phase+": "+c.Name+" (ID: "+c.ID+")")
+		}
+	}()
+	fn()
+}
+
+// Scope returns the lifecycle scope owned by this component.
+func (c *HTMLComponent) Scope() *Scope {
+	if c.scope == nil || c.scope.Closed() {
+		c.scope = NewScope()
+	}
+	return c.scope
+}
+
+// Effect registers a reactive effect that stops on unmount.
+func (c *HTMLComponent) Effect(fn func() func()) {
+	c.Scope().Defer(state.Effect(fn))
+}
+
+// DOMHook registers root lifecycle callbacks owned by this component.
+func (c *HTMLComponent) DOMHook(hook dom.LifecycleHook) {
+	c.domHooks = append(c.domHooks, hook)
+	if c.mounted {
+		c.domHookStops = append(c.domHookStops, dom.RegisterLifecycleHook(c.ID, hook))
+		dom.MountLifecycleHooks(c.ID)
+	}
+}
+
+func (c *HTMLComponent) registerDOMHooks() {
+	c.releaseDOMHooks()
+	for _, hook := range c.domHooks {
+		c.domHookStops = append(c.domHookStops, dom.RegisterLifecycleHook(c.ID, hook))
+	}
+}
+
+func (c *HTMLComponent) releaseDOMHooks() {
+	for _, stop := range c.domHookStops {
+		stop()
+	}
+	c.domHookStops = nil
+}
+
+// On registers an event handler owned by this component instance.
+func (c *HTMLComponent) On(name string, fn func()) {
+	if name == "" {
+		panic("core.HTMLComponent.On: empty handler name")
+	}
+	if fn == nil {
+		panic("core.HTMLComponent.On: nil fn")
+	}
+	c.handlers[name] = fn
+	dom.RegisterComponentHandlerFunc(c.ID, name, fn)
+}
+
+func (c *HTMLComponent) registerHandlers() {
+	for name, fn := range c.handlers {
+		dom.RegisterComponentHandlerFunc(c.ID, name, fn)
 	}
 }
 
@@ -548,6 +631,7 @@ func generateComponentID(name string, props map[string]any) string {
 	hasher.Write([]byte(name))
 	propsString := serializeProps(props)
 	hasher.Write([]byte(propsString))
+	hasher.Write([]byte(fmt.Sprintf("%d", componentSeq.Add(1))))
 
 	return hex.EncodeToString(hasher.Sum(nil))
 }

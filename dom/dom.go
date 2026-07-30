@@ -148,6 +148,7 @@ func UpdateDOM(componentID string, html string) {
 	BindSignalInputs(componentID, element.Value)
 	BindASTStoreInputs(componentID, element.Value)
 	BindASTSignalInputs(componentID, element.Value)
+	UpdateLifecycleHooks(componentID)
 }
 
 // UpdateMountedDOM patches a component's subtree only when its own root is in
@@ -185,6 +186,7 @@ func UpdateDOMIn(target Element, componentID, html string) {
 	BindSignalInputs(componentID, target.Value)
 	BindASTStoreInputs(componentID, target.Value)
 	BindASTSignalInputs(componentID, target.Value)
+	UpdateLifecycleHooks(componentID)
 }
 
 // BindASTStoreInputs binds input elements that have data-bind-store attributes
