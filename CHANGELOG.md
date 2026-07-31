@@ -12,6 +12,18 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Changed
+
+- `host.BindSessionConnection` no longer replaces an active session connection.
+  `host.SendSessionOutbound` binds the first connection for a new session;
+  resumed sessions require `ReplaySession` or `BindSessionConnection` before
+  sending.
+
+### Fixed
+
+- resumed sessions reject sends from stale WebSocket connections without
+  consuming delivery sequence numbers.
+
 ## [2.1.0] - 2026-07-30
 
 ### Added
