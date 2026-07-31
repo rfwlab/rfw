@@ -15,14 +15,14 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/vanilla-os/pico@sha256:1316ea174fb16d1079ba094a35e2fcb8ccd432469dce587115afd792e3d45686
+      image: ghcr.io/vanilla-os/pico:main
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        uses: actions/setup-go@v5
         with:
           go-version: 1.25
 
@@ -36,7 +36,7 @@ jobs:
         run: sha256sum rfw > checksums.txt
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@v4
         with:
           name: rfw-build
           path: |
@@ -49,10 +49,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        uses: actions/setup-go@v5
         with:
           go-version: 1.25
 
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@v4
 
       - name: Download euprovguard
         run: |
@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload Compliance Reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@v4
         with:
           name: compliance-reports
           path: compliance-report.*
@@ -126,14 +126,14 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ghcr.io/vanilla-os/pico@sha256:1316ea174fb16d1079ba094a35e2fcb8ccd432469dce587115afd792e3d45686
+      image: ghcr.io/vanilla-os/pico:main
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        uses: actions/setup-go@v5
         with:
           go-version: 1.25
 
@@ -163,20 +163,20 @@ jobs:
           sha256sum rfw-* > checksums.txt
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@v4
         with:
           name: rfw-release-build
           path: |
             release/*
 
       - name: Download Compliance Reports
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@v4
         with:
           name: compliance-reports
           path: compliance/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             release/*
@@ -197,11 +197,11 @@ jobs:
           - { name: native, goos: linux, goarch: amd64 }
           - { name: wasm, goos: js, goarch: wasm }
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
-      - uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa
+      - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
           args: --output.text.path=stdout --output.sarif.path=golangci-${{ matrix.name }}.sarif
@@ -210,7 +210,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
       - name: Upload SARIF
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@v4
         with:
           name: golangci-sarif-${{ matrix.name }}
           path: golangci-${{ matrix.name }}.sarif
@@ -222,7 +222,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Run TruffleHog
@@ -230,7 +230,7 @@ jobs:
           docker run --rm \
             --volume "$PWD:/repo" \
             --workdir /repo \
-            ghcr.io/trufflesecurity/trufflehog@sha256:aa821cf4ace8861c7d096d83818cdf7bb9719028a52d37a52eaad44086a52577 \
+            ghcr.io/trufflesecurity/trufflehog:3.96.0 \
             git file:///repo/ \
             --fail \
             --no-update \
