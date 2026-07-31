@@ -31,6 +31,7 @@ import (
 
 var rebuilds = expvar.NewInt("rebuilds")
 
+// Server builds, serves, and watches an RFW project during development.
 type Server struct {
 	Port        string
 	Host        bool
@@ -81,6 +82,7 @@ func (d *debouncer) fired() {
 	d.C = nil
 }
 
+// NewServer creates a development server on port.
 func NewServer(port string, host bool) *Server {
 	return &Server{
 		Port:       port,
@@ -90,6 +92,7 @@ func NewServer(port string, host bool) *Server {
 	}
 }
 
+// Start builds the project and starts its development servers and watcher.
 func (s *Server) Start() error {
 	if err := build.Build(); err != nil {
 		return err
@@ -109,31 +112,26 @@ func (s *Server) Start() error {
 		mux = http.NewServeMux()
 		mux.HandleFunc("/__rfw/hmr", s.handleHMR)
 		mux.Handle("/", proxy)
-		go func() {
-			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
-				utils.Fatal("Server failed: ", err)
-			}
-		}()
-		go func() {
-			if err := hostpkg.ListenAndServeTLSWithMux(":"+httpsPort, mux); err != nil {
-				utils.Fatal("HTTPS server failed: ", err)
-			}
-		}()
 	} else {
 		root := filepath.Join("build", "client")
 		mux = hostpkg.NewMux(root)
 		mux.HandleFunc("/__rfw/hmr", s.handleHMR)
-		go func() {
-			if err := http.ListenAndServe(":"+s.Port, mux); err != nil {
-				utils.Fatal("Server failed: ", err)
-			}
-		}()
-		go func() {
-			if err := hostpkg.ListenAndServeTLSWithMux(":"+httpsPort, mux); err != nil {
-				utils.Fatal("HTTPS server failed: ", err)
-			}
-		}()
 	}
+	server := &http.Server{
+		Addr:              ":" + s.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			utils.Fatal("Server failed: ", err)
+		}
+	}()
+	go func() {
+		if err := hostpkg.ListenAndServeTLSWithMux(":"+httpsPort, mux); err != nil {
+			utils.Fatal("HTTPS server failed: ", err)
+		}
+	}()
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -300,7 +298,9 @@ func (s *Server) watchFiles() {
 			}
 			utils.Info(fmt.Sprintf("Watcher error: %v", err))
 		case <-s.stopCh:
-			s.watcher.Close()
+			if err := s.watcher.Close(); err != nil {
+				utils.Debug(fmt.Sprintf("watcher close failed: %v", err))
+			}
 			s.stopHost()
 			return
 		}
@@ -326,9 +326,7 @@ func (s *Server) rebuild(path string, templateSwapped bool) {
 		utils.Debug(fmt.Sprintf("rebuild event emit failed: %v", emitErr))
 	}
 	utils.Info(fmt.Sprintf("Rebuilt in %s", time.Since(start).Round(time.Millisecond)))
-	if templateSwapped {
-		// Browser state already updated by the template swap.
-	} else {
+	if !templateSwapped {
 		if err := s.broadcastReload(path); err != nil {
 			utils.Debug(fmt.Sprintf("hmr broadcast skipped: %v", err))
 		}
@@ -365,7 +363,18 @@ func incrementPort(port string) string {
 
 func (s *Server) startHost() error {
 	path := filepath.Join("build", "host", "host")
-	s.hostCmd = exec.Command(path)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	info, err := os.Lstat(absPath)
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("host binary is not a regular file: %s", absPath)
+	}
+	s.hostCmd = exec.Command("./build/host/host")
 	s.hostCmd.Stdout = os.Stdout
 	s.hostCmd.Stderr = os.Stderr
 	if s.hostPort != "" {

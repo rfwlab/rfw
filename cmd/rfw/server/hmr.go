@@ -38,7 +38,9 @@ func (s *Server) handleHMR(w http.ResponseWriter, r *http.Request) {
 
 	utils.Debug("hmr client connected")
 
-	fmt.Fprintf(w, ": connected\n\n")
+	if _, err := fmt.Fprint(w, ": connected\n\n"); err != nil {
+		return
+	}
 	flusher.Flush()
 
 	defer func() {
@@ -57,10 +59,14 @@ func (s *Server) handleHMR(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			fmt.Fprintf(w, "data: %s\n\n", msg)
+			if _, err := fmt.Fprintf(w, "data: %s\n\n", msg); err != nil {
+				return
+			}
 			flusher.Flush()
 		case <-ping.C:
-			fmt.Fprintf(w, ": ping\n\n")
+			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
+				return
+			}
 			flusher.Flush()
 		case <-r.Context().Done():
 			return

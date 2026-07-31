@@ -16,7 +16,7 @@ func newComponentRoot(el dom.Element) componentRoot {
 
 func (r domComponentRoot) HostVar(name string) hostVarElement {
 	selector := fmt.Sprintf(`[%s="%s"]`, hostVarAttr, name)
-	return domHostVarElement{r.Element.Query(selector)}
+	return domHostVarElement{r.Query(selector)}
 }
 
 func (r domComponentRoot) SetHTML(html string) {
@@ -25,7 +25,7 @@ func (r domComponentRoot) SetHTML(html string) {
 
 type domHostVarElement struct{ dom.Element }
 
-func (e domHostVarElement) Exists() bool { return e.Value.Truthy() }
+func (e domHostVarElement) Exists() bool { return e.Truthy() }
 
 func (e domHostVarElement) Text() string { return e.Element.Text() }
 

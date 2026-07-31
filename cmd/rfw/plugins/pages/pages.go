@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package pages registers file-based route generation.
 package pages
 
 import (
@@ -66,12 +67,12 @@ func (p *plugin) PreBuild(raw json.RawMessage) error {
 	}
 	b.WriteString("}\n")
 	p.file = filepath.Join(p.dir, "routes_gen.go")
-	return os.WriteFile(p.file, []byte(b.String()), 0o644)
+	return os.WriteFile(p.file, []byte(b.String()), 0o600)
 }
 
-func (p *plugin) Build(raw json.RawMessage) error { return nil }
+func (p *plugin) Build(json.RawMessage) error { return nil }
 
-func (p *plugin) PostBuild(raw json.RawMessage) error {
+func (p *plugin) PostBuild(json.RawMessage) error {
 	if p.file != "" {
 		_ = os.Remove(p.file)
 	}

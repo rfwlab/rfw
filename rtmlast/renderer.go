@@ -5,6 +5,7 @@ package rtmlast
 import (
 	"fmt"
 	"html"
+	"strconv"
 	"strings"
 
 	"github.com/rfwlab/rfw/v2/state"
@@ -16,18 +17,21 @@ func escapeValue(v any) string {
 	return html.EscapeString(fmt.Sprintf("%v", v))
 }
 
+// HTMLComponent exposes component data required by the AST renderer.
 type HTMLComponent interface {
 	GetID() string
 	GetProps() map[string]any
 	AddUnsubscribe(fn func())
 }
 
+// RenderContext contains component, property and store data for rendering.
 type RenderContext struct {
 	Component HTMLComponent
 	Props     map[string]any
 	StoreMgr  *state.StoreManager
 }
 
+// RenderNodes renders a sequence of AST nodes.
 func RenderNodes(nodes []Node, ctx *RenderContext) string {
 	var sb strings.Builder
 	for _, n := range nodes {
@@ -118,7 +122,7 @@ func renderFor(v ForNode, ctx *RenderContext) string {
 	return sb.String()
 }
 
-func renderInclude(v IncludeNode, ctx *RenderContext) string {
+func renderInclude(v IncludeNode, _ *RenderContext) string {
 	return fmt.Sprintf(`@include:%s`, v.Name)
 }
 
@@ -343,8 +347,10 @@ func toFloat(v any) float64 {
 	case float64:
 		return val
 	case string:
-		var f float64
-		fmt.Sscanf(val, "%f", &f)
+		f, err := strconv.ParseFloat(val, 64)
+		if err != nil {
+			return 0
+		}
 		return f
 	default:
 		return 0

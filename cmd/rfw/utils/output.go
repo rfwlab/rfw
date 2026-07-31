@@ -25,11 +25,13 @@ var (
 	dbg        = false
 )
 
+// ClearScreen clears the terminal.
 func ClearScreen() {
 	fmt.Print("\033[H\033[2J")
 	fmt.Println()
 }
 
+// PrintStartupInfo prints local and network development URLs.
 func PrintStartupInfo(port, httpsPort, localIP string, host bool) {
 	fmt.Println(indent, boldRed("rfw"), faint(core.Version()))
 	fmt.Println()
@@ -45,14 +47,17 @@ func PrintStartupInfo(port, httpsPort, localIP string, host bool) {
 	fmt.Println()
 }
 
+// LogServeRequest logs an HTTP request path.
 func LogServeRequest(r *http.Request) {
 	fmt.Printf("%s %s %s\n", faint(time.Now().Format("15:04:05")), boldYellow("serving"), faint(r.URL.Path))
 }
 
+// Info prints an informational CLI message.
 func Info(message string) {
 	fmt.Println(boldRed("[rfw]"), message)
 }
 
+// Fatal logs a fatal CLI error and exits.
 func Fatal(message string, err error) {
 	log.Fatalf(boldRed("[rfw] "), message, err)
 }
@@ -63,17 +68,20 @@ func Error(message string, err error) {
 	log.Printf("%s%s%v", boldRed("[rfw] "), message, err)
 }
 
+// EnableDebug enables or disables debug output.
 func EnableDebug(d bool) { dbg = d }
 
 // IsDebug reports whether debug mode is enabled.
 func IsDebug() bool { return dbg }
 
+// Debug prints a message when debug output is enabled.
 func Debug(message string) {
 	if dbg {
 		fmt.Println(boldRed("[rfw][debug]"), faint(message))
 	}
 }
 
+// PrintHelp prints CLI shortcuts and flags.
 func PrintHelp() {
 	ClearScreen()
 	fmt.Println()

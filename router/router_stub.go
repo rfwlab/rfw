@@ -13,8 +13,10 @@ import (
 	"github.com/rfwlab/rfw/v2/types"
 )
 
+// Guard decides whether a route can be entered.
 type Guard func(map[string]string) bool
 
+// Route describes a route and its optional children, loader, and metadata.
 type Route struct {
 	Path      string
 	Name      string
@@ -26,6 +28,7 @@ type Route struct {
 	Meta      map[string]any
 }
 
+// Singleton marks a view instance for reuse between navigations.
 func Singleton(v *types.View) any {
 	return v
 }
@@ -47,6 +50,7 @@ type route struct {
 	meta       map[string]any
 }
 
+// RegisteredRoute is a serializable snapshot of a route.
 type RegisteredRoute struct {
 	Template string            `json:"template"`
 	Path     string            `json:"path"`
@@ -63,9 +67,13 @@ var (
 	navItems         []NavItem
 )
 
+// NotFoundComponent is rendered when no route matches.
 var NotFoundComponent any
+
+// NotFoundCallback handles an unmatched path.
 var NotFoundCallback func(string)
 
+// Reset clears registered routes and navigation state.
 func Reset() {
 	routes = nil
 	currentComponent = nil
@@ -75,6 +83,7 @@ func Reset() {
 	resetNavigation()
 }
 
+// RegisterRoute adds a route to the router.
 func RegisterRoute(r Route) {
 	routes = append(routes, buildRoute(r))
 }
@@ -158,6 +167,7 @@ func buildRouteAt(r Route, parent string) route {
 	return rt
 }
 
+// RegisteredRoutes returns snapshots of all registered routes.
 func RegisteredRoutes() []RegisteredRoute {
 	out := make([]RegisteredRoute, 0, len(routes))
 	for i := range routes {
@@ -247,6 +257,7 @@ func decodeRouteParam(value string) string {
 	return decoded
 }
 
+// Navigate loads and commits a route.
 func Navigate(fullPath string) {
 	_ = NavigateContext(context.Background(), fullPath)
 }
@@ -342,12 +353,8 @@ func NavigateContext(parent context.Context, fullPath string) error {
 		data = loaded
 	}
 
-	if r.loader != nil {
-		if r.singleton && r.component != nil {
-			// Re-use existing instance for singleton routes.
-		} else {
-			r.component = r.loader()
-		}
+	if r.loader != nil && (!r.singleton || r.component == nil) {
+		r.component = r.loader()
 	}
 	if r.component == nil {
 		failNavigation(ErrRouteComponent)
@@ -377,6 +384,7 @@ func Replace(fullPath string) {
 // SetScrollRestoration is a no-op outside browser builds.
 func SetScrollRestoration(bool) {}
 
+// CanNavigate reports whether a path matches a registered route.
 func CanNavigate(fullPath string) bool {
 	path := fullPath
 	if idx := strings.Index(fullPath, "?"); idx != -1 {
@@ -386,6 +394,7 @@ func CanNavigate(fullPath string) bool {
 	return r != nil
 }
 
+// Page registers a route with an optional set of guards.
 func Page(path string, component any, guards ...Guard) {
 	RegisterRoute(Route{
 		Path:      path,
@@ -394,6 +403,7 @@ func Page(path string, component any, guards ...Guard) {
 	})
 }
 
+// Group registers a set of child routes below a path prefix.
 func Group(prefix string, fn func(*GroupBuilder)) {
 	b := &GroupBuilder{prefix: prefix}
 	fn(b)
@@ -403,11 +413,13 @@ func Group(prefix string, fn func(*GroupBuilder)) {
 	})
 }
 
+// GroupBuilder collects routes for Group.
 type GroupBuilder struct {
 	prefix   string
 	children []Route
 }
 
+// Page adds a route to the group.
 func (g *GroupBuilder) Page(path string, component any, guards ...Guard) {
 	g.children = append(g.children, Route{
 		Path:      path,
@@ -416,8 +428,11 @@ func (g *GroupBuilder) Page(path string, component any, guards ...Guard) {
 	})
 }
 
+// ExposeNavigate is a no-op outside browser builds.
 func ExposeNavigate() {}
-func InitRouter()     {}
+
+// InitRouter is a no-op outside browser builds.
+func InitRouter() {}
 
 // NavItem describes a navigation entry with arbitrary metadata.
 type NavItem struct {
@@ -449,13 +464,16 @@ func NavItemsMap() []any {
 	return items
 }
 
-// RouterData returns a map of router-exposed template variables.
+// RouterData returns the values exposed to component templates.
 func RouterData() map[string]any {
 	return map[string]any{
 		"ActivePath": activePathSig,
 		"NavItems":   NavItemsMap(),
 	}
 }
+
+// TemplateData returns the values exposed to component templates.
+func TemplateData() map[string]any { return RouterData() }
 
 // ActivePath returns the reactive signal holding the current route path.
 func ActivePath() *state.Signal[string] {

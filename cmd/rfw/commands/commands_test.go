@@ -30,7 +30,7 @@ func TestReadPortFromManifest(t *testing.T) {
 
 	// Create manifest with a port value.
 	data := []byte(`{"port": 9090}`)
-	if err := os.WriteFile(filepath.Join(dir, "rfw.json"), data, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "rfw.json"), data, 0o600); err != nil {
 		t.Fatalf("write rfw.json: %v", err)
 	}
 	if got := readPortFromManifest(); got != "9090" {
@@ -38,7 +38,7 @@ func TestReadPortFromManifest(t *testing.T) {
 	}
 
 	// Zero port should return empty string.
-	if err := os.WriteFile("rfw.json", []byte(`{"port":0}`), 0o644); err != nil {
+	if err := os.WriteFile("rfw.json", []byte(`{"port":0}`), 0o600); err != nil {
 		t.Fatalf("rewrite rfw.json: %v", err)
 	}
 	if got := readPortFromManifest(); got != "" {

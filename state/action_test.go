@@ -7,7 +7,7 @@ import (
 
 func TestDispatch(t *testing.T) {
 	called := false
-	a := Action(func(ctx Context) error {
+	a := Action(func(_ Context) error {
 		called = true
 		return nil
 	})
@@ -21,7 +21,7 @@ func TestDispatch(t *testing.T) {
 
 func TestUseAction(t *testing.T) {
 	called := false
-	a := Action(func(ctx Context) error {
+	a := Action(func(_ Context) error {
 		called = true
 		return nil
 	})

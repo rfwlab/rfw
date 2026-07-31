@@ -10,31 +10,68 @@ type Plugin interface {
 	Install(*App)
 }
 
+// Named exposes a plugin name.
 type Named interface{ Name() string }
+
+// Requires lists mandatory plugin dependencies.
 type Requires interface{ Requires() []Plugin }
+
+// Optional lists optional plugin dependencies.
 type Optional interface{ Optional() []Plugin }
 
+// PreBuilder runs before a build.
 type PreBuilder interface{ PreBuild(json.RawMessage) error }
+
+// PostBuilder runs after a build.
 type PostBuilder interface{ PostBuild(json.RawMessage) error }
+
+// Uninstaller removes plugin resources.
 type Uninstaller interface{ Uninstall(*App) }
 
 // App is a stub holder for callbacks.
 type App struct{}
 
-func (a *App) RegisterRouter(fn func(string))                              {}
-func (a *App) RegisterStore(fn func(module, store, key string, value any)) {}
-func (a *App) RegisterLifecycle(mount, unmount func(Component))            {}
-func (a *App) RegisterTemplate(fn func(componentID, html string))          {}
-func (a *App) RegisterRTMLVar(plugin, name string, val any)                {}
-func (a *App) HasPlugin(name string) bool                                  { return false }
+// RegisterRouter performs no work outside WASM.
+func (a *App) RegisterRouter(func(string)) {}
 
-func RegisterPlugin(p Plugin)                           {}
-func TriggerRouter(path string)                         {}
-func TriggerStore(module, store, key string, value any) {}
-func TriggerMount(c Component)                          {}
-func TriggerUnmount(c Component)                        {}
-func TriggerTemplate(componentID, html string)          {}
-func OnNavigate(fn func(string))                        {}
-func OnTemplate(fn func(componentID, html string))      {}
+// RegisterStore performs no work outside WASM.
+func (a *App) RegisterStore(func(module, store, key string, value any)) {}
 
-func RegisterPluginVar(plugin, name string, val any) {}
+// RegisterLifecycle performs no work outside WASM.
+func (a *App) RegisterLifecycle(func(Component), func(Component)) {}
+
+// RegisterTemplate performs no work outside WASM.
+func (a *App) RegisterTemplate(func(componentID, html string)) {}
+
+// RegisterRTMLVar performs no work outside WASM.
+func (a *App) RegisterRTMLVar(string, string, any) {}
+
+// HasPlugin reports false outside WASM.
+func (a *App) HasPlugin(string) bool { return false }
+
+// RegisterPlugin performs no work outside WASM.
+func RegisterPlugin(Plugin) {}
+
+// TriggerRouter performs no work outside WASM.
+func TriggerRouter(string) {}
+
+// TriggerStore performs no work outside WASM.
+func TriggerStore(string, string, string, any) {}
+
+// TriggerMount performs no work outside WASM.
+func TriggerMount(Component) {}
+
+// TriggerUnmount performs no work outside WASM.
+func TriggerUnmount(Component) {}
+
+// TriggerTemplate performs no work outside WASM.
+func TriggerTemplate(string, string) {}
+
+// OnNavigate performs no work outside WASM.
+func OnNavigate(func(string)) {}
+
+// OnTemplate performs no work outside WASM.
+func OnTemplate(func(componentID, html string)) {}
+
+// RegisterPluginVar performs no work outside WASM.
+func RegisterPluginVar(string, string, any) {}

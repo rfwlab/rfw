@@ -12,7 +12,7 @@ func TestRegisterLanguage(t *testing.T) {
 	dummy := js.NewDict()
 	js.Set("hljs", dummy.Value)
 	var name string
-	dummy.Set("registerLanguage", js.FuncOf(func(this js.Value, args []js.Value) any {
+	dummy.Set("registerLanguage", js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) != 2 {
 			t.Fatalf("expected 2 args, got %d", len(args))
 		}
@@ -22,7 +22,7 @@ func TestRegisterLanguage(t *testing.T) {
 	}))
 
 	called := false
-	RegisterLanguage("rtml", func(v js.Value) js.Value {
+	RegisterLanguage("rtml", func(js.Value) js.Value {
 		called = true
 		return js.NewDict().Value
 	})

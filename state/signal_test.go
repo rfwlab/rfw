@@ -158,7 +158,7 @@ func TestOnChangeStopsAreIdempotent(t *testing.T) {
 	s := NewSignal(0)
 	calls := 0
 
-	sub := s.OnChange(func(v int) { calls++ })
+	sub := s.OnChange(func(int) { calls++ })
 
 	s.Set(1)
 	if calls != 1 {
@@ -227,7 +227,7 @@ func TestOnChangeDoesNotFireAfterStop(t *testing.T) {
 	s := NewSignal(10)
 	calls := 0
 
-	sub := s.OnChange(func(v int) { calls++ })
+	sub := s.OnChange(func(int) { calls++ })
 
 	s.Set(20)
 	if calls != 1 {

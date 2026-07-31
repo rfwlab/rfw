@@ -1,40 +1,73 @@
-name: Build
+name: Continuous build
 
 on:
-    push:
+    workflow_run:
+        workflows: ["Test"]
+        types: [completed]
         branches: ["main"]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: continuous-build
+    cancel-in-progress: true
 
 jobs:
     build:
+        if: >-
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'push' &&
+            github.event.workflow_run.head_branch == 'main' &&
+            github.event.workflow_run.head_repository.full_name == github.repository
         runs-on: ubuntu-latest
         permissions:
-            contents: write
+            contents: read
 
         steps:
             - uses: actions/checkout@v4
+              with:
+                  ref: "${{ github.event.workflow_run.head_sha }}"
 
             - name: Set up Go
               uses: actions/setup-go@v5
               with:
-                  go-version: 1.21
+                  go-version: 1.25
 
             - name: Test
               run: go test -v ./...
 
             - name: Build
-              run: go build -o rfw cmd/rfw/main.go
+              run: |
+                  go build -trimpath -o rfw-linux-amd64 \
+                    -ldflags="-s -w -X 'github.com/rfwlab/rfw/v2/core.version=${{ github.event.workflow_run.head_sha }}'" \
+                    ./cmd/rfw/main.go
+                  sha256sum rfw-linux-amd64 > checksums.txt
 
-            - uses: softprops/action-gh-release@v1
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: continuous-rfw
+                  path: |
+                      rfw-linux-amd64
+                      checksums.txt
+
+    publish:
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  name: continuous-rfw
+
+            - uses: softprops/action-gh-release@v2
               with:
                   token: "${{ secrets.GITHUB_TOKEN }}"
                   tag_name: "continuous"
                   prerelease: true
                   name: "Continuous Build"
                   files: |
-                      rfw
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: rfw
-                  path: |
-                      rfw
+                      rfw-linux-amd64
+                      checksums.txt

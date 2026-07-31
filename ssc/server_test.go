@@ -23,12 +23,12 @@ func TestSSCEventBus(t *testing.T) {
 		value     any
 	}
 	seen := make(chan seenEvent, 1)
-	SubscribeSSC(func(ctx context.Context, e SSCEvent) error {
+	SubscribeSSC(func(_ context.Context, e Event) error {
 		seen <- seenEvent{component: e.Component, value: e.Payload["value"]}
 		return nil
 	})
 
-	if err := EmitSSC(context.Background(), SSCEvent{Component: "Counter", Payload: map[string]any{"value": 2}}); err != nil {
+	if err := EmitSSC(context.Background(), Event{Component: "Counter", Payload: map[string]any{"value": 2}}); err != nil {
 		t.Fatalf("emit failed: %v", err)
 	}
 
@@ -40,10 +40,10 @@ func TestSSCEventBus(t *testing.T) {
 
 func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("<main>app</main>"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("<main>app</main>"), 0o600); err != nil {
 		t.Fatalf("write index: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "app.wasm.br"), []byte("wasm"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "app.wasm.br"), []byte("wasm"), 0o600); err != nil {
 		t.Fatalf("write wasm: %v", err)
 	}
 
@@ -55,7 +55,9 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("index fallback request failed: %v", err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close index response: %v", err)
+	}
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected index fallback 200, got %d", resp.StatusCode)
 	}
@@ -64,7 +66,9 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("wasm request failed: %v", err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close versioned wasm response: %v", err)
+	}
 	if resp.Header.Get("Content-Encoding") != "br" {
 		t.Fatalf("expected br encoding, got %q", resp.Header.Get("Content-Encoding"))
 	}
@@ -79,7 +83,9 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unversioned wasm request failed: %v", err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close unversioned wasm response: %v", err)
+	}
 	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
 		t.Fatalf("unexpected unversioned Cache-Control header: %q", cache)
 	}
@@ -109,7 +115,9 @@ func TestSSCServerWSOriginAllowlist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("do: %v", err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close origin response: %v", err)
+	}
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("expected 403 for unlisted origin, got %d", resp.StatusCode)
 	}
@@ -171,7 +179,7 @@ func TestSSCServerResumesAtSessionLimit(t *testing.T) {
 	firstSocket := dial()
 	send(firstSocket, host.Inbound{Action: action, ID: "first", Sequence: 1})
 	first := receive(firstSocket)
-	firstSocket.Close()
+	closeTestResource(t, firstSocket)
 
 	var (
 		secondSocket *websocket.Conn
@@ -191,13 +199,13 @@ func TestSSCServerResumesAtSessionLimit(t *testing.T) {
 		if second.Session == first.Session && second.ID == "second" {
 			break
 		}
-		secondSocket.Close()
+		closeTestResource(t, secondSocket)
 		if time.Now().After(deadline) {
 			t.Fatalf("session did not resume at the limit: first=%#v second=%#v", first, second)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	defer secondSocket.Close()
+	defer closeTestResource(t, secondSocket)
 	payload, ok := second.Payload.(map[string]any)
 	if !ok || payload["count"] != float64(2) {
 		t.Fatalf("session state was not retained: %#v", second.Payload)

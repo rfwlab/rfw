@@ -41,7 +41,7 @@ func TestForPatchLeavesSiblingsAlone(t *testing.T) {
 	if side.IsNull() {
 		t.Fatal("sibling not rendered")
 	}
-	side.Value.Set("__marker", "kept")
+	side.Set("__marker", "kept")
 
 	st.Set("items", []any{
 		map[string]any{"label": "one"},
@@ -53,7 +53,7 @@ func TestForPatchLeavesSiblingsAlone(t *testing.T) {
 	if sideAfter.IsNull() {
 		t.Fatal("sibling vanished after the list changed")
 	}
-	if got := sideAfter.Value.Get("__marker"); !got.Truthy() || got.String() != "kept" {
+	if got := sideAfter.Get("__marker"); !got.Truthy() || got.String() != "kept" {
 		t.Fatal("sibling was re-created: the whole component re-rendered")
 	}
 }
@@ -136,8 +136,8 @@ func TestForPatchRebindsInputsOnce(t *testing.T) {
 		}
 	}
 
-	oldRow.Value.Set("value", "detached")
-	oldRow.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	oldRow.Set("value", "detached")
+	oldRow.Call("dispatchEvent", js.CustomEvent().New("input"))
 	select {
 	case key := <-sets:
 		t.Fatalf("detached row updated store key %q", key)
@@ -145,13 +145,13 @@ func TestForPatchRebindsInputsOnce(t *testing.T) {
 	}
 
 	input := dom.Query("[data-name]")
-	input.Value.Set("value", "Mirko")
-	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	input.Set("value", "Mirko")
+	input.Call("dispatchEvent", js.CustomEvent().New("input"))
 	expectOneStoreSet(t, sets, "name")
 
 	input = dom.Query("[data-ast]")
-	input.Value.Set("value", "AST")
-	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	input.Set("value", "AST")
+	input.Call("dispatchEvent", js.CustomEvent().New("input"))
 	expectOneStoreSet(t, sets, "ast")
 }
 
@@ -204,13 +204,13 @@ func TestForPatchRebindsSignalInputsOnce(t *testing.T) {
 	defer astSub.Stop()
 
 	input := dom.Query("[data-legacy]")
-	input.Value.Set("value", "legacy-updated")
-	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	input.Set("value", "legacy-updated")
+	input.Call("dispatchEvent", js.CustomEvent().New("input"))
 	expectOneSignalSet(t, legacySets, "legacy-updated")
 
 	input = dom.Query("[data-ast-signal]")
-	input.Value.Set("value", "ast-updated")
-	input.Value.Call("dispatchEvent", js.CustomEvent().New("input"))
+	input.Set("value", "ast-updated")
+	input.Call("dispatchEvent", js.CustomEvent().New("input"))
 	expectOneSignalSet(t, astSets, "ast-updated")
 }
 

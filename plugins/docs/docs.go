@@ -1,11 +1,11 @@
 //go:build js && wasm
 
+// Package docs provides documentation loading and rendering support.
 package docs
 
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/rfwlab/rfw/v2/core"
@@ -16,6 +16,7 @@ import (
 	"github.com/rfwlab/rfw/v2/state"
 )
 
+// SidebarItem describes one documentation navigation entry.
 type SidebarItem struct {
 	Title       string        `json:"title"`
 	Path        string        `json:"path"`
@@ -23,27 +24,30 @@ type SidebarItem struct {
 	Children    []SidebarItem `json:"children"`
 }
 
+// ArticleData contains a loaded documentation article.
 type ArticleData struct {
 	Path     string
 	Content  string
 	Headings []Heading
 }
 
+// Heading describes one article heading.
 type Heading struct {
 	Text  string
 	Depth int
 	ID    string
 }
 
+// Plugin loads documentation navigation and article content.
 type Plugin struct {
 	Sidebar     string
 	disableSEO  bool
 	loader      js.Func
 	sidebarData *state.Signal[[]SidebarItem]
 	articleData *state.Signal[*ArticleData]
-	sidebarOnce sync.Once
 }
 
+// New creates a documentation plugin using the supplied sidebar URL.
 func New(sidebar string, disableSEO ...bool) *Plugin {
 	sidebar = fmt.Sprintf("%s?%d", sidebar, time.Now().Unix())
 	p := &Plugin{Sidebar: sidebar}
@@ -55,8 +59,10 @@ func New(sidebar string, disableSEO ...bool) *Plugin {
 	return p
 }
 
+// Name returns the plugin name.
 func (p *Plugin) Name() string { return "docs" }
 
+// Optional declares the SEO plugin when metadata support is enabled.
 func (p *Plugin) Optional() []core.Plugin {
 	if p.disableSEO {
 		return nil
@@ -64,6 +70,7 @@ func (p *Plugin) Optional() []core.Plugin {
 	return []core.Plugin{seo.New()}
 }
 
+// Provide returns the values exposed to component templates.
 func (p *Plugin) Provide() map[string]any {
 	return map[string]any{
 		"sidebar": p.sidebarData,
@@ -72,16 +79,17 @@ func (p *Plugin) Provide() map[string]any {
 	}
 }
 
-func (p *Plugin) Install(a *core.App) {
+// Install loads the sidebar and exposes the article loader.
+func (p *Plugin) Install(_ *core.App) {
 	for k, v := range p.Provide() {
 		core.RegisterPluginVar("docs", k, v)
 	}
 
 	doc := js.Document()
 
-	js.Fetch(p.Sidebar).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Fetch(p.Sidebar).Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
 		res := args[0]
-		res.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
+		res.Call("text").Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
 			raw := args[0].String()
 			var items []SidebarItem
 			if err := json.Unmarshal([]byte(raw), &items); err == nil {
@@ -95,7 +103,7 @@ func (p *Plugin) Install(a *core.App) {
 		return nil
 	}))
 
-	p.loader = js.FuncOf(func(this js.Value, args []js.Value) any {
+	p.loader = js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) < 1 {
 			return nil
 		}
@@ -106,9 +114,9 @@ func (p *Plugin) Install(a *core.App) {
 }
 
 func (p *Plugin) loadArticle(path string) {
-	js.Fetch(path).Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Fetch(path).Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
 		res := args[0]
-		res.Call("text").Call("then", js.FuncOf(func(this js.Value, args []js.Value) any {
+		res.Call("text").Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
 			content := args[0].String()
 			mhs := markdown.Headings(content)
 			headings := make([]Heading, len(mhs))
@@ -149,4 +157,5 @@ func headingsToAny(headings []Heading) []any {
 	return result
 }
 
+// Build accepts the plugin build configuration.
 func (p *Plugin) Build(json.RawMessage) error { return nil }

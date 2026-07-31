@@ -15,22 +15,18 @@ func TestBuildAndShouldRebuild(t *testing.T) {
 	p := &plugin{}
 	tmp := t.TempDir()
 
-	cwd, _ := os.Getwd()
-	defer os.Chdir(cwd)
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatalf("chdir: %v", err)
-	}
+	t.Chdir(tmp)
 
 	srcRoot := filepath.Join("examples", "components")
-	if err := os.MkdirAll(filepath.Join(srcRoot, "templates"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(srcRoot, "templates"), 0o750); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 	fileA := filepath.Join(srcRoot, "comp.txt")
-	if err := os.WriteFile(fileA, []byte("a"), 0o644); err != nil {
+	if err := os.WriteFile(fileA, []byte("a"), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	fileB := filepath.Join(srcRoot, "templates", "tpl.txt")
-	if err := os.WriteFile(fileB, []byte("b"), 0o644); err != nil {
+	if err := os.WriteFile(fileB, []byte("b"), 0o600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -49,16 +45,18 @@ func TestBuildAndShouldRebuild(t *testing.T) {
 			To:   destRoot,
 		}},
 	}
-	raw, _ := json.Marshal(cfg)
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := p.Build(raw); err != nil {
 		t.Fatalf("Build: %v", err)
 	}
 
-	absDest := filepath.Join(tmp, destRoot)
-	if data, err := os.ReadFile(filepath.Join(absDest, "comp.txt")); err != nil || string(data) != "a" {
+	if data, err := os.ReadFile("build/static/examples/components/comp.txt"); err != nil || string(data) != "a" {
 		t.Fatalf("comp.txt not copied: %v %s", err, data)
 	}
-	if data, err := os.ReadFile(filepath.Join(absDest, "templates", "tpl.txt")); err != nil || string(data) != "b" {
+	if data, err := os.ReadFile("build/static/examples/components/templates/tpl.txt"); err != nil || string(data) != "b" {
 		t.Fatalf("tpl.txt not copied: %v %s", err, data)
 	}
 
@@ -67,5 +65,24 @@ func TestBuildAndShouldRebuild(t *testing.T) {
 	}
 	if p.ShouldRebuild(filepath.Join("other.txt")) {
 		t.Fatalf("unexpected rebuild for unrelated file")
+	}
+}
+
+func TestBuildRejectsPathsOutsideProject(t *testing.T) {
+	p := &plugin{}
+	for _, copyRule := range []rule{
+		{From: "../*", To: "build"},
+		{From: "*", To: "../build"},
+		{From: "*", To: filepath.Join(t.TempDir(), "build")},
+	} {
+		raw, err := json.Marshal(struct {
+			Files []rule `json:"files"`
+		}{Files: []rule{copyRule}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := p.Build(raw); err == nil {
+			t.Errorf("expected rule %+v to be rejected", copyRule)
+		}
 	}
 }

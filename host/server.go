@@ -18,6 +18,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// ResolveRoot resolves a content root relative to the executable when needed.
 func ResolveRoot(root string) string {
 	if _, err := os.Stat(root); err == nil {
 		return root
@@ -48,9 +49,12 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	}
 	fs := http.FileServer(http.Dir(root))
+	rootDir := http.Dir(root)
 	var sfs http.Handler
+	var staticDir http.Dir
 	if _, err := os.Stat(staticRoot); err == nil {
-		sfs = http.FileServer(http.Dir(staticRoot))
+		staticDir = http.Dir(staticRoot)
+		sfs = http.FileServer(staticDir)
 	}
 	if sfs != nil {
 		mux.Handle("/static/", http.StripPrefix("/static", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -60,16 +64,14 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if sfs != nil {
-			spath := filepath.Join(staticRoot, r.URL.Path)
-			if st, err := os.Stat(spath); err == nil && !st.IsDir() {
-				setWasmEncodingHeaders(w, spath, r.URL.Query().Get("v") != "")
+			if regularFile(staticDir, r.URL.Path) {
+				setWasmEncodingHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 				sfs.ServeHTTP(w, r)
 				return
 			}
 		}
-		path := filepath.Join(root, r.URL.Path)
-		if st, err := os.Stat(path); err == nil && !st.IsDir() {
-			setWasmEncodingHeaders(w, path, r.URL.Query().Get("v") != "")
+		if regularFile(rootDir, r.URL.Path) {
+			setWasmEncodingHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 			fs.ServeHTTP(w, r)
 			return
 		}
@@ -92,13 +94,13 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 // WebSocket endpoint.
 func ListenAndServe(addr, root string) error {
 	logger.Info("serving HTTP", "addr", addr)
-	return http.ListenAndServe(addr, loggingMiddleware(NewMux(root)))
+	return newHTTPServer(addr, loggingMiddleware(NewMux(root))).ListenAndServe()
 }
 
 // ListenAndServeWithMux starts an HTTP server using the provided mux.
 func ListenAndServeWithMux(addr string, mux *http.ServeMux) error {
 	logger.Info("serving HTTP", "addr", addr)
-	return http.ListenAndServe(addr, loggingMiddleware(mux))
+	return newHTTPServer(addr, loggingMiddleware(mux)).ListenAndServe()
 }
 
 // ListenAndServeTLS starts an HTTPS server using a self-signed certificate
@@ -108,11 +110,8 @@ func ListenAndServeTLS(addr, root string) error {
 	if err != nil {
 		return err
 	}
-	srv := &http.Server{
-		Addr:      addr,
-		Handler:   loggingMiddleware(NewMux(root)),
-		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
-	}
+	srv := newHTTPServer(addr, loggingMiddleware(NewMux(root)))
+	srv.TLSConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
 	logger.Info("serving HTTPS", "addr", addr)
 	return srv.ListenAndServeTLS("", "")
 }
@@ -124,13 +123,28 @@ func ListenAndServeTLSWithMux(addr string, mux *http.ServeMux) error {
 	if err != nil {
 		return err
 	}
-	srv := &http.Server{
-		Addr:      addr,
-		Handler:   loggingMiddleware(mux),
-		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
-	}
+	srv := newHTTPServer(addr, loggingMiddleware(mux))
+	srv.TLSConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
 	logger.Info("serving HTTPS", "addr", addr)
 	return srv.ListenAndServeTLS("", "")
+}
+
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+}
+
+func regularFile(root http.Dir, name string) bool {
+	f, err := root.Open(name)
+	if err != nil {
+		return false
+	}
+	info, statErr := f.Stat()
+	closeErr := f.Close()
+	return statErr == nil && closeErr == nil && !info.IsDir()
 }
 
 func setWasmEncodingHeaders(w http.ResponseWriter, path string, versioned bool) {

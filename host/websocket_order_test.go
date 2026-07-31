@@ -50,8 +50,8 @@ func openWriteTestSocket(t *testing.T) (*websocket.Conn, *websocket.Conn, func()
 	serverSocket := <-accepted
 	return client, serverSocket, func() {
 		ForgetConnection(serverSocket)
-		client.Close()
-		serverSocket.Close()
+		closeTestResource(t, client)
+		closeTestResource(t, serverSocket)
 		close(done)
 		server.Close()
 	}

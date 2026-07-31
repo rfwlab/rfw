@@ -1,9 +1,12 @@
 //go:build !js
 
+// Package bundler registers post-build asset minification.
 package bundler
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +28,7 @@ func (p *plugin) Name() string { return "bundler" }
 
 func (p *plugin) Priority() int { return 10 }
 
-func (p *plugin) PostBuild(raw json.RawMessage) error {
+func (p *plugin) PostBuild(_ json.RawMessage) (err error) {
 	if utils.IsDebug() {
 		logging.Log.Info("skipped in debug mode", logging.F("plugin", "bundler"))
 		return nil
@@ -37,20 +40,38 @@ func (p *plugin) PostBuild(raw json.RawMessage) error {
 	m.AddFunc("text/html", html.Minify)
 
 	buildDir := "build"
-	if err := filepath.Walk(buildDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	root, err := os.OpenRoot(buildDir)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := root.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	if err := filepath.Walk(buildDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
 		if info.IsDir() {
 			return nil
 		}
+		rel, err := filepath.Rel(buildDir, path)
+		if err != nil {
+			return err
+		}
 		ext := filepath.Ext(path)
 		var media string
+		var data []byte
 		switch ext {
 		case ".js":
 			media = "text/javascript"
 		case ".css":
-			if isTailwindCSS(path) {
+			data, err = readRootFile(root, rel)
+			if err != nil {
+				return err
+			}
+			if isTailwindCSSData(data) {
 				logging.Log.Info("skipping tailwind css", logging.F("plugin", "bundler"), logging.F("path", path))
 				return nil
 			}
@@ -60,18 +81,22 @@ func (p *plugin) PostBuild(raw json.RawMessage) error {
 		default:
 			return nil
 		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
+		if data == nil {
+			data, err = readRootFile(root, rel)
+			if err != nil {
+				return err
+			}
 		}
 		out, err := m.Bytes(media, data)
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, out, 0o644); err != nil {
+		file, err := root.OpenFile(rel, os.O_TRUNC|os.O_WRONLY, 0o600)
+		if err != nil {
 			return err
 		}
-		return nil
+		_, writeErr := file.Write(out)
+		return errors.Join(writeErr, file.Close())
 	}); err != nil {
 		return err
 	}
@@ -87,11 +112,16 @@ func (p *plugin) ShouldRebuild(path string) bool {
 	return strings.HasSuffix(path, ".js") || strings.HasSuffix(path, ".css") || strings.HasSuffix(path, ".html")
 }
 
-func isTailwindCSS(path string) bool {
-	data, err := os.ReadFile(path)
+func readRootFile(root *os.Root, path string) ([]byte, error) {
+	file, err := root.Open(path)
 	if err != nil {
-		return false
+		return nil, err
 	}
+	data, readErr := io.ReadAll(file)
+	return data, errors.Join(readErr, file.Close())
+}
+
+func isTailwindCSSData(data []byte) bool {
 	src := string(data)
 	return strings.Contains(src, "@tailwind") || strings.Contains(src, "tailwindcss")
 }

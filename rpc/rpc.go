@@ -1,3 +1,4 @@
+// Package rpc provides JSON request handling and HTTP RPC calls.
 package rpc
 
 import (
@@ -10,35 +11,43 @@ import (
 	"sync"
 )
 
+// Request is a JSON RPC request.
 type Request struct {
 	ID     string          `json:"id"`
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params,omitempty"`
 }
 
+// Response is a JSON RPC response.
 type Response struct {
 	ID     string          `json:"id"`
 	Result json.RawMessage `json:"result,omitempty"`
 	Error  string          `json:"error,omitempty"`
 }
 
+// HandlerFunc handles an RPC method.
 type HandlerFunc func(context.Context, json.RawMessage) (any, error)
 
+// Server dispatches requests to registered handlers.
 type Server struct {
 	mu       sync.RWMutex
 	handlers map[string]HandlerFunc
 }
 
+// NewServer creates an empty RPC server.
 func NewServer() *Server { return &Server{handlers: map[string]HandlerFunc{}} }
 
+// Register adds or replaces a method handler.
 func (s *Server) Register(method string, h HandlerFunc) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.handlers[method] = h
 }
 
+// ErrMethodNotFound is returned for an unknown RPC method.
 var ErrMethodNotFound = errors.New("rpc: method not found")
 
+// Handle decodes and dispatches one RPC request.
 func (s *Server) Handle(ctx context.Context, reqBytes []byte) ([]byte, error) {
 	var req Request
 	if err := json.Unmarshal(reqBytes, &req); err != nil {
@@ -70,6 +79,7 @@ func (s *Server) Handle(ctx context.Context, reqBytes []byte) ([]byte, error) {
 	return json.Marshal(res)
 }
 
+// Call invokes an RPC method over HTTP.
 func Call(ctx context.Context, endpoint, method string, params any, out any) error {
 	req := Request{ID: "1", Method: method}
 	if params != nil {
@@ -95,11 +105,15 @@ func Call(ctx context.Context, endpoint, method string, params any, out any) err
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
 	var res Response
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return err
+	decodeErr := json.NewDecoder(resp.Body).Decode(&res)
+	closeErr := resp.Body.Close()
+	if decodeErr != nil {
+		return decodeErr
+	}
+	if closeErr != nil {
+		return closeErr
 	}
 	if res.Error != "" {
 		return fmt.Errorf("rpc: %s", res.Error)

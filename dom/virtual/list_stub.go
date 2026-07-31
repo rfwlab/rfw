@@ -6,6 +6,9 @@ package virtual
 // VirtualList is a placeholder that does nothing on non-JS/WASM platforms.
 type VirtualList struct{}
 
+// List is the concise name for VirtualList.
+type List = VirtualList
+
 // NewVirtualList returns an empty VirtualList placeholder.
 func NewVirtualList(_ string, _ int, _ int, _ func(int) string) *VirtualList {
 	return &VirtualList{}

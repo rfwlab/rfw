@@ -12,14 +12,7 @@ import (
 // TestInitProjectSuccess verifies project scaffolding.
 func TestInitProjectSuccess(t *testing.T) {
 	dir := t.TempDir()
-	oldwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Getwd failed: %v", err)
-	}
-	defer os.Chdir(oldwd)
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("Chdir failed: %v", err)
-	}
+	t.Chdir(dir)
 
 	if err := InitProject("example.com/testproj", true); err != nil {
 		t.Fatalf("InitProject failed: %v", err)
@@ -34,7 +27,16 @@ func TestInitProjectSuccess(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(projDir, "wasm_loader.js")); err != nil {
 		t.Fatalf("wasm_loader.js not created: %v", err)
 	}
-	index, err := os.ReadFile(filepath.Join(projDir, "index.html"))
+	projectRoot, err := os.OpenRoot(projDir)
+	if err != nil {
+		t.Fatalf("open project root: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := projectRoot.Close(); err != nil {
+			t.Errorf("close project root: %v", err)
+		}
+	})
+	index, err := projectRoot.ReadFile("index.html")
 	if err != nil {
 		t.Fatalf("read index.html: %v", err)
 	}
@@ -42,7 +44,7 @@ func TestInitProjectSuccess(t *testing.T) {
 		!strings.Contains(string(index), "RFW_WASM_VERSION") {
 		t.Fatalf("index.html does not use the generated wasm version")
 	}
-	loader, err := os.ReadFile(filepath.Join(projDir, "wasm_loader.js"))
+	loader, err := projectRoot.ReadFile("wasm_loader.js")
 	if err != nil {
 		t.Fatalf("read wasm_loader.js: %v", err)
 	}
@@ -58,11 +60,34 @@ func TestInitProjectErrors(t *testing.T) {
 	}
 
 	dir := t.TempDir()
-	oldwd, _ := os.Getwd()
-	defer os.Chdir(oldwd)
-	os.Chdir(dir)
-	os.Mkdir("exists", 0755)
+	t.Chdir(dir)
+	if err := os.Mkdir("exists", 0o750); err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	if err := InitProject("exists", true); err == nil {
 		t.Fatalf("expected error for existing directory")
+	}
+}
+
+func TestValidateModulePath(t *testing.T) {
+	for _, modulePath := range []string{"example", "example.com/team/app", "example.com/team/app/v2"} {
+		if err := validateModulePath(modulePath); err != nil {
+			t.Errorf("expected %q to be valid: %v", modulePath, err)
+		}
+	}
+	for _, modulePath := range []string{
+		"",
+		"-x",
+		"../app",
+		"example.com//app",
+		"example.com/app name",
+		"example.com/app\nreplace x",
+		"example.com/app+tools",
+		"example.com/.hidden",
+		"example.com/NUL.txt",
+	} {
+		if err := validateModulePath(modulePath); err == nil {
+			t.Errorf("expected %q to be rejected", modulePath)
+		}
 	}
 }
