@@ -12,19 +12,7 @@ version and include migration notes.
 
 ## [Unreleased]
 
-### Changed
-
-- `host.BindSessionConnection` no longer replaces an active session connection.
-  `host.SendSessionOutbound` binds the first connection for a new session;
-  resumed sessions require `ReplaySession` or `BindSessionConnection` before
-  sending.
-
-### Fixed
-
-- resumed sessions reject sends from stale WebSocket connections without
-  consuming delivery sequence numbers.
-
-## [2.1.0] - 2026-07-30
+## [2.1.0] - 2026-07-31
 
 ### Added
 
@@ -57,6 +45,10 @@ version and include migration notes.
   rendered error messages.
 - SSC writes are serialized per WebSocket connection and every protocol
   message carries sequence and acknowledgement metadata.
+- `host.BindSessionConnection` no longer replaces an active session connection.
+  `host.SendSessionOutbound` binds the first connection for a new session;
+  resumed sessions require `ReplaySession` or `BindSessionConnection` before
+  sending.
 
 ### Fixed
 
@@ -64,6 +56,8 @@ version and include migration notes.
   the slot.
 - component handler, input binding, effect, context, timer, and DOM hook
   cleanup now runs with the owning component lifecycle.
+- resumed sessions reject sends from stale WebSocket connections without
+  consuming delivery sequence numbers.
 
 ## [2.0.0-beta.19] - 2026-07-30
 
