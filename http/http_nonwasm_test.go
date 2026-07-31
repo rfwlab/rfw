@@ -1,10 +1,12 @@
 //go:build !js
 
+// Package http tests the native HTTP client implementation.
 package http
 
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -46,15 +48,28 @@ func waitText(t *testing.T, fn func() (string, error)) string {
 	}
 }
 
+func TestFetchBytesRejectsNonHTTPURLs(t *testing.T) {
+	for _, rawURL := range []string{"file:///tmp/secret", "/relative", "http://127.0.0.1/secret"} {
+		if _, _, err := fetchBytes(rawURL); err == nil {
+			t.Fatalf("expected %q to be rejected", rawURL)
+		} else if strings.HasPrefix(rawURL, "http://127.") && !strings.Contains(err.Error(), "not public") {
+			t.Fatalf("unexpected private URL rejection: %v", err)
+		}
+	}
+}
+
 func TestFetchText_CacheAndPending(t *testing.T) {
 	var hits int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits++
 		time.Sleep(30 * time.Millisecond)
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("hello"))
 	}))
 	defer srv.Close()
+	oldClient := currentNativeClient()
+	SetNativeClient(srv.Client())
+	t.Cleanup(func() { SetNativeClient(oldClient) })
 
 	ClearCache(srv.URL)
 	t.Cleanup(func() { ClearCache(srv.URL) })
@@ -81,13 +96,16 @@ func TestFetchText_CacheAndPending(t *testing.T) {
 }
 
 func TestFetchJSON_DecodeAndHook(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		time.Sleep(20 * time.Millisecond)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte(`{"ok":true,"n":3}`))
 	}))
 	defer srv.Close()
+	oldClient := currentNativeClient()
+	SetNativeClient(srv.Client())
+	t.Cleanup(func() { SetNativeClient(oldClient) })
 
 	ClearCache(srv.URL)
 	t.Cleanup(func() { ClearCache(srv.URL) })
@@ -136,12 +154,15 @@ func TestFetchJSON_DecodeAndHook(t *testing.T) {
 
 func TestClearCache_AllowsRefetch(t *testing.T) {
 	var hits int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits++
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("ok"))
 	}))
 	defer srv.Close()
+	oldClient := currentNativeClient()
+	SetNativeClient(srv.Client())
+	t.Cleanup(func() { SetNativeClient(oldClient) })
 
 	ClearCache(srv.URL)
 	_ = waitText(t, func() (string, error) { return FetchText(srv.URL) })

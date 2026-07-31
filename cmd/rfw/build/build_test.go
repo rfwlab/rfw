@@ -5,7 +5,6 @@ package build
 import (
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -16,10 +15,11 @@ import (
 // destination path.
 func TestCopyFile(t *testing.T) {
 	dir := t.TempDir()
-	src := filepath.Join(dir, "src.txt")
-	dst := filepath.Join(dir, "dst.txt")
+	t.Chdir(dir)
+	src := "src.txt"
+	dst := "dst.txt"
 	content := []byte("hello world")
-	if err := os.WriteFile(src, content, 0o644); err != nil {
+	if err := os.WriteFile(src, content, 0o600); err != nil {
 		t.Fatalf("write src: %v", err)
 	}
 
@@ -38,9 +38,10 @@ func TestCopyFile(t *testing.T) {
 
 func TestCompressWasmBrotli(t *testing.T) {
 	dir := t.TempDir()
-	src := filepath.Join(dir, "app.wasm")
+	t.Chdir(dir)
+	src := "app.wasm"
 	content := []byte(strings.Repeat("rfw wasm", 32))
-	if err := os.WriteFile(src, content, 0o644); err != nil {
+	if err := os.WriteFile(src, content, 0o600); err != nil {
 		t.Fatalf("write wasm: %v", err)
 	}
 
@@ -53,7 +54,11 @@ func TestCompressWasmBrotli(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open brotli file: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Errorf("close brotli file: %v", err)
+		}
+	}()
 
 	reader := brotli.NewReader(f)
 	decompressed, err := io.ReadAll(reader)
@@ -67,11 +72,12 @@ func TestCompressWasmBrotli(t *testing.T) {
 
 func TestWriteClientConfig(t *testing.T) {
 	dir := t.TempDir()
-	if err := writeClientConfig(dir, "wss://example.com/rfw", "abc123"); err != nil {
+	t.Chdir(dir)
+	if err := writeClientConfig(".", "wss://example.com/rfw", "abc123"); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 
-	config, err := os.ReadFile(filepath.Join(dir, "rfw_config.js"))
+	config, err := os.ReadFile("rfw_config.js")
 	if err != nil {
 		t.Fatalf("read client config: %v", err)
 	}

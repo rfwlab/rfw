@@ -4,7 +4,7 @@ package toast
 
 import "testing"
 
-func TestPushOptionsNoPlugin(t *testing.T) {
+func TestPushOptionsNoPlugin(_ *testing.T) {
 	// Ensure calling PushOptions without installation is a no-op.
 	PushOptions("msg", Options{})
 }

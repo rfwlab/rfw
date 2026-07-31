@@ -24,7 +24,7 @@ func openProtocolSocket(t *testing.T, opts ...MuxOption) (*websocket.Conn, func(
 		t.Fatalf("dial websocket: %v", err)
 	}
 	return socket, func() {
-		socket.Close()
+		closeTestResource(t, socket)
 		server.Close()
 	}
 }
@@ -231,7 +231,7 @@ func TestWSSessionResumeReplaysUnacknowledgedResponse(t *testing.T) {
 	second := receiveProtocolMessage(t, firstSocket)
 	token := second.ResumeToken
 	sessionID := second.Session
-	firstSocket.Close()
+	closeTestResource(t, firstSocket)
 
 	var (
 		secondSocket *websocket.Conn
@@ -253,13 +253,13 @@ func TestWSSessionResumeReplaysUnacknowledgedResponse(t *testing.T) {
 			current = receiveProtocolMessage(t, secondSocket)
 			break
 		}
-		secondSocket.Close()
+		closeTestResource(t, secondSocket)
 		if time.Now().After(deadline) {
 			t.Fatalf("session did not become resumable: %#v", replayed)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	defer secondSocket.Close()
+	defer closeTestResource(t, secondSocket)
 	if replayed.Sequence != second.Sequence || replayed.ID != "two" {
 		t.Fatalf("unexpected replay: %#v", replayed)
 	}
@@ -294,14 +294,14 @@ func TestWSSessionResumeExpires(t *testing.T) {
 	sendProtocolMessage(t, first, Inbound{Action: action, ID: "first", Sequence: 1})
 	response := receiveProtocolMessage(t, first)
 	token := response.ResumeToken
-	first.Close()
+	closeTestResource(t, first)
 	time.Sleep(40 * time.Millisecond)
 
 	second, err := websocket.Dial(wsURL, "", server.URL)
 	if err != nil {
 		t.Fatalf("dial second socket: %v", err)
 	}
-	defer second.Close()
+	defer closeTestResource(t, second)
 	sendProtocolMessage(t, second, Inbound{
 		Action:      action,
 		ID:          "second",

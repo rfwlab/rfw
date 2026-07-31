@@ -2,4 +2,4 @@ package events
 
 import "testing"
 
-func TestPlaceholder(t *testing.T) {}
+func TestPlaceholder(_ *testing.T) {}

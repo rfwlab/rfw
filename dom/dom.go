@@ -96,7 +96,7 @@ func SnapshotComponentSignals(componentID string) map[string]any {
 // custom processing of the rendered HTML.
 var TemplateHook func(componentID, html string)
 
-// StoreBindingHook, when set, is invoked for each @store binding associated with
+// StoreBindingHook is invoked for each @store binding, when set, associated with
 // a component. It receives the component identifier along with the store module,
 // store name, and key that are bound in the DOM.
 var StoreBindingHook func(componentID, module, store, key string)
@@ -129,11 +129,11 @@ func UpdateDOM(componentID string, html string) {
 	// since ComponentRoot falls back to #app when the component root is not yet
 	// in the DOM). There, positionally diffing two different <root> trees leaves
 	// stale nodes from the previous component, so replace wholesale instead.
-	elID := element.Value.Call("getAttribute", "data-component-id")
+	elID := element.Call("getAttribute", "data-component-id")
 	if componentID != "" && elID.Truthy() && elID.String() == componentID {
 		patchInnerHTML(element.Value, html)
 	} else {
-		element.Value.Set("innerHTML", html)
+		element.Set("innerHTML", html)
 	}
 
 	if TemplateHook != nil {
@@ -160,7 +160,7 @@ func UpdateMountedDOM(componentID, html string) {
 	if el.IsNull() || el.IsUndefined() {
 		return
 	}
-	id := el.Value.Call("getAttribute", "data-component-id")
+	id := el.Call("getAttribute", "data-component-id")
 	if !id.Truthy() || id.String() != componentID {
 		return
 	}
@@ -174,7 +174,7 @@ func UpdateDOMIn(target Element, componentID, html string) {
 	if target.IsNull() || target.IsUndefined() {
 		return
 	}
-	target.Value.Set("innerHTML", html)
+	target.Set("innerHTML", html)
 
 	if TemplateHook != nil {
 		TemplateHook(componentID, html)

@@ -1,5 +1,6 @@
 //go:build !js
 
+// Command rfw builds and serves RFW applications.
 package main
 
 import (

@@ -41,7 +41,7 @@ func TestNavigateQueryParams(t *testing.T) {
 func TestNavigateNotFound(t *testing.T) {
 	Reset()
 	called := false
-	NotFoundCallback = func(p string) { called = true }
+	NotFoundCallback = func(string) { called = true }
 	Navigate("/missing")
 	if !called {
 		t.Fatalf("expected NotFoundCallback to be called")

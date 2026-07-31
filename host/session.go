@@ -56,11 +56,13 @@ func newSession(id string, options ...sessionOptions) *Session {
 	}
 }
 
+// ID returns the session ID.
 func (s *Session) ID() string { return s.id }
 
 // ResumeToken returns the opaque token used to resume this session.
 func (s *Session) ResumeToken() string { return s.resumeToken }
 
+// StoreManager returns the session-local store registry.
 func (s *Session) StoreManager() *state.StoreManager { return s.stores }
 
 // ContextGet retrieves a value from the session context.
@@ -96,6 +98,7 @@ var (
 	sessionByToken = make(map[string]*Session)
 )
 
+// AllocateSession creates and registers a session.
 func AllocateSession() *Session {
 	session, _ := allocateSession(0, 0)
 	return session
@@ -181,6 +184,7 @@ func ResumeSession(token string) (*Session, bool) {
 	return session, true
 }
 
+// ReleaseSession removes a session from the registry.
 func ReleaseSession(session *Session) {
 	releaseSession(session, time.Time{})
 }

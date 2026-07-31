@@ -55,6 +55,7 @@ func depsChanged(current, last map[string]any) bool {
 	return false
 }
 
+// Logger receives debug messages from stores.
 type Logger interface {
 	Debug(format string, args ...any)
 }
@@ -65,9 +66,10 @@ func (defaultLogger) Debug(format string, args ...any) { log.Printf(format, args
 
 var logger Logger = defaultLogger{}
 
+// SetLogger replaces the logger used by stores.
 func SetLogger(l Logger) { logger = l }
 
-// StoreHook, if non-nil, is invoked on every mutation allowing external
+// StoreHook is invoked on every mutation when non-nil, allowing external
 // observers (e.g. plugins) to react to state changes without creating an
 // import cycle with core.
 var StoreHook func(module, store, key string, value any)
@@ -123,11 +125,13 @@ type mutation struct {
 	next     any
 }
 
+// StoreManager groups stores by module and name.
 type StoreManager struct {
 	mu      sync.RWMutex
 	modules map[string]map[string]*Store
 }
 
+// GlobalStoreManager is the process-wide store registry.
 var GlobalStoreManager = &StoreManager{
 	modules: make(map[string]map[string]*Store),
 }
@@ -143,6 +147,7 @@ func NewStore(name string, opts ...StoreOption) *Store {
 	return GlobalStoreManager.NewStore(name, opts...)
 }
 
+// NewStore creates and registers a store in this manager.
 func (sm *StoreManager) NewStore(name string, opts ...StoreOption) *Store {
 	store := &Store{
 		module:    "default",
@@ -166,6 +171,7 @@ func (sm *StoreManager) NewStore(name string, opts ...StoreOption) *Store {
 	return store
 }
 
+// RegisterStore registers a store by module and name.
 func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
 
 	sm.mu.Lock()
@@ -177,6 +183,7 @@ func (sm *StoreManager) RegisterStore(module, name string, store *Store) {
 	sm.modules[module][name] = store
 }
 
+// GetStore returns a registered store or nil.
 func (sm *StoreManager) GetStore(module, name string) *Store {
 
 	sm.mu.RLock()
@@ -236,6 +243,7 @@ func (s *Store) Snapshot() map[string]any {
 
 func (s *Store) storageKey() string { return s.module + ":" + s.name }
 
+// Set stores a value and notifies dependents.
 func (s *Store) Set(key string, value any) {
 	s.set(key, value, true)
 }
@@ -293,6 +301,7 @@ func (s *Store) listenerNotifsLocked(key string, value any) []func() {
 	return notifs
 }
 
+// Get returns the value stored under key.
 func (s *Store) Get(key string) any {
 	if s.devTools {
 		logger.Debug("Getting %s from %s/%s", key, s.module, s.name)
@@ -333,6 +342,7 @@ func (s *Store) Redo() {
 	s.set(m.key, m.next, false)
 }
 
+// OnChange registers a listener and returns its unsubscribe function.
 func (s *Store) OnChange(key string, listener func(any)) func() {
 	s.mu.Lock()
 	if s.listeners[key] == nil {
@@ -516,6 +526,7 @@ func snapshotDeps(state map[string]any, deps []string) map[string]any {
 	return snap
 }
 
+// DumpState writes every registered store to the debug logger.
 func (sm *StoreManager) DumpState() {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()

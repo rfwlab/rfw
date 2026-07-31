@@ -23,7 +23,9 @@ func wsProbe(t *testing.T, mux *http.ServeMux, origin string) int {
 	if err != nil {
 		t.Fatalf("do: %v", err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close response: %v", err)
+	}
 	return resp.StatusCode
 }
 

@@ -1,5 +1,6 @@
 //go:build !js || !wasm
 
+// Package core exposes framework components and plugin contracts.
 package core
 
 import (

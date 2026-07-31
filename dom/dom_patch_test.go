@@ -9,7 +9,7 @@ import (
 )
 
 // Ensure UpdateDOM handles nodes without attributes (e.g. comments) without panicking.
-func TestUpdateDOMSkipsNonElementNodes(t *testing.T) {
+func TestUpdateDOMSkipsNonElementNodes(_ *testing.T) {
 	body := js.Doc().Get("body")
 	root := CreateElement("div")
 	root.Set("id", "root")

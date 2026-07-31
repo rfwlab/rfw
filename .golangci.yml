@@ -14,12 +14,13 @@ linters:
     - misspell
     - unconvert    # redundant type conversions
     - bodyclose    # unclosed HTTP response bodies
-  exclusions:
-    rules:
-      # test code: relax the security linter (fixtures, hardcoded creds in tests)
-      - path: _test\.go
-        linters:
-          - gosec
+  settings:
+    revive:
+      enable-default-rules: true
+      rules:
+        - name: exported
+          arguments:
+            - disableStutteringCheck
 
 formatters:
   enable:

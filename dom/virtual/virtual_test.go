@@ -17,7 +17,7 @@ func TestVirtualListRendersVisibleItems(t *testing.T) {
 	dom.Doc().Body().AppendChild(c)
 	defer c.Call("remove")
 
-	v := NewVirtualList("vlist", 100, 20, func(i int) string {
+	v := NewVirtualList("vlist", 100, 20, func(int) string {
 		return "<div class='it'>row</div>"
 	})
 	defer v.Destroy()
@@ -29,9 +29,9 @@ func TestVirtualListRendersVisibleItems(t *testing.T) {
 }
 
 func TestVirtualListMissingContainer(t *testing.T) {
-	v := NewVirtualList("does-not-exist", 10, 20, func(i int) string { return "" })
+	v := NewVirtualList("does-not-exist", 10, 20, func(int) string { return "" })
 	if v == nil {
-		t.Fatalf("expected VirtualList instance")
+		t.Fatalf("expected List instance")
 	}
 	v.Destroy()
 }

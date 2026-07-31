@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package seo registers the SEO build plugin.
 package seo
 
 import (
@@ -28,7 +29,7 @@ func (p *plugin) PreBuild(raw json.RawMessage) error {
 	b.WriteString("\t_ = seo.New().Build([]byte(" + strconv.Quote(string(raw)) + "))\n")
 	b.WriteString("}\n")
 	p.file = "rfw_seo.go"
-	return os.WriteFile(p.file, []byte(b.String()), 0o644)
+	return os.WriteFile(p.file, []byte(b.String()), 0o600)
 }
 
 func (p *plugin) PostBuild(json.RawMessage) error {

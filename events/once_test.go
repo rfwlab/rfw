@@ -39,7 +39,7 @@ func TestOnceCancelBeforeFiring(t *testing.T) {
 	}
 }
 
-func TestOnceCancelAfterFiringIsNoop(t *testing.T) {
+func TestOnceCancelAfterFiringIsNoop(_ *testing.T) {
 	target := js.Document().Call("createElement", "div")
 	cancel := Once("ping", target, func(js.Value) {})
 	dispatch(target, "ping")

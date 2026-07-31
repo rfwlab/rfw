@@ -1,9 +1,11 @@
 //go:build js && wasm
 
+// Package assets loads and caches browser assets.
 package assets
 
 import (
 	"errors"
+	stdhttp "net/http"
 	"sync"
 
 	"github.com/rfwlab/rfw/v2/http"
@@ -13,11 +15,11 @@ import (
 // loadImageFn loads an image and invokes done on completion.
 var loadImageFn = func(url string, done func(js.Value, error)) {
 	img := js.Image().New()
-	onload := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+	onload := js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 		done(img, nil)
 		return nil
 	})
-	onerror := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+	onerror := js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 		done(js.Value{}, errors.New("assets: image load failed"))
 		return nil
 	})
@@ -29,10 +31,10 @@ var loadImageFn = func(url string, done func(js.Value, error)) {
 // loadBinaryFn fetches binary data and invokes done on completion.
 var loadBinaryFn = func(url string, done func([]byte, error)) {
 	js.Fetch(url).Call("then",
-		js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+		js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 			resp := args[0]
 			resp.Call("arrayBuffer").Call("then",
-				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					buf := js.Uint8Array().New(args[0])
 					length := buf.Get("length").Int()
 					data := make([]byte, length)
@@ -42,14 +44,14 @@ var loadBinaryFn = func(url string, done func([]byte, error)) {
 					done(data, nil)
 					return nil
 				}),
-				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					done(nil, errors.New(args[0].String()))
 					return nil
 				}),
 			)
 			return nil
 		}),
-		js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+		js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 			done(nil, errors.New(args[0].String()))
 			return nil
 		}),
@@ -65,6 +67,9 @@ type imageEntry struct {
 }
 
 var imageCache sync.Map // map[string]*imageEntry
+
+// SetNativeClient has no effect in browser builds.
+func SetNativeClient(_ *stdhttp.Client) {}
 
 // LoadImage asynchronously loads an image from url.
 // While loading it returns http.ErrPending.

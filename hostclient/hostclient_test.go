@@ -103,6 +103,19 @@ func TestHandleHostPayloadMismatchTriggersResync(t *testing.T) {
 	}
 }
 
+func TestLegacyExpectationRequiresResync(t *testing.T) {
+	root := newFakeRoot()
+	root.elems["greeting"] = &fakeElement{
+		exists:   true,
+		expected: "sha1:2b42fba6b3f0c7b0d352c30b63f055c1b2f507a2",
+		text:     "hello",
+	}
+
+	if mismatches := handleHostPayload(root, map[string]any{"greeting": "updated"}, nil); len(mismatches) != 1 {
+		t.Fatalf("legacy expectation was trusted without verification: %+v", mismatches)
+	}
+}
+
 func TestInitSnapshotRecoveryAndUpdate(t *testing.T) {
 	root := newFakeRoot()
 	root.elems["count"] = &fakeElement{

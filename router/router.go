@@ -92,11 +92,11 @@ var (
 	scrollPositions    = map[string][2]int{}
 )
 
-// NotFoundComponent, if set, is rendered when no route matches the path.
+// NotFoundComponent is rendered when no route matches the path.
 // Accepts the same forms as Route.Component.
 var NotFoundComponent any
 
-// NotFoundCallback, if set, is invoked when navigation targets an
+// NotFoundCallback is invoked when navigation targets an
 // unregistered route. It receives the requested path.
 var NotFoundCallback func(string)
 
@@ -430,12 +430,8 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 		data = loaded
 	}
 
-	if r.loader != nil {
-		if r.singleton && r.component != nil {
-			// Re-use existing instance for singleton routes.
-		} else {
-			r.component = r.loader()
-		}
+	if r.loader != nil && (!r.singleton || r.component == nil) {
+		r.component = r.loader()
 	}
 	if r.component == nil {
 		failNavigation(ErrRouteComponent)
@@ -527,7 +523,7 @@ func CanNavigate(fullPath string) bool {
 // automatically routes internal anchor clicks.
 func ExposeNavigate() {
 	exposeNavigateOnce.Do(func() {
-		js.ExposeFunc("goNavigate", func(this js.Value, args []js.Value) any {
+		js.ExposeFunc("goNavigate", func(_ js.Value, args []js.Value) any {
 			path := args[0].String()
 			Navigate(path)
 			return nil
@@ -638,14 +634,16 @@ func NavItemsMap() []any {
 	return items
 }
 
-// RouterData returns a map of router-exposed template variables.
-// Intended to be merged into component Props automatically.
+// RouterData returns the values exposed to component templates.
 func RouterData() map[string]any {
 	return map[string]any{
 		"ActivePath": activePathSig,
 		"NavItems":   NavItemsMap(),
 	}
 }
+
+// TemplateData returns the values exposed to component templates.
+func TemplateData() map[string]any { return RouterData() }
 
 // ActivePath returns the reactive signal holding the current route path.
 func ActivePath() *state.Signal[string] {

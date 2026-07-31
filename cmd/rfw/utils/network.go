@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package utils provides shared CLI helpers.
 package utils
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/pkg/browser"
 )
 
+// GetLocalIP returns the first non-loopback IPv4 address.
 func GetLocalIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -27,6 +29,7 @@ func GetLocalIP() (string, error) {
 	return "", fmt.Errorf("no local IP address found")
 }
 
+// OpenBrowser opens url with the configured system browser.
 func OpenBrowser(url string) error {
 	if configured := os.Getenv("BROWSER"); configured != "" {
 		cmd := strings.Fields(configured)[0]

@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package toast displays temporary notification messages.
 package toast
 
 import (
@@ -32,10 +33,11 @@ func New() *Plugin {
 	return &Plugin{DefaultDuration: 3 * time.Second, queue: make(chan item, 8)}
 }
 
+// Build accepts the plugin build configuration.
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
 // Install prepares the toast container and starts processing the queue.
-func (p *Plugin) Install(a *core.App) {
+func (p *Plugin) Install(_ *core.App) {
 	plug = p
 	doc := dom.Doc()
 	body := doc.Query("body")
@@ -54,7 +56,7 @@ func (p *Plugin) loop() {
 	for it := range p.queue {
 		once := sync.Once{}
 		var el dom.Element
-		close := func() { once.Do(func() { el.Call("remove") }) }
+		dismiss := func() { once.Do(func() { el.Call("remove") }) }
 
 		tpl := it.template
 		if tpl == nil {
@@ -63,14 +65,14 @@ func (p *Plugin) loop() {
 		if tpl == nil {
 			tpl = defaultTemplate
 		}
-		el = tpl(it.msg, it.actions, close)
+		el = tpl(it.msg, it.actions, dismiss)
 
 		p.container.Call("appendChild", el.Value)
 		d := it.dur
 		if d == 0 {
 			d = p.DefaultDuration
 		}
-		time.AfterFunc(d, close)
+		time.AfterFunc(d, dismiss)
 	}
 }
 
@@ -105,7 +107,7 @@ func PushOptions(msg string, opts Options) {
 	plug.queue <- item{msg: msg, dur: opts.Duration, actions: opts.Actions, template: opts.Template}
 }
 
-func defaultTemplate(msg string, actions []Action, close func()) dom.Element {
+func defaultTemplate(msg string, actions []Action, dismiss func()) dom.Element {
 	doc := dom.Doc()
 	el := doc.CreateElement("div")
 	el.AddClass("bg-gray-800")
@@ -132,14 +134,14 @@ func defaultTemplate(msg string, actions []Action, close func()) dom.Element {
 		btn.AddClass("py-1")
 		btn.AddClass("rounded")
 		btn.AddClass("mr-2")
-		btn.OnClick(func(dom.Event) { a.Handler(); close() })
+		btn.OnClick(func(dom.Event) { a.Handler(); dismiss() })
 		btnWrap.Call("appendChild", btn.Value)
 	}
 
 	closeBtn := doc.CreateElement("button")
 	closeBtn.SetText("×")
 	closeBtn.AddClass("ml-auto")
-	closeBtn.OnClick(func(dom.Event) { close() })
+	closeBtn.OnClick(func(dom.Event) { dismiss() })
 
 	btnWrap.Call("appendChild", closeBtn.Value)
 	el.Call("appendChild", btnWrap.Value)

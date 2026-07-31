@@ -20,7 +20,7 @@ import (
 func TestSessionIsolation(t *testing.T) {
 	t.Helper()
 
-	registry = make(map[string]*HostComponent)
+	registry = make(map[string]*ServerComponent)
 
 	const componentName = "SessionHost"
 	Register(NewHostComponentWithSession(componentName, func(session *Session, payload map[string]any) any {
@@ -43,7 +43,7 @@ func TestSessionIsolation(t *testing.T) {
 
 	root := t.TempDir()
 	// Ensure an index exists so NewMux can serve fallback responses without error.
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o600); err != nil {
 		t.Fatalf("write index: %v", err)
 	}
 
@@ -101,7 +101,7 @@ func TestSessionIsolation(t *testing.T) {
 	sessions := []sessionConn{dial(0), dial(1)}
 	defer func() {
 		for _, sc := range sessions {
-			sc.ws.Close()
+			closeTestResource(t, sc.ws)
 		}
 	}()
 

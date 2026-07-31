@@ -1,3 +1,4 @@
+// Package highlight provides built-in Go and RTML syntax highlighting.
 package highlight
 
 import (
@@ -29,7 +30,7 @@ var (
 
 // Highlight returns HTML with basic syntax highlighting for supported languages.
 // Override this variable before RegisterPlugin to customize highlighting.
-var Highlight func(code, lang string) (string, bool) = defaultHighlight
+var Highlight = defaultHighlight
 
 func defaultHighlight(code, lang string) (string, bool) {
 	switch lang {

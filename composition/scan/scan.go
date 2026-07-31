@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package scan extracts composition metadata from component structs.
 package scan
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/rfwlab/rfw/v2/types"
 )
 
+// Meta describes the fields discovered on a component.
 type Meta struct {
 	Signals      []Signal
 	Stores       []Store
@@ -24,26 +26,42 @@ type Meta struct {
 	TemplateName string
 }
 
+// Signal identifies a signal field.
 type Signal struct{ Name string }
+
+// Store identifies a store field.
 type Store struct{ Name string }
+
+// Prop identifies a prop field.
 type Prop struct{ Name string }
+
+// Ref identifies a DOM reference field.
 type Ref struct{ Name string }
+
+// Host identifies a host-backed field.
 type Host struct{ Name string }
+
+// Event identifies an event handler.
 type Event struct{ Handler string }
+
+// Include identifies a component include.
 type Include struct {
 	Name  string
 	Field string
 }
+
+// Injection identifies a dependency injection field.
 type Injection struct {
 	Name string
 }
+
+// History identifies a history field.
 type History struct{ Name string }
 
 var (
 	storePtrType   = reflect.TypeOf((*state.Store)(nil))
 	refPtrType     = reflect.TypeOf((*types.Ref)(nil))
 	viewPtrType    = reflect.TypeOf((*types.View)(nil))
-	injectPtrType  = reflect.TypeOf((*types.Inject[int])(nil))
 	historyPtrType = reflect.TypeOf((*types.History)(nil))
 )
 
@@ -56,7 +74,7 @@ var hostTypes = map[string]bool{
 }
 
 func isSignalType(t reflect.Type) bool {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
@@ -68,9 +86,9 @@ func isSignalType(t reflect.Type) bool {
 		(t.Name() == "Signal" || strings.HasPrefix(t.Name(), "Signal[")) {
 		return true
 	}
-	_, hasGet := reflect.PtrTo(t).MethodByName("Get")
-	_, hasSet := reflect.PtrTo(t).MethodByName("Set")
-	_, hasRead := reflect.PtrTo(t).MethodByName("Read")
+	_, hasGet := reflect.PointerTo(t).MethodByName("Get")
+	_, hasSet := reflect.PointerTo(t).MethodByName("Set")
+	_, hasRead := reflect.PointerTo(t).MethodByName("Read")
 	if hasGet && hasSet && hasRead && hasFieldNamed(t, "value") {
 		return true
 	}
@@ -89,28 +107,28 @@ func hasFieldNamed(t reflect.Type, name string) bool {
 }
 
 func isSliceType(t reflect.Type) bool {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return t.Kind() == reflect.Struct && t.Name() == "Slice" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 func isMapType(t reflect.Type) bool {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return t.Kind() == reflect.Struct && t.Name() == "Map" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 func isPropType(t reflect.Type) bool {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return t.Kind() == reflect.Struct && t.Name() == "Prop" && t.PkgPath() == "github.com/rfwlab/rfw/v2/types"
 }
 
 func isHostType(t reflect.Type) bool {
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
@@ -129,7 +147,7 @@ func isHostType(t reflect.Type) bool {
 }
 
 func isInjectType(t reflect.Type) bool {
-	if t.Kind() != reflect.Ptr {
+	if t.Kind() != reflect.Pointer {
 		return false
 	}
 	elem := t.Elem()
@@ -156,9 +174,10 @@ func isComponentMethod(name string) bool {
 	return ok
 }
 
+// Scan inspects a component value and returns its composition metadata.
 func Scan(v any) (*Meta, error) {
 	typ := reflect.TypeOf(v)
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	if typ.Kind() != reflect.Struct {
@@ -167,7 +186,7 @@ func Scan(v any) (*Meta, error) {
 
 	m := &Meta{TemplateName: typ.Name()}
 	val := reflect.ValueOf(v)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 	if field := val.FieldByName("TemplateName"); field.IsValid() && field.Kind() == reflect.String && field.String() != "" {
@@ -230,7 +249,7 @@ func Scan(v any) (*Meta, error) {
 	}
 
 	// Auto-discover methods as event handlers
-	ptrTyp := reflect.PtrTo(typ)
+	ptrTyp := reflect.PointerTo(typ)
 	for i := 0; i < ptrTyp.NumMethod(); i++ {
 		met := ptrTyp.Method(i)
 		if !met.IsExported() {

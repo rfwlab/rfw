@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package env generates a temporary package from RFW environment variables.
 package env
 
 import (
@@ -7,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
@@ -24,7 +26,7 @@ func (p *plugin) Priority() int { return 0 }
 
 // PreBuild collects environment variables prefixed with RFW_ and generates a
 // temporary rfwenv package exposing them through Get.
-func (p *plugin) PreBuild(raw json.RawMessage) error {
+func (p *plugin) PreBuild(_ json.RawMessage) error {
 	vars := map[string]string{}
 	for _, e := range os.Environ() {
 		if !strings.HasPrefix(e, "RFW_") {
@@ -39,7 +41,7 @@ func (p *plugin) PreBuild(raw json.RawMessage) error {
 	}
 
 	p.dir = "rfwenv"
-	if err := os.MkdirAll(p.dir, 0o755); err != nil {
+	if err := os.MkdirAll(p.dir, 0o750); err != nil {
 		return err
 	}
 
@@ -54,23 +56,25 @@ func (p *plugin) PreBuild(raw json.RawMessage) error {
 	b.WriteString("package rfwenv\n\n")
 	b.WriteString("var vars = map[string]string{\n")
 	for _, k := range keys {
-		b.WriteString("\t\"" + k + "\": \"" + vars[k] + "\",\n")
+		b.WriteString("\t" + strconv.Quote(k) + ": " + strconv.Quote(vars[k]) + ",\n")
 	}
 	b.WriteString("}\n\n")
 	b.WriteString("func Get(key string) string {\n\treturn vars[key]\n}\n")
 
-	return os.WriteFile(filepath.Join(p.dir, "rfw_env.go"), []byte(b.String()), 0o644)
+	return os.WriteFile(filepath.Join(p.dir, "rfw_env.go"), []byte(b.String()), 0o600)
 }
 
-func (p *plugin) Build(raw json.RawMessage) error { return nil }
+func (p *plugin) Build(json.RawMessage) error { return nil }
 
 // PostBuild removes the temporary rfwenv package.
-func (p *plugin) PostBuild(raw json.RawMessage) error {
+func (p *plugin) PostBuild(json.RawMessage) error {
 	if p.dir != "" {
-		_ = os.RemoveAll(p.dir)
+		if err := os.RemoveAll(p.dir); err != nil {
+			return err
+		}
 		p.dir = ""
 	}
 	return nil
 }
 
-func (p *plugin) ShouldRebuild(path string) bool { return false }
+func (p *plugin) ShouldRebuild(string) bool { return false }

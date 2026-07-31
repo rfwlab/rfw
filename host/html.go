@@ -1,8 +1,6 @@
 package host
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"html"
 	"strings"
@@ -10,39 +8,57 @@ import (
 
 const hostVarAttr = "data-host-var"
 const hostExpectedAttr = "data-host-expected"
-const expectationAlg = "sha1"
 
-func encodeExpected(value string) string {
-	sum := sha1.Sum([]byte(value))
-	return fmt.Sprintf("%s:%s", expectationAlg, hex.EncodeToString(sum[:]))
+func validTagName(tag string) bool {
+	if tag == "" || !isASCIILetter(rune(tag[0])) {
+		return false
+	}
+	for _, char := range tag {
+		if isASCIILetter(char) || char >= '0' && char <= '9' || char == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func isASCIILetter(char rune) bool {
+	return char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z'
 }
 
 // hostVarTag builds a host variable element. The value is HTML-escaped so
-// user-derived data cannot inject markup through the initial snapshot; the
-// expectation hash is computed over the unescaped value because the client
-// hashes the element's text content, which the browser unescapes.
+// user-derived data cannot inject markup through the initial snapshot.
 func hostVarTag(tag, name string, value any, escape bool) string {
+	if !validTagName(tag) {
+		return ""
+	}
 	v := fmt.Sprintf("%v", value)
 	body := v
+	expected := ""
 	if escape {
 		body = html.EscapeString(v)
+		expected = html.EscapeString(v)
 	}
 	return fmt.Sprintf(`<%s %s="%s" %s="%s">%s</%s>`,
-		tag, hostVarAttr, name, hostExpectedAttr, encodeExpected(v), body, tag)
+		tag, hostVarAttr, html.EscapeString(name), hostExpectedAttr, expected, body, tag)
 }
 
+// Span renders an escaped host variable in a span.
 func Span(name string, value any) string {
 	return hostVarTag("span", name, value, true)
 }
 
+// Div renders an escaped host variable in a div.
 func Div(name string, value any) string {
 	return hostVarTag("div", name, value, true)
 }
 
+// P renders an escaped host variable in a paragraph.
 func P(name string, value any) string {
 	return hostVarTag("p", name, value, true)
 }
 
+// Tag renders an escaped host variable with tag.
 func Tag(tag, name string, value any) string {
 	return hostVarTag(tag, name, value, true)
 }
@@ -61,6 +77,7 @@ func Raw(html string) string {
 	return html
 }
 
+// Join concatenates rendered host fragments.
 func Join(parts ...string) string {
 	var b strings.Builder
 	for _, p := range parts {

@@ -6,6 +6,7 @@ package foundation
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 
 	fndi "github.com/mirkobrombin/go-foundation/v2/app/di"
@@ -54,7 +55,9 @@ func Emit[T any](bus *EventBus, event T) error {
 
 // EmitAsync sends a typed event without waiting for handlers.
 func EmitAsync[T any](bus *EventBus, event T) {
-	fnevents.EmitAsync(context.Background(), bus.bus, event)
+	if err := fnevents.EmitAsync(context.Background(), bus.bus, event); err != nil {
+		log.Printf("foundation async event: %v", err)
+	}
 }
 
 // ── Hooks ───────────────────────────────────────────────────────────────────
@@ -86,7 +89,7 @@ func (l *Lifecycle) Run(ctx context.Context, key string, action func() error, ar
 
 // Discover scans obj via reflection for methods prefixed with prefix and
 // auto-registers them as hooks. Not yet wired to foundation hooks discovery.
-func (l *Lifecycle) Discover(obj any, prefix string) *Lifecycle {
+func (l *Lifecycle) Discover(any, string) *Lifecycle {
 	// placeholder: will wire to foundation hooks.Discovery when API stabilizes
 	return l
 }
@@ -109,7 +112,7 @@ type EffectInput struct {
 func NewEffectPipeline() *EffectPipeline {
 	p := fnpipeline.New[EffectInput, struct{}]()
 	// default handler does nothing
-	p.Then(func(_ context.Context, in EffectInput) (struct{}, error) {
+	p.Then(func(_ context.Context, _ EffectInput) (struct{}, error) {
 		return struct{}{}, nil
 	})
 	return &EffectPipeline{pip: p}
@@ -133,7 +136,10 @@ func (ep *EffectPipeline) Process(ctx context.Context, in EffectInput) {
 // Result re-exports foundation's Result monad for async UI ops.
 type Result[T any] = fnresult.Result[T]
 
-func Ok[T any](v T) Result[T]      { return fnresult.Ok[T](v) }
+// Ok creates a successful Result.
+func Ok[T any](v T) Result[T] { return fnresult.Ok[T](v) }
+
+// Err creates a failed Result.
 func Err[T any](e error) Result[T] { return fnresult.Err[T](e) }
 
 // ── Options ─────────────────────────────────────────────────────────────────
@@ -171,38 +177,52 @@ type Meta struct {
 	Histories []HistoryMeta
 }
 
-// Field-level metadata structs.
+// SignalMeta describes a signal field.
 type SignalMeta struct {
 	Field reflect.StructField
 	Name  string // defaults to field name
 }
+
+// StoreMeta describes a store field.
 type StoreMeta struct {
 	Field reflect.StructField
 	Name  string // from tag value
 }
+
+// PropMeta describes a component property field.
 type PropMeta struct {
 	Field      reflect.StructField
 	Name       string
 	DefaultVal any
 }
+
+// HostMeta describes a host binding field.
 type HostMeta struct {
 	Field reflect.StructField
 	Name  string
 }
+
+// EventMeta describes an event binding field.
 type EventMeta struct {
 	Field     reflect.StructField
 	DOMEvent  string
 	Handler   string
 	Modifiers []string
 }
+
+// InjectMeta describes a dependency injection field.
 type InjectMeta struct {
 	Field reflect.StructField
 	Key   string
 }
+
+// FSMMeta describes a finite-state machine field.
 type FSMMeta struct {
 	Field      reflect.StructField
 	Definition string // raw tag value
 }
+
+// HistoryMeta describes a history field and its events.
 type HistoryMeta struct {
 	Field   reflect.StructField
 	Store   string

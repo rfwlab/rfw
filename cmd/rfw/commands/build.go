@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package commands implements RFW CLI commands.
 package commands
 
 import (

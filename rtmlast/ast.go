@@ -138,18 +138,31 @@ type BinaryExpr struct {
 type BinOp int
 
 const (
+	// OpUnknown represents an invalid binary operator.
 	OpUnknown BinOp = iota
+	// OpEq compares values for equality.
 	OpEq
+	// OpNeq compares values for inequality.
 	OpNeq
+	// OpLt compares whether the left value is lower.
 	OpLt
+	// OpLte compares whether the left value is lower or equal.
 	OpLte
+	// OpGt compares whether the left value is greater.
 	OpGt
+	// OpGte compares whether the left value is greater or equal.
 	OpGte
+	// OpAnd applies boolean conjunction.
 	OpAnd
+	// OpOr applies boolean disjunction.
 	OpOr
+	// OpAdd adds values.
 	OpAdd
+	// OpSub subtracts values.
 	OpSub
+	// OpMul multiplies values.
 	OpMul
+	// OpDiv divides values.
 	OpDiv
 )
 
@@ -163,8 +176,11 @@ type UnaryExpr struct {
 type UnaryOp int
 
 const (
+	// UnaryUnknown represents an invalid unary operator.
 	UnaryUnknown UnaryOp = iota
+	// UnaryNot negates a boolean value.
 	UnaryNot
+	// UnaryNeg negates a numeric value.
 	UnaryNeg
 )
 

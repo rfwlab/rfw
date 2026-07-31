@@ -8,7 +8,7 @@ import (
 
 // ExposeUpdateStore exposes a JS function to update store values.
 func ExposeUpdateStore() {
-	js.Set("goUpdateStore", js.FuncOf(func(this js.Value, args []js.Value) any {
+	js.Set("goUpdateStore", js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) < 4 {
 			return nil
 		}

@@ -1,3 +1,4 @@
+// Package router provides client-side application routing.
 package router
 
 import (
@@ -41,10 +42,14 @@ type RouteDataReceiver interface {
 type NavigationStatus string
 
 const (
-	NavigationIdle    NavigationStatus = "idle"
+	// NavigationIdle indicates that no navigation is active.
+	NavigationIdle NavigationStatus = "idle"
+	// NavigationLoading indicates that a route loader is running.
 	NavigationLoading NavigationStatus = "loading"
-	NavigationReady   NavigationStatus = "ready"
-	NavigationError   NavigationStatus = "error"
+	// NavigationReady indicates that navigation completed successfully.
+	NavigationReady NavigationStatus = "ready"
+	// NavigationError indicates that navigation failed.
+	NavigationError NavigationStatus = "error"
 )
 
 var (

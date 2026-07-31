@@ -36,7 +36,9 @@ func runDev(cmd *command.Command, _ *command.RootFlags, _ []string) error {
 		}
 	}
 	host := cmd.GetFlagBool("host")
-	os.Setenv("RFW_DEV_BUILD", "1")
+	if err := os.Setenv("RFW_DEV_BUILD", "1"); err != nil {
+		return err
+	}
 	srv := server.NewServer(port, host)
 	return srv.Start()
 }

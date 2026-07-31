@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// LoadComponentTemplate validates and returns embedded template data.
 func LoadComponentTemplate(templateFs []byte) (string, error) {
 	template := string(templateFs)
 	if template == "" {

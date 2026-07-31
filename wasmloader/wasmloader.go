@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package wasmloader loads WebAssembly bundles and manages loading feedback.
 package wasmloader
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/rfwlab/rfw/v2/js"
 )
 
+// Options configures bundle loading and progress display.
 type Options struct {
 	Go         js.Value
 	Color      string
@@ -66,7 +68,7 @@ func createBar(opts Options) (js.Value, js.Value, js.Func) {
 	doc.Get("body").Call("appendChild", bar)
 
 	progress := 0.0
-	intervalFn := js.FuncOf(func(this js.Value, args []js.Value) any {
+	intervalFn := js.FuncOf(func(_ js.Value, _ []js.Value) any {
 		progress += js.Math().Call("random").Float() * 10
 		if progress > 90 {
 			progress = 90
@@ -86,7 +88,7 @@ func finishBar(bar, intervalID js.Value, intervalFn js.Func) {
 	intervalFn.Release()
 	bar.Get("style").Set("width", "100%")
 	removeFn := js.Func{}
-	removeFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+	removeFn = js.FuncOf(func(_ js.Value, _ []js.Value) any {
 		bar.Call("remove")
 		removeFn.Release()
 		return nil
@@ -105,12 +107,12 @@ func removeBar(bar, intervalID js.Value, intervalFn js.Func) {
 
 func instantiate(resp js.Value, opts Options, bar, intervalID js.Value, intervalFn js.Func) {
 	arrayBufFn := js.Func{}
-	arrayBufFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+	arrayBufFn = js.FuncOf(func(_ js.Value, args []js.Value) any {
 		bytes := args[0]
 		finishBar(bar, intervalID, intervalFn)
 		wasm := js.WebAssembly()
 		instantiateFn := js.Func{}
-		instantiateFn = js.FuncOf(func(this js.Value, args []js.Value) any {
+		instantiateFn = js.FuncOf(func(_ js.Value, args []js.Value) any {
 			inst := args[0].Get("instance")
 			opts.Go.Call("run", inst)
 			instantiateFn.Release()
@@ -123,6 +125,7 @@ func instantiate(resp js.Value, opts Options, bar, intervalID js.Value, interval
 	resp.Call("arrayBuffer").Call("then", arrayBufFn)
 }
 
+// Load fetches and starts a WebAssembly bundle.
 func Load(url string, opts Options) {
 	var bar js.Value
 	var intervalID js.Value
@@ -148,7 +151,7 @@ func Load(url string, opts Options) {
 		success := js.Func{}
 		failure := js.Func{}
 
-		success = js.FuncOf(func(this js.Value, args []js.Value) any {
+		success = js.FuncOf(func(_ js.Value, args []js.Value) any {
 			resp := args[0]
 			if !resp.Get("ok").Bool() {
 				success.Release()
@@ -162,7 +165,7 @@ func Load(url string, opts Options) {
 			return nil
 		})
 
-		failure = js.FuncOf(func(this js.Value, args []js.Value) any {
+		failure = js.FuncOf(func(_ js.Value, _ []js.Value) any {
 			success.Release()
 			failure.Release()
 			tryFetch(idx + 1)
@@ -175,7 +178,7 @@ func Load(url string, opts Options) {
 	tryFetch(0)
 }
 
-func loadFunc(this js.Value, args []js.Value) any {
+func loadFunc(_ js.Value, args []js.Value) any {
 	if len(args) == 0 {
 		return nil
 	}

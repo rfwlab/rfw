@@ -22,6 +22,9 @@ type HostComponent struct {
 	initSnapshot   func(*Session, map[string]any) *InitSnapshot
 }
 
+// ServerComponent is the concise name for HostComponent.
+type ServerComponent = HostComponent
+
 // InitSnapshot represents markup the host can send to force the client to
 // repaint a fragment. HTML is injected into the component root as raw HTML on
 // the client, so build it from the escaping helpers (Span, Div, P, Tag); any
@@ -49,6 +52,7 @@ func (hc *HostComponent) WithInitSnapshot(fn func(*Session, map[string]any) *Ini
 	return hc
 }
 
+// Name returns the registered component name.
 func (hc *HostComponent) Name() string { return hc.name }
 
 // Handle executes the component's handler.

@@ -67,7 +67,7 @@ func Request(url string, opts RequestOptions, cb func(status int, body string)) 
 		a[0].Call("text").Call("then", onText).Call("catch", onErr)
 		return nil
 	})
-	onErr = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
+	onErr = js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 		release()
 		if cb != nil {
 			cb(0, "")
@@ -103,7 +103,7 @@ func RequestBytes(url string, opts RequestOptions, cb func(status int, body []by
 		a[0].Call("arrayBuffer").Call("then", onBuf).Call("catch", onErr)
 		return nil
 	})
-	onErr = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
+	onErr = js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 		release()
 		if cb != nil {
 			cb(0, nil)
