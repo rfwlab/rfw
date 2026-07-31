@@ -1,0 +1,28 @@
+# golangci-lint v2 config. Fabricators baseline for Go repos.
+# Standard: fab/infra -> code-quality/README.md (§2.3).
+# Run for both native and GOOS=js GOARCH=wasm targets (see the static-analysis
+# workflow) so the //go:build js && wasm components are analysed too.
+# If your golangci-lint is still v1, run `golangci-lint migrate` to update this file.
+version: "2"
+
+linters:
+  # 'standard' = errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    - gosec        # security issues
+    - revive       # golint successor (style / common mistakes)
+    - misspell
+    - unconvert    # redundant type conversions
+    - bodyclose    # unclosed HTTP response bodies
+  settings:
+    revive:
+      enable-default-rules: true
+      rules:
+        - name: exported
+          arguments:
+            - disableStutteringCheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

@@ -636,7 +636,7 @@ func (p *parser) parsePrimary() (any, error) {
 		for p.cur.typ == tDot {
 			p.next()
 			if p.cur.typ != tIdent {
-				return nil, fmt.Errorf("expected field name after .")
+				return nil, fmt.Errorf("expected field name after dot")
 			}
 			name += "." + p.cur.val
 			p.next()

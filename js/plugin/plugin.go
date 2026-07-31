@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package plugin adapts JavaScript plugins to the Go plugin interface.
 package plugin
 
 import (
@@ -53,7 +54,7 @@ func Register(v js.Value) {
 
 func init() {
 	// Expose plugin registration for JavaScript callers.
-	js.ExposeFunc("rfwRegisterPlugin", func(this js.Value, args []js.Value) any {
+	js.ExposeFunc("rfwRegisterPlugin", func(_ js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			Register(args[0])
 		}

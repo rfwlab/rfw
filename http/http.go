@@ -1,10 +1,12 @@
 //go:build js && wasm
 
+// Package http provides cached browser fetch helpers.
 package http
 
 import (
 	"encoding/json"
 	"errors"
+	stdhttp "net/http"
 	"sync"
 	"time"
 
@@ -30,6 +32,7 @@ type textEntry struct {
 
 var cache sync.Map     // map[string]*cacheEntry
 var textCache sync.Map // map[string]*textEntry
+var httpHookMu sync.RWMutex
 
 // RegisterHTTPHook adds a callback invoked on request start and completion.
 // The callback receives a start flag, request URL, status code and duration.
@@ -37,8 +40,20 @@ var httpHook func(start bool, url string, status int, duration time.Duration)
 
 // RegisterHTTPHook registers fn to receive HTTP request events.
 func RegisterHTTPHook(fn func(start bool, url string, status int, duration time.Duration)) {
+	httpHookMu.Lock()
 	httpHook = fn
+	httpHookMu.Unlock()
 }
+
+func currentHTTPHook() func(bool, string, int, time.Duration) {
+	httpHookMu.RLock()
+	hook := httpHook
+	httpHookMu.RUnlock()
+	return hook
+}
+
+// SetNativeClient has no effect in browser builds.
+func SetNativeClient(_ *stdhttp.Client) {}
 
 // FetchJSON retrieves JSON data from the given URL and decodes it into v.
 // Results are cached by URL. If a request is already in progress, FetchJSON
@@ -49,42 +64,43 @@ func FetchJSON(url string, v any) error {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
+			hook := currentHTTPHook()
+			if hook != nil {
+				hook(true, url, 0, 0)
 			}
 			start := time.Now()
 			js.Fetch(url).Call("then",
-				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					resp := args[0]
 					status := resp.Get("status").Int()
 					resp.Call("json").Call("then",
-						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							obj := args[0]
-							jsonStr := js.JSON().Call("stringify", obj).String()
+							jsonStr := js.GlobalJSON().Call("stringify", obj).String()
 							ce.data = []byte(jsonStr)
-							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
+							if hook != nil {
+								hook(false, url, status, time.Since(start))
 							}
+							close(ce.ready)
 							return nil
 						}),
-						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
-							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
+							if hook != nil {
+								hook(false, url, status, time.Since(start))
 							}
+							close(ce.ready)
 							return nil
 						}),
 					)
 					return nil
 				}),
-				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
-					close(ce.ready)
-					if httpHook != nil {
-						httpHook(false, url, 0, time.Since(start))
+					if hook != nil {
+						hook(false, url, 0, time.Since(start))
 					}
+					close(ce.ready)
 					return nil
 				}),
 			)
@@ -110,40 +126,41 @@ func FetchText(url string) (string, error) {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
+			hook := currentHTTPHook()
+			if hook != nil {
+				hook(true, url, 0, 0)
 			}
 			start := time.Now()
 			js.Fetch(url).Call("then",
-				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					resp := args[0]
 					status := resp.Get("status").Int()
 					resp.Call("text").Call("then",
-						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							ce.text = args[0].String()
-							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
+							if hook != nil {
+								hook(false, url, status, time.Since(start))
 							}
+							close(ce.ready)
 							return nil
 						}),
-						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
-							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
+							if hook != nil {
+								hook(false, url, status, time.Since(start))
 							}
+							close(ce.ready)
 							return nil
 						}),
 					)
 					return nil
 				}),
-				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
-					close(ce.ready)
-					if httpHook != nil {
-						httpHook(false, url, 0, time.Since(start))
+					if hook != nil {
+						hook(false, url, 0, time.Since(start))
 					}
+					close(ce.ready)
 					return nil
 				}),
 			)

@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package shortcut registers keyboard shortcut handlers.
 package shortcut
 
 import (
@@ -29,7 +30,7 @@ func New() *Plugin {
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
 // Install registers key listeners and activates the plugin.
-func (p *Plugin) Install(a *core.App) {
+func (p *Plugin) Install(_ *core.App) {
 	current = p
 	events.OnKeyDown(func(e js.Value) {
 		key := strings.ToLower(e.Get("key").String())

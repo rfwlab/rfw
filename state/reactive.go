@@ -1,16 +1,19 @@
 package state
 
+// ReactiveVar stores a value and notifies listeners when it changes.
 type ReactiveVar[T any] struct {
 	value     T
 	listeners []func(T)
 }
 
+// NewReactiveVar creates a reactive value.
 func NewReactiveVar[T any](initial T) *ReactiveVar[T] {
 	return &ReactiveVar[T]{
 		value: initial,
 	}
 }
 
+// Set updates the value and notifies listeners.
 func (rv *ReactiveVar[T]) Set(newValue T) {
 	rv.value = newValue
 	for _, listener := range rv.listeners {
@@ -18,10 +21,12 @@ func (rv *ReactiveVar[T]) Set(newValue T) {
 	}
 }
 
+// Get returns the current value.
 func (rv *ReactiveVar[T]) Get() T {
 	return rv.value
 }
 
+// OnChange registers a listener.
 func (rv *ReactiveVar[T]) OnChange(listener func(T)) {
 	rv.listeners = append(rv.listeners, listener)
 }

@@ -16,6 +16,7 @@ func SetDevMode(enabled bool) {
 	DevMode = enabled
 }
 
+// Component defines the lifecycle and rendering contract for UI components.
 type Component interface {
 	Render() string
 	Mount()

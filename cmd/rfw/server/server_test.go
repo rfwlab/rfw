@@ -19,14 +19,7 @@ func TestIncrementPort(t *testing.T) {
 // TestReadBuildType reads build type from temporary manifest.
 func TestReadBuildType(t *testing.T) {
 	dir := t.TempDir()
-	oldwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Getwd failed: %v", err)
-	}
-	defer os.Chdir(oldwd)
-	if err := os.Chdir(dir); err != nil {
-		t.Fatalf("Chdir failed: %v", err)
-	}
+	t.Chdir(dir)
 
 	// No file should return empty string.
 	if got := readBuildType(); got != "" {
@@ -35,7 +28,7 @@ func TestReadBuildType(t *testing.T) {
 
 	// Create manifest and verify value.
 	data := []byte(`{"build":{"type":"SSC"}}`)
-	if err := os.WriteFile(filepath.Join(dir, "rfw.json"), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "rfw.json"), data, 0o600); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 	if got := readBuildType(); got != "ssc" {

@@ -9,7 +9,7 @@ import (
 // Stores are advertised for goroutine-driven feeds (dashboards, tickers), so
 // concurrent Set/Get/OnChange/Snapshot/history must be data-race free under
 // go test -race.
-func TestStoreConcurrentAccess(t *testing.T) {
+func TestStoreConcurrentAccess(_ *testing.T) {
 	s := NewStore("racestore", WithModule("race"), WithHistory(8))
 	s.RegisterComputed(NewComputed("double", []string{"n"}, func(m map[string]any) any {
 		if v, ok := m["n"].(int); ok {
@@ -46,7 +46,7 @@ func TestStoreConcurrentAccess(t *testing.T) {
 
 // Signals may be fed from background goroutines while effects and readers run
 // elsewhere; Get/Set/OnChange must be data-race free under go test -race.
-func TestSignalConcurrentAccess(t *testing.T) {
+func TestSignalConcurrentAccess(_ *testing.T) {
 	sig := NewSignal(0)
 	stop := Effect(func() func() {
 		_ = sig.Get()

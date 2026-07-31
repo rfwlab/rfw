@@ -121,7 +121,7 @@ var mountedRoot core.Component
 // the outlet inside it. Call it before InitRouter.
 func MountRoot(c core.Component) {
 	mountedRoot = c
-	dom.UpdateDOM(c.GetID(), core.TryRender(c))
-	c.Mount()
-	core.TriggerMount(c)
+	dom.UpdateDOM(mountedRoot.GetID(), core.TryRender(mountedRoot))
+	mountedRoot.Mount()
+	core.TriggerMount(mountedRoot)
 }

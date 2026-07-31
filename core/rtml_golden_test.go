@@ -3,7 +3,7 @@
 package core
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"strings"
 	"testing"
@@ -139,7 +139,8 @@ func TestGoldenConditionalDirective(t *testing.T) {
 	conds := []string{`@if:prop:v=="1"`, `@else-if:prop:v=="2"`, ""}
 	// the trailing index numbers the block within the render pass: two @if
 	// blocks with the same condition are distinct blocks
-	condID := fmt.Sprintf("cond-%x-0", sha1.Sum([]byte(strings.Join(conds, "|"))))
+	condHash := sha256.Sum256([]byte(strings.Join(conds, "|")))
+	condID := fmt.Sprintf("cond-%x-0", condHash[:20])
 	want := fmt.Sprintf("<root data-component-id=\"%s\">\n<div data-condition=\"%s\">Two\n</div></root>\n", c.ID, condID)
 	expectGolden(t, got, want)
 }
@@ -190,8 +191,7 @@ func TestGoldenHostDirectives(t *testing.T) {
 	c.Init(nil)
 	c.AddHostComponent("GoldenHostComp")
 	got := c.Render()
-	hash := sha1.Sum([]byte("5"))
-	want := fmt.Sprintf(`<root data-component-id="%s"><p><span data-host-var="count" data-host-expected="sha1:%x">5</span></p><button data-host-cmd="reset">r</button></root>
-`, c.ID, hash)
+	want := fmt.Sprintf(`<root data-component-id="%s"><p><span data-host-var="count" data-host-expected="5">5</span></p><button data-host-cmd="reset">r</button></root>
+`, c.ID)
 	expectGolden(t, got, want)
 }

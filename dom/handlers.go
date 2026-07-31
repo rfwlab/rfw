@@ -12,7 +12,7 @@ import (
 	js "github.com/rfwlab/rfw/v2/js"
 )
 
-// OnHandlerPanic, if set, is called when a registered handler panics.
+// OnHandlerPanic is called when a registered handler panics, if set.
 // Set this from the core package to wire error overlay recovery.
 var OnHandlerPanic func(err any, name string)
 
@@ -49,7 +49,7 @@ func RegisterComponentHandler(componentID, name string, fn func(this js.Value, a
 
 // RegisterHandlerFunc registers a no-argument Go function in the handler registry.
 func RegisterHandlerFunc(name string, fn func()) {
-	RegisterHandler(name, func(this js.Value, args []js.Value) any {
+	RegisterHandler(name, func(_ js.Value, _ []js.Value) any {
 		fn()
 		return nil
 	})
@@ -57,7 +57,7 @@ func RegisterHandlerFunc(name string, fn func()) {
 
 // RegisterComponentHandlerFunc registers a no-argument component handler.
 func RegisterComponentHandlerFunc(componentID, name string, fn func()) {
-	RegisterComponentHandler(componentID, name, func(this js.Value, args []js.Value) any {
+	RegisterComponentHandler(componentID, name, func(_ js.Value, _ []js.Value) any {
 		fn()
 		return nil
 	})
@@ -65,7 +65,7 @@ func RegisterComponentHandlerFunc(componentID, name string, fn func()) {
 
 // RegisterHandlerEvent registers a Go function that receives the first argument as an event object.
 func RegisterHandlerEvent(name string, fn func(js.Value)) {
-	RegisterHandler(name, func(this js.Value, args []js.Value) any {
+	RegisterHandler(name, func(_ js.Value, args []js.Value) any {
 		var evt js.Value
 		if len(args) > 0 {
 			evt = args[0]
@@ -81,7 +81,7 @@ func RegisterHandlerEvent(name string, fn func(js.Value)) {
 // way to handle clicks on list rows: render rows with data-on-click="name"
 // and read the row's data-* attributes from el.
 func RegisterHandlerElem(name string, fn func(el Element, evt Event)) {
-	RegisterHandler(name, func(this js.Value, args []js.Value) any {
+	RegisterHandler(name, func(_ js.Value, args []js.Value) any {
 		var evt, el js.Value
 		if len(args) > 0 {
 			evt = args[0]
@@ -168,7 +168,7 @@ func newDelegatedHandler(componentID string, root js.Value, event string, captur
 	timers := make(map[string]*time.Timer)
 	throttled := make(map[string]time.Time)
 
-	fn := js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+	fn := js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return nil
 		}

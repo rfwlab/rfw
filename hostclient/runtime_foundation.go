@@ -80,6 +80,32 @@ type actionReply struct {
 	err     *ActionError
 }
 
+func decodeInitSnapshotPayload(raw any) *initSnapshotPayload {
+	if raw == nil {
+		return nil
+	}
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return nil
+	}
+	html, _ := m["html"].(string)
+	if html == "" {
+		return nil
+	}
+	var vars []string
+	if list, ok := m["vars"].([]any); ok {
+		vars = make([]string, 0, len(list))
+		for _, item := range list {
+			if s, ok := item.(string); ok {
+				vars = append(vars, s)
+			}
+		}
+	} else if list, ok := m["vars"].([]string); ok {
+		vars = append(vars, list...)
+	}
+	return &initSnapshotPayload{HTML: html, Vars: vars}
+}
+
 // ActionError is a machine-readable error returned by a typed host action.
 type ActionError struct {
 	Code    string            `json:"code"`
@@ -235,13 +261,16 @@ func connectionLoop() {
 				go func() { errCh <- pingLoop(ctx2, c) }()
 				loopErr := <-errCh
 				cancel2()
-				c.Close(websocket.StatusInternalError, "connection closed")
+				closeErr := c.Close(websocket.StatusInternalError, "connection closed")
 
 				mu.Lock()
 				conn = nil
 				mu.Unlock()
 				connectionState.Set(ConnectionDisconnected)
-				return loopErr
+				if loopErr != nil {
+					return loopErr
+				}
+				return closeErr
 			})
 		},
 			fnres.WithAttempts(5),
@@ -413,6 +442,7 @@ func prepareInboundDelivery(remoteSession, control string) {
 	deliveryMu.Unlock()
 }
 
+// RegisterComponent binds a client component to a host component name.
 func RegisterComponent(id, name string, vars []string) {
 	mu.Lock()
 	bindings[name] = componentBinding{id: id, vars: vars}
@@ -445,6 +475,7 @@ func dedupEnabled(name string) bool {
 	return ok
 }
 
+// Send queues or transmits a host component message.
 func Send(name string, payload any) {
 	connect()
 	if dedupEnabled(name) {
@@ -452,7 +483,9 @@ func Send(name string, payload any) {
 		if _, ok, _ := sendCache.Get(context.Background(), key); ok {
 			return
 		}
-		sendCache.Set(context.Background(), key, "sent", 5*time.Second)
+		if err := sendCache.Set(context.Background(), key, "sent", 5*time.Second); err != nil {
+			log.Printf("hostclient: dedup cache set failed: %v", err)
+		}
 	}
 
 	mu.RLock()
@@ -470,6 +503,7 @@ func Send(name string, payload any) {
 	sendMessage(c, message{name: name, payload: payload})
 }
 
+// RegisterHandler registers a handler for host messages.
 func RegisterHandler(name string, h func(map[string]any)) {
 	mu.Lock()
 	handlers[name] = h
@@ -484,6 +518,7 @@ func RegisterHandler(name string, h func(map[string]any)) {
 	}
 }
 
+// SessionID returns the current SSC session ID.
 func SessionID() string {
 	sessionMu.RLock()
 	defer sessionMu.RUnlock()
@@ -603,4 +638,5 @@ func SubmitForm[Values, Response any](ctx context.Context, action string, values
 	return Call[Values, FormResponse[Response]](ctx, action, values)
 }
 
+// EnableDebug enables host client debug logging.
 func EnableDebug() { debug = true }

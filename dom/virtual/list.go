@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package virtual renders large lists with a bounded DOM footprint.
 package virtual
 
 import (
@@ -18,6 +19,9 @@ type VirtualList struct {
 	Render     func(i int) string
 	stopScroll func()
 }
+
+// List is the concise name for VirtualList.
+type List = VirtualList
 
 // NewVirtualList attaches a virtualized list to the element with the given id.
 func NewVirtualList(containerID string, total, itemHeight int, render func(i int) string) *VirtualList {

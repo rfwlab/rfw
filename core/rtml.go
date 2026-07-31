@@ -3,7 +3,7 @@
 package core
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"html"
 	"regexp"
@@ -34,40 +34,45 @@ var (
 	reRtIs            = regexp.MustCompile(`<([a-zA-Z0-9]+)([^>]*)rt-is="([^"]+)"[^>]*/?>`)
 	reTagName         = regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
 	reConditionalAttr = regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
-	reFor             = regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
 	depRegex          = regexp.MustCompile(`(?:store:\w+\.\w+\.\w+|signal:\w+|prop:\w+|\w+(?:\.\w+)*)`)
 )
 
-// AST structures for template parsing
+// Node renders a parsed template node.
 type Node interface {
 	Render(c *HTMLComponent) string
 }
 
+// TextNode contains literal template text.
 type TextNode struct {
 	Text string
 }
 
-func (t *TextNode) Render(c *HTMLComponent) string { return t.Text }
+// Render returns the literal text.
+func (t *TextNode) Render(*HTMLComponent) string { return t.Text }
 
+// ConditionalBranch contains a conditional expression and its nodes.
 type ConditionalBranch struct {
 	Condition string // empty for @else
 	Nodes     []Node
 }
 
+// ConditionalNode renders the first matching branch.
 type ConditionalNode struct {
 	Branches []ConditionalBranch
 }
 
-// ConditionContent stores rendered content for each branch of a conditional block
+// ConditionalBranchContent stores rendered content for one branch.
 type ConditionalBranchContent struct {
 	Condition string
 	Content   string
 }
 
+// ConditionContent stores all rendered branches of a conditional block.
 type ConditionContent struct {
 	Branches []ConditionalBranchContent
 }
 
+// ConditionDependency identifies reactive state read by a condition.
 type ConditionDependency struct {
 	module    string
 	storeName string
@@ -81,7 +86,8 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 	for _, br := range cn.Branches {
 		conditions = append(conditions, br.Condition)
 	}
-	conditionID := fmt.Sprintf("cond-%x-%d", sha1.Sum([]byte(strings.Join(conditions, "|"))), c.condSeq)
+	conditionHash := sha256.Sum256([]byte(strings.Join(conditions, "|")))
+	conditionID := fmt.Sprintf("cond-%x-%d", conditionHash[:20], c.condSeq)
 	c.condSeq++
 
 	var content ConditionContent
@@ -325,9 +331,8 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 
 			if isWriteable {
 				return match
-			} else {
-				return fmt.Sprintf(`<span data-store="%s.%s.%s">%s</span>`, module, storeName, key, escapeValue(value))
 			}
+			return fmt.Sprintf(`<span data-store="%s.%s.%s">%s</span>`, module, storeName, key, escapeValue(value))
 		}
 		if DevMode {
 			Log().Warn("store %s.%s not found for key '%s' in component %s", module, storeName, key, c.Name)
@@ -570,10 +575,6 @@ func evalASTExprWithSigRefs(expr rtmlast.Expr, c *HTMLComponent, sigRefs map[str
 	return nil
 }
 
-func evalASTExpr(expr rtmlast.Expr, c *HTMLComponent) any {
-	return evalASTExprWithSigRefs(expr, c, nil)
-}
-
 func cmpASTEqual(a, b any) bool {
 	switch av := a.(type) {
 	case string:
@@ -628,8 +629,10 @@ func toASTFloat(v any) float64 {
 	case float32:
 		return float64(val)
 	case string:
-		var f float64
-		fmt.Sscanf(val, "%f", &f)
+		f, err := strconv.ParseFloat(val, 64)
+		if err != nil {
+			return 0
+		}
 		return f
 	default:
 		return 0
@@ -846,8 +849,7 @@ func replaceHostPlaceholders(template string, c *HTMLComponent) string {
 			}
 		}
 
-		hash := sha1.Sum([]byte(expectedVal))
-		expectedAttr := fmt.Sprintf("sha1:%x", hash)
+		expectedAttr := html.EscapeString(expectedVal)
 
 		return fmt.Sprintf(`<span data-host-var="%s" data-host-expected="%s">%s</span>`,
 			name, expectedAttr, html.EscapeString(expectedVal))
@@ -1198,7 +1200,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 			store := state.GlobalStoreManager.GetStore(module, storeName)
 			if store != nil {
 				if val := store.Get(key); val != nil {
-					unsubscribe := store.OnChange(key, func(newValue any) {
+					unsubscribe := store.OnChange(key, func(any) {
 						dom.UpdateMountedDOM(c.ID, c.RenderFresh())
 					})
 					c.unsubscribes.Add(unsubscribe)

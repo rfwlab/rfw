@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package highlight adds syntax highlighting to code blocks.
 package highlight
 
 import (
@@ -11,17 +12,20 @@ import (
 	js "github.com/rfwlab/rfw/v2/js"
 )
 
+// Plugin installs syntax highlighting helpers.
 type Plugin struct{}
 
+// New creates a syntax highlighting plugin.
 func New() *Plugin { return &Plugin{} }
 
+// Build accepts the plugin build configuration.
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
-// HighlightAll finds all <pre><code> blocks in the document and replaces
+// All finds all <pre><code> blocks in the document and replaces
 // their contents with highlighted HTML using the registered Highlight
 // function. The language is detected from `language-<lang>` classes or the
 // `data-lang` attribute.
-func HighlightAll() {
+func All() {
 	doc := dom.Doc()
 	codes := doc.QueryAll("pre code")
 	length := codes.Length()
@@ -46,8 +50,12 @@ func HighlightAll() {
 	}
 }
 
-func (p *Plugin) Install(a *core.App) {
-	js.ExposeFunc("rfwHighlight", func(this js.Value, args []js.Value) any {
+// HighlightAll highlights every registered code block.
+func HighlightAll() { All() }
+
+// Install exposes highlighting helpers and registers their styles.
+func (p *Plugin) Install(_ *core.App) {
+	js.ExposeFunc("rfwHighlight", func(_ js.Value, args []js.Value) any {
 		if len(args) < 2 {
 			return ""
 		}
@@ -59,8 +67,8 @@ func (p *Plugin) Install(a *core.App) {
 		return ""
 	})
 
-	js.ExposeFunc("rfwHighlightAll", func(this js.Value, args []js.Value) any {
-		HighlightAll()
+	js.ExposeFunc("rfwHighlightAll", func(_ js.Value, _ []js.Value) any {
+		All()
 		return nil
 	})
 

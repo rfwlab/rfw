@@ -34,7 +34,7 @@ func TestNavigateTrailingSlashNotFound(t *testing.T) {
 	Reset()
 	RegisterRoute(Route{Path: "/trail", Component: func() core.Component { return &trailingComponent{} }})
 	called := false
-	NotFoundCallback = func(p string) { called = true }
+	NotFoundCallback = func(string) { called = true }
 	Navigate("/trail/extra")
 	if !called {
 		t.Fatalf("expected NotFoundCallback for extra path, got none")

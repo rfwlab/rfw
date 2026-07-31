@@ -25,7 +25,7 @@ func TestEventsAndLifecycle(t *testing.T) {
 	bus := &EventBus{bus: DefaultBus.bus}
 	type event struct{ Value int }
 	var seen int
-	Subscribe[event](bus, func(ctx context.Context, e event) error {
+	Subscribe[event](bus, func(_ context.Context, e event) error {
 		seen = e.Value
 		return nil
 	})
@@ -38,11 +38,11 @@ func TestEventsAndLifecycle(t *testing.T) {
 
 	lc := NewLifecycle()
 	order := []string{}
-	lc.Before("mount", func(ctx context.Context, key string, args []any) error {
+	lc.Before("mount", func(_ context.Context, key string, _ []any) error {
 		order = append(order, "before:"+key)
 		return nil
 	})
-	lc.After("mount", func(ctx context.Context, key string, args []any) error {
+	lc.After("mount", func(_ context.Context, key string, _ []any) error {
 		order = append(order, "after:"+key)
 		return nil
 	})

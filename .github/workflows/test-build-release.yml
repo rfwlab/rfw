@@ -8,9 +8,7 @@ on:
     branches: ["main"]
 
 permissions:
-  id-token: write
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   test:
@@ -65,7 +63,7 @@ jobs:
         run: GOOS=js GOARCH=wasm go vet ./...
 
       - name: Install wasmbrowsertest
-        run: go install github.com/agnivade/wasmbrowsertest@latest
+        run: go install github.com/agnivade/wasmbrowsertest@v0.11.0
 
       - name: Allow Chrome sandbox (Ubuntu 24 AppArmor)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -96,7 +94,8 @@ jobs:
 
       - name: Download euprovguard
         run: |
-          curl -sL https://github.com/fabricatorsltd/euprovguard/releases/latest/download/euprovguard-linux-amd64 -o euprovguard
+          curl -fsSL https://github.com/fabricatorsltd/euprovguard/releases/download/v1.1.0/euprovguard-linux-amd64 -o euprovguard
+          echo "e936f5a70e8c5e027214f6a41dd6f99bc6e823395ab85f18abefd253df4a3f78  euprovguard" | sha256sum -c -
           chmod +x euprovguard
 
       - name: Run EUProvGuard Scan
@@ -123,7 +122,9 @@ jobs:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    needs: [test, wasm, scan]
+    needs: [test, wasm, scan, lint, secret-scan]
+    permissions:
+      contents: write
     container:
       image: ghcr.io/vanilla-os/pico:main
 
@@ -136,19 +137,37 @@ jobs:
         with:
           go-version: 1.25
 
-      - name: Build Application
-        run: go build -o rfw -ldflags="-X 'github.com/rfwlab/rfw/v2/core.version=${{ github.ref_name }}'" ./cmd/rfw/main.go
+      - name: Build release assets
+        run: |
+          mkdir release
+          for target in \
+            darwin/amd64 darwin/arm64 \
+            linux/amd64 linux/arm64 \
+            windows/amd64 windows/arm64
+          do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            output="release/rfw-${goos}-${goarch}"
+            if [ "$goos" = windows ]; then
+              output="${output}.exe"
+            fi
+            CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
+              go build -trimpath -o "$output" \
+              -ldflags="-s -w -X 'github.com/rfwlab/rfw/v2/core.version=${{ github.ref_name }}'" \
+              ./cmd/rfw/main.go
+          done
 
       - name: Calculate and Save Checksums
-        run: sha256sum rfw > checksums.txt
+        run: |
+          cd release
+          sha256sum rfw-* > checksums.txt
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: rfw-release-build
           path: |
-            rfw
-            checksums.txt
+            release/*
 
       - name: Download Compliance Reports
         uses: actions/download-artifact@v4
@@ -160,6 +179,60 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            rfw
-            checksums.txt
+            release/*
             compliance/*
+
+  # Static analysis (Fabricators standard, see fab/infra code-quality). golangci-lint
+  # runs native and GOOS=js GOARCH=wasm so the //go:build js && wasm components are
+  # analysed before release.
+  lint:
+    name: golangci (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: native, goos: linux, goarch: amd64 }
+          - { name: wasm, goos: js, goarch: wasm }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.12.2
+          args: --output.text.path=stdout --output.sarif.path=golangci-${{ matrix.name }}.sarif
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+      - name: Upload SARIF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golangci-sarif-${{ matrix.name }}
+          path: golangci-${{ matrix.name }}.sarif
+          if-no-files-found: warn
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run TruffleHog
+        run: |
+          docker run --rm \
+            --volume "$PWD:/repo" \
+            --workdir /repo \
+            ghcr.io/trufflesecurity/trufflehog:3.96.0 \
+            git file:///repo/ \
+            --fail \
+            --no-update \
+            --github-actions \
+            --results=verified,unknown

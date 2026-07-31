@@ -173,23 +173,23 @@ func For(selector string, fn func() Node) {
 	})
 }
 
-// divNode builds a <div> element.
-type divNode struct{ el dom.Element }
+// DivNode builds a <div> element.
+type DivNode struct{ el dom.Element }
 
 // Div creates a new <div> node builder.
-func Div() *divNode { return &divNode{el: dom.Doc().CreateElement("div")} }
+func Div() *DivNode { return &DivNode{el: dom.Doc().CreateElement("div")} }
 
 // Element returns the underlying DOM element.
-func (d *divNode) Element() dom.Element { return d.el }
+func (d *DivNode) Element() dom.Element { return d.el }
 
 // Class adds a class to the element.
-func (d *divNode) Class(name string) *divNode {
+func (d *DivNode) Class(name string) *DivNode {
 	d.el.AddClass(name)
 	return d
 }
 
 // Classes adds multiple classes to the element.
-func (d *divNode) Classes(names ...string) *divNode {
+func (d *DivNode) Classes(names ...string) *DivNode {
 	for _, name := range names {
 		d.el.AddClass(name)
 	}
@@ -197,13 +197,13 @@ func (d *divNode) Classes(names ...string) *divNode {
 }
 
 // Style sets an inline style property on the element.
-func (d *divNode) Style(prop, value string) *divNode {
+func (d *DivNode) Style(prop, value string) *DivNode {
 	d.el.SetStyle(prop, value)
 	return d
 }
 
 // Styles adds multiple inline style properties to the element.
-func (d *divNode) Styles(props ...string) *divNode {
+func (d *DivNode) Styles(props ...string) *DivNode {
 	for i := 0; i < len(props); i += 2 {
 		d.el.SetStyle(props[i], props[i+1])
 	}
@@ -211,36 +211,36 @@ func (d *divNode) Styles(props ...string) *divNode {
 }
 
 // Text sets the text content of the element.
-func (d *divNode) Text(t string) *divNode {
+func (d *DivNode) Text(t string) *DivNode {
 	d.el.SetText(t)
 	return d
 }
 
 // Group adds the node to the provided group.
-func (d *divNode) Group(g *Elements) *divNode {
+func (d *DivNode) Group(g *Elements) *DivNode {
 	if g != nil {
 		g.add(d)
 	}
 	return d
 }
 
-// anchorNode builds an <a> element.
-type anchorNode struct{ el dom.Element }
+// AnchorNode builds an <a> element.
+type AnchorNode struct{ el dom.Element }
 
 // A creates a new <a> node builder.
-func A() *anchorNode { return &anchorNode{el: dom.Doc().CreateElement("a")} }
+func A() *AnchorNode { return &AnchorNode{el: dom.Doc().CreateElement("a")} }
 
 // Element returns the underlying DOM element.
-func (a *anchorNode) Element() dom.Element { return a.el }
+func (a *AnchorNode) Element() dom.Element { return a.el }
 
 // Class adds a class to the element.
-func (a *anchorNode) Class(name string) *anchorNode {
+func (a *AnchorNode) Class(name string) *AnchorNode {
 	a.el.AddClass(name)
 	return a
 }
 
 // Classes adds multiple classes to the element.
-func (a *anchorNode) Classes(names ...string) *anchorNode {
+func (a *AnchorNode) Classes(names ...string) *AnchorNode {
 	for _, name := range names {
 		a.el.AddClass(name)
 	}
@@ -248,13 +248,13 @@ func (a *anchorNode) Classes(names ...string) *anchorNode {
 }
 
 // Style sets an inline style property on the element.
-func (a *anchorNode) Style(prop, value string) *anchorNode {
+func (a *AnchorNode) Style(prop, value string) *AnchorNode {
 	a.el.SetStyle(prop, value)
 	return a
 }
 
 // Styles adds multiple inline style properties to the element.
-func (a *anchorNode) Styles(props ...string) *anchorNode {
+func (a *AnchorNode) Styles(props ...string) *AnchorNode {
 	for i := 0; i < len(props); i += 2 {
 		a.el.SetStyle(props[i], props[i+1])
 	}
@@ -262,48 +262,48 @@ func (a *anchorNode) Styles(props ...string) *anchorNode {
 }
 
 // Attr sets an attribute on the element.
-func (a *anchorNode) Attr(name, value string) *anchorNode {
+func (a *AnchorNode) Attr(name, value string) *AnchorNode {
 	a.el.SetAttr(name, value)
 	return a
 }
 
 // Href sets the href attribute on the element.
-func (a *anchorNode) Href(h string) *anchorNode {
+func (a *AnchorNode) Href(h string) *AnchorNode {
 	a.el.SetAttr("href", h)
 	return a
 }
 
 // Text sets the text content of the element.
-func (a *anchorNode) Text(t string) *anchorNode {
+func (a *AnchorNode) Text(t string) *AnchorNode {
 	a.el.SetText(t)
 	return a
 }
 
 // Group adds the node to the provided group.
-func (a *anchorNode) Group(g *Elements) *anchorNode {
+func (a *AnchorNode) Group(g *Elements) *AnchorNode {
 	if g != nil {
 		g.add(a)
 	}
 	return a
 }
 
-// spanNode builds a <span> element.
-type spanNode struct{ el dom.Element }
+// SpanNode builds a <span> element.
+type SpanNode struct{ el dom.Element }
 
 // Span creates a new <span> node builder.
-func Span() *spanNode { return &spanNode{el: dom.Doc().CreateElement("span")} }
+func Span() *SpanNode { return &SpanNode{el: dom.Doc().CreateElement("span")} }
 
 // Element returns the underlying DOM element.
-func (s *spanNode) Element() dom.Element { return s.el }
+func (s *SpanNode) Element() dom.Element { return s.el }
 
 // Class adds a class to the element.
-func (s *spanNode) Class(name string) *spanNode {
+func (s *SpanNode) Class(name string) *SpanNode {
 	s.el.AddClass(name)
 	return s
 }
 
 // Classes adds multiple classes to the element.
-func (s *spanNode) Classes(names ...string) *spanNode {
+func (s *SpanNode) Classes(names ...string) *SpanNode {
 	for _, name := range names {
 		s.el.AddClass(name)
 	}
@@ -311,13 +311,13 @@ func (s *spanNode) Classes(names ...string) *spanNode {
 }
 
 // Style sets an inline style property on the element.
-func (s *spanNode) Style(prop, value string) *spanNode {
+func (s *SpanNode) Style(prop, value string) *SpanNode {
 	s.el.SetStyle(prop, value)
 	return s
 }
 
 // Styles adds multiple inline style properties to the element.
-func (s *spanNode) Styles(props ...string) *spanNode {
+func (s *SpanNode) Styles(props ...string) *SpanNode {
 	for i := 0; i < len(props); i += 2 {
 		s.el.SetStyle(props[i], props[i+1])
 	}
@@ -325,36 +325,36 @@ func (s *spanNode) Styles(props ...string) *spanNode {
 }
 
 // Text sets the text content of the element.
-func (s *spanNode) Text(t string) *spanNode {
+func (s *SpanNode) Text(t string) *SpanNode {
 	s.el.SetText(t)
 	return s
 }
 
 // Group adds the node to the provided group.
-func (s *spanNode) Group(g *Elements) *spanNode {
+func (s *SpanNode) Group(g *Elements) *SpanNode {
 	if g != nil {
 		g.add(s)
 	}
 	return s
 }
 
-// buttonNode builds a <button> element.
-type buttonNode struct{ el dom.Element }
+// ButtonNode builds a <button> element.
+type ButtonNode struct{ el dom.Element }
 
 // Button creates a new <button> node builder.
-func Button() *buttonNode { return &buttonNode{el: dom.Doc().CreateElement("button")} }
+func Button() *ButtonNode { return &ButtonNode{el: dom.Doc().CreateElement("button")} }
 
 // Element returns the underlying DOM element.
-func (b *buttonNode) Element() dom.Element { return b.el }
+func (b *ButtonNode) Element() dom.Element { return b.el }
 
 // Class adds a class to the element.
-func (b *buttonNode) Class(name string) *buttonNode {
+func (b *ButtonNode) Class(name string) *ButtonNode {
 	b.el.AddClass(name)
 	return b
 }
 
 // Classes adds multiple classes to the element.
-func (b *buttonNode) Classes(names ...string) *buttonNode {
+func (b *ButtonNode) Classes(names ...string) *ButtonNode {
 	for _, name := range names {
 		b.el.AddClass(name)
 	}
@@ -362,13 +362,13 @@ func (b *buttonNode) Classes(names ...string) *buttonNode {
 }
 
 // Style sets an inline style property on the element.
-func (b *buttonNode) Style(prop, value string) *buttonNode {
+func (b *ButtonNode) Style(prop, value string) *ButtonNode {
 	b.el.SetStyle(prop, value)
 	return b
 }
 
 // Styles adds multiple inline style properties to the element.
-func (b *buttonNode) Styles(props ...string) *buttonNode {
+func (b *ButtonNode) Styles(props ...string) *ButtonNode {
 	for i := 0; i < len(props); i += 2 {
 		b.el.SetStyle(props[i], props[i+1])
 	}
@@ -376,44 +376,44 @@ func (b *buttonNode) Styles(props ...string) *buttonNode {
 }
 
 // Text sets the text content of the element.
-func (b *buttonNode) Text(t string) *buttonNode {
+func (b *ButtonNode) Text(t string) *ButtonNode {
 	b.el.SetText(t)
 	return b
 }
 
 // Group adds the node to the provided group.
-func (b *buttonNode) Group(g *Elements) *buttonNode {
+func (b *ButtonNode) Group(g *Elements) *ButtonNode {
 	if g != nil {
 		g.add(b)
 	}
 	return b
 }
 
-// headingNode builds an <h1>..<h6> element.
-type headingNode struct{ el dom.Element }
+// HeadingNode builds an <h1>..<h6> element.
+type HeadingNode struct{ el dom.Element }
 
 // H creates a new heading node builder for level 1..6 (out-of-range coerced to 1..6).
-func H(level int) *headingNode {
+func H(level int) *HeadingNode {
 	if level < 1 {
 		level = 1
 	} else if level > 6 {
 		level = 6
 	}
 	tag := fmt.Sprintf("h%d", level)
-	return &headingNode{el: dom.Doc().CreateElement(tag)}
+	return &HeadingNode{el: dom.Doc().CreateElement(tag)}
 }
 
 // Element returns the underlying DOM element.
-func (h *headingNode) Element() dom.Element { return h.el }
+func (h *HeadingNode) Element() dom.Element { return h.el }
 
 // Class adds a class to the element.
-func (h *headingNode) Class(name string) *headingNode {
+func (h *HeadingNode) Class(name string) *HeadingNode {
 	h.el.AddClass(name)
 	return h
 }
 
 // Classes adds multiple classes to the element.
-func (h *headingNode) Classes(names ...string) *headingNode {
+func (h *HeadingNode) Classes(names ...string) *HeadingNode {
 	for _, name := range names {
 		h.el.AddClass(name)
 	}
@@ -421,13 +421,13 @@ func (h *headingNode) Classes(names ...string) *headingNode {
 }
 
 // Style sets an inline style property on the element.
-func (h *headingNode) Style(prop, value string) *headingNode {
+func (h *HeadingNode) Style(prop, value string) *HeadingNode {
 	h.el.SetStyle(prop, value)
 	return h
 }
 
 // Styles adds multiple inline style properties to the element.
-func (h *headingNode) Styles(props ...string) *headingNode {
+func (h *HeadingNode) Styles(props ...string) *HeadingNode {
 	for i := 0; i < len(props); i += 2 {
 		h.el.SetStyle(props[i], props[i+1])
 	}
@@ -435,13 +435,13 @@ func (h *headingNode) Styles(props ...string) *headingNode {
 }
 
 // Text sets the text content of the element.
-func (h *headingNode) Text(t string) *headingNode {
+func (h *HeadingNode) Text(t string) *HeadingNode {
 	h.el.SetText(t)
 	return h
 }
 
 // Group adds the node to the provided group.
-func (h *headingNode) Group(g *Elements) *headingNode {
+func (h *HeadingNode) Group(g *Elements) *HeadingNode {
 	if g != nil {
 		g.add(h)
 	}

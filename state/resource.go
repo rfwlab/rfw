@@ -19,10 +19,14 @@ var (
 type ResourceStatus string
 
 const (
-	ResourceIdle    ResourceStatus = "idle"
+	// ResourceIdle indicates that loading has not started.
+	ResourceIdle ResourceStatus = "idle"
+	// ResourceLoading indicates that a load is in progress.
 	ResourceLoading ResourceStatus = "loading"
-	ResourceReady   ResourceStatus = "ready"
-	ResourceError   ResourceStatus = "error"
+	// ResourceReady indicates that a value is available.
+	ResourceReady ResourceStatus = "ready"
+	// ResourceError indicates that loading failed.
+	ResourceError ResourceStatus = "error"
 )
 
 type resourceConfig struct {

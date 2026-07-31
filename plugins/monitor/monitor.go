@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package monitor exposes DOM observation channels.
 package monitor
 
 import (
@@ -31,10 +32,11 @@ func New(mSel, iSel string, opts js.Value) *Plugin {
 	}
 }
 
+// Build performs no build-time work.
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
 // Install hooks into the application and start observers.
-func (p *Plugin) Install(a *core.App) {
+func (p *Plugin) Install(*core.App) {
 	if p.MutationSelector != "" {
 		ch, _ := events.ObserveMutations(p.MutationSelector)
 		go func() {

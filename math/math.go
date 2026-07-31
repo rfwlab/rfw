@@ -1,3 +1,4 @@
+// Package math provides small vector and matrix types for browser rendering.
 package math
 
 import stdmath "math"

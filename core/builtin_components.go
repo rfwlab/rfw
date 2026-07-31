@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package core implements components and the browser runtime.
 package core
 
 import (
@@ -28,10 +29,12 @@ func NewPortal(selector string, child Component) *Portal {
 	}
 }
 
+// Render returns the portal anchor markup.
 func (portal *Portal) Render() string {
 	return `<root data-component-id="` + portal.id + `"><template data-portal-anchor></template></root>`
 }
 
+// Mount renders the child into the portal target.
 func (portal *Portal) Mount() {
 	if portal.mounted || portal.child == nil {
 		return
@@ -49,6 +52,7 @@ func (portal *Portal) Mount() {
 	portal.mounted = true
 }
 
+// Unmount removes the portal child and container.
 func (portal *Portal) Unmount() {
 	if !portal.mounted {
 		return
@@ -61,18 +65,31 @@ func (portal *Portal) Unmount() {
 	portal.mounted = false
 }
 
-func (portal *Portal) OnMount()   {}
+// OnMount performs no additional work.
+func (portal *Portal) OnMount() {}
+
+// OnUnmount performs no additional work.
 func (portal *Portal) OnUnmount() {}
+
+// GetName returns the portal component name.
 func (portal *Portal) GetName() string {
 	return "Portal"
 }
+
+// GetID returns the portal component ID.
 func (portal *Portal) GetID() string { return portal.id }
+
+// SetSlots forwards slots to the child component.
 func (portal *Portal) SetSlots(slots map[string]any) {
 	if portal.child != nil {
 		portal.child.SetSlots(slots)
 	}
 }
+
+// IsMounted reports whether the portal is mounted.
 func (portal *Portal) IsMounted() bool { return portal.mounted }
+
+// OnParams forwards route parameters to the child.
 func (portal *Portal) OnParams(params map[string]string) {
 	if portal.child != nil {
 		portal.child.OnParams(params)
@@ -101,6 +118,7 @@ func NewKeepAlive(child Component) *KeepAlive {
 	return &KeepAlive{id: generateComponentID("KeepAlive", nil), child: child}
 }
 
+// Render returns the wrapper markup for the cached child.
 func (keep *KeepAlive) Render() string {
 	content := ""
 	if !keep.cached && !keep.disposed && keep.child != nil {
@@ -109,6 +127,7 @@ func (keep *KeepAlive) Render() string {
 	return `<root data-component-id="` + keep.id + `"><div data-keepalive-host>` + content + `</div></root>`
 }
 
+// Mount restores or initializes the cached child.
 func (keep *KeepAlive) Mount() {
 	if keep.mounted || keep.disposed || keep.child == nil {
 		return
@@ -130,6 +149,7 @@ func (keep *KeepAlive) Mount() {
 	keep.mounted = true
 }
 
+// Unmount detaches the child while retaining its state.
 func (keep *KeepAlive) Unmount() {
 	if !keep.mounted || keep.disposed || keep.child == nil {
 		return
@@ -175,18 +195,31 @@ func (keep *KeepAlive) Dispose() {
 	}
 }
 
-func (keep *KeepAlive) OnMount()   {}
+// OnMount handles the component lifecycle callback.
+func (keep *KeepAlive) OnMount() {}
+
+// OnUnmount handles the component lifecycle callback.
 func (keep *KeepAlive) OnUnmount() {}
+
+// GetName returns the component name.
 func (keep *KeepAlive) GetName() string {
 	return "KeepAlive"
 }
+
+// GetID returns the component identifier.
 func (keep *KeepAlive) GetID() string { return keep.id }
+
+// SetSlots forwards slots to the cached child.
 func (keep *KeepAlive) SetSlots(slots map[string]any) {
 	if keep.child != nil {
 		keep.child.SetSlots(slots)
 	}
 }
+
+// IsMounted reports whether the component is mounted.
 func (keep *KeepAlive) IsMounted() bool { return keep.mounted }
+
+// OnParams forwards route parameters to the cached child.
 func (keep *KeepAlive) OnParams(params map[string]string) {
 	if keep.child != nil {
 		keep.child.OnParams(params)
@@ -258,6 +291,7 @@ func NewTransition(child Component, config TransitionConfig) *Transition {
 	}
 }
 
+// Render returns the transition wrapper markup.
 func (transition *Transition) Render() string {
 	content := ""
 	if transition.child != nil {
@@ -266,6 +300,7 @@ func (transition *Transition) Render() string {
 	return `<root data-component-id="` + transition.id + `" data-transition>` + content + `</root>`
 }
 
+// Mount inserts the child and applies enter classes.
 func (transition *Transition) Mount() {
 	if transition.mounted || transition.child == nil {
 		return
@@ -297,6 +332,7 @@ func (transition *Transition) Mount() {
 	})
 }
 
+// Unmount applies leave classes before removing the child.
 func (transition *Transition) Unmount() {
 	if !transition.mounted || transition.child == nil {
 		return
@@ -344,18 +380,31 @@ func (transition *Transition) Dispose() {
 	transition.mounted = false
 }
 
-func (transition *Transition) OnMount()   {}
+// OnMount handles the component lifecycle callback.
+func (transition *Transition) OnMount() {}
+
+// OnUnmount handles the component lifecycle callback.
 func (transition *Transition) OnUnmount() {}
+
+// GetName returns the component name.
 func (transition *Transition) GetName() string {
 	return "Transition"
 }
+
+// GetID returns the component identifier.
 func (transition *Transition) GetID() string { return transition.id }
+
+// SetSlots forwards slots to the child.
 func (transition *Transition) SetSlots(slots map[string]any) {
 	if transition.child != nil {
 		transition.child.SetSlots(slots)
 	}
 }
+
+// IsMounted reports whether the component is mounted.
 func (transition *Transition) IsMounted() bool { return transition.mounted }
+
+// OnParams forwards route parameters to the child.
 func (transition *Transition) OnParams(params map[string]string) {
 	if transition.child != nil {
 		transition.child.OnParams(params)

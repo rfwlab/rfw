@@ -15,13 +15,14 @@ func TestBuildAndShouldRebuild(t *testing.T) {
 	p := &plugin{}
 
 	tmp := t.TempDir()
-	src := filepath.Join(tmp, "articles")
-	dest := filepath.Join(tmp, "out")
-	if err := os.MkdirAll(filepath.Join(src, "a"), 0o755); err != nil {
+	t.Chdir(tmp)
+	src := "articles"
+	dest := "out"
+	if err := os.MkdirAll(filepath.Join(src, "a"), 0o750); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 	srcFile := filepath.Join(src, "a", "doc.txt")
-	if err := os.WriteFile(srcFile, []byte("hello"), 0o644); err != nil {
+	if err := os.WriteFile(srcFile, []byte("hello"), 0o600); err != nil {
 		t.Fatalf("write src: %v", err)
 	}
 
@@ -29,14 +30,16 @@ func TestBuildAndShouldRebuild(t *testing.T) {
 		Dir  string `json:"dir"`
 		Dest string `json:"dest"`
 	}{Dir: src, Dest: dest}
-	raw, _ := json.Marshal(cfg)
+	raw, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := p.Build(raw); err != nil {
 		t.Fatalf("Build: %v", err)
 	}
 
 	// File should be copied under dest/<basename>/a/doc.txt
-	copied := filepath.Join(dest, filepath.Base(src), "a", "doc.txt")
-	if data, err := os.ReadFile(copied); err != nil || string(data) != "hello" {
+	if data, err := os.ReadFile("out/articles/a/doc.txt"); err != nil || string(data) != "hello" {
 		t.Fatalf("expected copied file, got %v %q", err, data)
 	}
 
@@ -45,5 +48,19 @@ func TestBuildAndShouldRebuild(t *testing.T) {
 	}
 	if p.ShouldRebuild(filepath.Join(tmp, "other.txt")) {
 		t.Fatalf("unexpected rebuild for unrelated file")
+	}
+}
+
+func TestBuildRejectsPathsOutsideProject(t *testing.T) {
+	p := &plugin{}
+	raw, err := json.Marshal(struct {
+		Dir  string `json:"dir"`
+		Dest string `json:"dest"`
+	}{Dir: "../articles", Dest: "build/static"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Build(raw); err == nil {
+		t.Fatal("expected source outside project to be rejected")
 	}
 }

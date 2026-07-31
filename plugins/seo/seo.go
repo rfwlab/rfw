@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package seo manages document title and metadata.
 package seo
 
 import (
@@ -10,8 +11,10 @@ import (
 	"github.com/rfwlab/rfw/v2/dom"
 )
 
+// Plugin installs document metadata helpers.
 type Plugin struct{}
 
+// New creates an SEO plugin.
 func New() *Plugin { return &Plugin{} }
 
 var (
@@ -23,14 +26,16 @@ var (
 )
 
 // SetTitle updates the document title. Override before RegisterPlugin for custom behavior.
-var SetTitle func(string) = defaultSetTitle
+var SetTitle = defaultSetTitle
 
 // SetMeta updates or creates a meta tag. Override before RegisterPlugin for custom behavior.
-var SetMeta func(string, string) = defaultSetMeta
+var SetMeta = defaultSetMeta
 
+// Name returns the plugin name.
 func (p *Plugin) Name() string { return "seo" }
 
-func (p *Plugin) Install(a *core.App) {
+// Install prepares the document metadata elements.
+func (p *Plugin) Install(_ *core.App) {
 	doc := dom.Doc()
 	head := doc.Head()
 	titleEl = head.Query("title")
@@ -55,6 +60,7 @@ func (p *Plugin) Install(a *core.App) {
 	}
 }
 
+// Build applies the plugin build configuration.
 func (p *Plugin) Build(cfg json.RawMessage) error {
 	if len(cfg) == 0 {
 		return nil

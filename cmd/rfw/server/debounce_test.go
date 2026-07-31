@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package server tests the RFW development server.
 package server
 
 import (

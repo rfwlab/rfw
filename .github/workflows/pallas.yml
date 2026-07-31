@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -14,15 +16,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21
+          go-version: 1.25
 
       - name: Install pallas
-        run: |
-          curl -L -o pallas https://github.com/Vanilla-OS/Pallas/releases/download/continuous/pallas
-          chmod +x pallas
+        run: go install github.com/vanilla-os/pallas/cmd/pallas@a07d6a955f40871655158d66178f90e69bd417a2
 
       - name: Generate Docs
-        run: ./pallas
+        run: "$(go env GOPATH)/bin/pallas"
 
       - name: Setup Pages
         id: pages

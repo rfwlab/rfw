@@ -1,15 +1,48 @@
 //go:build !js || !wasm
 
+// Package assets loads cached application assets.
 package assets
 
 import (
+	"context"
 	"errors"
 	"io"
 	stdhttp "net/http"
 	"sync"
 
 	"github.com/rfwlab/rfw/v2/http"
+	"github.com/rfwlab/rfw/v2/internal/safehttp"
 )
+
+var httpClient = safehttp.NewClient()
+var httpClientMu sync.RWMutex
+
+// SetNativeClient replaces the native asset client. Custom clients may reach
+// private networks and must only receive trusted URLs. Passing nil restores
+// the default client, which rejects private network addresses.
+func SetNativeClient(client *stdhttp.Client) {
+	if client == nil {
+		client = safehttp.NewClient()
+	}
+	httpClientMu.Lock()
+	httpClient = client
+	httpClientMu.Unlock()
+}
+
+func currentNativeClient() *stdhttp.Client {
+	httpClientMu.RLock()
+	client := httpClient
+	httpClientMu.RUnlock()
+	return client
+}
+
+func fetch(url string) (*stdhttp.Response, error) {
+	req, err := safehttp.NewRequest(context.Background(), stdhttp.MethodGet, url)
+	if err != nil {
+		return nil, err
+	}
+	return currentNativeClient().Do(req)
+}
 
 // Image is a placeholder for non-WASM builds.
 type Image struct {
@@ -18,16 +51,20 @@ type Image struct {
 }
 
 var loadImageFn = func(url string, done func(Image, error)) {
-	resp, err := stdhttp.Get(url)
+	resp, err := fetch(url)
 	if err != nil {
 		done(Image{}, err)
 		return
 	}
-	defer resp.Body.Close()
 
 	b, err := io.ReadAll(resp.Body)
+	closeErr := resp.Body.Close()
 	if err != nil {
 		done(Image{}, err)
+		return
+	}
+	if closeErr != nil {
+		done(Image{}, closeErr)
 		return
 	}
 	if resp.StatusCode >= 400 {
@@ -38,16 +75,20 @@ var loadImageFn = func(url string, done func(Image, error)) {
 }
 
 var loadBinaryFn = func(url string, done func([]byte, error)) {
-	resp, err := stdhttp.Get(url)
+	resp, err := fetch(url)
 	if err != nil {
 		done(nil, err)
 		return
 	}
-	defer resp.Body.Close()
 
 	b, err := io.ReadAll(resp.Body)
+	closeErr := resp.Body.Close()
 	if err != nil {
 		done(nil, err)
+		return
+	}
+	if closeErr != nil {
+		done(nil, closeErr)
 		return
 	}
 	if resp.StatusCode >= 400 {
@@ -66,6 +107,7 @@ type imageEntry struct {
 
 var imageCache sync.Map // map[string]*imageEntry
 
+// LoadImage starts or reads a cached image request.
 func LoadImage(url string) (Image, error) {
 	ceIface, _ := imageCache.LoadOrStore(url, &imageEntry{ready: make(chan struct{})})
 	ce := ceIface.(*imageEntry)
@@ -98,6 +140,7 @@ type modelEntry struct {
 
 var modelCache sync.Map // map[string]*modelEntry
 
+// LoadModel starts or reads a cached binary model request.
 func LoadModel(url string) ([]byte, error) {
 	ceIface, _ := modelCache.LoadOrStore(url, &modelEntry{ready: make(chan struct{})})
 	ce := ceIface.(*modelEntry)
@@ -121,8 +164,10 @@ func LoadModel(url string) ([]byte, error) {
 	}
 }
 
+// LoadJSON retrieves and decodes JSON from url.
 func LoadJSON(url string, v any) error { return http.FetchJSON(url, v) }
 
+// ClearCache removes cached assets for url.
 func ClearCache(url string) {
 	imageCache.Delete(url)
 	modelCache.Delete(url)

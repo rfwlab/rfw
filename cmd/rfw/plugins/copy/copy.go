@@ -1,12 +1,16 @@
 //go:build !js
 
+// Package copy registers configurable build file copies.
 package copy
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/rfwlab/rfw/v2/cmd/rfw/logging"
@@ -28,7 +32,7 @@ func (p *plugin) Name() string { return "copy" }
 
 func (p *plugin) Priority() int { return 0 }
 
-func (p *plugin) Build(raw json.RawMessage) error {
+func (p *plugin) Build(raw json.RawMessage) (err error) {
 	cfg := struct {
 		Files []rule `json:"files"`
 	}{}
@@ -38,7 +42,19 @@ func (p *plugin) Build(raw json.RawMessage) error {
 		}
 	}
 	p.rules = cfg.Files
+	projectRoot, err := os.OpenRoot(".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := projectRoot.Close(); err == nil {
+			err = closeErr
+		}
+	}()
 	for _, r := range p.rules {
+		if err := validateRule(r); err != nil {
+			return err
+		}
 		matches, err := doublestar.Glob(os.DirFS("."), r.From)
 		if err != nil {
 			return err
@@ -59,10 +75,11 @@ func (p *plugin) Build(raw json.RawMessage) error {
 				return err
 			}
 			dst := filepath.Join(r.To, rel)
-			if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			destinationDirectory := filepath.Dir(dst)
+			if err := projectRoot.MkdirAll(destinationDirectory, 0o755); err != nil {
 				return err
 			}
-			if err := copyFile(path, dst); err != nil {
+			if err := copyFile(projectRoot, path, dst); err != nil {
 				return err
 			}
 			logging.Log.Info("copied file", logging.F("plugin", "copy"), logging.F("path", dst))
@@ -80,20 +97,35 @@ func (p *plugin) ShouldRebuild(path string) bool {
 	return false
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
+func validateRule(copyRule rule) error {
+	for field, value := range map[string]string{"from": copyRule.From, "to": copyRule.To} {
+		if value == "" || filepath.IsAbs(value) {
+			return fmt.Errorf("copy %s path %q must be project-relative", field, value)
+		}
+		for _, segment := range strings.FieldsFunc(filepath.Clean(value), func(char rune) bool {
+			return char == '/' || char == '\\'
+		}) {
+			if segment == ".." {
+				return fmt.Errorf("copy %s path %q escapes the project", field, value)
+			}
+		}
 	}
-	defer in.Close()
+	return nil
+}
 
-	out, err := os.Create(dst)
+func copyFile(projectRoot *os.Root, src, dst string) error {
+	in, err := projectRoot.Open(src)
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(out, in); err != nil {
-		out.Close()
-		return err
+	if err := projectRoot.Remove(dst); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return errors.Join(err, in.Close())
 	}
-	return out.Close()
+	out, err := projectRoot.OpenFile(dst, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		return errors.Join(err, in.Close())
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := errors.Join(out.Close(), in.Close())
+	return errors.Join(copyErr, closeErr)
 }

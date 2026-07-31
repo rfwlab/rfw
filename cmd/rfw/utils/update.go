@@ -4,18 +4,23 @@ package utils
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
 	"github.com/rfwlab/rfw/v2/core"
+	"github.com/rfwlab/rfw/v2/internal/safehttp"
 )
 
 const githubRepo = "rfwlab/rfw"
@@ -30,45 +35,54 @@ type githubRelease struct {
 	TagName string `json:"tag_name"`
 	Assets  []struct {
 		BrowserDownloadURL string `json:"browser_download_url"`
+		Digest             string `json:"digest"`
 		Name               string `json:"name"`
 	} `json:"assets"`
 }
 
-func fetchLatestVersion() (string, error) {
+func fetchLatestRelease() (githubRelease, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/"+githubRepo+"/releases/latest", nil)
+	req, err := safehttp.NewRequest(
+		ctx,
+		http.MethodGet,
+		"https://api.github.com/repos/"+githubRepo+"/releases/latest",
+	)
 	if err != nil {
-		return "", err
+		return githubRelease{}, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	client := &http.Client{Transport: &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return net.DialTimeout(network, addr, 3*time.Second)
-		},
-	}}
-	resp, err := client.Do(req)
+	resp, err := safehttp.NewClient().Do(req)
 	if err != nil {
-		return "", err
+		return githubRelease{}, err
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("status %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return githubRelease{}, closeErr
+		}
+		return githubRelease{}, fmt.Errorf("status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
+	closeErr := resp.Body.Close()
 	if err != nil {
-		return "", err
+		return githubRelease{}, err
+	}
+	if closeErr != nil {
+		return githubRelease{}, closeErr
 	}
 
 	var release githubRelease
 	if err := json.Unmarshal(body, &release); err != nil {
-		return "", err
+		return githubRelease{}, err
 	}
-	return release.TagName, nil
+	if release.TagName == "" {
+		return githubRelease{}, fmt.Errorf("latest release has no tag")
+	}
+	return release, nil
 }
 
 func shouldCheckUpdate() bool {
@@ -84,64 +98,167 @@ func shouldCheckUpdate() bool {
 	return time.Since(info.ModTime()) > checkInterval
 }
 
-func markChecked() {
+func markChecked() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return
+		return err
 	}
 	path := home + "/" + checkFile
-	os.WriteFile(path, []byte(time.Now().Format(time.RFC3339)), 0644)
+	return os.WriteFile(path, []byte(time.Now().Format(time.RFC3339)), 0o600)
+}
+
+type semanticVersion struct {
+	core       [3]string
+	prerelease []string
 }
 
 func isNewer(current, latest string) bool {
-	c := strings.TrimPrefix(current, "v")
-	l := strings.TrimPrefix(latest, "v")
-	if c == "" || l == "" {
+	currentVersion, currentOK := parseSemanticVersion(current)
+	latestVersion, latestOK := parseSemanticVersion(latest)
+	if !currentOK || !latestOK {
 		return false
 	}
-	partsC := strings.SplitN(c, ".", 3)
-	partsL := strings.SplitN(l, ".", 3)
+
 	for i := 0; i < 3; i++ {
-		if i >= len(partsC) || i >= len(partsL) {
-			break
-		}
-		if partsL[i] > partsC[i] {
+		comparison := compareNumericIdentifier(latestVersion.core[i], currentVersion.core[i])
+		if comparison > 0 {
 			return true
 		}
-		if partsL[i] < partsC[i] {
+		if comparison < 0 {
 			return false
 		}
 	}
-	return false
+	return comparePrerelease(latestVersion.prerelease, currentVersion.prerelease) > 0
 }
 
-func downloadAndReplace(assetURL string) error {
-	tmp, err := os.CreateTemp("", "rfw-update-*")
+func parseSemanticVersion(raw string) (semanticVersion, bool) {
+	value := strings.TrimPrefix(raw, "v")
+	if value == "" {
+		return semanticVersion{}, false
+	}
+
+	main, build, hasBuild := strings.Cut(value, "+")
+	if hasBuild && !validIdentifierList(build, false) {
+		return semanticVersion{}, false
+	}
+
+	core, prerelease, hasPrerelease := strings.Cut(main, "-")
+	coreParts := strings.Split(core, ".")
+	if len(coreParts) != 3 {
+		return semanticVersion{}, false
+	}
+
+	var parsed semanticVersion
+	for i, part := range coreParts {
+		if !validNumericIdentifier(part) {
+			return semanticVersion{}, false
+		}
+		parsed.core[i] = part
+	}
+
+	if hasPrerelease {
+		if !validIdentifierList(prerelease, true) {
+			return semanticVersion{}, false
+		}
+		parsed.prerelease = strings.Split(prerelease, ".")
+	}
+
+	return parsed, true
+}
+
+func validIdentifierList(value string, rejectNumericLeadingZero bool) bool {
+	parts := strings.Split(value, ".")
+	for _, part := range parts {
+		if part == "" {
+			return false
+		}
+		numeric := true
+		for i := 0; i < len(part); i++ {
+			character := part[i]
+			if character < '0' || character > '9' {
+				numeric = false
+			}
+			if (character < '0' || character > '9') &&
+				(character < 'A' || character > 'Z') &&
+				(character < 'a' || character > 'z') &&
+				character != '-' {
+				return false
+			}
+		}
+		if rejectNumericLeadingZero && numeric && len(part) > 1 && part[0] == '0' {
+			return false
+		}
+	}
+	return true
+}
+
+func validNumericIdentifier(value string) bool {
+	if value == "" || len(value) > 1 && value[0] == '0' {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] < '0' || value[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func compareNumericIdentifier(left, right string) int {
+	if len(left) != len(right) {
+		if len(left) > len(right) {
+			return 1
+		}
+		return -1
+	}
+	return strings.Compare(left, right)
+}
+
+func comparePrerelease(left, right []string) int {
+	if len(left) == 0 || len(right) == 0 {
+		switch {
+		case len(left) == 0 && len(right) == 0:
+			return 0
+		case len(left) == 0:
+			return 1
+		default:
+			return -1
+		}
+	}
+
+	sharedLength := min(len(left), len(right))
+	for i := 0; i < sharedLength; i++ {
+		leftNumeric := validNumericIdentifier(left[i])
+		rightNumeric := validNumericIdentifier(right[i])
+		switch {
+		case leftNumeric && rightNumeric:
+			if comparison := compareNumericIdentifier(left[i], right[i]); comparison != 0 {
+				return comparison
+			}
+		case leftNumeric:
+			return -1
+		case rightNumeric:
+			return 1
+		default:
+			if comparison := strings.Compare(left[i], right[i]); comparison != 0 {
+				return comparison
+			}
+		}
+	}
+
+	switch {
+	case len(left) > len(right):
+		return 1
+	case len(left) < len(right):
+		return -1
+	default:
+		return 0
+	}
+}
+
+func downloadAndReplace(assetURL, digest string) (err error) {
+	expectedDigest, err := parseSHA256Digest(digest)
 	if err != nil {
-		return err
-	}
-	tmp.Close()
-	defer os.Remove(tmp.Name())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", assetURL, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("download failed: status %d", resp.StatusCode)
-	}
-
-	if _, err := io.Copy(tmp, resp.Body); err != nil {
 		return err
 	}
 
@@ -149,26 +266,112 @@ func downloadAndReplace(assetURL string) error {
 	if err != nil {
 		return err
 	}
+	tmp, err := os.CreateTemp(filepath.Dir(exePath), ".rfw-update-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		if tmp != nil {
+			if closeErr := tmp.Close(); err == nil {
+				err = closeErr
+			}
+		}
+		if removeErr := os.Remove(tmpName); err == nil && removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			err = removeErr
+		}
+	}()
 
-	if err := os.Chmod(tmp.Name(), 0755); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	req, err := safehttp.NewRequest(ctx, http.MethodGet, assetURL)
+	if err != nil {
 		return err
 	}
 
-	if err := os.Rename(tmp.Name(), exePath); err != nil {
-		return os.WriteFile(exePath, mustReadFile(tmp.Name()), 0755)
+	resp, err := safehttp.NewClient().Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return closeErr
+		}
+		return fmt.Errorf("download failed: status %d", resp.StatusCode)
+	}
+
+	copyErr := copyWithSHA256(tmp, resp.Body, expectedDigest)
+	closeErr := resp.Body.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if err := tmp.Chmod(0o700); err != nil {
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	tmp = nil
+
+	if err := replaceExecutable(tmpName, exePath); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func mustReadFile(path string) []byte {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil
+func parseSHA256Digest(digest string) ([sha256.Size]byte, error) {
+	var expected [sha256.Size]byte
+	encoded, found := strings.CutPrefix(digest, "sha256:")
+	if !found {
+		return expected, fmt.Errorf("release asset has no SHA-256 digest")
 	}
-	defer f.Close()
-	data, _ := io.ReadAll(f)
-	return data
+	decoded, err := hex.DecodeString(encoded)
+	if err != nil || len(decoded) != sha256.Size {
+		return expected, fmt.Errorf("release asset has an invalid SHA-256 digest")
+	}
+	copy(expected[:], decoded)
+	return expected, nil
+}
+
+func copyWithSHA256(destination io.Writer, source io.Reader, expected [sha256.Size]byte) error {
+	hasher := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(destination, hasher), source); err != nil {
+		return err
+	}
+	if subtle.ConstantTimeCompare(hasher.Sum(nil), expected[:]) != 1 {
+		return fmt.Errorf("downloaded asset checksum does not match the release")
+	}
+	return nil
+}
+
+func replaceExecutable(source, target string) error {
+	if runtime.GOOS != "windows" {
+		return os.Rename(source, target)
+	}
+
+	backup := target + ".old"
+	if err := os.Remove(backup); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.Rename(target, backup); err != nil {
+		return err
+	}
+	if err := os.Rename(source, target); err != nil {
+		if rollbackErr := os.Rename(backup, target); rollbackErr != nil {
+			return errors.Join(err, rollbackErr)
+		}
+		return err
+	}
+	return nil
 }
 
 func getAssetName() string {
@@ -201,6 +404,7 @@ func isTerminal(f *os.File) bool {
 	return info.Mode()&os.ModeCharDevice != 0
 }
 
+// CheckForUpdate checks GitHub for a newer CLI release in interactive sessions.
 func CheckForUpdate() {
 	if shouldSkipUpdateCheck(os.Getenv("RFW_NO_UPDATE_CHECK"), isTerminal(os.Stdin), isTerminal(os.Stdout)) {
 		return
@@ -209,13 +413,16 @@ func CheckForUpdate() {
 		return
 	}
 
-	latest, err := fetchLatestVersion()
+	release, err := fetchLatestRelease()
 	if err != nil {
 		return
 	}
-	markChecked()
+	if err := markChecked(); err != nil {
+		Debug(fmt.Sprintf("failed to record update check: %v", err))
+	}
+	latest := release.TagName
 
-	if !isNewer(core.Version(), latest) {
+	if !isNewer(core.Version(), release.TagName) {
 		return
 	}
 
@@ -225,7 +432,9 @@ func CheckForUpdate() {
 
 	fmt.Print(indent, red("➜ "), bold("Update now? [y/N] "))
 	var answer string
-	fmt.Scanln(&answer)
+	if _, err := fmt.Scanln(&answer); err != nil {
+		return
+	}
 	answer = strings.TrimSpace(strings.ToLower(answer))
 	if answer != "y" && answer != "yes" {
 		fmt.Println(indent, faint("Skipped."))
@@ -233,24 +442,11 @@ func CheckForUpdate() {
 	}
 
 	assetURL := ""
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/"+githubRepo+"/releases/latest", nil)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		Info("Failed to fetch release info")
-		return
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	var release githubRelease
-	json.Unmarshal(body, &release)
-
+	assetDigest := ""
 	for _, a := range release.Assets {
 		if a.Name == assetName {
 			assetURL = a.BrowserDownloadURL
+			assetDigest = a.Digest
 			break
 		}
 	}
@@ -260,7 +456,7 @@ func CheckForUpdate() {
 	}
 
 	Info("Downloading...")
-	if err := downloadAndReplace(assetURL); err != nil {
+	if err := downloadAndReplace(assetURL, assetDigest); err != nil {
 		Info(fmt.Sprintf("Update failed: %v", err))
 		return
 	}

@@ -1,3 +1,4 @@
+// Package routeranalytics tracks route transitions and predicts prefetch targets.
 package routeranalytics
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/rfwlab/rfw/v2/core"
 )
 
+// Options configures route normalization and prefetch prediction.
 type Options struct {
 	// Normalize maps a navigation path to a bucket used for analytics.
 	// Defaults to stripping query/hash fragments and ensuring a leading slash.
@@ -23,6 +25,7 @@ type Options struct {
 	Channel string
 }
 
+// TransitionProbability describes one observed route transition.
 type TransitionProbability struct {
 	From        string
 	To          string
@@ -30,6 +33,7 @@ type TransitionProbability struct {
 	Probability float64
 }
 
+// Plugin tracks route transitions and emits prefetch hints.
 type Plugin struct {
 	opts     Options
 	tracker  *transitionTracker
@@ -41,6 +45,7 @@ var (
 	defaultInstance *Plugin
 )
 
+// New creates a route analytics plugin.
 func New(opts Options) *Plugin {
 	if opts.Normalize == nil {
 		opts.Normalize = defaultNormalize
@@ -68,12 +73,15 @@ func New(opts Options) *Plugin {
 	return plugin
 }
 
+// Name returns the plugin name.
 func (p *Plugin) Name() string {
 	return "routeranalytics"
 }
 
+// Build performs no build-time work.
 func (p *Plugin) Build(json.RawMessage) error { return nil }
 
+// Install registers route tracking with the application.
 func (p *Plugin) Install(a *core.App) {
 	if a == nil {
 		return
@@ -84,6 +92,7 @@ func (p *Plugin) Install(a *core.App) {
 	})
 }
 
+// TransitionProbabilities returns transitions observed after from.
 func (p *Plugin) TransitionProbabilities(from string) []TransitionProbability {
 	if p == nil {
 		return nil
@@ -97,6 +106,7 @@ func (p *Plugin) TransitionProbabilities(from string) []TransitionProbability {
 	return out
 }
 
+// MostLikelyNext returns the highest probability transitions after from.
 func (p *Plugin) MostLikelyNext(from string, limit int) []TransitionProbability {
 	if p == nil || limit <= 0 {
 		return nil
@@ -110,6 +120,7 @@ func (p *Plugin) MostLikelyNext(from string, limit int) []TransitionProbability 
 	return out
 }
 
+// Reset clears recorded route transitions.
 func (p *Plugin) Reset() {
 	if p == nil {
 		return
@@ -120,6 +131,7 @@ func (p *Plugin) Reset() {
 	}
 }
 
+// TransitionProbabilities queries the default plugin instance.
 func TransitionProbabilities(from string) []TransitionProbability {
 	if inst := getDefaultInstance(); inst != nil {
 		return inst.TransitionProbabilities(from)
@@ -127,6 +139,7 @@ func TransitionProbabilities(from string) []TransitionProbability {
 	return nil
 }
 
+// MostLikelyNext queries the default plugin instance.
 func MostLikelyNext(from string, limit int) []TransitionProbability {
 	if inst := getDefaultInstance(); inst != nil {
 		return inst.MostLikelyNext(from, limit)
@@ -134,6 +147,7 @@ func MostLikelyNext(from string, limit int) []TransitionProbability {
 	return nil
 }
 
+// Reset clears the default plugin instance.
 func Reset() {
 	if inst := getDefaultInstance(); inst != nil {
 		inst.Reset()

@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package js wraps syscall/js with framework helpers.
 package js
 
 import (
@@ -7,11 +8,13 @@ import (
 	jst "syscall/js"
 )
 
-// Type aliases to re-export syscall/js types.
 type (
+	// Value aliases syscall/js.Value.
 	Value = jst.Value
-	Func  = jst.Func
-	Type  = jst.Type
+	// Func aliases syscall/js.Func.
+	Func = jst.Func
+	// Type aliases syscall/js.Type.
+	Type = jst.Type
 )
 
 // Re-exported Value type constants.
@@ -132,7 +135,7 @@ func TypedArrayOf(slice any) jst.Value {
 // FuncOf wraps a Go function for use in JavaScript.
 func FuncOf(fn func(this Value, args []Value) any) Func { return jst.FuncOf(fn) }
 
-// OnFuncPanic, if set, is called when a SafeFuncOf-wrapped callback panics,
+// OnFuncPanic is called when a SafeFuncOf-wrapped callback panics, if set,
 // with the recovered value and the stack captured at recovery. Raw FuncOf
 // leaves a panicking callback unrecovered, which under wasm aborts the whole
 // instance; SafeFuncOf routes it here instead.
@@ -188,6 +191,9 @@ func Loc() Value { return Location() }
 
 // JSON returns the JSON object.
 func JSON() Value { return Get("JSON") }
+
+// GlobalJSON returns the JSON object.
+func GlobalJSON() Value { return JSON() }
 
 // Error returns the Error constructor.
 func Error() Value { return Get("Error") }
@@ -273,7 +279,7 @@ func Fetch(args ...any) Value { return Call("fetch", args...) }
 // Expose registers a no-argument Go function under the given name
 // on the JavaScript global object.
 func Expose(name string, fn func()) {
-	Global().Set(name, FuncOf(func(this Value, args []Value) any {
+	Global().Set(name, FuncOf(func(_ Value, _ []Value) any {
 		fn()
 		return nil
 	}))
@@ -282,7 +288,7 @@ func Expose(name string, fn func()) {
 // ExposeEvent registers a Go function that receives the first argument
 // from the JavaScript call as the event object.
 func ExposeEvent(name string, fn func(Value)) {
-	Global().Set(name, FuncOf(func(this Value, args []Value) any {
+	Global().Set(name, FuncOf(func(_ Value, args []Value) any {
 		var evt Value
 		if len(args) > 0 {
 			evt = args[0]

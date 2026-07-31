@@ -1,3 +1,4 @@
+// Package hostclient connects browser components to the SSC host.
 package hostclient
 
 import "github.com/rfwlab/rfw/v2/state"
@@ -6,10 +7,14 @@ import "github.com/rfwlab/rfw/v2/state"
 type ConnectionState string
 
 const (
+	// ConnectionDisconnected indicates that no SSC connection is active.
 	ConnectionDisconnected ConnectionState = "disconnected"
-	ConnectionConnecting   ConnectionState = "connecting"
-	ConnectionConnected    ConnectionState = "connected"
-	ConnectionDesynced     ConnectionState = "desynced"
+	// ConnectionConnecting indicates that an SSC connection is opening.
+	ConnectionConnecting ConnectionState = "connecting"
+	// ConnectionConnected indicates that the SSC connection is ready.
+	ConnectionConnected ConnectionState = "connected"
+	// ConnectionDesynced indicates that SSC state must be synchronized.
+	ConnectionDesynced ConnectionState = "desynced"
 )
 
 var connectionState = state.NewSignal(ConnectionDisconnected)

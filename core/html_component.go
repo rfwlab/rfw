@@ -3,13 +3,14 @@
 package core
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -38,6 +39,7 @@ func (u *unsubscribes) Run() {
 	u.funcs = nil
 }
 
+// HTMLComponent renders RTML templates and manages their component state.
 type HTMLComponent struct {
 	ID                string
 	Name              string
@@ -98,6 +100,7 @@ type ComponentTimelineEntry struct {
 	Duration  time.Duration
 }
 
+// NewHTMLComponent creates a component from an RTML template and initial props.
 func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTMLComponent {
 	id := generateComponentID(name, props)
 	c := &HTMLComponent{
@@ -118,6 +121,7 @@ func NewHTMLComponent(name string, templateFs []byte, props map[string]any) *HTM
 	return c
 }
 
+// Init attaches a state store and prepares the component template.
 func (c *HTMLComponent) Init(store *state.Store) {
 	if c.Store != nil {
 		return
@@ -167,6 +171,7 @@ func (c *HTMLComponent) Invalidate() {
 	}
 }
 
+// Render evaluates the component template.
 func (c *HTMLComponent) Render() (renderedTemplate string) {
 	start := time.Now()
 	defer func() { c.recordRender(time.Since(start)) }()
@@ -334,6 +339,7 @@ func minifyInline(src string) string {
 	})
 }
 
+// AddDependency attaches a child component to a template placeholder.
 func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 	if c.Dependencies == nil {
 		c.Dependencies = make(map[string]Component)
@@ -345,6 +351,7 @@ func (c *HTMLComponent) AddDependency(placeholderName string, dep Component) {
 	c.Dependencies[placeholderName] = dep
 }
 
+// Unmount releases component resources and child dependencies.
 func (c *HTMLComponent) Unmount() {
 	// The idempotence guard keeps finalizers from repeating lifecycle cleanup.
 	if !c.mounted {
@@ -377,6 +384,7 @@ func (c *HTMLComponent) Unmount() {
 	}
 }
 
+// Mount activates the component and its child dependencies.
 func (c *HTMLComponent) Mount() {
 	c.mounted = true
 	if c.scope == nil || c.scope.Closed() {
@@ -461,10 +469,12 @@ func (c *HTMLComponent) registerHandlers() {
 	}
 }
 
+// GetName returns the component name.
 func (c *HTMLComponent) GetName() string {
 	return c.Name
 }
 
+// GetID returns the component identifier.
 func (c *HTMLComponent) GetID() string {
 	return c.ID
 }
@@ -480,12 +490,14 @@ func (c *HTMLComponent) GetRef(name string) dom.Element {
 	return root.Query(fmt.Sprintf(`[data-ref="%s"]`, name))
 }
 
+// OnMount runs the configured mount callback.
 func (c *HTMLComponent) OnMount() {
 	if c.onMount != nil {
 		c.onMount(c)
 	}
 }
 
+// OnUnmount runs the configured unmount callback.
 func (c *HTMLComponent) OnUnmount() {
 	if c.onUnmount != nil {
 		c.onUnmount(c)
@@ -493,38 +505,46 @@ func (c *HTMLComponent) OnUnmount() {
 	c.mounted = false
 }
 
+// IsMounted reports whether the component is mounted.
 func (c *HTMLComponent) IsMounted() bool {
 	return c.mounted
 }
 
+// OnParams runs the configured route-parameter callback.
 func (c *HTMLComponent) OnParams(params map[string]string) {
 	if c.onParams != nil {
 		c.onParams(c, params)
 	}
 }
 
+// SetOnParams configures the route-parameter callback.
 func (c *HTMLComponent) SetOnParams(fn func(*HTMLComponent, map[string]string)) {
 	c.onParams = fn
 }
 
+// SetOnMount configures the mount callback.
 func (c *HTMLComponent) SetOnMount(fn func(*HTMLComponent)) {
 	c.onMount = fn
 }
 
+// SetOnUnmount configures the unmount callback.
 func (c *HTMLComponent) SetOnUnmount(fn func(*HTMLComponent)) {
 	c.onUnmount = fn
 }
 
+// WithLifecycle configures mount and unmount callbacks.
 func (c *HTMLComponent) WithLifecycle(onMount, onUnmount func(*HTMLComponent)) *HTMLComponent {
 	c.onMount = onMount
 	c.onUnmount = onUnmount
 	return c
 }
 
+// SetComponent attaches the component lifecycle implementation.
 func (c *HTMLComponent) SetComponent(component Component) {
 	c.component = component
 }
 
+// SetSlots merges named slot content into the component.
 func (c *HTMLComponent) SetSlots(slots map[string]any) {
 	if c.Slots == nil {
 		c.Slots = make(map[string]any)
@@ -558,8 +578,7 @@ func (c *HTMLComponent) Inject(key string) (any, bool) {
 	return nil, false
 }
 
-// InjectTyped is a helper that performs a typed injection using generics.
-// It calls c.Inject and attempts to cast the value to T.
+// Inject performs a typed lookup of a provided component value.
 func Inject[T any](c *HTMLComponent, key string) (T, bool) {
 	v, ok := c.Inject(key)
 	if !ok {
@@ -570,6 +589,7 @@ func Inject[T any](c *HTMLComponent, key string) (T, bool) {
 	return t, ok
 }
 
+// SetRouteParams merges route parameters into component props.
 func (c *HTMLComponent) SetRouteParams(params map[string]string) {
 	if c.Props == nil {
 		c.Props = make(map[string]any)
@@ -609,7 +629,7 @@ func (c *HTMLComponent) hostComponentNames() []string {
 }
 
 func (c *HTMLComponent) cacheKey() string {
-	hasher := sha1.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(serializeProps(c.Props)))
 
 	if len(c.Dependencies) > 0 {
@@ -623,17 +643,17 @@ func (c *HTMLComponent) cacheKey() string {
 		}
 	}
 
-	return hex.EncodeToString(hasher.Sum(nil))
+	return hex.EncodeToString(hasher.Sum(nil)[:20])
 }
 
 func generateComponentID(name string, props map[string]any) string {
-	hasher := sha1.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(name))
 	propsString := serializeProps(props)
 	hasher.Write([]byte(propsString))
-	hasher.Write([]byte(fmt.Sprintf("%d", componentSeq.Add(1))))
+	hasher.Write([]byte(strconv.FormatUint(componentSeq.Add(1), 10)))
 
-	return hex.EncodeToString(hasher.Sum(nil))
+	return hex.EncodeToString(hasher.Sum(nil)[:20])
 }
 
 func serializeProps(props map[string]any) string {
@@ -649,7 +669,7 @@ func serializeProps(props map[string]any) string {
 	sort.Strings(keys)
 	for _, k := range keys {
 		v := props[k]
-		sb.WriteString(fmt.Sprintf("%s=%v;", k, v))
+		fmt.Fprintf(&sb, "%s=%v;", k, v)
 	}
 
 	return sb.String()

@@ -5,6 +5,7 @@ package assets
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,15 +48,35 @@ func waitBytes(t *testing.T, fn func() ([]byte, error)) []byte {
 	}
 }
 
+func TestFetchRejectsNonHTTPURLs(t *testing.T) {
+	for _, rawURL := range []string{"file:///tmp/secret", "/relative", "http://127.0.0.1/secret"} {
+		resp, err := fetch(rawURL)
+		if resp != nil {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				t.Fatalf("close response for %q: %v", rawURL, closeErr)
+			}
+		}
+		if err == nil {
+			t.Fatalf("expected %q to be rejected", rawURL)
+		}
+		if strings.HasPrefix(rawURL, "http://127.") && !strings.Contains(err.Error(), "not public") {
+			t.Fatalf("unexpected private URL rejection: %v", err)
+		}
+	}
+}
+
 func TestLoadModel_CacheAndPending(t *testing.T) {
 	var hits int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits++
 		time.Sleep(20 * time.Millisecond)
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte{1, 2, 3})
 	}))
 	defer srv.Close()
+	oldClient := currentNativeClient()
+	SetNativeClient(srv.Client())
+	t.Cleanup(func() { SetNativeClient(oldClient) })
 
 	ClearCache(srv.URL)
 	t.Cleanup(func() { ClearCache(srv.URL) })
@@ -84,13 +105,16 @@ func TestLoadModel_CacheAndPending(t *testing.T) {
 
 func TestLoadImage_UsesCache(t *testing.T) {
 	var hits int
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits++
 		time.Sleep(15 * time.Millisecond)
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("PNGDATA"))
 	}))
 	defer srv.Close()
+	oldClient := currentNativeClient()
+	SetNativeClient(srv.Client())
+	t.Cleanup(func() { SetNativeClient(oldClient) })
 
 	ClearCache(srv.URL)
 	t.Cleanup(func() { ClearCache(srv.URL) })
@@ -117,38 +141,29 @@ func TestLoadImage_UsesCache(t *testing.T) {
 	}
 }
 
-func TestLoadJSON_DelegatesToHTTP(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(10 * time.Millisecond)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
-		_, _ = w.Write([]byte(`{"v": 7}`))
-	}))
-	defer srv.Close()
-
+func TestLoadJSONRejectsPrivateNetwork(t *testing.T) {
+	const privateURL = "http://127.0.0.1/data.json"
+	v1http.ClearCache(privateURL)
+	t.Cleanup(func() { v1http.ClearCache(privateURL) })
 	var out struct {
 		V int `json:"v"`
 	}
-	if err := LoadJSON(srv.URL, &out); err != v1http.ErrPending {
+	if err := LoadJSON(privateURL, &out); err != v1http.ErrPending {
 		t.Fatalf("expected ErrPending, got %v", err)
 	}
 
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		err := LoadJSON(srv.URL, &out)
-		if err == nil {
-			break
-		}
-		if err != v1http.ErrPending {
-			t.Fatalf("unexpected error: %v", err)
+		err := LoadJSON(privateURL, &out)
+		if err != nil && err != v1http.ErrPending {
+			if !strings.Contains(err.Error(), "not public") {
+				t.Fatalf("unexpected private URL rejection: %v", err)
+			}
+			return
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("timed out waiting for json")
+			t.Fatal("timed out waiting for private URL rejection")
 		}
 		time.Sleep(5 * time.Millisecond)
-	}
-
-	if out.V != 7 {
-		t.Fatalf("expected V=7, got %d", out.V)
 	}
 }
