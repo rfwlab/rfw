@@ -1,7 +1,7 @@
 package hostclient
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -10,7 +10,7 @@ import (
 const (
 	hostVarAttr        = "data-host-var"
 	hostExpectedAttr   = "data-host-expected"
-	expectationHashAlg = "sha1"
+	expectationHashAlg = "sha256"
 )
 
 type hostVarElement interface {
@@ -40,7 +40,7 @@ type initSnapshotPayload struct {
 }
 
 func encodeExpectation(value string) string {
-	sum := sha1.Sum([]byte(value))
+	sum := sha256.Sum256([]byte(value))
 	return fmt.Sprintf("%s:%s", expectationHashAlg, hex.EncodeToString(sum[:]))
 }
 
@@ -99,32 +99,6 @@ func applyInitSnapshot(root componentRoot, payload *initSnapshotPayload) {
 		return
 	}
 	root.SetHTML(payload.HTML)
-}
-
-func decodeInitSnapshotPayload(raw any) *initSnapshotPayload {
-	if raw == nil {
-		return nil
-	}
-	m, ok := raw.(map[string]any)
-	if !ok {
-		return nil
-	}
-	html, _ := m["html"].(string)
-	if html == "" {
-		return nil
-	}
-	var vars []string
-	if list, ok := m["vars"].([]any); ok {
-		vars = make([]string, 0, len(list))
-		for _, item := range list {
-			if s, ok := item.(string); ok {
-				vars = append(vars, s)
-			}
-		}
-	} else if list, ok := m["vars"].([]string); ok {
-		vars = append(vars, list...)
-	}
-	return &initSnapshotPayload{HTML: html, Vars: vars}
 }
 
 func buildResyncPayload(mismatches []hydrationMismatch) map[string]any {

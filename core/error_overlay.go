@@ -88,12 +88,12 @@ func (eo *errorOverlay) createContainer(errStr, goStack, context string) {
 	eo.container = overlay
 }
 
-func (eo *errorOverlay) bindActions(overlay js.Value) {
+func (eo *errorOverlay) bindActions(js.Value) {
 	doc := js.Document()
 
 	reload := doc.Call("getElementById", "rfw-error-reload")
 	if reload.Truthy() {
-		reload.Call("addEventListener", "click", js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+		reload.Call("addEventListener", "click", js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 			js.Location().Call("reload")
 			return nil
 		}))
@@ -101,7 +101,7 @@ func (eo *errorOverlay) bindActions(overlay js.Value) {
 
 	copyBtn := doc.Call("getElementById", "rfw-error-copy")
 	if copyBtn.Truthy() {
-		copyBtn.Call("addEventListener", "click", js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+		copyBtn.Call("addEventListener", "click", js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 			pre := doc.Call("getElementById", "rfw-error-full")
 			if pre.Truthy() {
 				text := pre.Get("textContent").String()
@@ -160,7 +160,7 @@ func (eo *errorOverlay) buildMainHTML(errStr, goStack, context string) string {
 		versionStr)
 }
 
-func (eo *errorOverlay) buildErrorItem(n int, errStr, goStack, context string) string {
+func (eo *errorOverlay) buildErrorItem(n int, errStr, goStack, _ string) string {
 	return fmt.Sprintf(`
 <div style="padding:16px;">
     <div style="font-size:12px;font-weight:700;color:#6b7280;margin-bottom:8px;">Error #%d</div>
@@ -197,7 +197,7 @@ func (eo *errorOverlay) categorize(err string) string {
 	}
 }
 
-func (eo *errorOverlay) hintHTML(errStr, context string) string {
+func (eo *errorOverlay) hintHTML(errStr, _ string) string {
 	errLower := strings.ToLower(errStr)
 	hints := []string{}
 
@@ -229,7 +229,7 @@ func (eo *errorOverlay) hintHTML(errStr, context string) string {
 	sb.WriteString(`<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:8px;">How to fix this</div>`)
 	sb.WriteString(`<ul style="margin:0;padding-left:20px;font-size:13px;color:#374151;line-height:1.7;">`)
 	for _, h := range hints {
-		sb.WriteString(fmt.Sprintf("<li>%s</li>", h))
+		fmt.Fprintf(&sb, "<li>%s</li>", h)
 	}
 	sb.WriteString("</ul></div></div>")
 	return sb.String()

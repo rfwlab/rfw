@@ -34,7 +34,7 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get wasm: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeTestResource(t, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected status: %d", resp.StatusCode)
@@ -64,7 +64,7 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get unversioned wasm: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeTestResource(t, resp.Body)
 	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
 		t.Fatalf("unexpected unversioned Cache-Control header: %q", cache)
 	}

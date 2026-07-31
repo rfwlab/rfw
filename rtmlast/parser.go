@@ -6,30 +6,40 @@ import (
 	"unicode"
 )
 
+// TokenType identifies a lexer token.
 type TokenType int
 
 const (
+	// TokenText contains literal template text.
 	TokenText TokenType = iota
+	// TokenCommand contains an RTML command.
 	TokenCommand
+	// TokenVarOpen starts an interpolation.
 	TokenVarOpen
+	// TokenVarClose ends an interpolation.
 	TokenVarClose
+	// TokenEOF marks the end of input.
 	TokenEOF
 )
 
+// Token is one lexer result.
 type Token struct {
 	Type  TokenType
 	Value string
 }
 
+// Lexer tokenizes an RTML template.
 type Lexer struct {
 	input string
 	pos   int
 }
 
+// NewLexer creates a lexer for input.
 func NewLexer(input string) *Lexer {
 	return &Lexer{input: input}
 }
 
+// Lex returns all tokens in the input.
 func (l *Lexer) Lex() []Token {
 	var tokens []Token
 	var text strings.Builder
@@ -98,6 +108,7 @@ func isNewline(ch byte) bool {
 	return ch == '\n' || ch == '\r'
 }
 
+// Parse builds an RTML syntax tree.
 func Parse(template string) ([]Node, error) {
 	lex := NewLexer(template)
 	tokens := lex.Lex()
@@ -298,6 +309,7 @@ func (p *parser) parseUntilCommands(commands ...string) ([]Node, error) {
 	return nodes, nil
 }
 
+// ParseExpr parses a reactive RTML expression.
 func ParseExpr(s string) Expr {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -328,7 +340,7 @@ func ParseExpr(s string) Expr {
 		return result
 	}
 	if strings.HasPrefix(s, "!") || strings.HasPrefix(s, "not ") {
-		inner := s
+		var inner string
 		if strings.HasPrefix(s, "not ") {
 			inner = strings.TrimSpace(s[4:])
 		} else {

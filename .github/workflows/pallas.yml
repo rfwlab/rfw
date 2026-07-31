@@ -7,35 +7,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: 1.21
+          go-version: 1.25
 
       - name: Install pallas
-        run: |
-          curl -L -o pallas https://github.com/Vanilla-OS/Pallas/releases/download/continuous/pallas
-          chmod +x pallas
+        run: go install github.com/vanilla-os/pallas/cmd/pallas@a07d6a955f40871655158d66178f90e69bd417a2
 
       - name: Generate Docs
-        run: ./pallas
+        run: "$(go env GOPATH)/bin/pallas"
 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
 
       - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
+        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697
         with:
           source: ./dist
           destination: ./_site
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
 
   deploy:
     permissions:
@@ -50,4 +50,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e

@@ -1,3 +1,4 @@
+// Package host provides server-side component sessions and transport support.
 package host
 
 import (

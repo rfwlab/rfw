@@ -1,10 +1,12 @@
 //go:build !js
 
+// Package build compiles RFW applications and runs build plugins.
 package build
 
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,38 +16,19 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/assets"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/bundler"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/copy"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/docs"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/env"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/pages"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/seo"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/tailwind"
-	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/test"
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/assets"   // Register the assets build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/bundler"  // Register the bundler build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/copy"     // Register the copy build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/docs"     // Register the docs build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/env"      // Register the environment build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/pages"    // Register the pages build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/seo"      // Register the SEO build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/tailwind" // Register the Tailwind build plugin.
+	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/test"     // Register the test build plugin.
 	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
 )
 
-type buildOptions struct {
-	DevBuild     bool
-	SkipOptimize bool
-}
-
-func goBuildArgs(opts buildOptions) []string {
-	args := []string{"build"}
-	var tags []string
-	if opts.DevBuild {
-		tags = append(tags, "rfwdev")
-	}
-	if len(tags) > 0 {
-		args = append(args, "-tags="+strings.Join(tags, ","))
-	}
-	if !opts.SkipOptimize {
-		args = append(args, "-trimpath", "-ldflags=-s -w")
-	}
-	return args
-}
-
+// Build compiles the configured application and runs its build plugins.
 func Build() error {
 	var manifest struct {
 		Build struct {
@@ -67,28 +50,33 @@ func Build() error {
 	clientDir := filepath.Join("build", "client")
 	hostDir := filepath.Join("build", "host")
 	staticDir := filepath.Join("build", "static")
-	if err := os.MkdirAll(clientDir, 0o755); err != nil {
+	if err := makePublicDir(clientDir); err != nil {
 		return fmt.Errorf("failed to create client build directory: %w", err)
 	}
-	if err := os.MkdirAll(staticDir, 0o755); err != nil {
+	if err := makePublicDir(staticDir); err != nil {
 		return fmt.Errorf("failed to create static build directory: %w", err)
 	}
 
-	wasmExec, err := findWasmExec()
+	wasmExec, err := readWasmExec()
 	if err != nil {
 		return err
 	}
-	if err := copyFile(wasmExec, filepath.Join(clientDir, "wasm_exec.js")); err != nil {
+	if err := writePublicFile(filepath.Join(clientDir, "wasm_exec.js"), wasmExec); err != nil {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	args := goBuildArgs(buildOptions{
-		DevBuild:     os.Getenv("RFW_DEV_BUILD") == "1",
-		SkipOptimize: os.Getenv("RFW_DEV_BUILD") == "1" || utils.IsDebug() || os.Getenv("RFW_SKIP_STRIP") == "1",
-	})
+	devBuild := os.Getenv("RFW_DEV_BUILD") == "1"
+	skipOptimize := devBuild || utils.IsDebug() || os.Getenv("RFW_SKIP_STRIP") == "1"
 	wasmPath := filepath.Join(clientDir, "app.wasm")
-	args = append(args, "-o", wasmPath, ".")
-	cmd := exec.Command("go", args...)
+	var cmd *exec.Cmd
+	switch {
+	case devBuild:
+		cmd = exec.Command("go", "build", "-tags=rfwdev", "-o", "build/client/app.wasm", ".")
+	case skipOptimize:
+		cmd = exec.Command("go", "build", "-o", "build/client/app.wasm", ".")
+	default:
+		cmd = exec.Command("go", "build", "-trimpath", "-ldflags=-s -w", "-o", "build/client/app.wasm", ".")
+	}
 	cmd.Env = append(os.Environ(), "GOARCH=wasm", "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -107,14 +95,10 @@ func Build() error {
 	// can be served from a CDN with no live host.
 	if manifest.Build.Type != "static" {
 		if _, err := os.Stat("host"); err == nil {
-			if err := os.MkdirAll(hostDir, 0o755); err != nil {
+			if err := makePublicDir(hostDir); err != nil {
 				return fmt.Errorf("failed to create host build directory: %w", err)
 			}
-			hostArgs := []string{"build", "-o", filepath.Join(hostDir, "host"), "./host"}
-			if isDev {
-				hostArgs = []string{"build", "-o", filepath.Join(hostDir, "host"), "./host"}
-			}
-			hostCmd := exec.Command("go", hostArgs...)
+			hostCmd := exec.Command("go", "build", "-o", "build/host/host", "./host")
 			if hostOutput, err := hostCmd.CombinedOutput(); err != nil {
 				if !isDev {
 					return fmt.Errorf("failed to build host components: %s: %w", hostOutput, err)
@@ -129,8 +113,8 @@ func Build() error {
 
 	// Copy plugin-generated assets (e.g. tailwind.css) to client build dir.
 	for _, name := range []string{"tailwind.css", "input.css"} {
-		if data, err := os.ReadFile(name); err == nil {
-			if err := os.WriteFile(filepath.Join(clientDir, name), data, 0o644); err != nil {
+		if data, err := readFile(name); err == nil {
+			if err := writePublicFile(filepath.Join(clientDir, name), data); err != nil {
 				return fmt.Errorf("failed to copy %s to client dir: %w", name, err)
 			}
 		}
@@ -147,7 +131,7 @@ func Build() error {
 		}
 	}
 
-	wasm, err := os.ReadFile(wasmPath)
+	wasm, err := readFile(wasmPath)
 	if err != nil {
 		return fmt.Errorf("failed to read wasm for client config: %w", err)
 	}
@@ -169,7 +153,7 @@ func Build() error {
 				return err
 			}
 			dst := filepath.Join(staticDir, rel)
-			if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			if err := makePublicDir(filepath.Dir(dst)); err != nil {
 				return err
 			}
 			return copyFile(path, dst)
@@ -185,28 +169,48 @@ func Build() error {
 	return nil
 }
 
-// findWasmExec locates wasm_exec.js from the active Go toolchain.
+// readWasmExec reads wasm_exec.js from the active Go toolchain.
 // It tries the canonical Go 1.21+ path ($GOROOT/lib/wasm/), then the
 // legacy path ($GOROOT/misc/wasm/), and finally a project-local copy.
-func findWasmExec() (string, error) {
-	goroot, err := exec.Command("go", "env", "GOROOT").Output()
+func readWasmExec() ([]byte, error) {
+	goRootOutput, err := exec.Command("go", "env", "GOROOT").Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get GOROOT: %w", err)
+		return nil, fmt.Errorf("find Go root: %w", err)
 	}
-	root := strings.TrimSpace(string(goroot))
-	candidates := []string{
-		filepath.Join(root, "lib", "wasm", "wasm_exec.js"),
-		filepath.Join(root, "misc", "wasm", "wasm_exec.js"),
-		"wasm_exec.js",
+	goRootPath := strings.TrimSpace(string(goRootOutput))
+	candidates := []struct {
+		root string
+		file string
+	}{
+		{root: filepath.Join(goRootPath, "lib"), file: filepath.Join("wasm", "wasm_exec.js")},
+		{root: filepath.Join(goRootPath, "misc"), file: filepath.Join("wasm", "wasm_exec.js")},
 	}
-	for _, p := range candidates {
-		if _, err := os.Stat(p); err == nil {
-			return p, nil
+	if goRootPath != "" {
+		for _, candidate := range candidates {
+			resolvedRoot, resolveErr := filepath.EvalSymlinks(candidate.root)
+			if resolveErr != nil {
+				continue
+			}
+			goRoot, openErr := os.OpenRoot(resolvedRoot)
+			if openErr != nil {
+				continue
+			}
+			data, readErr := goRoot.ReadFile(candidate.file)
+			closeErr := goRoot.Close()
+			if readErr == nil && closeErr == nil {
+				return data, nil
+			}
+			if readErr == nil {
+				return nil, closeErr
+			}
 		}
 	}
-	return "", fmt.Errorf(
+	if data, err := readFile("wasm_exec.js"); err == nil {
+		return data, nil
+	}
+	return nil, fmt.Errorf(
 		"wasm_exec.js not found in GOROOT (%s) or project root; reinstall Go or run 'rfw init'",
-		root,
+		goRootPath,
 	)
 }
 
@@ -219,64 +223,191 @@ func writeClientConfig(clientDir, host, wasmVersion string) error {
 	var b strings.Builder
 	b.WriteString("// Generated by rfw build. Do not edit.\n")
 	if h := strings.TrimSpace(host); h != "" {
-		b.WriteString(fmt.Sprintf("window.RFW_HOST_URL = %q;\n", h))
+		fmt.Fprintf(&b, "window.RFW_HOST_URL = %q;\n", h)
 	}
-	b.WriteString(fmt.Sprintf("window.RFW_WASM_VERSION = %q;\n", wasmVersion))
-	return os.WriteFile(filepath.Join(clientDir, "rfw_config.js"), []byte(b.String()), 0o644)
+	fmt.Fprintf(&b, "window.RFW_WASM_VERSION = %q;\n", wasmVersion)
+	return writePublicFile(filepath.Join(clientDir, "rfw_config.js"), []byte(b.String()))
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
+func readFile(path string) (data []byte, err error) {
+	root, file, err := openFile(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	if _, err = io.Copy(out, in); err != nil {
-		return err
-	}
-	return out.Close()
-}
-
-func compressWasmBrotli(src string) (err error) {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	dst := src + ".br"
-	tmp, err := os.CreateTemp(filepath.Dir(dst), filepath.Base(dst)+".*")
-	if err != nil {
-		return err
-	}
-	tmpName := tmp.Name()
 	defer func() {
-		if tmp != nil {
-			tmp.Close()
+		if closeErr := file.Close(); err == nil {
+			err = closeErr
 		}
-		if err != nil {
-			_ = os.Remove(tmpName)
+		if closeErr := root.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	return io.ReadAll(file)
+}
+
+func openFile(path string) (*os.Root, *os.File, error) {
+	cleaned, err := projectPath(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		return nil, nil, err
+	}
+	file, err := root.Open(cleaned)
+	if err != nil {
+		if closeErr := root.Close(); closeErr != nil {
+			return nil, nil, closeErr
+		}
+		return nil, nil, err
+	}
+	return root, file, nil
+}
+
+func projectPath(path string) (string, error) {
+	if path == "" || filepath.IsAbs(path) {
+		return "", fmt.Errorf("path %q must be relative to the project", path)
+	}
+	cleaned := filepath.Clean(path)
+	if cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path %q escapes the project", path)
+	}
+	return cleaned, nil
+}
+
+func makePublicDir(path string) (err error) {
+	cleaned, err := projectPath(path)
+	if err != nil {
+		return err
+	}
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := root.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	if err := root.MkdirAll(cleaned, 0o755); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writePublicFile(path string, data []byte) (err error) {
+	cleaned, err := projectPath(path)
+	if err != nil {
+		return err
+	}
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := root.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	if err := root.Remove(cleaned); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	file, err := root.OpenFile(cleaned, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err = file.Write(data); err != nil {
+		return errors.Join(err, file.Close())
+	}
+	return file.Close()
+}
+
+func copyFile(src, dst string) (err error) {
+	srcRoot, in, err := openFile(src)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := in.Close(); err == nil {
+			err = closeErr
+		}
+		if closeErr := srcRoot.Close(); err == nil {
+			err = closeErr
 		}
 	}()
 
-	writer := brotli.NewWriterLevel(tmp, brotli.BestCompression)
+	cleanedDestination, err := projectPath(dst)
+	if err != nil {
+		return err
+	}
+	dstRoot, err := os.OpenRoot(".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := dstRoot.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	if err := dstRoot.Remove(cleanedDestination); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	out, err := dstRoot.OpenFile(cleanedDestination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, in)
+	return errors.Join(copyErr, out.Close())
+}
+
+func compressWasmBrotli(src string) (err error) {
+	srcRoot, in, err := openFile(src)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := in.Close(); err == nil {
+			err = closeErr
+		}
+		if closeErr := srcRoot.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+
+	dst, err := projectPath(src + ".br")
+	if err != nil {
+		return err
+	}
+	outputRoot, err := os.OpenRoot(".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := outputRoot.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	if err := outputRoot.Remove(dst); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	out, err := outputRoot.OpenFile(dst, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := out.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+
+	writer := brotli.NewWriterLevel(out, brotli.BestCompression)
 	if _, err := io.Copy(writer, in); err != nil {
-		writer.Close()
+		if closeErr := writer.Close(); closeErr != nil {
+			return closeErr
+		}
 		return err
 	}
 	if err := writer.Close(); err != nil {
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	tmp = nil
-	if err := os.Rename(tmpName, dst); err != nil {
 		return err
 	}
 	return nil

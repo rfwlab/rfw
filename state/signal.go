@@ -238,6 +238,7 @@ func (s *Signal[T]) notifyOnChange(v T) {
 	}
 }
 
+// SubCount returns the number of active effect subscriptions.
 func (s *Signal[T]) SubCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()

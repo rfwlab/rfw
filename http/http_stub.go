@@ -3,12 +3,15 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	stdhttp "net/http"
 	"sync"
 	"time"
+
+	"github.com/rfwlab/rfw/v2/internal/safehttp"
 )
 
 // ErrPending is returned when a fetch request is still in flight.
@@ -30,6 +33,9 @@ type textEntry struct {
 
 var cache sync.Map     // map[string]*cacheEntry
 var textCache sync.Map // map[string]*textEntry
+var httpHookMu sync.RWMutex
+var httpClientMu sync.RWMutex
+var httpClient = safehttp.NewClient()
 
 // RegisterHTTPHook adds a callback invoked on request start and completion.
 // The callback receives a start flag, request URL, status code and duration.
@@ -37,19 +43,54 @@ var httpHook func(start bool, url string, status int, duration time.Duration)
 
 // RegisterHTTPHook registers fn to receive HTTP request events.
 func RegisterHTTPHook(fn func(start bool, url string, status int, duration time.Duration)) {
+	httpHookMu.Lock()
 	httpHook = fn
+	httpHookMu.Unlock()
 }
 
-func fetchBytes(url string) (status int, body []byte, err error) {
-	resp, err := stdhttp.Get(url)
+func currentHTTPHook() func(bool, string, int, time.Duration) {
+	httpHookMu.RLock()
+	hook := httpHook
+	httpHookMu.RUnlock()
+	return hook
+}
+
+// SetNativeClient replaces the native HTTP client. Custom clients may reach
+// private networks and must only receive trusted URLs. Passing nil restores
+// the default client, which rejects private network addresses.
+func SetNativeClient(client *stdhttp.Client) {
+	if client == nil {
+		client = safehttp.NewClient()
+	}
+	httpClientMu.Lock()
+	httpClient = client
+	httpClientMu.Unlock()
+}
+
+func currentNativeClient() *stdhttp.Client {
+	httpClientMu.RLock()
+	client := httpClient
+	httpClientMu.RUnlock()
+	return client
+}
+
+func fetchBytes(rawURL string) (status int, body []byte, err error) {
+	req, err := safehttp.NewRequest(context.Background(), stdhttp.MethodGet, rawURL)
 	if err != nil {
 		return 0, nil, err
 	}
-	defer resp.Body.Close()
+	resp, err := currentNativeClient().Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
 
 	b, err := io.ReadAll(resp.Body)
+	closeErr := resp.Body.Close()
 	if err != nil {
 		return resp.StatusCode, nil, err
+	}
+	if closeErr != nil {
+		return resp.StatusCode, nil, closeErr
 	}
 	if resp.StatusCode >= 400 {
 		return resp.StatusCode, nil, errors.New(string(b))
@@ -66,17 +107,18 @@ func FetchJSON(url string, v any) error {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
+			hook := currentHTTPHook()
+			if hook != nil {
+				hook(true, url, 0, 0)
 			}
 			start := time.Now()
 			status, b, err := fetchBytes(url)
 			ce.data = b
 			ce.err = err
-			close(ce.ready)
-			if httpHook != nil {
-				httpHook(false, url, status, time.Since(start))
+			if hook != nil {
+				hook(false, url, status, time.Since(start))
 			}
+			close(ce.ready)
 		}()
 	})
 
@@ -99,17 +141,18 @@ func FetchText(url string) (string, error) {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
+			hook := currentHTTPHook()
+			if hook != nil {
+				hook(true, url, 0, 0)
 			}
 			start := time.Now()
 			status, b, err := fetchBytes(url)
 			ce.text = string(b)
 			ce.err = err
-			close(ce.ready)
-			if httpHook != nil {
-				httpHook(false, url, status, time.Since(start))
+			if hook != nil {
+				hook(false, url, status, time.Since(start))
 			}
+			close(ce.ready)
 		}()
 	})
 

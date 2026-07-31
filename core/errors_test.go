@@ -20,7 +20,7 @@ func (c *errPipeComponent) Render() string { panic("boom") }
 
 func TestReportErrorFansOutToSinks(t *testing.T) {
 	var got []string
-	stop := OnError(func(err any, ctx string) {
+	stop := OnError(func(_ any, ctx string) {
 		got = append(got, ctx)
 	})
 	defer stop()

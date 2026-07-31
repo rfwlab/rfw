@@ -17,12 +17,12 @@ import (
 // the map iteration. Run with -race to exercise the invariant.
 func TestBroadcastConcurrentWithConnectionChurn(t *testing.T) {
 	const componentName = "broadcast-churn"
-	Register(NewHostComponentWithSession(componentName, func(session *Session, payload map[string]any) any {
+	Register(NewHostComponentWithSession(componentName, func(_ *Session, _ map[string]any) any {
 		return map[string]any{"ok": true}
 	}))
 
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o600); err != nil {
 		t.Fatalf("write index: %v", err)
 	}
 	srv := httptest.NewServer(NewMux(root))
@@ -52,7 +52,7 @@ func TestBroadcastConcurrentWithConnectionChurn(t *testing.T) {
 					var raw []byte
 					_ = websocket.Message.Receive(ws, &raw)
 				}
-				ws.Close()
+				closeTestResource(t, ws)
 			}
 		}()
 	}

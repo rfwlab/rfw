@@ -1,3 +1,4 @@
+// Package ssc serves applications with server-side components.
 package ssc
 
 import (
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	fnevents "github.com/mirkobrombin/go-foundation/v2/core/events"
 	fnsafemap "github.com/mirkobrombin/go-foundation/v2/core/safemap"
@@ -17,25 +19,32 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// SSCEvent carries a component message and its session.
 type SSCEvent struct {
 	Component string
 	Payload   map[string]any
 	Session   *host.Session
 }
 
+// Event is the concise name for SSCEvent.
+type Event = SSCEvent
+
 var (
 	bus     = fnevents.New()
 	connMap = fnsafemap.New[string, *fnsafemap.Map[*websocket.Conn, *host.Session]]()
 )
 
+// SubscribeSSC registers an SSC event handler.
 func SubscribeSSC(fn fnevents.Handler[SSCEvent], priority ...fnevents.Priority) {
 	fnevents.Subscribe[SSCEvent](bus, fn, priority...)
 }
 
+// EmitSSC emits an SSC event synchronously.
 func EmitSSC(ctx context.Context, event SSCEvent) error {
 	return fnevents.Emit(ctx, bus, event)
 }
 
+// SSCServer serves static assets and SSC WebSocket traffic.
 type SSCServer struct {
 	Addr string
 	Root string
@@ -43,6 +52,9 @@ type SSCServer struct {
 
 	opts []host.MuxOption
 }
+
+// Server is the concise name for SSCServer.
+type Server = SSCServer
 
 // NewSSCServer builds an SSC server serving files from root and the WebSocket
 // endpoint at /ws. Options such as host.WithAuthFunc and
@@ -60,9 +72,12 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 	root := host.ResolveRoot(s.Root)
 	staticRoot := filepath.Join(root, "..", "static")
 	fs := http.FileServer(http.Dir(root))
+	rootDir := http.Dir(root)
 	var sfs http.Handler
+	var staticDir http.Dir
 	if _, err := os.Stat(staticRoot); err == nil {
-		sfs = http.FileServer(http.Dir(staticRoot))
+		staticDir = http.Dir(staticRoot)
+		sfs = http.FileServer(staticDir)
 	}
 	if sfs != nil {
 		mux.Handle("/static/", http.StripPrefix("/static", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,16 +93,14 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if sfs != nil {
-			spath := filepath.Join(staticRoot, r.URL.Path)
-			if st, err := os.Stat(spath); err == nil && !st.IsDir() {
-				setWasmHeaders(w, spath, r.URL.Query().Get("v") != "")
+			if regularFile(staticDir, r.URL.Path) {
+				setWasmHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 				sfs.ServeHTTP(w, r)
 				return
 			}
 		}
-		path := filepath.Join(root, r.URL.Path)
-		if st, err := os.Stat(path); err == nil && !st.IsDir() {
-			setWasmHeaders(w, path, r.URL.Query().Get("v") != "")
+		if regularFile(rootDir, r.URL.Path) {
+			setWasmHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 			fs.ServeHTTP(w, r)
 			return
 		}
@@ -100,15 +113,33 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 	return mux
 }
 
+// ListenAndServe starts the SSC HTTP server.
 func (s *SSCServer) ListenAndServe() error {
 	log.Printf("SSC server starting on %s", s.Addr)
-	return http.ListenAndServe(s.Addr, s.Mux)
+	server := &http.Server{
+		Addr:              s.Addr,
+		Handler:           s.Mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	return server.ListenAndServe()
+}
+
+func regularFile(root http.Dir, name string) bool {
+	f, err := root.Open(name)
+	if err != nil {
+		return false
+	}
+	info, statErr := f.Stat()
+	closeErr := f.Close()
+	return statErr == nil && closeErr == nil && !info.IsDir()
 }
 
 func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 	if !runtime.AcquireConnection() {
 		host.SendOutbound(ws, host.Outbound{Error: host.NewActionError("connection_limit", "connection limit reached")})
-		ws.Close()
+		if err := ws.Close(); err != nil {
+			log.Printf("close rejected websocket: %v", err)
+		}
 		return
 	}
 	defer runtime.ReleaseConnection()
@@ -125,7 +156,9 @@ func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 		}
 		host.SuspendSession(session, runtime.ResumeTTL())
 		host.ForgetConnection(ws)
-		ws.Close()
+		if err := ws.Close(); err != nil {
+			log.Printf("close websocket: %v", err)
+		}
 	}()
 
 	for {
@@ -229,7 +262,7 @@ func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 			}
 		}
 
-		if err := fnevents.Emit(context.Background(), bus, SSCEvent{
+		if err := fnevents.Emit(context.Background(), bus, Event{
 			Component: name,
 			Payload:   msg.Payload,
 			Session:   session,
@@ -240,6 +273,7 @@ func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 	}
 }
 
+// Broadcast sends a payload to connected component sessions.
 func Broadcast(component string, payload any, opts ...host.BroadcastOption) {
 	o := host.BroadcastOptions{Session: ""}
 	for _, opt := range opts {
@@ -258,8 +292,10 @@ func Broadcast(component string, payload any, opts ...host.BroadcastOption) {
 	})
 }
 
+// BroadcastOption configures an SSC broadcast.
 type BroadcastOption = host.BroadcastOption
 
+// WithSessionTarget limits a broadcast to one session.
 func WithSessionTarget(sessionID string) host.BroadcastOption {
 	return host.WithSessionTarget(sessionID)
 }

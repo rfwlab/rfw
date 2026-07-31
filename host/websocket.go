@@ -11,10 +11,6 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-type broadcastOptions struct {
-	session string
-}
-
 // BroadcastOption configures a broadcast call.
 type BroadcastOption func(*BroadcastOptions)
 
@@ -39,7 +35,9 @@ var (
 func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 	if !runtime.AcquireConnection() {
 		SendOutbound(ws, Outbound{Error: NewActionError("connection_limit", "connection limit reached")})
-		ws.Close()
+		if err := ws.Close(); err != nil {
+			log.Printf("close rejected websocket: %v", err)
+		}
 		return
 	}
 	defer runtime.ReleaseConnection()
@@ -60,7 +58,9 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 		connMu.Unlock()
 		SuspendSession(session, runtime.ResumeTTL())
 		ForgetConnection(ws)
-		ws.Close()
+		if err := ws.Close(); err != nil {
+			log.Printf("close websocket: %v", err)
+		}
 	}()
 	for {
 		var raw []byte

@@ -10,7 +10,7 @@ import (
 type namedTestPlugin struct{ installed int }
 
 func (p *namedTestPlugin) Build(json.RawMessage) error { return nil }
-func (p *namedTestPlugin) Install(a *App)              { p.installed++ }
+func (p *namedTestPlugin) Install(*App)                { p.installed++ }
 func (p *namedTestPlugin) Name() string                { return "named-test" }
 
 func TestRegisterPlugin_dedup(t *testing.T) {
@@ -33,13 +33,13 @@ func TestRegisterPlugin_dedup(t *testing.T) {
 type depPlugin struct{ installed int }
 
 func (p *depPlugin) Build(json.RawMessage) error { return nil }
-func (p *depPlugin) Install(a *App)              { p.installed++ }
+func (p *depPlugin) Install(*App)                { p.installed++ }
 func (p *depPlugin) Name() string                { return "dep" }
 
 type requiresPlugin struct{ dep *depPlugin }
 
 func (p *requiresPlugin) Build(json.RawMessage) error { return nil }
-func (p *requiresPlugin) Install(a *App)              {}
+func (p *requiresPlugin) Install(_ *App)              {}
 func (p *requiresPlugin) Name() string                { return "requires" }
 func (p *requiresPlugin) Requires() []Plugin          { return []Plugin{p.dep} }
 
@@ -62,7 +62,7 @@ type optionalPlugin struct {
 }
 
 func (p *optionalPlugin) Build(json.RawMessage) error { return nil }
-func (p *optionalPlugin) Install(a *App)              {}
+func (p *optionalPlugin) Install(_ *App)              {}
 func (p *optionalPlugin) Name() string                { return "optional" }
 func (p *optionalPlugin) Optional() []Plugin {
 	if !p.enable {

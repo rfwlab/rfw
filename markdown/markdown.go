@@ -1,3 +1,4 @@
+// Package markdown renders Markdown and extracts document headings.
 package markdown
 
 import (
@@ -80,10 +81,10 @@ func Headings(src string) []Heading {
 				}
 			}
 			text := strings.TrimSpace(buf.String())
-			level := n.HeadingData.Level
+			level := n.Level
 			headings = append(headings, Heading{
 				Text:  text,
-				Depth: int(level),
+				Depth: level,
 				ID:    slug.slug(text),
 			})
 		}

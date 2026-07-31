@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package composition builds components from annotated Go structs.
 package composition
 
 import (
@@ -19,10 +20,12 @@ import (
 
 var defaultContainer = fndi.New()
 
+// Container returns the dependency injection container.
 func Container() *fndi.Container { return defaultContainer }
 
 var templateFS []*embed.FS
 
+// RegisterFS adds an embedded filesystem for template discovery.
 func RegisterFS(fsInstance *embed.FS) {
 	templateFS = append(templateFS, fsInstance)
 }
@@ -41,7 +44,7 @@ func resolveTemplateByConvention(name string) string {
 	}
 	for _, fsInstance := range templateFS {
 		var found string
-		fs.WalkDir(fsInstance, ".", func(path string, d fs.DirEntry, walkErr error) error {
+		if err := fs.WalkDir(fsInstance, ".", func(path string, d fs.DirEntry, walkErr error) error {
 			if walkErr != nil || d.IsDir() {
 				return nil
 			}
@@ -54,7 +57,9 @@ func resolveTemplateByConvention(name string) string {
 				}
 			}
 			return nil
-		})
+		}); err != nil {
+			continue
+		}
 		if found != "" {
 			return found
 		}
@@ -64,11 +69,13 @@ func resolveTemplateByConvention(name string) string {
 
 type signalAny interface{ Read() any }
 
+// Component wraps an HTML component with composition helpers.
 type Component struct {
 	*core.HTMLComponent
 	createdStores map[string]struct{}
 }
 
+// Wrap adds composition helpers to an HTML component.
 func Wrap(c *core.HTMLComponent) *Component {
 	comp := &Component{HTMLComponent: c, createdStores: make(map[string]struct{})}
 	c.SetComponent(comp)
@@ -77,17 +84,20 @@ func Wrap(c *core.HTMLComponent) *Component {
 
 func (c *Component) Unwrap() *core.HTMLComponent { return c.HTMLComponent }
 
+// On registers a named component event handler.
 func (c *Component) On(name string, fn func()) {
 	c.HTMLComponent.On(name, fn)
 }
 
+// Prop exposes a signal as a component property.
 func (c *Component) Prop(key string, sig signalAny) {
-	if c.HTMLComponent.Props == nil {
-		c.HTMLComponent.Props = map[string]any{}
+	if c.Props == nil {
+		c.Props = map[string]any{}
 	}
-	c.HTMLComponent.Props[key] = sig
+	c.Props[key] = sig
 }
 
+// NewRaw creates a view from an explicit template and props.
 func NewRaw(name string, tpl []byte, props map[string]any) *View {
 	hc := core.NewHTMLComponent(name, tpl, props)
 	defaultStore := state.GlobalStoreManager.GetStore("app", "default")
@@ -98,9 +108,10 @@ func NewRaw(name string, tpl []byte, props map[string]any) *View {
 	return hc
 }
 
+// New creates a view from an annotated struct pointer.
 func New(v any) (*View, error) {
 	typ := reflect.TypeOf(v)
-	if typ.Kind() != reflect.Ptr {
+	if typ.Kind() != reflect.Pointer {
 		return nil, fmt.Errorf("composition.New: expected *struct, got %v", typ)
 	}
 	if typ.Elem().Kind() != reflect.Struct {
@@ -143,7 +154,7 @@ func New(v any) (*View, error) {
 	comp := Wrap(hc)
 
 	// Auto-inject router data
-	for k, v := range router.RouterData() {
+	for k, v := range router.TemplateData() {
 		if hc.Props == nil {
 			hc.Props = make(map[string]any)
 		}
@@ -159,7 +170,7 @@ func New(v any) (*View, error) {
 			continue
 		}
 		switch {
-		case field.Kind() == reflect.Ptr && field.IsNil():
+		case field.Kind() == reflect.Pointer && field.IsNil():
 			// Nil pointer to signal: auto-init with zero value
 			sig := newZeroSignalFromFieldType(field.Type())
 			if sig != nil {
@@ -168,7 +179,7 @@ func New(v any) (*View, error) {
 			if sig, ok := field.Interface().(signalAny); ok {
 				comp.Prop(s.Name, sig)
 			}
-		case field.Kind() == reflect.Ptr:
+		case field.Kind() == reflect.Pointer:
 			if sig, ok := field.Interface().(signalAny); ok {
 				comp.Prop(s.Name, sig)
 			}
@@ -216,7 +227,7 @@ func New(v any) (*View, error) {
 	// Use pointer type for method lookup since methods with pointer receiver
 	// (e.g. func (h *HomePage) OnMount()) are only in the pointer method set.
 	var userOnMount func()
-	ptrType := reflect.PtrTo(base)
+	ptrType := reflect.PointerTo(base)
 	if m, ok := ptrType.MethodByName("OnMount"); ok {
 		if m.Type.NumIn() == 1 && m.Type.NumOut() == 0 {
 			method := val.Addr().MethodByName("OnMount")
@@ -240,7 +251,7 @@ func New(v any) (*View, error) {
 		if m.Type.NumIn() == 1 && m.Type.NumOut() == 1 && m.Type.Out(0).Kind() == reflect.Map && m.Type.Out(0).Key().Kind() == reflect.String {
 			if fn, ok := val.Addr().MethodByName("OnParams").Interface().(func() map[string]string); ok {
 				capturedFn := fn
-				userOnParams = func(params map[string]string) {
+				userOnParams = func(map[string]string) {
 					_ = capturedFn()
 				}
 			}
@@ -259,7 +270,7 @@ func New(v any) (*View, error) {
 		store := state.GlobalStoreManager.GetStore("app", st.Name)
 		if store != nil {
 			field := val.FieldByName(st.Name)
-			if field.IsValid() && field.CanSet() && field.Kind() == reflect.Ptr {
+			if field.IsValid() && field.CanSet() && field.Kind() == reflect.Pointer {
 				field.Set(reflect.ValueOf(store))
 			}
 		}
@@ -279,7 +290,7 @@ func New(v any) (*View, error) {
 	if historyStore != nil {
 		for _, h := range meta.Histories {
 			field := val.FieldByName(h.Name)
-			if !field.IsValid() || field.Kind() != reflect.Ptr || field.IsNil() {
+			if !field.IsValid() || field.Kind() != reflect.Pointer || field.IsNil() {
 				continue
 			}
 			if hist, ok := field.Interface().(*types.History); ok {
@@ -290,7 +301,7 @@ func New(v any) (*View, error) {
 
 	// Wire host fields (t.HInt, t.HString, etc.) — both signal and host registration
 	for _, h := range meta.Hosts {
-		comp.HTMLComponent.AddHostComponent(h.Name)
+		comp.AddHostComponent(h.Name)
 	}
 
 	// Wire includes (View dependencies)
@@ -300,7 +311,7 @@ func New(v any) (*View, error) {
 			continue
 		}
 		if view, ok := field.Interface().(*types.View); ok {
-			comp.HTMLComponent.AddDependency(inc.Name, view)
+			comp.AddDependency(inc.Name, view)
 		}
 	}
 
@@ -311,11 +322,11 @@ func New(v any) (*View, error) {
 			continue
 		}
 		// Allocate *Inject[T] if nil
-		if field.Kind() == reflect.Ptr && field.IsNil() {
+		if field.Kind() == reflect.Pointer && field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))
 		}
 		// Resolve inner Value field from DI container by name
-		if field.Kind() == reflect.Ptr {
+		if field.Kind() == reflect.Pointer {
 			inner := field.Elem().FieldByName("Value")
 			if inner.IsValid() && inner.CanSet() {
 				// Try DI container first
@@ -335,7 +346,7 @@ func New(v any) (*View, error) {
 		if !field.IsValid() || !field.CanSet() {
 			continue
 		}
-		if field.Kind() == reflect.Ptr && field.IsNil() {
+		if field.Kind() == reflect.Pointer && field.IsNil() {
 			field.Set(reflect.ValueOf(types.NewRef()))
 		}
 	}
@@ -380,13 +391,14 @@ func New(v any) (*View, error) {
 	return comp.HTMLComponent, nil
 }
 
+// NewFrom creates a view from the zero value of a component type.
 func NewFrom[T any]() (*View, error) {
 	var zero T
 	typ := reflect.TypeOf(zero)
 	if typ == nil {
 		return nil, fmt.Errorf("composition.NewFrom: cannot use nil type")
 	}
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	if typ.Kind() != reflect.Struct {
@@ -402,7 +414,7 @@ func initEmbeddedSignalPtr(field reflect.Value) {
 	}
 	for i := 0; i < field.NumField(); i++ {
 		f := field.Type().Field(i)
-		if f.Type.Kind() != reflect.Ptr {
+		if f.Type.Kind() != reflect.Pointer {
 			continue
 		}
 		innerField := field.Field(i)
@@ -428,9 +440,9 @@ func initEmbeddedSignalPtr(field reflect.Value) {
 			continue
 		}
 		// Check for signalAny interface (Get, Set, Read methods)
-		_, hasGet := reflect.PtrTo(elem).MethodByName("Get")
-		_, hasSet := reflect.PtrTo(elem).MethodByName("Set")
-		_, hasRead := reflect.PtrTo(elem).MethodByName("Read")
+		_, hasGet := reflect.PointerTo(elem).MethodByName("Get")
+		_, hasSet := reflect.PointerTo(elem).MethodByName("Set")
+		_, hasRead := reflect.PointerTo(elem).MethodByName("Read")
 		if hasGet && hasSet && hasRead {
 			sig := newZeroSignalFromFieldType(f.Type)
 			if sig != nil {
@@ -441,7 +453,7 @@ func initEmbeddedSignalPtr(field reflect.Value) {
 }
 
 func newZeroSignalFromFieldType(ptrType reflect.Type) signalAny {
-	if ptrType.Kind() != reflect.Ptr {
+	if ptrType.Kind() != reflect.Pointer {
 		return nil
 	}
 	elem := ptrType.Elem()

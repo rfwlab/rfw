@@ -1,5 +1,6 @@
 //go:build !js
 
+// Package plugins manages CLI build plugins and their lifecycle.
 package plugins
 
 import (

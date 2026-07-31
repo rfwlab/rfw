@@ -32,15 +32,15 @@ func New(trans map[string]map[string]string) core.Plugin {
 }
 
 // Install exposes translation helpers to the JavaScript environment.
-func (p *Plugin) Install(a *core.App) {
+func (p *Plugin) Install(_ *core.App) {
 	current = p
-	js.Set("setLang", js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+	js.Set("setLang", js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			SetLang(args[0].String())
 		}
 		return nil
 	}))
-	js.Set("t", js.SafeFuncOf(func(this js.Value, args []js.Value) any {
+	js.Set("t", js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return ""
 		}
@@ -87,4 +87,5 @@ func Signal(key string) *state.Signal[string] {
 	return current.signal(key)
 }
 
+// Build accepts the plugin build configuration.
 func (p *Plugin) Build(json.RawMessage) error { return nil }

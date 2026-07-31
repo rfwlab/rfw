@@ -62,7 +62,7 @@ func TestProp(t *testing.T) {
 	sig := state.NewSignal(1)
 	c.Prop("count", sig)
 
-	if c.HTMLComponent.Props["count"] != sig {
+	if c.Props["count"] != sig {
 		t.Fatalf("expected prop to be stored")
 	}
 }
@@ -75,7 +75,7 @@ func TestPropOverwrite(t *testing.T) {
 	c.Prop("count", first)
 	c.Prop("count", second)
 
-	if c.HTMLComponent.Props["count"] != second {
+	if c.Props["count"] != second {
 		t.Fatalf("expected latest signal in props")
 	}
 }

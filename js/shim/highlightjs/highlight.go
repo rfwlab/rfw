@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package highlightjs connects Go language definitions to Highlight.js.
 package highlightjs
 
 import (
@@ -10,7 +11,7 @@ import (
 // The def callback receives the hljs object and must return the language config.
 func RegisterLanguage(name string, def func(hljs js.Value) js.Value) {
 	hljsObj := js.Get("hljs")
-	hljsObj.Call("registerLanguage", name, js.FuncOf(func(this js.Value, args []js.Value) any {
+	hljsObj.Call("registerLanguage", name, js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			return def(args[0])
 		}

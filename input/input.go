@@ -1,3 +1,4 @@
+// Package input provides keyboard, pointer, drag and camera state helpers.
 package input
 
 import "github.com/rfwlab/rfw/v2/math"

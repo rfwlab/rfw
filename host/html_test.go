@@ -10,7 +10,7 @@ func TestSpan(t *testing.T) {
 	if !strings.Contains(got, `data-host-var="Visit"`) {
 		t.Fatalf("missing data-host-var: %s", got)
 	}
-	if !strings.Contains(got, `data-host-expected="sha1:`) {
+	if !strings.Contains(got, `data-host-expected="1"`) {
 		t.Fatalf("missing data-host-expected: %s", got)
 	}
 	if !strings.Contains(got, ">1</span>") {
@@ -61,10 +61,8 @@ func TestHelpersEscapeValues(t *testing.T) {
 	if strings.Contains(got, "><img") {
 		t.Fatalf("markup injected: %s", got)
 	}
-	// The expectation hash still covers the unescaped value: the client
-	// hashes the element's text content, which the browser unescapes.
-	if !strings.Contains(got, encodeExpected(`<img src=x onerror=alert(1)>`)) {
-		t.Fatalf("expected hash over raw value: %s", got)
+	if !strings.Contains(got, `data-host-expected="&lt;img src=x onerror=alert(1)&gt;"`) {
+		t.Fatalf("expected escaped migration value: %s", got)
 	}
 }
 
@@ -73,6 +71,9 @@ func TestRawTag(t *testing.T) {
 	got := RawTag("div", "content", `<b>ok</b>`)
 	if !strings.Contains(got, "><b>ok</b></div>") {
 		t.Fatalf("raw value escaped: %s", got)
+	}
+	if !strings.Contains(got, `data-host-expected=""`) {
+		t.Fatalf("raw markup must skip text expectation: %s", got)
 	}
 }
 
@@ -93,17 +94,18 @@ func TestJoin(t *testing.T) {
 	}
 }
 
-func TestExpectedSha1(t *testing.T) {
-	got := Span("x", "test")
-	expected := encodeExpected("test")
-	if !strings.Contains(got, expected) {
-		t.Fatalf("expected hash %q not found in %s", expected, got)
+func TestHostVariableAttributesAreEscaped(t *testing.T) {
+	got := Span(`x" onmouseover="alert(1)`, "test")
+	if strings.Contains(got, `data-host-var="x" onmouseover=`) {
+		t.Fatalf("host variable name injected an attribute: %s", got)
+	}
+	if !strings.Contains(got, `data-host-var="x&#34; onmouseover=&#34;alert(1)"`) {
+		t.Fatalf("host variable name was not escaped: %s", got)
 	}
 }
 
-func TestEncodeExpected(t *testing.T) {
-	got := encodeExpected("hello")
-	if !strings.HasPrefix(got, "sha1:") {
-		t.Fatalf("expected sha1 prefix: %s", got)
+func TestTagRejectsInvalidName(t *testing.T) {
+	if got := Tag(`div onmouseover="alert(1)"`, "x", "test"); got != "" {
+		t.Fatalf("invalid tag name was accepted: %s", got)
 	}
 }
