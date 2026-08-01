@@ -443,6 +443,20 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 	if receiver, ok := r.component.(RouteDataReceiver); ok {
 		receiver.SetRouteData(data)
 	}
+	// In-place update: when the destination resolves to the component instance
+	// already mounted (e.g. the same singleton registered for a base path and
+	// its ":id" variant), unmounting and remounting rebuilds an unchanged view.
+	// Keep it mounted and just re-run params so it can react (toggle an overlay,
+	// load a detail), which also lets browser back/forward between the two paths
+	// update in place instead of tearing the view down.
+	if currentComponent != nil && r.component == currentComponent {
+		r.component.OnParams(params)
+		core.TriggerRouter(fullPath)
+		activePathSig.Set(fullPath)
+		updateHistory(history, fullPath)
+		commitRouteState(data, r.meta)
+		return nil
+	}
 	saveScroll()
 	if currentComponent != nil {
 		core.Log().Debug("Unmounting current component: %s", currentComponent.GetName())
