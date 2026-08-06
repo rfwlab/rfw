@@ -245,6 +245,7 @@ func TestHasClassExprMatchesPattern(t *testing.T) {
 		`<div class="a @expr:x b">`,
 		`<div class="a">@expr:x</div>`,
 		`<div class="class="@expr:x">`,
+		"<code>class=\"</code>\n<div class=\"@expr:tone\">x</div>",
 		`<div class="a`,
 		`<div class="a"><span class="@expr:y">`,
 	}
