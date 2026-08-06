@@ -985,11 +985,21 @@ func parseTemplate(template string) ([]Node, error) {
 
 func parseBlock(lines []string, idx *int) ([]Node, error) {
 	var nodes []Node
+	// a run of plain lines becomes one node: a node per line meant two
+	// allocations for every line of an expanded loop
+	run := -1
+	flush := func() {
+		if run < 0 {
+			return
+		}
+		nodes = append(nodes, &TextNode{Text: strings.Join(lines[run:*idx], "\n") + "\n"})
+		run = -1
+	}
 	for *idx < len(lines) {
-		line := lines[*idx]
-		trimmed := strings.TrimSpace(line)
+		trimmed := strings.TrimSpace(lines[*idx])
 		switch {
 		case strings.HasPrefix(trimmed, "@if:"):
+			flush()
 			cond := trimmed
 			*idx++
 			n, err := parseConditional(lines, idx, cond)
@@ -998,12 +1008,16 @@ func parseBlock(lines []string, idx *int) ([]Node, error) {
 			}
 			nodes = append(nodes, n)
 		case strings.HasPrefix(trimmed, "@else-if:"), trimmed == "@else", trimmed == "@endif":
+			flush()
 			return nodes, nil
 		default:
-			nodes = append(nodes, &TextNode{Text: line + "\n"})
+			if run < 0 {
+				run = *idx
+			}
 			*idx++
 		}
 	}
+	flush()
 	return nodes, nil
 }
 
