@@ -235,6 +235,44 @@ func TestForMapScalarsEscapedByDefault(t *testing.T) {
 	}
 }
 
+// hasClassExpr stands in for reClassExpr, so it has to agree with it on every
+// input: a disagreement silently skips the pass.
+func TestHasClassExprMatchesPattern(t *testing.T) {
+	cases := []string{
+		``,
+		`<div class="a b">`,
+		`<div class="">`,
+		`<div class="a @expr:x b">`,
+		`<div class="a">@expr:x</div>`,
+		`<div class="class="@expr:x">`,
+		`<div class="a`,
+		`<div class="a"><span class="@expr:y">`,
+	}
+	for _, in := range cases {
+		if got, want := hasClassExpr(in), reClassExpr.MatchString(in); got != want {
+			t.Errorf("hasClassExpr(%q) = %v, pattern says %v", in, got, want)
+		}
+	}
+}
+
+// hasConstructorToken only has to be implied by reConditionalAttr: it may be
+// true without a match, never false with one.
+func TestConstructorTokenImpliedByPattern(t *testing.T) {
+	cases := []string{
+		`<div [header] class="box"></div>`,
+		`<li [key {item.ID}]></li>`,
+		"<div\n[ref]>",
+		"<div\t[ref]>",
+		`<div class="grid-cols-[1fr]"></div>`,
+		`<div>no constructor</div>`,
+	}
+	for _, in := range cases {
+		if reConditionalAttr.MatchString(in) && !hasConstructorToken(in) {
+			t.Errorf("hasConstructorToken(%q) = false while the pattern matches", in)
+		}
+	}
+}
+
 // An @if body holding sibling elements renders them inside one container, in
 // order. Callers style around that wrapper, so it stays part of the contract.
 func TestConditionalWrapsSiblingsInOneContainer(t *testing.T) {

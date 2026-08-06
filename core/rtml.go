@@ -514,7 +514,9 @@ func hasClassExpr(template string) bool {
 		if strings.Contains(template[start:start+end], "@expr:") {
 			return true
 		}
-		i = start + end
+		// resume right after the token, not after the attribute: the regexp
+		// can still start at a class=" that sits inside this value
+		i = start
 	}
 	return false
 }
