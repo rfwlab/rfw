@@ -102,6 +102,16 @@ common to be useful:
   one, which is exactly the condition `reClassExpr` tests, using byte scans
   instead of the regexp engine.
 
+`hasClassExpr` is the one place where this style of guard bit back. It first
+resumed the scan past the attribute value it had just rejected, which loses a
+`class="` that starts inside that value. A `<code>class="</code>` in the page
+text was enough to hide the next real class expression from the pass. It now
+resumes right after the token. `TestHasClassExprMatchesPattern` pins it to
+`reClassExpr` on both shapes, and `TestConstructorTokenImpliedByPattern` pins
+the weaker implication `hasConstructorToken` has to satisfy. A guard that is
+cheaper than its pattern is only safe while it agrees with it, so any new one
+belongs in those tests.
+
 One behavioural detail worth keeping in mind: `replaceConditionals` used to
 split the template into lines and join them back with a terminator on each, so
 its output always carried a trailing newline. The shortcut adds that newline
@@ -160,7 +170,18 @@ to preserve. All three pass on the pre-change tree as well, which is the point:
 - `TestForBodyWithoutDirectives`, a plain loop body still renders one row per
   item.
 
-`go test ./...` and the js/wasm suite are green before and after.
+`go test ./...` and the js/wasm suite are green before and after, as is
+`golangci-lint run` on both targets.
+
+Beyond the suite, a throwaway harness rendered a 16 template corpus covering
+every directive (`@for` over a slice, a map and a range; `@if` / `@else-if` /
+`@else` with sibling and nested bodies; `@store`, `@rawstore`, writable
+bindings, `@signal`, `@expr` in text and in a class list, `@prop`, `@rawprop`,
+`{{prop}}`, `@plugin`, `@on:` with modifiers, `[ref]` and `[key]`
+constructors, a Tailwind class list with brackets, inline `<script>` and
+`<style>`, and a template with no directive at all). Its output is byte for
+byte the same on `main` and on this branch. That harness was not kept: it is
+twenty lines and easier to rewrite than to maintain.
 
 ## Deliberately not changed
 
