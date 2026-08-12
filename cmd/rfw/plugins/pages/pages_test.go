@@ -2,7 +2,11 @@
 
 package pages
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestDeriveRoute(t *testing.T) {
 	tests := map[string]struct{ path, comp string }{
@@ -17,5 +21,18 @@ func TestDeriveRoute(t *testing.T) {
 		if p != exp.path || c != exp.comp {
 			t.Errorf("%s => (%s,%s), want (%s,%s)", in, p, c, exp.path, exp.comp)
 		}
+	}
+}
+
+// TestPreBuildMissingDirNoop verifies that a project without a pages directory
+// builds cleanly: PreBuild returns nil and generates nothing. This is what makes
+// default activation safe for manually-routed projects.
+func TestPreBuildMissingDirNoop(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := (&plugin{}).PreBuild(nil); err != nil {
+		t.Fatalf("PreBuild with no pages dir should be a no-op, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join("pages", "routes_gen.go")); !os.IsNotExist(err) {
+		t.Fatalf("no routes file should be generated without a pages dir")
 	}
 }
