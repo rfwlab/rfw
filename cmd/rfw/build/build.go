@@ -28,6 +28,23 @@ import (
 	"github.com/rfwlab/rfw/v2/cmd/rfw/utils"
 )
 
+// defaultPlugins is the plugin set activated when rfw.json omits the "plugins"
+// key. It enables file-based routing (the pages plugin) so a scaffolded project
+// routes without extra configuration. Other plugins stay opt-in.
+func defaultPlugins() map[string]json.RawMessage {
+	return map[string]json.RawMessage{"pages": json.RawMessage("{}")}
+}
+
+// pluginsConfig resolves the plugin configuration to apply. A missing "plugins"
+// key (nil) falls back to defaultPlugins; an explicit block, including an empty
+// one, is honored as written, so "plugins": {} opts out of every plugin.
+func pluginsConfig(explicit map[string]json.RawMessage) map[string]json.RawMessage {
+	if explicit == nil {
+		return defaultPlugins()
+	}
+	return explicit
+}
+
 // Build compiles the configured application and runs its build plugins.
 func Build() error {
 	var manifest struct {
@@ -40,7 +57,7 @@ func Build() error {
 	if data, err := os.ReadFile("rfw.json"); err == nil {
 		_ = json.Unmarshal(data, &manifest)
 	}
-	if err := plugins.Configure(manifest.Plugins); err != nil {
+	if err := plugins.Configure(pluginsConfig(manifest.Plugins)); err != nil {
 		return fmt.Errorf("failed to configure plugins: %w", err)
 	}
 	if err := plugins.PreBuild(); err != nil {

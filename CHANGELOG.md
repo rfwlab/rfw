@@ -12,6 +12,13 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Fixed
+
+- enable the `pages` plugin by default when `rfw.json` omits the `"plugins"`
+  key, so a scaffolded project and the examples register their file-based routes
+  without extra configuration. An explicit `"plugins"` block, including an empty
+  one, still opts out.
+
 ## [2.1.0] - 2026-07-31
 
 ### Added
