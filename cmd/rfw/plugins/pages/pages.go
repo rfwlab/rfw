@@ -32,6 +32,12 @@ func (p *plugin) PreBuild(raw json.RawMessage) error {
 		_ = json.Unmarshal(raw, &cfg)
 	}
 	p.dir = cfg.Dir
+	// A missing pages directory is not an error: the plugin generates no routes.
+	// This keeps activation safe for projects that route manually, including when
+	// the plugin runs by default because rfw.json omits "plugins".
+	if _, err := os.Stat(p.dir); os.IsNotExist(err) {
+		return nil
+	}
 	routes := []struct{ Path, Comp string }{}
 	err := filepath.WalkDir(p.dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
