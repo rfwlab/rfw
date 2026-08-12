@@ -79,6 +79,9 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 		// returning HTML for CSS, JS, image, etc. requests.
 		accept := r.Header.Get("Accept")
 		if strings.Contains(accept, "text/html") || r.URL.Path == "/" || r.URL.Path == "" {
+			if devMode() {
+				w.Header().Set("Cache-Control", "no-store")
+			}
 			http.ServeFile(w, r, filepath.Join(root, "index.html"))
 			return
 		}
@@ -147,15 +150,30 @@ func regularFile(root http.Dir, name string) bool {
 	return statErr == nil && closeErr == nil && !info.IsDir()
 }
 
+// devMode reports whether the server is running under `rfw dev`. The dev command
+// exports RFW_DEV_BUILD=1 and propagates it to the SSC host child via os.Environ,
+// so both the static and host-proxied serving paths observe it.
+func devMode() bool { return os.Getenv("RFW_DEV_BUILD") == "1" }
+
 func setWasmEncodingHeaders(w http.ResponseWriter, path string, versioned bool) {
+	// In dev, nothing may be cached: the wasm version pointer lives in
+	// rfw_config.js and the binary is fetched as app.wasm?v=<hash>. Caching
+	// either one leaves the browser re-requesting a stale ?v= against an
+	// immutable entry, so rebuilds are never picked up. no-store on every asset
+	// forces a fresh fetch each load. Production keeps the immutable policy.
+	if devMode() {
+		w.Header().Set("Cache-Control", "no-store")
+	}
 	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
 		return
 	}
 	header := w.Header()
-	if versioned {
-		header.Set("Cache-Control", "public, max-age=31536000, immutable")
-	} else {
-		header.Set("Cache-Control", "no-cache")
+	if !devMode() {
+		if versioned {
+			header.Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			header.Set("Cache-Control", "no-cache")
+		}
 	}
 	if !strings.HasSuffix(path, ".wasm.br") {
 		return

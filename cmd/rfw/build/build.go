@@ -105,6 +105,12 @@ func Build() error {
 		if err := compressWasmBrotli(wasmPath); err != nil {
 			return fmt.Errorf("failed to brotli-compress wasm: %w", err)
 		}
+	} else if err := removeStaleBrotli(wasmPath); err != nil {
+		// Dev never recompresses the wasm, but wasm_loader.js still prefers
+		// app.wasm.br over app.wasm. A .br left by an earlier production build
+		// would be served stale (and, in dev, under an immutable cache header),
+		// so drop it and let the fresh uncompressed wasm be what loads.
+		return fmt.Errorf("failed to remove stale brotli wasm: %w", err)
 	}
 
 	// Build the host binary for SSC when a host directory exists. A static
@@ -375,6 +381,29 @@ func copyFile(src, dst string) (err error) {
 	}
 	_, copyErr := io.Copy(out, in)
 	return errors.Join(copyErr, out.Close())
+}
+
+// removeStaleBrotli deletes src+".br" if present. Dev builds skip brotli
+// compression, so a .br from a prior production build would otherwise linger and
+// be served in place of the freshly built .wasm. Absence of the file is fine.
+func removeStaleBrotli(src string) (err error) {
+	dst, err := projectPath(src + ".br")
+	if err != nil {
+		return err
+	}
+	root, err := os.OpenRoot(".")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := root.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+	if removeErr := root.Remove(dst); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+		return removeErr
+	}
+	return nil
 }
 
 func compressWasmBrotli(src string) (err error) {
