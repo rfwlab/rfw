@@ -12,6 +12,12 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Added
+
+- `host.NewMuxFS`, an `fs.FS` variant of `host.NewMux`, so an application can
+  serve an embedded client build (`go:embed`) and ship as a single self-contained
+  binary instead of shipping the build directory alongside it.
+
 ## [2.1.0] - 2026-07-31
 
 ### Added
