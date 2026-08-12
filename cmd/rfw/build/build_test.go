@@ -36,6 +36,28 @@ func TestCopyFile(t *testing.T) {
 	}
 }
 
+func TestRemoveStaleBrotli(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	src := "app.wasm"
+	brPath := src + ".br"
+	if err := os.WriteFile(brPath, []byte("stale"), 0o600); err != nil {
+		t.Fatalf("write stale br: %v", err)
+	}
+
+	if err := removeStaleBrotli(src); err != nil {
+		t.Fatalf("removeStaleBrotli: %v", err)
+	}
+	if _, err := os.Stat(brPath); !os.IsNotExist(err) {
+		t.Fatalf("expected %s removed, stat err=%v", brPath, err)
+	}
+
+	// Absence of the file must be a no-op, not an error.
+	if err := removeStaleBrotli(src); err != nil {
+		t.Fatalf("removeStaleBrotli on missing file: %v", err)
+	}
+}
+
 func TestCompressWasmBrotli(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
