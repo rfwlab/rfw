@@ -3,6 +3,9 @@
 package dom
 
 import (
+	"bytes"
+	"log"
+	"strings"
 	"testing"
 
 	js "github.com/rfwlab/rfw/v2/js"
@@ -76,5 +79,30 @@ func TestUpdateDOMRecoversAndAcceptsNextUpdate(t *testing.T) {
 	}
 	if got := root.Query("span").Text(); got != "second" {
 		t.Fatalf("next update text = %q, want second", got)
+	}
+}
+
+func TestDOMReporterPanicLogsOriginalFailure(t *testing.T) {
+	previousPanic := OnHandlerPanic
+	previousWriter := log.Writer()
+	var output bytes.Buffer
+	OnHandlerPanic = func(any, string) { panic("reporter failure") }
+	log.SetOutput(&output)
+	defer func() {
+		OnHandlerPanic = previousPanic
+		log.SetOutput(previousWriter)
+	}()
+
+	func() {
+		defer recoverDOMUpdate("broken-component")
+		panic("original failure")
+	}()
+
+	logs := output.String()
+	if !strings.Contains(logs, "DOM panic reporter failed: reporter failure") {
+		t.Fatalf("missing reporter failure log: %s", logs)
+	}
+	if !strings.Contains(logs, "recovered DOM update panic for broken-component: original failure") {
+		t.Fatalf("missing original failure log: %s", logs)
 	}
 }
