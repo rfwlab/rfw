@@ -20,6 +20,8 @@ version and include migration notes.
 
 ### Fixed
 
+- prevent a global delegated `@on` handler from running once per nested
+  component root for the same DOM event.
 - enable the `pages` plugin by default when `rfw.json` omits the `"plugins"`
   key, so a scaffolded project and the examples register their file-based routes
   without extra configuration. An explicit `"plugins"` block, including an empty
