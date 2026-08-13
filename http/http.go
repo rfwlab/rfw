@@ -52,6 +52,13 @@ func currentHTTPHook() func(bool, string, int, time.Duration) {
 	return hook
 }
 
+func notifyHTTPHook(hook func(bool, string, int, time.Duration), start bool, url string, status int, duration time.Duration) {
+	if hook == nil {
+		return
+	}
+	js.Guard("HTTP observer", func() { hook(start, url, status, duration) })
+}
+
 // SetNativeClient has no effect in browser builds.
 func SetNativeClient(_ *stdhttp.Client) {}
 
@@ -65,9 +72,7 @@ func FetchJSON(url string, v any) error {
 	ce.once.Do(func() {
 		go func() {
 			hook := currentHTTPHook()
-			if hook != nil {
-				hook(true, url, 0, 0)
-			}
+			notifyHTTPHook(hook, true, url, 0, 0)
 			start := time.Now()
 			js.Fetch(url).Call("then",
 				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
@@ -78,17 +83,13 @@ func FetchJSON(url string, v any) error {
 							obj := args[0]
 							jsonStr := js.GlobalJSON().Call("stringify", obj).String()
 							ce.data = []byte(jsonStr)
-							if hook != nil {
-								hook(false, url, status, time.Since(start))
-							}
+							notifyHTTPHook(hook, false, url, status, time.Since(start))
 							close(ce.ready)
 							return nil
 						}),
 						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
-							if hook != nil {
-								hook(false, url, status, time.Since(start))
-							}
+							notifyHTTPHook(hook, false, url, status, time.Since(start))
 							close(ce.ready)
 							return nil
 						}),
@@ -97,9 +98,7 @@ func FetchJSON(url string, v any) error {
 				}),
 				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
-					if hook != nil {
-						hook(false, url, 0, time.Since(start))
-					}
+					notifyHTTPHook(hook, false, url, 0, time.Since(start))
 					close(ce.ready)
 					return nil
 				}),
@@ -127,9 +126,7 @@ func FetchText(url string) (string, error) {
 	ce.once.Do(func() {
 		go func() {
 			hook := currentHTTPHook()
-			if hook != nil {
-				hook(true, url, 0, 0)
-			}
+			notifyHTTPHook(hook, true, url, 0, 0)
 			start := time.Now()
 			js.Fetch(url).Call("then",
 				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
@@ -138,17 +135,13 @@ func FetchText(url string) (string, error) {
 					resp.Call("text").Call("then",
 						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							ce.text = args[0].String()
-							if hook != nil {
-								hook(false, url, status, time.Since(start))
-							}
+							notifyHTTPHook(hook, false, url, status, time.Since(start))
 							close(ce.ready)
 							return nil
 						}),
 						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
-							if hook != nil {
-								hook(false, url, status, time.Since(start))
-							}
+							notifyHTTPHook(hook, false, url, status, time.Since(start))
 							close(ce.ready)
 							return nil
 						}),
@@ -157,9 +150,7 @@ func FetchText(url string) (string, error) {
 				}),
 				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
-					if hook != nil {
-						hook(false, url, 0, time.Since(start))
-					}
+					notifyHTTPHook(hook, false, url, 0, time.Since(start))
 					close(ce.ready)
 					return nil
 				}),

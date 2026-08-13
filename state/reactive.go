@@ -17,7 +17,7 @@ func NewReactiveVar[T any](initial T) *ReactiveVar[T] {
 func (rv *ReactiveVar[T]) Set(newValue T) {
 	rv.value = newValue
 	for _, listener := range rv.listeners {
-		listener(newValue)
+		runCallback("reactive variable listener", func() { listener(newValue) })
 	}
 }
 

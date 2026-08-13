@@ -68,7 +68,7 @@ func createBar(opts Options) (js.Value, js.Value, js.Func) {
 	doc.Get("body").Call("appendChild", bar)
 
 	progress := 0.0
-	intervalFn := js.FuncOf(func(_ js.Value, _ []js.Value) any {
+	intervalFn := js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 		progress += js.Math().Call("random").Float() * 10
 		if progress > 90 {
 			progress = 90
@@ -88,7 +88,7 @@ func finishBar(bar, intervalID js.Value, intervalFn js.Func) {
 	intervalFn.Release()
 	bar.Get("style").Set("width", "100%")
 	removeFn := js.Func{}
-	removeFn = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+	removeFn = js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 		bar.Call("remove")
 		removeFn.Release()
 		return nil
@@ -107,12 +107,12 @@ func removeBar(bar, intervalID js.Value, intervalFn js.Func) {
 
 func instantiate(resp js.Value, opts Options, bar, intervalID js.Value, intervalFn js.Func) {
 	arrayBufFn := js.Func{}
-	arrayBufFn = js.FuncOf(func(_ js.Value, args []js.Value) any {
+	arrayBufFn = js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		bytes := args[0]
 		finishBar(bar, intervalID, intervalFn)
 		wasm := js.WebAssembly()
 		instantiateFn := js.Func{}
-		instantiateFn = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		instantiateFn = js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 			inst := args[0].Get("instance")
 			opts.Go.Call("run", inst)
 			instantiateFn.Release()
@@ -151,7 +151,7 @@ func Load(url string, opts Options) {
 		success := js.Func{}
 		failure := js.Func{}
 
-		success = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		success = js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 			resp := args[0]
 			if !resp.Get("ok").Bool() {
 				success.Release()
@@ -165,7 +165,7 @@ func Load(url string, opts Options) {
 			return nil
 		})
 
-		failure = js.FuncOf(func(_ js.Value, _ []js.Value) any {
+		failure = js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
 			success.Release()
 			failure.Release()
 			tryFetch(idx + 1)
@@ -198,6 +198,6 @@ func loadFunc(_ js.Value, args []js.Value) any {
 
 func init() {
 	js.Set("WasmLoader", map[string]any{
-		"load": js.FuncOf(loadFunc),
+		"load": js.SafeFuncOf(loadFunc),
 	})
 }

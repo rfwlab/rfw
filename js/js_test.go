@@ -4,6 +4,34 @@ package js
 
 import "testing"
 
+func TestGuardReportsPanicAndCallerContinues(t *testing.T) {
+	previousRuntime := OnRuntimePanic
+	previousFunc := OnFuncPanic
+	defer func() {
+		OnRuntimePanic = previousRuntime
+		OnFuncPanic = previousFunc
+	}()
+
+	var context string
+	var stack []byte
+	OnRuntimePanic = func(_ any, gotContext string, gotStack []byte) {
+		context = gotContext
+		stack = gotStack
+	}
+	OnFuncPanic = nil
+
+	if Guard("host push", func() { panic("bad payload") }) {
+		t.Fatal("panicking callback reported success")
+	}
+	continued := false
+	if !Guard("next push", func() { continued = true }) || !continued {
+		t.Fatal("runtime did not continue after recovered panic")
+	}
+	if context != "host push" || len(stack) == 0 {
+		t.Fatalf("unexpected report: context=%q stack=%d", context, len(stack))
+	}
+}
+
 func TestArray(t *testing.T) {
 	arr := NewArray()
 	if n := arr.Length(); n != 0 {
