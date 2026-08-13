@@ -51,6 +51,12 @@ func TestInitProjectSuccess(t *testing.T) {
 	if !strings.Contains(string(loader), "instantiateStreaming") {
 		t.Fatalf("wasm_loader.js does not use streaming instantiation")
 	}
+	if !strings.Contains(string(loader), "handleRuntimeExit") ||
+		!strings.Contains(string(loader), "rfw:runtime-reload") ||
+		!strings.Contains(string(loader), "writeRecovery") ||
+		!strings.Contains(string(loader), "reloadOnExit = true") {
+		t.Fatalf("wasm_loader.js does not include bounded runtime recovery")
+	}
 }
 
 // TestInitProjectErrors checks basic error paths.

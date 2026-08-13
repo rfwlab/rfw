@@ -28,6 +28,9 @@ type errorOverlay struct {
 func (eo *errorOverlay) show(err any, context string) {
 	errStr := fmt.Sprintf("%v", err)
 	goStack := string(debug.Stack())
+	if stacked, ok := err.(interface{ Stack() []byte }); ok {
+		goStack = string(stacked.Stack())
+	}
 
 	if !eo.shown {
 		eo.shown = true

@@ -5,6 +5,8 @@ package http
 import (
 	"testing"
 	"time"
+
+	js "github.com/rfwlab/rfw/v2/js"
 )
 
 func TestRegisterHTTPHook(t *testing.T) {
@@ -23,5 +25,20 @@ func TestRegisterHTTPHook(t *testing.T) {
 	httpHook(false, "u", 200, time.Millisecond)
 	if starts != 1 || completes != 1 {
 		t.Fatalf("expected 1 start and 1 complete, got %d and %d", starts, completes)
+	}
+}
+
+func TestHTTPHookPanicIsIsolated(t *testing.T) {
+	previous := js.OnRuntimePanic
+	defer func() { js.OnRuntimePanic = previous }()
+	recovered := 0
+	js.OnRuntimePanic = func(any, string, []byte) { recovered++ }
+
+	notifyHTTPHook(func(bool, string, int, time.Duration) {
+		panic("observer")
+	}, true, "u", 0, 0)
+
+	if recovered != 1 {
+		t.Fatalf("recovered observer panics = %d, want 1", recovered)
 	}
 }

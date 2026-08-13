@@ -276,13 +276,17 @@ func (s *Store) set(key string, value any, recordHistory bool) {
 		logger.Debug("%s/%s -> %s: %v", s.module, s.name, key, value)
 	}
 	if StoreHook != nil {
-		StoreHook(s.module, s.name, key, value)
+		runCallback("store mutation hook: "+s.module+"."+s.name+"."+key, func() {
+			StoreHook(s.module, s.name, key, value)
+		})
 	}
 	for _, fn := range notifs {
-		fn()
+		runCallback("store notification: "+s.module+"."+s.name+"."+key, fn)
 	}
 	if persisted != nil {
-		saveState(s.storageKey(), persisted)
+		runCallback("store persistence: "+s.storageKey(), func() {
+			saveState(s.storageKey(), persisted)
+		})
 	}
 }
 
@@ -370,11 +374,18 @@ func (s *Store) OnChange(key string, listener func(any)) func() {
 // it receives and never call store methods.
 func (s *Store) RegisterComputed(c *Computed) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.computeds[c.Key()] = c
-	val := c.Evaluate(s.state)
-	s.state[c.Key()] = val
-	c.lastDeps = snapshotDeps(s.state, c.Deps())
+	val, recovered, stack := captureValuePanic(func() any {
+		return c.Evaluate(s.state)
+	})
+	if recovered == nil {
+		s.state[c.Key()] = val
+		c.lastDeps = snapshotDeps(s.state, c.Deps())
+	}
+	s.mu.Unlock()
+	if recovered != nil {
+		reportCallbackPanic(recovered, "store computed: "+s.module+"."+s.name+"."+c.Key(), stack)
+	}
 }
 
 // Map registers a computed value derived from a single dependency using a
@@ -422,7 +433,7 @@ func (s *Store) RegisterWatcher(w *Watcher) func() {
 	}
 	s.mu.Unlock()
 	if w.immediate {
-		w.Run(snap)
+		runCallback("store watcher: "+s.module+"."+s.name, func() { w.Run(snap) })
 	}
 
 	return func() {
@@ -456,7 +467,16 @@ func (s *Store) evaluateDependentsLocked(key string) []func() {
 		if contains(c.Deps(), key) {
 			current := snapshotDeps(s.state, c.Deps())
 			if c.lastDeps == nil || depsChanged(current, c.lastDeps) {
-				val := c.Evaluate(s.state)
+				val, recovered, stack := captureValuePanic(func() any {
+					return c.Evaluate(s.state)
+				})
+				if recovered != nil {
+					context := "store computed: " + s.module + "." + s.name + "." + c.Key()
+					notifs = append(notifs, func() {
+						reportCallbackPanic(recovered, context, stack)
+					})
+					continue
+				}
 				s.state[c.Key()] = val
 				c.lastDeps = current
 				notifs = append(notifs, s.listenerNotifsLocked(c.Key(), val)...)

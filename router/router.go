@@ -609,7 +609,7 @@ func InitRouter() {
 	go func() {
 		for range ch {
 			path := js.Location().Get("pathname").String() + js.Location().Get("search").String()
-			navigate(path, historyNone)
+			core.TryNavigate(path, func() { navigate(path, historyNone) })
 		}
 	}()
 
