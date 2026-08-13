@@ -25,6 +25,9 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(clientDir, "index.html"), []byte("<html></html>"), 0o644); err != nil {
 		t.Fatalf("failed to write index: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(clientDir, "rfw_config.js"), []byte("//cfg"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
 
 	mux := NewMux(clientDir)
 	srv := httptest.NewServer(mux)
@@ -67,6 +70,15 @@ func TestNewMuxServesBrotliWasmWithEncoding(t *testing.T) {
 	defer closeTestResource(t, resp.Body)
 	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
 		t.Fatalf("unexpected unversioned Cache-Control header: %q", cache)
+	}
+
+	resp, err = http.Get(srv.URL + "/rfw_config.js")
+	if err != nil {
+		t.Fatalf("failed to get runtime config: %v", err)
+	}
+	defer closeTestResource(t, resp.Body)
+	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
+		t.Fatalf("unexpected runtime config Cache-Control header: %q", cache)
 	}
 }
 

@@ -301,6 +301,9 @@ func WithSessionTarget(sessionID string) host.BroadcastOption {
 }
 
 func setWasmHeaders(w http.ResponseWriter, path string, versioned bool) {
+	if strings.Trim(path, "/") == "rfw_config.js" {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
 	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
 		return
 	}

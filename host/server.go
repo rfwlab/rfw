@@ -163,6 +163,11 @@ func setWasmEncodingHeaders(w http.ResponseWriter, path string, versioned bool) 
 	// forces a fresh fetch each load. Production keeps the immutable policy.
 	if devMode() {
 		w.Header().Set("Cache-Control", "no-store")
+	} else if strings.Trim(path, "/") == "rfw_config.js" {
+		// This small file points the loader at the content-versioned WASM URL.
+		// It must revalidate across deployments so an old pointer cannot keep a
+		// browser on an otherwise correctly immutable old binary.
+		w.Header().Set("Cache-Control", "no-cache")
 	}
 	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
 		return

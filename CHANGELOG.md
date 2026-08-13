@@ -22,6 +22,8 @@ version and include migration notes.
 
 ### Fixed
 
+- revalidate `rfw_config.js` in production so a deployment cannot leave the
+  browser pointing at an older immutable WASM build.
 - preserve keyed `@for` row nodes while patching changed content, inserting,
   removing or reordering rows. Conditional blocks no longer replace their DOM
   while the selected branch stays the same, and loops in hidden branches wait

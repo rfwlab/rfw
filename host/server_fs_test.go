@@ -14,6 +14,7 @@ func testClientFS() fstest.MapFS {
 		"index.html":     {Data: []byte("<!doctype html><div id=app></div>")},
 		"app.wasm":       {Data: []byte("\x00asm")},
 		"app.wasm.br":    {Data: []byte("brotli-bytes")},
+		"rfw_config.js":  {Data: []byte("//cfg")},
 		"assets/app.css": {Data: []byte(".a{}")},
 	}
 }
@@ -57,6 +58,9 @@ func TestNewMuxFSServesEmbeddedBuild(t *testing.T) {
 	}
 	if got := get("/app.wasm.br", "").header.Get("Content-Encoding"); got != "br" {
 		t.Fatalf("wasm.br Content-Encoding = %q, want br", got)
+	}
+	if got := get("/rfw_config.js", "").header.Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("rfw_config.js Cache-Control = %q, want no-cache", got)
 	}
 	// An unknown HTML route falls back to index.html (single-page app).
 	if got := get("/dashboard/live", "text/html").status; got != http.StatusOK {
