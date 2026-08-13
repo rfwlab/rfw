@@ -4,6 +4,7 @@
 package js
 
 import (
+	"log"
 	"runtime/debug"
 	jst "syscall/js"
 )
@@ -141,6 +142,53 @@ func FuncOf(fn func(this Value, args []Value) any) Func { return jst.FuncOf(fn) 
 // instance; SafeFuncOf routes it here instead.
 var OnFuncPanic func(r any, stack []byte)
 
+// OnRuntimePanic receives recovered panics with their runtime boundary. Core
+// installs its error pipeline here. OnFuncPanic remains supported for callers
+// that only need the older JavaScript-callback hook.
+var OnRuntimePanic func(r any, context string, stack []byte)
+
+func reportPanic(recovered any, context string, stack []byte) {
+	reported := false
+	if OnRuntimePanic != nil {
+		func() {
+			defer func() {
+				if hookPanic := recover(); hookPanic != nil {
+					log.Printf("[rfw] runtime panic reporter failed: %v", hookPanic)
+				}
+			}()
+			OnRuntimePanic(recovered, context, stack)
+			reported = true
+		}()
+	} else if OnFuncPanic != nil {
+		func() {
+			defer func() {
+				if hookPanic := recover(); hookPanic != nil {
+					log.Printf("[rfw] panic reporter failed: %v", hookPanic)
+				}
+			}()
+			OnFuncPanic(recovered, stack)
+			reported = true
+		}()
+	}
+	if !reported {
+		log.Printf("[rfw] recovered panic in %s: %v\n%s", context, recovered, stack)
+	}
+}
+
+// Guard runs fn behind a named panic boundary. It reports a recovered panic
+// and returns false, allowing long-lived runtime loops to continue.
+func Guard(context string, fn func()) (ok bool) {
+	ok = true
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			ok = false
+			reportPanic(recovered, context, debug.Stack())
+		}
+	}()
+	fn()
+	return ok
+}
+
 // SafeFuncOf is FuncOf with a recover guard: a panic in fn is recovered and
 // handed to OnFuncPanic (if set) rather than propagating out of the JavaScript
 // call, where under wasm it would abort the runtime. The wrapped function
@@ -149,15 +197,8 @@ func SafeFuncOf(fn func(this Value, args []Value) any) Func {
 	return jst.FuncOf(func(this Value, args []Value) (res any) {
 		defer func() {
 			if r := recover(); r != nil {
-				if OnFuncPanic != nil {
-					// Guard the hook itself: a panic here would be
-					// unrecovered and abort the runtime, the very failure
-					// this wrapper prevents.
-					func() {
-						defer func() { _ = recover() }()
-						OnFuncPanic(r, debug.Stack())
-					}()
-				}
+				stack := debug.Stack()
+				reportPanic(r, "JavaScript callback", stack)
 				res = nil
 			}
 		}()
@@ -279,7 +320,7 @@ func Fetch(args ...any) Value { return Call("fetch", args...) }
 // Expose registers a no-argument Go function under the given name
 // on the JavaScript global object.
 func Expose(name string, fn func()) {
-	Global().Set(name, FuncOf(func(_ Value, _ []Value) any {
+	Global().Set(name, SafeFuncOf(func(_ Value, _ []Value) any {
 		fn()
 		return nil
 	}))
@@ -288,7 +329,7 @@ func Expose(name string, fn func()) {
 // ExposeEvent registers a Go function that receives the first argument
 // from the JavaScript call as the event object.
 func ExposeEvent(name string, fn func(Value)) {
-	Global().Set(name, FuncOf(func(_ Value, args []Value) any {
+	Global().Set(name, SafeFuncOf(func(_ Value, args []Value) any {
 		var evt Value
 		if len(args) > 0 {
 			evt = args[0]
@@ -301,7 +342,7 @@ func ExposeEvent(name string, fn func(Value)) {
 // ExposeFunc registers a Go function with custom arguments on the
 // JavaScript global object.
 func ExposeFunc(name string, fn func(this Value, args []Value) any) {
-	Global().Set(name, FuncOf(fn))
+	Global().Set(name, SafeFuncOf(fn))
 }
 
 // Stack returns the current JavaScript stack trace using Error().stack.

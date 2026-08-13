@@ -3,9 +3,14 @@
 package core
 
 import (
+	"fmt"
+	"log"
+	"runtime/debug"
 	"sync"
 
 	"github.com/rfwlab/rfw/v2/dom"
+	js "github.com/rfwlab/rfw/v2/js"
+	"github.com/rfwlab/rfw/v2/state"
 )
 
 // Runtime errors flow through a single pipeline: every capture point (Render,
@@ -52,10 +57,24 @@ func ReportError(err any, context string) {
 	errorMu.Unlock()
 	for _, fn := range sinks {
 		if fn != nil {
-			fn(err, context)
+			func() {
+				defer func() {
+					if sinkPanic := recover(); sinkPanic != nil {
+						log.Printf("[rfw] error sink failed while reporting %s: %v", context, sinkPanic)
+					}
+				}()
+				fn(err, context)
+			}()
 		}
 	}
-	ShowErrorOverlay(err, context)
+	func() {
+		defer func() {
+			if overlayPanic := recover(); overlayPanic != nil {
+				log.Printf("[rfw] error overlay failed while reporting %s: %v", context, overlayPanic)
+			}
+		}()
+		ShowErrorOverlay(err, context)
+	}()
 }
 
 // Delegated event handlers recover panics inside the dom package; route them
@@ -64,4 +83,29 @@ func init() {
 	dom.OnHandlerPanic = func(err any, name string) {
 		ReportError(err, "Handler: "+name)
 	}
+	js.OnRuntimePanic = func(err any, context string, stack []byte) {
+		ReportError(recoveredPanic{value: err, stack: stack}, context)
+	}
+	state.OnCallbackPanic = func(err any, context string, stack []byte) {
+		ReportError(recoveredPanic{value: err, stack: stack}, context)
+	}
+}
+
+type recoveredPanic struct {
+	value any
+	stack []byte
+}
+
+func (p recoveredPanic) Error() string {
+	if err, ok := p.value.(error); ok {
+		return err.Error()
+	}
+	return fmt.Sprint(p.value)
+}
+
+func (p recoveredPanic) Stack() []byte {
+	if len(p.stack) == 0 {
+		return debug.Stack()
+	}
+	return p.stack
 }

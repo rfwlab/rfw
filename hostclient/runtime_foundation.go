@@ -136,7 +136,12 @@ func init() {
 
 func connect() {
 	once.Do(func() {
-		go connectionLoop()
+		go func() {
+			for {
+				js.Guard("host connection loop", connectionLoop)
+				time.Sleep(time.Second)
+			}
+		}()
 	})
 }
 
@@ -257,8 +262,8 @@ func connectionLoop() {
 				ctx2, cancel2 := context.WithCancel(context.Background())
 				defer cancel2()
 				errCh := make(chan error, 2)
-				go func() { errCh <- readLoop(ctx2, c) }()
-				go func() { errCh <- pingLoop(ctx2, c) }()
+				go func() { errCh <- guardedLoop("host read loop", func() error { return readLoop(ctx2, c) }) }()
+				go func() { errCh <- guardedLoop("host ping loop", func() error { return pingLoop(ctx2, c) }) }()
 				loopErr := <-errCh
 				cancel2()
 				closeErr := c.Close(websocket.StatusInternalError, "connection closed")
@@ -288,6 +293,14 @@ func connectionLoop() {
 		// Back off before reconnecting to avoid tight loops on persistent failures.
 		time.Sleep(time.Second)
 	}
+}
+
+func guardedLoop(context string, fn func() error) error {
+	var err error
+	if !js.Guard(context, func() { err = fn() }) {
+		return fmt.Errorf("%s panicked", context)
+	}
+	return err
 }
 
 func pingLoop(ctx context.Context, c *websocket.Conn) error {
@@ -378,51 +391,57 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			if msg.Session != "" {
 				payload["_session"] = msg.Session
 			}
-			h(payload)
+			js.Guard("host handler: "+msg.Component, func() { h(payload) })
 			continue
 		}
 		if hasBinding {
-			rootEl := dom.ComponentRoot(b.id)
-			if !rootEl.Truthy() {
-				continue
-			}
-			root := newComponentRoot(rootEl)
-
-			if snap := decodeInitSnapshotPayload(payload["initSnapshot"]); snap != nil {
-				applyInitSnapshot(root, snap)
-				if len(snap.Vars) > 0 {
-					b.vars = append([]string(nil), snap.Vars...)
-					mu.Lock()
-					bindings[msg.Component] = b
-					mu.Unlock()
-				}
-				continue
-			}
-
-			mismatches := handleHostPayload(root, payload, func(name string, raw any) {
-				sig := dom.SnapshotComponentSignals(b.id)
-				if sig == nil {
-					return
-				}
-				if s, ok := sig[name]; ok {
-					if setter, ok := s.(interface{ SetFromHost(any) }); ok {
-						setter.SetFromHost(raw)
-					}
-				}
+			js.Guard("host binding: "+msg.Component, func() {
+				applyHostBinding(msg.Component, payload, b)
 			})
-			if len(mismatches) > 0 {
-				for _, m := range mismatches {
-					log.Printf("hostclient: hydration mismatch component=%s var=%s expected=%s actualHash=%s actual=%q", msg.Component, m.VarName, m.Expected, m.ActualHash, m.Actual)
-				}
-				resyncErr := hydrateCB.Execute(func() error {
-					Send(msg.Component, buildResyncPayload(mismatches))
-					return nil
-				})
-				if resyncErr != nil {
-					log.Printf("hostclient: hydration circuit open, skipping resync for %s", msg.Component)
-				}
+		}
+	}
+}
+
+func applyHostBinding(component string, payload map[string]any, binding componentBinding) {
+	rootEl := dom.ComponentRoot(binding.id)
+	if !rootEl.Truthy() {
+		return
+	}
+	root := newComponentRoot(rootEl)
+	if snap := decodeInitSnapshotPayload(payload["initSnapshot"]); snap != nil {
+		applyInitSnapshot(root, snap)
+		if len(snap.Vars) > 0 {
+			binding.vars = append([]string(nil), snap.Vars...)
+			mu.Lock()
+			bindings[component] = binding
+			mu.Unlock()
+		}
+		return
+	}
+
+	mismatches := handleHostPayload(root, payload, func(name string, raw any) {
+		signals := dom.SnapshotComponentSignals(binding.id)
+		if signals == nil {
+			return
+		}
+		if signal, ok := signals[name]; ok {
+			if setter, ok := signal.(interface{ SetFromHost(any) }); ok {
+				setter.SetFromHost(raw)
 			}
 		}
+	})
+	if len(mismatches) == 0 {
+		return
+	}
+	for _, mismatch := range mismatches {
+		log.Printf("hostclient: hydration mismatch component=%s var=%s expected=%s actualHash=%s actual=%q", component, mismatch.VarName, mismatch.Expected, mismatch.ActualHash, mismatch.Actual)
+	}
+	resyncErr := hydrateCB.Execute(func() error {
+		Send(component, buildResyncPayload(mismatches))
+		return nil
+	})
+	if resyncErr != nil {
+		log.Printf("hostclient: hydration circuit open, skipping resync for %s", component)
 	}
 }
 

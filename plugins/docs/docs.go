@@ -87,9 +87,9 @@ func (p *Plugin) Install(_ *core.App) {
 
 	doc := js.Document()
 
-	js.Fetch(p.Sidebar).Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
+	js.Fetch(p.Sidebar).Call("then", js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		res := args[0]
-		res.Call("text").Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
+		res.Call("text").Call("then", js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 			raw := args[0].String()
 			var items []SidebarItem
 			if err := json.Unmarshal([]byte(raw), &items); err == nil {
@@ -103,7 +103,7 @@ func (p *Plugin) Install(_ *core.App) {
 		return nil
 	}))
 
-	p.loader = js.FuncOf(func(_ js.Value, args []js.Value) any {
+	p.loader = js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) < 1 {
 			return nil
 		}
@@ -114,9 +114,9 @@ func (p *Plugin) Install(_ *core.App) {
 }
 
 func (p *Plugin) loadArticle(path string) {
-	js.Fetch(path).Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
+	js.Fetch(path).Call("then", js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 		res := args[0]
-		res.Call("text").Call("then", js.FuncOf(func(_ js.Value, args []js.Value) any {
+		res.Call("text").Call("then", js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 			content := args[0].String()
 			mhs := markdown.Headings(content)
 			headings := make([]Heading, len(mhs))

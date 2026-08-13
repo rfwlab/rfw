@@ -17,9 +17,21 @@ version and include migration notes.
 - `host.NewMuxFS`, an `fs.FS` variant of `host.NewMux`, so an application can
   serve an embedded client build (`go:embed`) and ship as a single self-contained
   binary instead of shipping the build directory alongside it.
+- `js.Guard` and `js.OnRuntimePanic` for named recovery boundaries in long-lived
+  WebAssembly runtime loops.
 
 ### Fixed
 
+- keep the WebAssembly runtime alive after a panic in state listeners, watchers,
+  computed values, effects, host push handlers, DOM updates, HTTP observers,
+  exposed JavaScript functions, router popstate handling, plugins, or the WASM
+  loader. Recovered panics retain their original Go stack and flow through
+  `core.ReportError`; one failing listener no longer blocks healthy listeners.
+- avoid reading nullable selection offsets from focused number inputs while
+  patching the DOM, which previously panicked and terminated the WASM instance.
+- detect an unexpected exit in the generated JavaScript loader, reload once,
+  and show a persistent diagnostic with a manual reload action if the new
+  runtime exits again within the recovery window.
 - prevent a global delegated `@on` handler from running once per nested
   component root for the same DOM event.
 - enable the `pages` plugin by default when `rfw.json` omits the `"plugins"`

@@ -7,8 +7,26 @@ import (
 	"testing"
 	"time"
 
+	js "github.com/rfwlab/rfw/v2/js"
 	"nhooyr.io/websocket"
 )
+
+func TestGuardedLoopConvertsPanicAndNextLoopRuns(t *testing.T) {
+	previous := js.OnRuntimePanic
+	defer func() { js.OnRuntimePanic = previous }()
+	recovered := 0
+	js.OnRuntimePanic = func(any, string, []byte) { recovered++ }
+
+	if err := guardedLoop("read", func() error { panic("bad push") }); err == nil {
+		t.Fatal("panicking loop returned nil")
+	}
+	if err := guardedLoop("read", func() error { return nil }); err != nil {
+		t.Fatalf("next loop returned %v", err)
+	}
+	if recovered != 1 {
+		t.Fatalf("recovered loop panics = %d, want 1", recovered)
+	}
+}
 
 func pendingCount() int {
 	mu.RLock()

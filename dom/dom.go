@@ -6,7 +6,9 @@ package dom
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -101,6 +103,32 @@ var TemplateHook func(componentID, html string)
 // store name, and key that are bound in the DOM.
 var StoreBindingHook func(componentID, module, store, key string)
 
+type recoveredDOMPanic struct {
+	value any
+	stack []byte
+}
+
+func (p recoveredDOMPanic) Error() string { return fmt.Sprint(p.value) }
+func (p recoveredDOMPanic) Stack() []byte { return p.stack }
+
+func recoverDOMUpdate(componentID string) {
+	if recovered := recover(); recovered != nil {
+		panicValue := recoveredDOMPanic{value: recovered, stack: debug.Stack()}
+		if OnHandlerPanic == nil {
+			log.Printf("[rfw] recovered DOM update panic for %s: %v\n%s", componentID, recovered, panicValue.stack)
+			return
+		}
+		func() {
+			defer func() {
+				if hookPanic := recover(); hookPanic != nil {
+					log.Printf("[rfw] DOM panic reporter failed: %v", hookPanic)
+				}
+			}()
+			OnHandlerPanic(panicValue, "DOM update: "+componentID)
+		}()
+	}
+}
+
 // ComponentRoot returns the DOM root element for a component by its ID.
 // Falls back to #app if id is empty or element not found.
 func ComponentRoot(id string) Element {
@@ -118,6 +146,7 @@ func ComponentRoot(id string) Element {
 // UpdateDOM patches the DOM of the specified component with the provided
 // HTML string, resolving the target via typed Document/Element wrappers.
 func UpdateDOM(componentID string, html string) {
+	defer recoverDOMUpdate(componentID)
 	element := ComponentRoot(componentID)
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -171,6 +200,7 @@ func UpdateMountedDOM(componentID, html string) {
 // outlet). The subtree is replaced wholesale: across different component
 // trees a positional diff would leave stale nodes behind.
 func UpdateDOMIn(target Element, componentID, html string) {
+	defer recoverDOMUpdate(componentID)
 	if target.IsNull() || target.IsUndefined() {
 		return
 	}
@@ -438,13 +468,19 @@ func patchInnerHTML(element js.Value, html string) {
 	activeID := ""
 	activeSelStart := 0
 	activeSelEnd := 0
+	hasActiveSelection := false
 	if activeEl.Truthy() {
 		tag := activeEl.Get("nodeName").String()
 		if tag == "INPUT" || tag == "TEXTAREA" || tag == "SELECT" {
 			activeID = activeEl.Get("id").String()
 			if activeID != "" {
-				activeSelStart = activeEl.Get("selectionStart").Int()
-				activeSelEnd = activeEl.Get("selectionEnd").Int()
+				selectionStart := activeEl.Get("selectionStart")
+				selectionEnd := activeEl.Get("selectionEnd")
+				if selectionStart.Type() == js.TypeNumber && selectionEnd.Type() == js.TypeNumber {
+					activeSelStart = selectionStart.Int()
+					activeSelEnd = selectionEnd.Int()
+					hasActiveSelection = true
+				}
 			}
 		}
 	}
@@ -473,7 +509,9 @@ func patchInnerHTML(element js.Value, html string) {
 		restore := js.Global().Get("document").Call("getElementById", activeID)
 		if restore.Truthy() {
 			restore.Call("focus")
-			restore.Call("setSelectionRange", activeSelStart, activeSelEnd)
+			if hasActiveSelection {
+				restore.Call("setSelectionRange", activeSelStart, activeSelEnd)
+			}
 		}
 	}
 }

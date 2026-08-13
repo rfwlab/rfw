@@ -227,7 +227,7 @@ func (s *Signal[T]) notifyOnChange(v T) {
 
 	for _, fn := range listeners {
 		if fn != nil {
-			fn(v)
+			runCallback("signal change listener", func() { fn(v) })
 		}
 	}
 	if hasCh && ch != nil {
@@ -263,7 +263,7 @@ func (e *effect) detach() {
 	e.deps = nil
 	e.mu.Unlock()
 	if cleanup != nil {
-		cleanup()
+		runCallback("signal effect cleanup", cleanup)
 	}
 	for _, dep := range deps {
 		dep.remove(e)
@@ -274,8 +274,12 @@ func (e *effect) runEffect() {
 	e.detach()
 	prev := currentEffect.Load()
 	currentEffect.Store(e)
-	cleanup := e.run()
+	cleanup, recovered, stack := captureValuePanic(e.run)
 	currentEffect.Store(prev)
+	if recovered != nil {
+		reportCallbackPanic(recovered, "signal effect", stack)
+		cleanup = nil
+	}
 	e.mu.Lock()
 	e.cleanup = cleanup
 	e.mu.Unlock()
