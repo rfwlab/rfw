@@ -46,6 +46,9 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "app.wasm.br"), []byte("wasm"), 0o600); err != nil {
 		t.Fatalf("write wasm: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "rfw_config.js"), []byte("//cfg"), 0o600); err != nil {
+		t.Fatalf("write runtime config: %v", err)
+	}
 
 	server := NewSSCServer(":0", root)
 	ts := httptest.NewServer(server.Mux)
@@ -88,6 +91,17 @@ func TestSSCServerServesIndexAndWasmHeaders(t *testing.T) {
 	}
 	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
 		t.Fatalf("unexpected unversioned Cache-Control header: %q", cache)
+	}
+
+	resp, err = http.Get(ts.URL + "/rfw_config.js")
+	if err != nil {
+		t.Fatalf("runtime config request failed: %v", err)
+	}
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close runtime config response: %v", err)
+	}
+	if cache := resp.Header.Get("Cache-Control"); cache != "no-cache" {
+		t.Fatalf("unexpected runtime config Cache-Control header: %q", cache)
 	}
 }
 
