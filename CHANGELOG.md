@@ -22,6 +22,10 @@ version and include migration notes.
 
 ### Fixed
 
+- preserve keyed `@for` row nodes while patching changed content, inserting,
+  removing or reordering rows. Conditional blocks no longer replace their DOM
+  while the selected branch stays the same, and loops in hidden branches wait
+  until that branch becomes visible instead of repainting the mounted view.
 - keep the WebAssembly runtime alive after a panic in state listeners, watchers,
   computed values, effects, host push handlers, DOM updates, HTTP observers,
   exposed JavaScript functions, router popstate handling, plugins, or the WASM
