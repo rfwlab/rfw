@@ -71,6 +71,26 @@ func TestGlobalHandlerRunsOnceAcrossNestedDelegates(t *testing.T) {
 	}
 }
 
+func TestNestedDelegatesContinuePastClaimedBinding(t *testing.T) {
+	root := mountHandlerRoot(t, `<div id="nested" data-on-click="parent"><button data-on-click="child">next</button></div>`)
+	nested := root.Query("#nested")
+	var childCalls, parentCalls int
+
+	RegisterHandlerFunc("child", func() { childCalls++ })
+	RegisterHandlerFunc("parent", func() { parentCalls++ })
+	DelegateEvents("outer-ancestor", root.Value)
+	DelegateEvents("inner-ancestor", nested.Value)
+	t.Cleanup(func() {
+		RemoveDelegatedEvents("inner-ancestor", nested.Value)
+		RemoveDelegatedEvents("outer-ancestor", root.Value)
+	})
+
+	nested.Query("button").Call("click")
+	if childCalls != 1 || parentCalls != 1 {
+		t.Fatalf("handler calls = child %d, parent %d; want 1, 1", childCalls, parentCalls)
+	}
+}
+
 func TestDelegatedEventModifiers(t *testing.T) {
 	root := mountHandlerRoot(t, `<button data-on-click="save" data-on-click-modifiers="prevent,once">save</button>`)
 	var calls int
