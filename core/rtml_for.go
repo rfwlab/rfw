@@ -153,7 +153,11 @@ func insertRowMarkers(content string, key any, loopID string) string {
 	if loc == nil {
 		return content
 	}
-	attrs := fmt.Sprintf(` data-key="%v"`, key)
+	attrs := ""
+	openEnd := strings.IndexByte(content, '>')
+	if openEnd < 0 || (!strings.Contains(content[:openEnd], "[key ") && !strings.Contains(content[:openEnd], "data-key=")) {
+		attrs = fmt.Sprintf(` data-key="%v"`, key)
+	}
 	if loopID != "" {
 		attrs += fmt.Sprintf(` data-for="%s"`, loopID)
 	}

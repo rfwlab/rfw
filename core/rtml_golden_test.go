@@ -141,7 +141,7 @@ func TestGoldenConditionalDirective(t *testing.T) {
 	// blocks with the same condition are distinct blocks
 	condHash := sha256.Sum256([]byte(strings.Join(conds, "|")))
 	condID := fmt.Sprintf("cond-%x-0", condHash[:20])
-	want := fmt.Sprintf("<root data-component-id=\"%s\">\n<div data-condition=\"%s\">Two\n</div></root>\n", c.ID, condID)
+	want := fmt.Sprintf("<root data-component-id=\"%s\">\n<div data-condition=\"%s\" data-condition-branch=\"1\">Two\n</div></root>\n", c.ID, condID)
 	expectGolden(t, got, want)
 }
 

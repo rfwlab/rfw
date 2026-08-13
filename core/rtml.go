@@ -91,7 +91,6 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 	c.condSeq++
 
 	var content ConditionContent
-	var chosen string
 	for _, br := range cn.Branches {
 		var sb strings.Builder
 		for _, n := range br.Nodes {
@@ -99,38 +98,30 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 		}
 		branchContent := sb.String()
 		content.Branches = append(content.Branches, ConditionalBranchContent{Condition: br.Condition, Content: branchContent})
-
-		if br.Condition != "" {
-			result, _ := evaluateCondition(br.Condition, c)
-			if chosen == "" && result {
-				chosen = branchContent
-			}
-		} else if chosen == "" {
-			chosen = branchContent
-		}
 	}
 
 	c.conditionContents[conditionID] = content
+	chosen, branch := selectedConditionalBranch(c, content)
 
 	// A hidden branch keeps its bindings, but they have no node to patch while
 	// the block is out of the DOM, so the markup captured here goes stale. A
 	// branch that carries bindings therefore comes back through a render; a
 	// static one is just swapped in.
 	refresh := func() {
-		if conditionNeedsRender(c, conditionID) {
-			dom.UpdateMountedDOM(c.ID, c.RenderFresh())
-			return
-		}
 		updateConditionBindings(c, conditionID)
 	}
 
+	effectReady := false
 	unsub := state.Effect(func() func() {
 		for _, br := range cn.Branches {
 			if br.Condition != "" {
 				evaluateCondition(br.Condition, c)
 			}
 		}
-		updateConditionBindings(c, conditionID)
+		if effectReady {
+			updateConditionBindings(c, conditionID)
+		}
+		effectReady = true
 		return nil
 	})
 	c.unsubscribes.Add(unsub)
@@ -159,7 +150,7 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 		}
 	}
 
-	return fmt.Sprintf(`<div data-condition="%s">%s</div>`, conditionID, chosen)
+	return fmt.Sprintf(`<div data-condition="%s" data-condition-branch="%d">%s</div>`, conditionID, branch, chosen)
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
@@ -1242,6 +1233,24 @@ func conditionNeedsRender(c *HTMLComponent, conditionID string) bool {
 	return false
 }
 
+func selectedConditionalBranch(c *HTMLComponent, content ConditionContent) (string, int) {
+	fallback := -1
+	for i, br := range content.Branches {
+		if br.Condition == "" {
+			fallback = i
+			continue
+		}
+		matched, _ := evaluateCondition(br.Condition, c)
+		if matched {
+			return br.Content, i
+		}
+	}
+	if fallback >= 0 {
+		return content.Branches[fallback].Content, fallback
+	}
+	return "", -1
+}
+
 func updateConditionBindings(c *HTMLComponent, conditionID string) {
 	element := dom.ComponentRoot(c.ID)
 	if element.IsNull() || element.IsUndefined() {
@@ -1254,23 +1263,17 @@ func updateConditionBindings(c *HTMLComponent, conditionID string) {
 		return
 	}
 
-	conditionContent := c.conditionContents[conditionID]
-	var newContent string
-	for _, br := range conditionContent.Branches {
-		if br.Condition == "" {
-			if newContent == "" {
-				newContent = br.Content
-			}
-			continue
-		}
-		result, _ := evaluateCondition(br.Condition, c)
-		if result {
-			newContent = br.Content
-			break
-		}
+	newContent, branch := selectedConditionalBranch(c, c.conditionContents[conditionID])
+	if node.Call("getAttribute", "data-condition-branch").String() == strconv.Itoa(branch) {
+		return
+	}
+	if conditionNeedsRender(c, conditionID) {
+		dom.UpdateMountedDOM(c.ID, c.RenderFresh())
+		return
 	}
 
 	node.Set("innerHTML", newContent)
+	node.Call("setAttribute", "data-condition-branch", strconv.Itoa(branch))
 
 	dom.BindStoreInputsForComponent(c.ID, node)
 	dom.BindSignalInputs(c.ID, node)

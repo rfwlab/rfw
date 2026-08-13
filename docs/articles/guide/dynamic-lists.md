@@ -108,3 +108,7 @@ http.RequestBytes("/api/avatar.png", http.RequestOptions{}, func(status int, bod
 When the list lives in a store, `@for` in the template re-renders it
 reactively without any of the above; this guide covers the imperative case,
 where data arrives from an API call you control.
+
+Put `[key @prop:item.id]` on the row root when the same item can move between
+positions. RFW keeps that row element and patches its changed descendants;
+new keys are inserted and missing keys are removed.
