@@ -122,6 +122,7 @@ func recoverDOMUpdate(componentID string) {
 			defer func() {
 				if hookPanic := recover(); hookPanic != nil {
 					log.Printf("[rfw] DOM panic reporter failed: %v", hookPanic)
+					log.Printf("[rfw] recovered DOM update panic for %s: %v\n%s", componentID, recovered, panicValue.stack)
 				}
 			}()
 			OnHandlerPanic(panicValue, "DOM update: "+componentID)
