@@ -187,6 +187,24 @@ func TestHiddenForPatchDoesNotRenderMountedBranch(t *testing.T) {
 	}
 }
 
+func TestHiddenEmptyForRendersRowsWhenBranchMounts(t *testing.T) {
+	st := state.NewStore("forpatch-hidden-empty", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-hidden-empty")
+	st.Set("show", "no")
+	st.Set("items", []any{})
+
+	tpl := []byte(`<root>@if:store:app.forpatch-hidden-empty.show == "yes" <ul data-hidden-list>@for:it in store:app.forpatch-hidden-empty.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul> @endif</root>`)
+	mountForComponent(t, "ForPatchHiddenEmpty", tpl)
+
+	st.Set("items", []any{map[string]any{"id": "a", "label": "arrived"}})
+	st.Set("show", "yes")
+
+	rows := dom.Query("[data-hidden-list]").QueryAll("li")
+	if rows.Length() != 1 || rows.Index(0).Text() != "arrived" {
+		t.Fatalf("revealed loop did not render rows received while hidden: %s", dom.Query("[data-hidden-list]").HTML())
+	}
+}
+
 func TestMissingVisibleForAnchorFallsBackToRender(t *testing.T) {
 	st := state.NewStore("forpatch-missing-anchor", state.WithModule("app"))
 	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-missing-anchor")

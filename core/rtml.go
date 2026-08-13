@@ -1224,7 +1224,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 // binding whose value could have moved while the branch was hidden.
 func conditionNeedsRender(c *HTMLComponent, conditionID string) bool {
 	for _, br := range c.conditionContents[conditionID].Branches {
-		for _, marker := range []string{"data-store=", "data-store-raw=", "data-signal=", "data-expr=", "data-expr-class="} {
+		for _, marker := range []string{"data-store=", "data-store-raw=", "data-signal=", "data-expr=", "data-expr-class=", "data-for-anchor="} {
 			if strings.Contains(br.Content, marker) {
 				return true
 			}
