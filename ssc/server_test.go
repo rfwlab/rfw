@@ -113,6 +113,35 @@ func TestSSCWithSessionTargetDelegatesHostOption(t *testing.T) {
 	}
 }
 
+func TestSSCServerDevModeDoesNotCacheAssets(t *testing.T) {
+	t.Setenv("RFW_DEV_BUILD", "1")
+	root := t.TempDir()
+	for name, contents := range map[string]string{
+		"index.html":    "<main>app</main>",
+		"app.wasm":      "wasm",
+		"rfw_config.js": "//cfg",
+	} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(contents), 0o600); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+
+	ts := httptest.NewServer(NewSSCServer(":0", root).Mux)
+	defer ts.Close()
+	for _, path := range []string{"/", "/app.wasm?v=abc123", "/rfw_config.js"} {
+		resp, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatalf("get %s: %v", path, err)
+		}
+		if err := resp.Body.Close(); err != nil {
+			t.Fatalf("close %s: %v", path, err)
+		}
+		if cache := resp.Header.Get("Cache-Control"); cache != "no-store" {
+			t.Fatalf("%s Cache-Control = %q, want no-store", path, cache)
+		}
+	}
+}
+
 // The /ws endpoint honours host.MuxOption guards; by default it stays open.
 func TestSSCServerWSOriginAllowlist(t *testing.T) {
 	root := t.TempDir()
