@@ -92,6 +92,9 @@ func (s *SSCServer) buildMux() *http.ServeMux {
 		wsGuarded.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if os.Getenv("RFW_DEV_BUILD") == "1" {
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		if sfs != nil {
 			if regularFile(staticDir, r.URL.Path) {
 				setWasmHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
@@ -301,17 +304,22 @@ func WithSessionTarget(sessionID string) host.BroadcastOption {
 }
 
 func setWasmHeaders(w http.ResponseWriter, path string, versioned bool) {
-	if strings.Trim(path, "/") == "rfw_config.js" {
+	dev := os.Getenv("RFW_DEV_BUILD") == "1"
+	if dev {
+		w.Header().Set("Cache-Control", "no-store")
+	} else if strings.Trim(path, "/") == "rfw_config.js" {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
 	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
 		return
 	}
 	h := w.Header()
-	if versioned {
-		h.Set("Cache-Control", "public, max-age=31536000, immutable")
-	} else {
-		h.Set("Cache-Control", "no-cache")
+	if !dev {
+		if versioned {
+			h.Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			h.Set("Cache-Control", "no-cache")
+		}
 	}
 	if !strings.HasSuffix(path, ".wasm.br") {
 		return
