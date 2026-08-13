@@ -48,6 +48,29 @@ func TestComponentHandlersAreScoped(t *testing.T) {
 	}
 }
 
+func TestGlobalHandlerRunsOnceAcrossNestedDelegates(t *testing.T) {
+	root := mountHandlerRoot(t, `<div id="nested"><button data-on-click="page">next</button></div>`)
+	nested := root.Query("#nested")
+	calls := 0
+
+	RegisterHandlerFunc("page", func() { calls++ })
+	DelegateEvents("outer", root.Value)
+	DelegateEvents("inner", nested.Value)
+	t.Cleanup(func() {
+		RemoveDelegatedEvents("inner", nested.Value)
+		RemoveDelegatedEvents("outer", root.Value)
+	})
+
+	nested.Query("button").Call("click")
+	if calls != 1 {
+		t.Fatalf("global handler calls = %d, want 1", calls)
+	}
+	nested.Query("button").Call("click")
+	if calls != 2 {
+		t.Fatalf("global handler calls after a second click = %d, want 2", calls)
+	}
+}
+
 func TestDelegatedEventModifiers(t *testing.T) {
 	root := mountHandlerRoot(t, `<button data-on-click="save" data-on-click-modifiers="prevent,once">save</button>`)
 	var calls int

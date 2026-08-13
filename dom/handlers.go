@@ -183,6 +183,10 @@ func newDelegatedHandler(componentID string, root js.Value, event string, captur
 				if (nonBubbling || wantsCapture == capture) && eventAllowed(evt, target, modifiers) {
 					h := GetComponentHandler(componentID, handlerName.String())
 					if h.Truthy() {
+						key := eventBindingKey(target, event, handlerName.String())
+						if !claimEventBinding(evt, key) {
+							return nil
+						}
 						if _, ok := modifiers["prevent"]; ok {
 							if _, passive := modifiers["passive"]; !passive {
 								evt.Call("preventDefault")
@@ -204,7 +208,6 @@ func newDelegatedHandler(componentID string, root js.Value, event string, captur
 							}()
 							h.Invoke(evt, target)
 						}
-						key := eventBindingKey(target, event, handlerName.String())
 						if delay, ok := modifierDelay(modifiers, "debounce"); ok {
 							timerMu.Lock()
 							if timer := timers[key]; timer != nil {
@@ -256,6 +259,20 @@ func newDelegatedHandler(componentID string, root js.Value, event string, captur
 		timerMu.Unlock()
 	}
 	return delegatedHandler{event: event, capture: capture, fn: fn, stop: stop}
+}
+
+func claimEventBinding(evt js.Value, key string) bool {
+	const property = "__rfwDelegatedClaims"
+	claims := evt.Get(property)
+	if claims.Type() != js.TypeObject {
+		claims = js.NewDict().Value
+		evt.Set(property, claims)
+	}
+	if claims.Get(key).Truthy() {
+		return false
+	}
+	claims.Set(key, true)
+	return true
 }
 
 func eventModifiers(target js.Value, event string) map[string]struct{} {
