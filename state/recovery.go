@@ -36,15 +36,6 @@ func runCallback(context string, fn func()) (ok bool) {
 	return ok
 }
 
-func runValueCallback[T any](context string, fn func() T) (value T, ok bool) {
-	value, recovered, stack := captureValuePanic(fn)
-	if recovered != nil {
-		reportCallbackPanic(recovered, context, stack)
-		return value, false
-	}
-	return value, true
-}
-
 func captureValuePanic[T any](fn func() T) (value T, recovered any, stack []byte) {
 	defer func() {
 		if value := recover(); value != nil {

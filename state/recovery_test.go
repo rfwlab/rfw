@@ -80,7 +80,7 @@ func TestEffectCanRunAgainAfterPanic(t *testing.T) {
 	}
 }
 
-func TestRecoveryHookPanicDoesNotEscape(t *testing.T) {
+func TestRecoveryHookPanicDoesNotEscape(_ *testing.T) {
 	previous := OnCallbackPanic
 	OnCallbackPanic = func(any, string, []byte) { panic("broken reporter") }
 	defer func() { OnCallbackPanic = previous }()
