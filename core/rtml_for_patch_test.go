@@ -94,6 +94,119 @@ func TestForPatchRendersEveryRow(t *testing.T) {
 	}
 }
 
+func TestForPatchPreservesKeyedRows(t *testing.T) {
+	st := state.NewStore("forpatch-keyed", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-keyed")
+	st.Set("items", []any{
+		map[string]any{"id": "a", "label": "one"},
+		map[string]any{"id": "b", "label": "two"},
+	})
+
+	tpl := []byte(`<root><ul data-list>@for:it in store:app.forpatch-keyed.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></root>`)
+	mountForComponent(t, "ForPatchKeyed", tpl)
+
+	rows := dom.Query("[data-list]").QueryAll("li")
+	rowA := rows.Index(0)
+	rowB := rows.Index(1)
+	rowA.Set("__marker", "a")
+	rowB.Set("__marker", "b")
+
+	st.Set("items", []any{
+		map[string]any{"id": "b", "label": "two updated"},
+		map[string]any{"id": "c", "label": "three"},
+	})
+
+	rows = dom.Query("[data-list]").QueryAll("li")
+	if rows.Length() != 2 {
+		t.Fatalf("expected 2 rows, got %d", rows.Length())
+	}
+	if !rows.Index(0).Equal(rowB.Value) {
+		t.Fatal("keyed row b was replaced during reorder")
+	}
+	if got := rows.Index(0).Text(); got != "two updated" {
+		t.Fatalf("patched row text = %q", got)
+	}
+	if rowA.Get("isConnected").Bool() {
+		t.Fatal("removed keyed row remains connected")
+	}
+	if got := rows.Index(1).Get("__marker"); got.Truthy() {
+		t.Fatal("inserted row inherited another row's identity")
+	}
+}
+
+func TestForPatchKeepsFocusedInputOutsideLoop(t *testing.T) {
+	st := state.NewStore("forpatch-focus", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-focus")
+	st.Set("state", "rows")
+	st.Set("query", "premier ")
+	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
+
+	tpl := []byte(`<root>@if:store:app.forpatch-focus.state == "rows" <section><input id="forpatch-search" value="@store:app.forpatch-focus.query:w"><ul>@for:it in store:app.forpatch-focus.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></section> @endif</root>`)
+	mountForComponent(t, "ForPatchFocus", tpl)
+
+	input := dom.ByID("forpatch-search")
+	input.Call("focus")
+	input.Call("setSelectionRange", 8, 8)
+	st.Set("state", "rows")
+	st.Set("items", []any{map[string]any{"id": "a", "label": "updated"}})
+
+	if !dom.Doc().Get("activeElement").Equal(input.Value) {
+		t.Fatal("list refresh replaced the focused input")
+	}
+	if got := input.Val(); got != "premier " {
+		t.Fatalf("focused input value = %q", got)
+	}
+	if got := input.Get("selectionStart").Int(); got != 8 {
+		t.Fatalf("selectionStart = %d, want 8", got)
+	}
+}
+
+func TestHiddenForPatchDoesNotRenderMountedBranch(t *testing.T) {
+	st := state.NewStore("forpatch-hidden", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-hidden")
+	st.Set("show", "no")
+	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
+
+	tpl := []byte(`<root><input id="forpatch-visible">@if:store:app.forpatch-hidden.show == "yes" <ul data-hidden-list>@for:it in store:app.forpatch-hidden.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul> @endif</root>`)
+	mountForComponent(t, "ForPatchHidden", tpl)
+
+	oldHook := dom.TemplateHook
+	defer func() { dom.TemplateHook = oldHook }()
+	updates := 0
+	dom.TemplateHook = func(string, string) { updates++ }
+
+	st.Set("items", []any{map[string]any{"id": "a", "label": "latest"}})
+	if updates != 0 {
+		t.Fatalf("hidden loop triggered %d component renders", updates)
+	}
+
+	st.Set("show", "yes")
+	rows := dom.Query("[data-hidden-list]").QueryAll("li")
+	if rows.Length() != 1 || rows.Index(0).Text() != "latest" {
+		t.Fatalf("revealed loop did not render latest store value: %s", dom.Query("[data-hidden-list]").HTML())
+	}
+}
+
+func TestMissingVisibleForAnchorFallsBackToRender(t *testing.T) {
+	st := state.NewStore("forpatch-missing-anchor", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-missing-anchor")
+	st.Set("show", "yes")
+	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
+
+	tpl := []byte(`<root>@if:store:app.forpatch-missing-anchor.show == "yes" <ul data-list>@for:it in store:app.forpatch-missing-anchor.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul> @endif</root>`)
+	mountForComponent(t, "ForPatchMissingAnchor", tpl)
+	dom.Query("[data-for-anchor]").Call("remove")
+
+	st.Set("items", []any{map[string]any{"id": "a", "label": "recovered"}})
+	anchor := dom.Query("[data-for-anchor]")
+	if anchor.IsNull() || anchor.IsUndefined() {
+		t.Fatal("full render did not restore a missing visible anchor")
+	}
+	if got := dom.Query("[data-list]").Query("li").Text(); got != "recovered" {
+		t.Fatalf("recovered row text = %q", got)
+	}
+}
+
 // A body the patch cannot own on its own (an include, a nested conditional)
 // falls back to the full render instead of painting something incomplete.
 func TestForPatchFallsBackForRichBodies(t *testing.T) {

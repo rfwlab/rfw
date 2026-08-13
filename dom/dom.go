@@ -848,6 +848,15 @@ func patchNode(oldNode, newNode js.Value) {
 	patchChildren(oldNode, newNode)
 }
 
+// PatchElement updates an existing element from a detached replacement while
+// preserving the existing node when both elements have the same type.
+func PatchElement(existing, replacement Element) {
+	if existing.missing() || replacement.missing() {
+		return
+	}
+	patchNode(existing.Value, replacement.Value)
+}
+
 // isRouterOutlet reports whether the node is the router's outlet marker.
 func isRouterOutlet(node js.Value) bool {
 	if node.Get("nodeType").Int() != 1 {
