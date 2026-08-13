@@ -185,7 +185,11 @@ func newDelegatedHandler(componentID string, root js.Value, event string, captur
 					if h.Truthy() {
 						key := eventBindingKey(target, event, handlerName.String())
 						if !claimEventBinding(evt, key) {
-							return nil
+							if target.Equal(root) {
+								break
+							}
+							target = target.Get("parentElement")
+							continue
 						}
 						if _, ok := modifiers["prevent"]; ok {
 							if _, passive := modifiers["passive"]; !passive {
