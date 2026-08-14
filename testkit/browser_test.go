@@ -18,3 +18,19 @@ func TestBrowserHarnessMountsAndQueries(t *testing.T) {
 		t.Fatalf("query returned wrong element: %s", harness.HTML())
 	}
 }
+
+func TestBrowserHarnessAssertsLiveNodeState(t *testing.T) {
+	component := core.NewHTMLComponent("HarnessLive", []byte(`<root><input id="field" value="initial"></root>`), nil)
+	component.SetComponent(component)
+	component.Init(nil)
+
+	harness := Mount(t, component)
+	field := harness.Query("#field")
+	field.SetValue("typed")
+	field.Call("focus")
+	harness.AssertSameNode(t, "#field", field)
+	harness.AssertActive(t, "#field")
+	if got := harness.LiveValue("#field"); got != "typed" {
+		t.Fatalf("live value = %q, want typed", got)
+	}
+}

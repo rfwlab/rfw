@@ -19,6 +19,18 @@ version and include migration notes.
   binary instead of shipping the build directory alongside it.
 - `js.Guard` and `js.OnRuntimePanic` for named recovery boundaries in long-lived
   WebAssembly runtime loops.
+- browser-test helpers for asserting active-element state, live input values,
+  and stable node identity across reactive renders.
+
+### Changed
+
+- reactive component and `Suspense` updates are coalesced per JavaScript turn
+  and committed parent-first through one render scheduler. Existing templates
+  remain compatible; keyed list rows opt into move-stable identity with
+  `[key expression]` or `data-key`.
+- `@for`, `@if`, and ordinary component refreshes now share the same incremental
+  reconciler. The parent owns child-root placement, while nested components and
+  router outlets retain ownership of their DOM descendants.
 
 ### Fixed
 
@@ -37,6 +49,15 @@ version and include migration notes.
   patching the DOM, which previously panicked and terminated the WASM instance.
 - preserve the current caret and selection direction when render work briefly
   blurs a focused text field before a DOM patch.
+- preserve node identity and live `value`, `checked`, selection, and caret state
+  during compatible patches; IME composition no longer publishes partial input
+  values to writable store or signal bindings.
+- validate a complete DOM patch plan before committing it, so duplicate keys,
+  incompatible keyed nodes, and ownership conflicts leave the rendered tree
+  untouched.
+- preserve handler-owned attributes until the template changes the same
+  attribute, preventing unrelated renders from erasing live class and ARIA
+  state.
 - detect an unexpected exit in the generated JavaScript loader, reload once,
   and show a persistent diagnostic with a manual reload action if the new
   runtime exits again within the recovery window.

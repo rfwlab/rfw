@@ -51,6 +51,7 @@ func TestOutletSurvivesShellRerender(t *testing.T) {
 	}
 
 	shellStore.Set("nav", []any{map[string]any{"label": "one"}, map[string]any{"label": "two"}})
+	waitForRouterRender()
 
 	html := dom.ByID("app").HTML()
 	if !strings.Contains(html, "two") {

@@ -18,6 +18,7 @@ type Suspense struct {
 	id       string
 	mounted  bool
 	last     string
+	pending  string
 	stop     func()
 }
 
@@ -63,8 +64,21 @@ func (s *Suspense) Mount() {
 	s.stop = state.Effect(func() func() {
 		next := s.renderHTML()
 		if s.mounted && next != s.last {
-			s.last = next
-			dom.UpdateMountedDOM(s.id, next)
+			s.pending = next
+			requestScheduledRender(renderJob{
+				id:    s.id,
+				depth: mountedComponentDepth(s.id),
+				active: func() bool {
+					return s.mounted
+				},
+				render: func() {
+					if s.pending == s.last {
+						return
+					}
+					s.last = s.pending
+					dom.UpdateMountedDOM(s.id, s.last)
+				},
+			})
 		}
 		return nil
 	})
@@ -73,6 +87,7 @@ func (s *Suspense) Mount() {
 // Unmount releases the reactive render subscription.
 func (s *Suspense) Unmount() {
 	s.mounted = false
+	cancelComponentRender(s.id)
 	if s.stop != nil {
 		s.stop()
 		s.stop = nil
