@@ -5,6 +5,7 @@ package router
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/rfwlab/rfw/v2/core"
 	"github.com/rfwlab/rfw/v2/dom"
@@ -51,6 +52,7 @@ func TestShellRerenderKeepsPageBuiltDOM(t *testing.T) {
 	}
 
 	shellStore.Set("nav", []any{map[string]any{"label": "one"}, map[string]any{"label": "two"}})
+	waitForRouterRender()
 
 	html := dom.ByID("app").HTML()
 	if !strings.Contains(html, "two") {
@@ -59,4 +61,8 @@ func TestShellRerenderKeepsPageBuiltDOM(t *testing.T) {
 	if !strings.Contains(html, "page-built") {
 		t.Fatalf("shell re-render wiped the DOM the page had built: %s", html)
 	}
+}
+
+func waitForRouterRender() {
+	time.Sleep(20 * time.Millisecond)
 }

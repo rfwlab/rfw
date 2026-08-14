@@ -43,6 +43,32 @@ func (harness *Harness) Query(selector string) dom.Element {
 	return harness.container.Query(selector)
 }
 
+// AssertSameNode fails when selector no longer resolves to the captured DOM
+// node. It is intended for reconciliation tests where equivalent HTML is not
+// enough: browser state and third-party integrations depend on node identity.
+func (harness *Harness) AssertSameNode(t TestingT, selector string, captured dom.Element) {
+	t.Helper()
+	current := harness.Query(selector)
+	if current.IsNull() || current.IsUndefined() || !current.Equal(captured.Value) {
+		t.Fatalf("selector %q did not preserve DOM node identity", selector)
+	}
+}
+
+// AssertActive fails unless selector resolves to the document's active element.
+func (harness *Harness) AssertActive(t TestingT, selector string) {
+	t.Helper()
+	current := harness.Query(selector)
+	if current.IsNull() || current.IsUndefined() || !js.Doc().Get("activeElement").Equal(current.Value) {
+		t.Fatalf("selector %q is not the active element", selector)
+	}
+}
+
+// LiveValue returns the current value property of a form control. It does not
+// read the value attribute, which represents only the rendered default.
+func (harness *Harness) LiveValue(selector string) string {
+	return harness.Query(selector).Val()
+}
+
 // HTML returns the isolated container markup.
 func (harness *Harness) HTML() string {
 	if harness == nil {

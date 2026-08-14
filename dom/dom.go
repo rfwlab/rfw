@@ -11,54 +11,10 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
-	sysjs "syscall/js"
 
 	events "github.com/rfwlab/rfw/v2/events"
 	js "github.com/rfwlab/rfw/v2/js"
 	"github.com/rfwlab/rfw/v2/state"
-)
-
-type deferredInputFocus struct {
-	id           string
-	selectionAt  int
-	selectionEnd int
-	selectionDir string
-	hasSelection bool
-	queued       bool
-}
-
-var (
-	deferredFocusMu      sync.Mutex
-	deferredFocusState   deferredInputFocus
-	rememberedFocusState deferredInputFocus
-	focusTrackingOnce    sync.Once
-	deferredFocusFunc    = sysjs.FuncOf(func(sysjs.Value, []sysjs.Value) any {
-		restoreDeferredInputFocus()
-		return nil
-	})
-	clearFocusIntentFunc = sysjs.FuncOf(func(_ sysjs.Value, args []sysjs.Value) any {
-		if len(args) == 0 {
-			return nil
-		}
-		targetID := args[0].Get("target").Get("id").String()
-		deferredFocusMu.Lock()
-		if rememberedFocusState.id != "" && targetID != rememberedFocusState.id {
-			rememberedFocusState = deferredInputFocus{}
-		}
-		deferredFocusMu.Unlock()
-		return nil
-	})
-	rememberFocusIntentFunc = sysjs.FuncOf(func(_ sysjs.Value, args []sysjs.Value) any {
-		if len(args) == 0 {
-			return nil
-		}
-		rememberInputFocus(args[0].Get("target"))
-		return nil
-	})
-	rememberSelectionFunc = sysjs.FuncOf(func(sysjs.Value, []sysjs.Value) any {
-		rememberInputFocus(sysjs.Global().Get("document").Get("activeElement"))
-		return nil
-	})
 )
 
 // componentSignals tracks signals associated with each component instance.
@@ -192,11 +148,11 @@ func ComponentRoot(id string) Element {
 // HTML string, resolving the target via typed Document/Element wrappers.
 func UpdateDOM(componentID string, html string) {
 	defer recoverDOMUpdate(componentID)
-	ensureInputFocusTracking()
 	element := ComponentRoot(componentID)
 	if element.IsNull() || element.IsUndefined() {
 		return
 	}
+	activeForm := captureActiveFormState(element.Value)
 
 	// Diff-patch only when the resolved element is the component's OWN root: that
 	// is an in-place reactive update, where patching preserves focus/selection.
@@ -209,6 +165,7 @@ func UpdateDOM(componentID string, html string) {
 		patchInnerHTML(element.Value, html)
 	} else {
 		element.Set("innerHTML", html)
+		recordRenderedTree(element.Value)
 	}
 
 	if TemplateHook != nil {
@@ -223,6 +180,7 @@ func UpdateDOM(componentID string, html string) {
 	BindSignalInputs(componentID, element.Value)
 	BindASTStoreInputs(componentID, element.Value)
 	BindASTSignalInputs(componentID, element.Value)
+	activeForm.restore()
 	UpdateLifecycleHooks(componentID)
 }
 
@@ -247,11 +205,11 @@ func UpdateMountedDOM(componentID, html string) {
 // trees a positional diff would leave stale nodes behind.
 func UpdateDOMIn(target Element, componentID, html string) {
 	defer recoverDOMUpdate(componentID)
-	ensureInputFocusTracking()
 	if target.IsNull() || target.IsUndefined() {
 		return
 	}
 	target.Set("innerHTML", html)
+	recordRenderedTree(target.Value)
 
 	if TemplateHook != nil {
 		TemplateHook(componentID, html)
@@ -272,6 +230,9 @@ func BindASTStoreInputs(componentID string, element js.Value) {
 	inputs := element.Call("querySelectorAll", "[data-bind-store]")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
+		if !componentOwnsElement(componentID, input) {
+			continue
+		}
 		binding := input.Call("getAttribute", "data-bind-store").String()
 		parts := strings.Split(binding, ".")
 		if len(parts) != 3 {
@@ -291,7 +252,7 @@ func BindASTStoreInputs(componentID string, element js.Value) {
 			inputType := input.Get("type").String()
 			if inputType == "checkbox" {
 				if b, ok := storeValue.(bool); ok {
-					input.Set("checked", b)
+					setCheckedIfChanged(input, b)
 				}
 				ch, stop := events.Listen("change", input)
 				addInputBindingStop(componentID, stop)
@@ -306,11 +267,14 @@ func BindASTStoreInputs(componentID string, element js.Value) {
 		if storeValue == nil {
 			storeValue = ""
 		}
-		input.Set("value", fmt.Sprintf("%v", storeValue))
+		setValueIfChanged(input, fmt.Sprintf("%v", storeValue))
 		ch, stop := events.Listen("input", input)
 		addInputBindingStop(componentID, stop)
 		go func(in js.Value, st *state.Store, k string) {
-			for range ch {
+			for event := range ch {
+				if inputEventIsComposing(event) {
+					continue
+				}
 				st.Set(k, in.Get("value").String())
 			}
 		}(input, store, key)
@@ -323,6 +287,9 @@ func BindASTSignalInputs(componentID string, element js.Value) {
 	inputs := element.Call("querySelectorAll", "[data-bind-signal]")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
+		if !componentOwnsElement(componentID, input) {
+			continue
+		}
 		name := input.Call("getAttribute", "data-bind-signal").String()
 		sig := getSignal(componentID, name)
 		if sig == nil {
@@ -337,7 +304,7 @@ func BindASTSignalInputs(componentID string, element js.Value) {
 					Set(bool)
 				}); ok {
 					if b, ok := s.Read().(bool); ok {
-						input.Set("checked", b)
+						setCheckedIfChanged(input, b)
 					}
 					ch, stop := events.Listen("change", input)
 					addInputBindingStop(componentID, stop)
@@ -354,11 +321,14 @@ func BindASTSignalInputs(componentID string, element js.Value) {
 			Read() any
 			Set(string)
 		}); ok {
-			input.Set("value", fmt.Sprintf("%v", s.Read()))
+			setValueIfChanged(input, fmt.Sprintf("%v", s.Read()))
 			ch, stop := events.Listen("input", input)
 			addInputBindingStop(componentID, stop)
 			go func(in js.Value, sg interface{ Set(string) }) {
-				for range ch {
+				for event := range ch {
+					if inputEventIsComposing(event) {
+						continue
+					}
 					sg.Set(in.Get("value").String())
 				}
 			}(input, s)
@@ -372,6 +342,9 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
+		if !componentOwnsElement(componentID, input) {
+			continue
+		}
 
 		valueAttr := ""
 		if input.Call("hasAttribute", "value").Bool() {
@@ -410,7 +383,7 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 
 		if usesChecked {
 			boolVal, _ := storeValue.(bool)
-			input.Set("checked", boolVal)
+			setCheckedIfChanged(input, boolVal)
 			ch, stop := events.Listen("change", input)
 			addInputBindingStop(componentID, stop)
 			go func(in js.Value, st *state.Store, k string) {
@@ -424,11 +397,14 @@ func BindStoreInputsForComponent(componentID string, element js.Value) {
 		if storeValue == nil {
 			storeValue = ""
 		}
-		input.Set("value", fmt.Sprintf("%v", storeValue))
+		setValueIfChanged(input, fmt.Sprintf("%v", storeValue))
 		ch, stop := events.Listen("input", input)
 		addInputBindingStop(componentID, stop)
 		go func(in js.Value, st *state.Store, k string) {
-			for range ch {
+			for event := range ch {
+				if inputEventIsComposing(event) {
+					continue
+				}
 				st.Set(k, in.Get("value").String())
 			}
 		}(input, store, key)
@@ -445,6 +421,9 @@ func BindSignalInputs(componentID string, element js.Value) {
 	inputs := element.Call("querySelectorAll", "input, select, textarea")
 	for i := 0; i < inputs.Length(); i++ {
 		input := inputs.Index(i)
+		if !componentOwnsElement(componentID, input) {
+			continue
+		}
 
 		valueAttr := ""
 		if input.Call("hasAttribute", "value").Bool() {
@@ -481,7 +460,7 @@ func BindSignalInputs(componentID string, element js.Value) {
 				Set(bool)
 			}); ok {
 				if b, ok := s.Read().(bool); ok {
-					input.Set("checked", b)
+					setCheckedIfChanged(input, b)
 				}
 				ch, stop := events.Listen("change", input)
 				addInputBindingStop(componentID, stop)
@@ -498,11 +477,14 @@ func BindSignalInputs(componentID string, element js.Value) {
 			Read() any
 			Set(string)
 		}); ok {
-			input.Set("value", fmt.Sprintf("%v", s.Read()))
+			setValueIfChanged(input, fmt.Sprintf("%v", s.Read()))
 			ch, stop := events.Listen("input", input)
 			addInputBindingStop(componentID, stop)
 			go func(in js.Value, sg interface{ Set(string) }) {
-				for range ch {
+				for event := range ch {
+					if inputEventIsComposing(event) {
+						continue
+					}
 					sg.Set(in.Get("value").String())
 				}
 			}(input, s)
@@ -510,376 +492,27 @@ func BindSignalInputs(componentID string, element js.Value) {
 	}
 }
 
-func patchInnerHTML(element js.Value, html string) {
-	focus := captureInputFocus()
-
-	template := CreateElement("template")
-	template.Set("innerHTML", html)
-	newContent := template.Get("content")
-
-	patched := false
-	firstChild := newContent.Get("firstChild")
-	if firstChild.Truthy() && firstChild.Get("nodeName").String() == "ROOT" {
-		cid := element.Call("getAttribute", "data-component-id")
-		newCid := firstChild.Call("getAttribute", "data-component-id")
-		if cid.Truthy() && cid.String() == newCid.String() {
-			patchAttributes(element, firstChild)
-			patchChildren(element, firstChild)
-			patched = true
-		}
-	}
-
-	if !patched {
-		patchChildren(element, newContent)
-	}
-
-	if focus.id != "" {
-		restoreInputFocus(focus)
-		scheduleDeferredInputFocus(focus)
-	}
-}
-
-func captureInputFocus() deferredInputFocus {
-	ensureInputFocusTracking()
-
-	active := sysjs.Global().Get("document").Get("activeElement")
-	if !active.Truthy() {
-		return deferredInputFocus{}
-	}
-	nodeName := active.Get("nodeName").String()
-	if nodeName == "BODY" {
-		deferredFocusMu.Lock()
-		remembered := rememberedFocusState
-		deferredFocusMu.Unlock()
-		return remembered
-	}
-	if nodeName != "INPUT" && nodeName != "TEXTAREA" && nodeName != "SELECT" {
-		deferredFocusMu.Lock()
-		rememberedFocusState = deferredInputFocus{}
-		deferredFocusMu.Unlock()
-		return deferredInputFocus{}
-	}
-
-	focus := inputFocusFromElement(active)
-	if focus.id == "" {
-		return deferredInputFocus{}
-	}
-	deferredFocusMu.Lock()
-	rememberedFocusState = focus
-	deferredFocusMu.Unlock()
-	return focus
-}
-
-func ensureInputFocusTracking() {
-	focusTrackingOnce.Do(func() {
-		document := sysjs.Global().Get("document")
-		document.Call("addEventListener", "pointerdown", clearFocusIntentFunc, true)
-		document.Call("addEventListener", "focusin", rememberFocusIntentFunc, true)
-		document.Call("addEventListener", "input", rememberFocusIntentFunc, true)
-		document.Call("addEventListener", "selectionchange", rememberSelectionFunc, true)
-	})
-}
-
-func rememberInputFocus(element sysjs.Value) {
-	focus := inputFocusFromElement(element)
-	if focus.id == "" {
-		return
-	}
-	deferredFocusMu.Lock()
-	rememberedFocusState = focus
-	deferredFocusMu.Unlock()
-}
-
-func inputFocusFromElement(element sysjs.Value) deferredInputFocus {
-	if !element.Truthy() {
-		return deferredInputFocus{}
-	}
-	nodeName := element.Get("nodeName").String()
-	if nodeName != "INPUT" && nodeName != "TEXTAREA" && nodeName != "SELECT" {
-		return deferredInputFocus{}
-	}
-	focus := deferredInputFocus{id: element.Get("id").String()}
-	if focus.id == "" {
-		return deferredInputFocus{}
-	}
-	selectionStart := element.Get("selectionStart")
-	selectionEnd := element.Get("selectionEnd")
-	if selectionStart.Type() == sysjs.TypeNumber && selectionEnd.Type() == sysjs.TypeNumber {
-		focus.selectionAt = selectionStart.Int()
-		focus.selectionEnd = selectionEnd.Int()
-		selectionDirection := element.Get("selectionDirection")
-		if selectionDirection.Type() == sysjs.TypeString {
-			focus.selectionDir = selectionDirection.String()
-		}
-		focus.hasSelection = true
-	}
-	return focus
-}
-
-func restoreInputFocus(state deferredInputFocus) {
-	if state.id == "" {
-		return
-	}
-	document := sysjs.Global().Get("document")
-	active := document.Get("activeElement")
-	if active.Truthy() {
-		activeID := active.Get("id").String()
-		activeNode := active.Get("nodeName").String()
-		if activeID != "" && activeID != state.id {
-			return
-		}
-		if activeID == "" && activeNode != "BODY" {
-			return
-		}
-	}
-
-	target := document.Call("getElementById", state.id)
-	if !target.Truthy() {
-		deferredFocusMu.Lock()
-		if rememberedFocusState.id == state.id {
-			rememberedFocusState = deferredInputFocus{}
-		}
-		deferredFocusMu.Unlock()
-		return
-	}
-	target.Call("focus")
-	if state.hasSelection {
-		selectionSetter := target.Get("setSelectionRange")
-		if selectionSetter.Type() == sysjs.TypeFunction {
-			if state.selectionDir != "" {
-				target.Call("setSelectionRange", state.selectionAt, state.selectionEnd, state.selectionDir)
-			} else {
-				target.Call("setSelectionRange", state.selectionAt, state.selectionEnd)
-			}
-		}
-	}
-}
-
-func scheduleDeferredInputFocus(state deferredInputFocus) {
-	deferredFocusMu.Lock()
-	alreadyQueued := deferredFocusState.queued
-	state.queued = true
-	deferredFocusState = state
-	deferredFocusMu.Unlock()
-
-	if alreadyQueued {
-		return
-	}
-	global := sysjs.Global()
-	queueMicrotask := global.Get("queueMicrotask")
-	if queueMicrotask.Type() == sysjs.TypeFunction {
-		queueMicrotask.Invoke(deferredFocusFunc)
-		return
-	}
-	global.Call("setTimeout", deferredFocusFunc, 0)
-}
-
-func restoreDeferredInputFocus() {
-	deferredFocusMu.Lock()
-	state := deferredFocusState
-	deferredFocusState = deferredInputFocus{}
-	deferredFocusMu.Unlock()
-
-	if !state.queued {
-		return
-	}
-	restoreInputFocus(state)
-}
-
-func patchChildren(oldParent, newParent js.Value) {
-	// Snapshot the significant children (elements and non-blank text).
-	// Whitespace-only text nodes are formatting noise: pairing them
-	// positionally shifts the diff whenever a keyed list grows or a
-	// conditional toggles, morphing unrelated siblings into each other.
-	oldKids := significantChildren(oldParent)
-	newKids := significantChildren(newParent)
-
-	keyed := make(map[string]js.Value)
-	for _, child := range oldKids {
-		if key := getDataKey(child); key != "" {
-			keyed[key] = child
-		}
-	}
-
-	consumed := make([]bool, len(oldKids))
-	oi := 0
-	// cursor returns the first unconsumed old node: inserts anchor before it.
-	cursor := func() js.Value {
-		for i := oi; i < len(oldKids); i++ {
-			if !consumed[i] {
-				return oldKids[i]
-			}
-		}
-		return js.Null()
-	}
-	insertAtCursor := func(node js.Value) {
-		if ref := cursor(); ref.Truthy() {
-			oldParent.Call("insertBefore", node, ref)
-		} else {
-			oldParent.Call("appendChild", node)
-		}
-	}
-
-	for _, newChild := range newKids {
-		if key := getDataKey(newChild); key != "" {
-			if oldChild, ok := keyed[key]; ok {
-				patchNode(oldChild, newChild)
-				if ref := cursor(); !oldChild.Equal(ref) {
-					insertAtCursor(oldChild)
-				} else {
-					// already in position: consume it
-					for i := oi; i < len(oldKids); i++ {
-						if oldKids[i].Equal(oldChild) {
-							consumed[i] = true
-							break
-						}
-					}
-				}
-				delete(keyed, key)
-			} else {
-				insertAtCursor(newChild.Call("cloneNode", true))
-			}
-			continue
-		}
-
-		// advance past keyed leftovers (handled through the map above)
-		for oi < len(oldKids) && (consumed[oi] || getDataKey(oldKids[oi]) != "") {
-			oi++
-		}
-		if oi < len(oldKids) && samePatchType(oldKids[oi], newChild) {
-			patchNode(oldKids[oi], newChild)
-			consumed[oi] = true
-			oi++
-		} else if oi < len(oldKids) {
-			oldParent.Call("replaceChild", newChild.Call("cloneNode", true), oldKids[oi])
-			consumed[oi] = true
-			oi++
-		} else {
-			oldParent.Call("appendChild", newChild.Call("cloneNode", true))
-		}
-	}
-
-	// leftover keyed nodes not reused by the new render
-	for _, child := range keyed {
-		child.Call("remove")
-	}
-	// leftover unkeyed significant nodes past the new list
-	for i := 0; i < len(oldKids); i++ {
-		if !consumed[i] && getDataKey(oldKids[i]) == "" {
-			oldKids[i].Call("remove")
-		}
-	}
-}
-
-// significantChildren returns the child nodes that participate in diffing:
-// elements and text nodes with non-whitespace content.
-func significantChildren(parent js.Value) []js.Value {
-	children := parent.Get("childNodes")
-	out := make([]js.Value, 0, children.Length())
-	for i := 0; i < children.Length(); i++ {
-		child := children.Index(i)
-		if child.Get("nodeType").Int() == 3 && strings.TrimSpace(child.Get("nodeValue").String()) == "" {
-			continue
-		}
-		out = append(out, child)
-	}
-	return out
-}
-
-// samePatchType reports whether two nodes may be patched in place: same node
-// name and, for conditional wrappers, the same data-condition identity (a
-// wrapper morphing into an unrelated sibling emptied whole sections).
-func samePatchType(oldNode, newNode js.Value) bool {
-	if oldNode.Get("nodeName").String() != newNode.Get("nodeName").String() {
-		return false
-	}
-	if oldNode.Get("nodeType").Int() != 1 {
+func componentOwnsElement(componentID string, element js.Value) bool {
+	if componentID == "" {
 		return true
 	}
-	oc := oldNode.Call("getAttribute", "data-condition")
-	nc := newNode.Call("getAttribute", "data-condition")
-	os, ns := "", ""
-	if !oc.IsNull() {
-		os = oc.String()
-	}
-	if !nc.IsNull() {
-		ns = nc.String()
-	}
-	return os == ns
+	root := element.Call("closest", "[data-component-id]")
+	return root.Truthy() && attribute(root, "data-component-id") == componentID
 }
 
-func getDataKey(node js.Value) string {
-	if node.Get("nodeType").Int() != 1 {
-		return ""
+func setValueIfChanged(element js.Value, value string) {
+	if element.Get("value").String() != value {
+		element.Set("value", value)
 	}
-	key := node.Call("getAttribute", "data-key")
-	if key.Truthy() {
-		return key.String()
-	}
-	return ""
 }
 
-func patchNode(oldNode, newNode js.Value) {
-	nodeType := newNode.Get("nodeType").Int()
-
-	// The router owns whatever sits inside an outlet. A shell that re-renders
-	// (a store-driven list or condition in a MountRoot root) must not diff the
-	// routed page away, and must not undo the DOM a mounted page built for
-	// itself after its own render.
-	if nodeType == 1 && isRouterOutlet(oldNode) && isRouterOutlet(newNode) {
-		patchAttributes(oldNode, newNode)
-		return
+func setCheckedIfChanged(element js.Value, checked bool) {
+	if element.Get("checked").Bool() != checked {
+		element.Set("checked", checked)
 	}
-	if nodeType == 3 { // Text node
-		if oldNode.Get("nodeValue").String() != newNode.Get("nodeValue").String() {
-			oldNode.Set("nodeValue", newNode.Get("nodeValue"))
-		}
-		return
-	}
-
-	if oldNode.Get("nodeName").String() != newNode.Get("nodeName").String() {
-		oldNode.Call("replaceWith", newNode.Call("cloneNode", true))
-		return
-	}
-
-	if nodeType == 1 { // Element node
-		patchAttributes(oldNode, newNode)
-	}
-	patchChildren(oldNode, newNode)
 }
 
-// PatchElement updates an existing element from a detached replacement while
-// preserving the existing node when both elements have the same type.
-func PatchElement(existing, replacement Element) {
-	if existing.missing() || replacement.missing() {
-		return
-	}
-	patchNode(existing.Value, replacement.Value)
-}
-
-// isRouterOutlet reports whether the node is the router's outlet marker.
-func isRouterOutlet(node js.Value) bool {
-	if node.Get("nodeType").Int() != 1 {
-		return false
-	}
-	return node.Call("hasAttribute", "data-router-outlet").Bool()
-}
-
-func patchAttributes(oldNode, newNode js.Value) {
-	oldAttrs := oldNode.Call("getAttributeNames")
-	for i := 0; i < oldAttrs.Length(); i++ {
-		name := oldAttrs.Index(i).String()
-		if !newNode.Call("hasAttribute", name).Bool() {
-			oldNode.Call("removeAttribute", name)
-		}
-	}
-
-	newAttrs := newNode.Call("getAttributeNames")
-	for i := 0; i < newAttrs.Length(); i++ {
-		name := newAttrs.Index(i).String()
-		val := newNode.Call("getAttribute", name)
-		if oldNode.Call("getAttribute", name).String() != val.String() {
-			oldNode.Call("setAttribute", name, val)
-		}
-	}
+func inputEventIsComposing(event js.Value) bool {
+	value := event.Get("isComposing")
+	return value.Type() == js.TypeBoolean && value.Bool()
 }
