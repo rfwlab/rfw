@@ -88,8 +88,11 @@ func flushComponentRenders() {
 
 	// Parents commit before descendants. Ownership boundaries keep a parent from
 	// touching child internals; the ordering makes both renders deterministic.
-	sort.SliceStable(pending, func(i, j int) bool {
-		return pending[i].depth < pending[j].depth
+	sort.Slice(pending, func(i, j int) bool {
+		if pending[i].depth != pending[j].depth {
+			return pending[i].depth < pending[j].depth
+		}
+		return pending[i].id < pending[j].id
 	})
 	for _, job := range pending {
 		if !job.active() {
