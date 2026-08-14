@@ -27,10 +27,31 @@ type deferredInputFocus struct {
 }
 
 var (
-	deferredFocusMu    sync.Mutex
-	deferredFocusState deferredInputFocus
-	deferredFocusFunc  = sysjs.FuncOf(func(sysjs.Value, []sysjs.Value) any {
+	deferredFocusMu      sync.Mutex
+	deferredFocusState   deferredInputFocus
+	rememberedFocusState deferredInputFocus
+	focusTrackingOnce    sync.Once
+	deferredFocusFunc    = sysjs.FuncOf(func(sysjs.Value, []sysjs.Value) any {
 		restoreDeferredInputFocus()
+		return nil
+	})
+	clearFocusIntentFunc = sysjs.FuncOf(func(_ sysjs.Value, args []sysjs.Value) any {
+		if len(args) == 0 {
+			return nil
+		}
+		targetID := args[0].Get("target").Get("id").String()
+		deferredFocusMu.Lock()
+		if rememberedFocusState.id != "" && targetID != rememberedFocusState.id {
+			rememberedFocusState = deferredInputFocus{}
+		}
+		deferredFocusMu.Unlock()
+		return nil
+	})
+	rememberFocusIntentFunc = sysjs.FuncOf(func(_ sysjs.Value, args []sysjs.Value) any {
+		if len(args) == 0 {
+			return nil
+		}
+		rememberInputFocus(args[0].Get("target"))
 		return nil
 	})
 )
@@ -166,6 +187,7 @@ func ComponentRoot(id string) Element {
 // HTML string, resolving the target via typed Document/Element wrappers.
 func UpdateDOM(componentID string, html string) {
 	defer recoverDOMUpdate(componentID)
+	ensureInputFocusTracking()
 	element := ComponentRoot(componentID)
 	if element.IsNull() || element.IsUndefined() {
 		return
@@ -220,6 +242,7 @@ func UpdateMountedDOM(componentID, html string) {
 // trees a positional diff would leave stale nodes behind.
 func UpdateDOMIn(target Element, componentID, html string) {
 	defer recoverDOMUpdate(componentID)
+	ensureInputFocusTracking()
 	if target.IsNull() || target.IsUndefined() {
 		return
 	}
@@ -483,26 +506,7 @@ func BindSignalInputs(componentID string, element js.Value) {
 }
 
 func patchInnerHTML(element js.Value, html string) {
-	activeEl := js.Global().Get("document").Get("activeElement")
-	activeID := ""
-	activeSelStart := 0
-	activeSelEnd := 0
-	hasActiveSelection := false
-	if activeEl.Truthy() {
-		tag := activeEl.Get("nodeName").String()
-		if tag == "INPUT" || tag == "TEXTAREA" || tag == "SELECT" {
-			activeID = activeEl.Get("id").String()
-			if activeID != "" {
-				selectionStart := activeEl.Get("selectionStart")
-				selectionEnd := activeEl.Get("selectionEnd")
-				if selectionStart.Type() == js.TypeNumber && selectionEnd.Type() == js.TypeNumber {
-					activeSelStart = selectionStart.Int()
-					activeSelEnd = selectionEnd.Int()
-					hasActiveSelection = true
-				}
-			}
-		}
-	}
+	focus := captureInputFocus()
 
 	template := CreateElement("template")
 	template.Set("innerHTML", html)
@@ -524,15 +528,116 @@ func patchInnerHTML(element js.Value, html string) {
 		patchChildren(element, newContent)
 	}
 
-	if activeID != "" {
-		restore := js.Global().Get("document").Call("getElementById", activeID)
-		if restore.Truthy() {
-			restore.Call("focus")
-			if hasActiveSelection {
-				restore.Call("setSelectionRange", activeSelStart, activeSelEnd)
-			}
+	if focus.id != "" {
+		restoreInputFocus(focus)
+		scheduleDeferredInputFocus(focus.id, focus.selectionAt, focus.selectionEnd, focus.hasSelection)
+	}
+}
+
+func captureInputFocus() deferredInputFocus {
+	ensureInputFocusTracking()
+
+	active := sysjs.Global().Get("document").Get("activeElement")
+	if !active.Truthy() {
+		return deferredInputFocus{}
+	}
+	nodeName := active.Get("nodeName").String()
+	if nodeName == "BODY" {
+		deferredFocusMu.Lock()
+		remembered := rememberedFocusState
+		deferredFocusMu.Unlock()
+		return remembered
+	}
+	if nodeName != "INPUT" && nodeName != "TEXTAREA" && nodeName != "SELECT" {
+		deferredFocusMu.Lock()
+		rememberedFocusState = deferredInputFocus{}
+		deferredFocusMu.Unlock()
+		return deferredInputFocus{}
+	}
+
+	focus := inputFocusFromElement(active)
+	if focus.id == "" {
+		return deferredInputFocus{}
+	}
+	deferredFocusMu.Lock()
+	rememberedFocusState = focus
+	deferredFocusMu.Unlock()
+	return focus
+}
+
+func ensureInputFocusTracking() {
+	focusTrackingOnce.Do(func() {
+		document := sysjs.Global().Get("document")
+		document.Call("addEventListener", "pointerdown", clearFocusIntentFunc, true)
+		document.Call("addEventListener", "focusin", rememberFocusIntentFunc, true)
+		document.Call("addEventListener", "input", rememberFocusIntentFunc, true)
+	})
+}
+
+func rememberInputFocus(element sysjs.Value) {
+	focus := inputFocusFromElement(element)
+	if focus.id == "" {
+		return
+	}
+	deferredFocusMu.Lock()
+	rememberedFocusState = focus
+	deferredFocusMu.Unlock()
+}
+
+func inputFocusFromElement(element sysjs.Value) deferredInputFocus {
+	if !element.Truthy() {
+		return deferredInputFocus{}
+	}
+	nodeName := element.Get("nodeName").String()
+	if nodeName != "INPUT" && nodeName != "TEXTAREA" && nodeName != "SELECT" {
+		return deferredInputFocus{}
+	}
+	focus := deferredInputFocus{id: element.Get("id").String()}
+	if focus.id == "" {
+		return deferredInputFocus{}
+	}
+	selectionStart := element.Get("selectionStart")
+	selectionEnd := element.Get("selectionEnd")
+	if selectionStart.Type() == sysjs.TypeNumber && selectionEnd.Type() == sysjs.TypeNumber {
+		focus.selectionAt = selectionStart.Int()
+		focus.selectionEnd = selectionEnd.Int()
+		focus.hasSelection = true
+	}
+	return focus
+}
+
+func restoreInputFocus(state deferredInputFocus) {
+	if state.id == "" {
+		return
+	}
+	document := sysjs.Global().Get("document")
+	active := document.Get("activeElement")
+	if active.Truthy() {
+		activeID := active.Get("id").String()
+		activeNode := active.Get("nodeName").String()
+		if activeID != "" && activeID != state.id {
+			return
 		}
-		scheduleDeferredInputFocus(activeID, activeSelStart, activeSelEnd, hasActiveSelection)
+		if activeID == "" && activeNode != "BODY" {
+			return
+		}
+	}
+
+	target := document.Call("getElementById", state.id)
+	if !target.Truthy() {
+		deferredFocusMu.Lock()
+		if rememberedFocusState.id == state.id {
+			rememberedFocusState = deferredInputFocus{}
+		}
+		deferredFocusMu.Unlock()
+		return
+	}
+	target.Call("focus")
+	if state.hasSelection {
+		selectionSetter := target.Get("setSelectionRange")
+		if selectionSetter.Type() == sysjs.TypeFunction {
+			target.Call("setSelectionRange", state.selectionAt, state.selectionEnd)
+		}
 	}
 }
 
@@ -566,33 +671,10 @@ func restoreDeferredInputFocus() {
 	deferredFocusState = deferredInputFocus{}
 	deferredFocusMu.Unlock()
 
-	if !state.queued || state.id == "" {
+	if !state.queued {
 		return
 	}
-	document := sysjs.Global().Get("document")
-	active := document.Get("activeElement")
-	if active.Truthy() {
-		activeID := active.Get("id").String()
-		activeNode := active.Get("nodeName").String()
-		if activeID != "" && activeID != state.id {
-			return
-		}
-		if activeID == "" && activeNode != "BODY" {
-			return
-		}
-	}
-
-	target := document.Call("getElementById", state.id)
-	if !target.Truthy() {
-		return
-	}
-	target.Call("focus")
-	if state.hasSelection {
-		selectionSetter := target.Get("setSelectionRange")
-		if selectionSetter.Type() == sysjs.TypeFunction {
-			target.Call("setSelectionRange", state.selectionAt, state.selectionEnd)
-		}
-	}
+	restoreInputFocus(state)
 }
 
 func patchChildren(oldParent, newParent js.Value) {
