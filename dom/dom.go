@@ -22,6 +22,7 @@ type deferredInputFocus struct {
 	id           string
 	selectionAt  int
 	selectionEnd int
+	selectionDir string
 	hasSelection bool
 	queued       bool
 }
@@ -52,6 +53,10 @@ var (
 			return nil
 		}
 		rememberInputFocus(args[0].Get("target"))
+		return nil
+	})
+	rememberSelectionFunc = sysjs.FuncOf(func(sysjs.Value, []sysjs.Value) any {
+		rememberInputFocus(sysjs.Global().Get("document").Get("activeElement"))
 		return nil
 	})
 )
@@ -530,7 +535,7 @@ func patchInnerHTML(element js.Value, html string) {
 
 	if focus.id != "" {
 		restoreInputFocus(focus)
-		scheduleDeferredInputFocus(focus.id, focus.selectionAt, focus.selectionEnd, focus.hasSelection)
+		scheduleDeferredInputFocus(focus)
 	}
 }
 
@@ -571,6 +576,7 @@ func ensureInputFocusTracking() {
 		document.Call("addEventListener", "pointerdown", clearFocusIntentFunc, true)
 		document.Call("addEventListener", "focusin", rememberFocusIntentFunc, true)
 		document.Call("addEventListener", "input", rememberFocusIntentFunc, true)
+		document.Call("addEventListener", "selectionchange", rememberSelectionFunc, true)
 	})
 }
 
@@ -601,6 +607,10 @@ func inputFocusFromElement(element sysjs.Value) deferredInputFocus {
 	if selectionStart.Type() == sysjs.TypeNumber && selectionEnd.Type() == sysjs.TypeNumber {
 		focus.selectionAt = selectionStart.Int()
 		focus.selectionEnd = selectionEnd.Int()
+		selectionDirection := element.Get("selectionDirection")
+		if selectionDirection.Type() == sysjs.TypeString {
+			focus.selectionDir = selectionDirection.String()
+		}
 		focus.hasSelection = true
 	}
 	return focus
@@ -636,21 +646,20 @@ func restoreInputFocus(state deferredInputFocus) {
 	if state.hasSelection {
 		selectionSetter := target.Get("setSelectionRange")
 		if selectionSetter.Type() == sysjs.TypeFunction {
-			target.Call("setSelectionRange", state.selectionAt, state.selectionEnd)
+			if state.selectionDir != "" {
+				target.Call("setSelectionRange", state.selectionAt, state.selectionEnd, state.selectionDir)
+			} else {
+				target.Call("setSelectionRange", state.selectionAt, state.selectionEnd)
+			}
 		}
 	}
 }
 
-func scheduleDeferredInputFocus(id string, selectionAt, selectionEnd int, hasSelection bool) {
+func scheduleDeferredInputFocus(state deferredInputFocus) {
 	deferredFocusMu.Lock()
 	alreadyQueued := deferredFocusState.queued
-	deferredFocusState = deferredInputFocus{
-		id:           id,
-		selectionAt:  selectionAt,
-		selectionEnd: selectionEnd,
-		hasSelection: hasSelection,
-		queued:       true,
-	}
+	state.queued = true
+	deferredFocusState = state
 	deferredFocusMu.Unlock()
 
 	if alreadyQueued {

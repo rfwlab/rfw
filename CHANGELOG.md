@@ -29,6 +29,8 @@ version and include migration notes.
   `core.ReportError`; one failing listener no longer blocks healthy listeners.
 - avoid reading nullable selection offsets from focused number inputs while
   patching the DOM, which previously panicked and terminated the WASM instance.
+- preserve the current caret and selection direction when render work briefly
+  blurs a focused text field before a DOM patch.
 - detect an unexpected exit in the generated JavaScript loader, reload once,
   and show a persistent diagnostic with a manual reload action if the new
   runtime exits again within the recovery window.
