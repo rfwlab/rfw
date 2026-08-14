@@ -141,6 +141,9 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 // from repainting the visible component. The condition's own subscription will
 // request a render when that branch becomes visible, using the latest data.
 func loopInHiddenConditionalBranch(c *HTMLComponent, loopID string) bool {
+	if c == nil || !c.mounted {
+		return true
+	}
 	marker := fmt.Sprintf(`data-for-anchor="%s"`, loopID)
 	for conditionID, content := range c.conditionContents {
 		containsLoop := false
@@ -155,6 +158,9 @@ func loopInHiddenConditionalBranch(c *HTMLComponent, loopID string) bool {
 		}
 
 		root := dom.ComponentRoot(c.ID)
+		if root.IsNull() || root.IsUndefined() {
+			return true
+		}
 		condition := root.Query(fmt.Sprintf(`[data-condition="%s"]`, conditionID))
 		if condition.IsNull() || condition.IsUndefined() {
 			return true
