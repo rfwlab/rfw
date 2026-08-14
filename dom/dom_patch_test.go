@@ -67,11 +67,37 @@ func TestDeferredFocusRestoreSurvivesLaterPatchPhase(t *testing.T) {
 
 	patchInnerHTML(root.Value, `<root data-component-id="search-input"><input id="search" type="search" value="china"><span>new</span></root>`)
 	input.Call("blur")
-	restoreDeferredInputFocus()
+	patchInnerHTML(root.Value, `<root data-component-id="search-input"><input id="search" type="search" value="china"><span>latest</span></root>`)
 
 	patched := root.Query("#search")
 	if !js.Doc().Get("activeElement").Equal(patched.Value) {
 		t.Fatal("search input was not refocused after a later patch phase")
+	}
+	if got := patched.Get("selectionStart").Int(); got != 5 {
+		t.Fatalf("selection start = %d, want 5", got)
+	}
+}
+
+func TestRememberedFocusSurvivesRenderWorkBeforePatch(t *testing.T) {
+	body := js.Doc().Get("body")
+	root := CreateElement("root")
+	root.SetAttr("data-component-id", "early-render")
+	root.SetHTML(`<input id="early-search" type="search" value="china"><span>old</span>`)
+	body.Call("appendChild", root.Value)
+	defer root.Call("remove")
+
+	input := root.Query("#early-search")
+	input.SetValue("china")
+	input.Call("focus")
+	input.Call("setSelectionRange", 5, 5)
+	input.Call("dispatchEvent", js.Global().Get("Event").New("input", map[string]any{"bubbles": true}))
+	input.Call("blur")
+
+	patchInnerHTML(root.Value, `<root data-component-id="early-render"><input id="early-search" type="search" value="china"><span>new</span></root>`)
+
+	patched := root.Query("#early-search")
+	if !js.Doc().Get("activeElement").Equal(patched.Value) {
+		t.Fatal("remembered search input was not refocused")
 	}
 	if got := patched.Get("selectionStart").Int(); got != 5 {
 		t.Fatalf("selection start = %d, want 5", got)
