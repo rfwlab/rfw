@@ -104,6 +104,33 @@ func TestRememberedFocusSurvivesRenderWorkBeforePatch(t *testing.T) {
 	}
 }
 
+func TestRememberedFocusTracksCaretMovementBeforeRefresh(t *testing.T) {
+	body := js.Doc().Get("body")
+	root := CreateElement("root")
+	root.SetAttr("data-component-id", "caret-refresh")
+	root.SetHTML(`<input id="caret-search" type="search" value="galway"><span>old</span>`)
+	body.Call("appendChild", root.Value)
+	defer root.Call("remove")
+
+	input := root.Query("#caret-search")
+	input.Call("focus")
+	input.Call("setSelectionRange", 6, 6)
+	input.Call("dispatchEvent", js.Global().Get("Event").New("input", map[string]any{"bubbles": true}))
+	input.Call("setSelectionRange", 2, 2)
+	js.Doc().Call("dispatchEvent", js.Global().Get("Event").New("selectionchange"))
+	input.Call("blur")
+
+	patchInnerHTML(root.Value, `<root data-component-id="caret-refresh"><input id="caret-search" type="search" value="galway"><span>new</span></root>`)
+
+	patched := root.Query("#caret-search")
+	if !js.Doc().Get("activeElement").Equal(patched.Value) {
+		t.Fatal("search input was not refocused after refresh")
+	}
+	if got := patched.Get("selectionStart").Int(); got != 2 {
+		t.Fatalf("selection start = %d, want 2", got)
+	}
+}
+
 func TestDeferredFocusRestoreDoesNotStealAnotherControl(t *testing.T) {
 	body := js.Doc().Get("body")
 	root := CreateElement("root")
