@@ -118,6 +118,28 @@ func TestRenderSchedulerCommitsParentBeforeChild(t *testing.T) {
 	}
 }
 
+func TestRenderSchedulerCommitsSiblingsByStableID(t *testing.T) {
+	var commits []string
+	active := func() bool { return true }
+	requestScheduledRender(renderJob{
+		id:     "sibling-b",
+		depth:  1,
+		active: active,
+		render: func() { commits = append(commits, "sibling-b") },
+	})
+	requestScheduledRender(renderJob{
+		id:     "sibling-a",
+		depth:  1,
+		active: active,
+		render: func() { commits = append(commits, "sibling-a") },
+	})
+	waitForRenderFlush()
+
+	if want := []string{"sibling-a", "sibling-b"}; !reflect.DeepEqual(commits, want) {
+		t.Fatalf("sibling commit order = %v, want stable ID order %v", commits, want)
+	}
+}
+
 func waitForRenderFlush() {
 	time.Sleep(20 * time.Millisecond)
 }

@@ -344,6 +344,41 @@ func TestForPatchRebindsSignalInputsOnce(t *testing.T) {
 	expectOneSignalSet(t, astSets, "ast-updated")
 }
 
+func TestLoopInHiddenConditionalBranchIgnoresUnmountedComponent(t *testing.T) {
+	component := &HTMLComponent{
+		ID: "not-mounted",
+		conditionContents: map[string]ConditionContent{
+			"condition": {
+				Branches: []ConditionalBranchContent{{Content: `<template data-for-anchor="loop"></template>`}},
+			},
+		},
+	}
+	if !loopInHiddenConditionalBranch(component, "loop") {
+		t.Fatal("unmounted component should suppress loop render work")
+	}
+	if !loopInHiddenConditionalBranch(nil, "loop") {
+		t.Fatal("nil component should suppress loop render work")
+	}
+
+	app := dom.ByID("app")
+	if !app.IsNull() && !app.IsUndefined() {
+		parent := app.Get("parentNode")
+		next := app.Get("nextSibling")
+		app.Call("remove")
+		defer func() {
+			if next.Truthy() && next.Get("parentNode").Truthy() && next.Get("parentNode").Equal(parent) {
+				parent.Call("insertBefore", app.Value, next)
+				return
+			}
+			parent.Call("appendChild", app.Value)
+		}()
+	}
+	component.mounted = true
+	if !loopInHiddenConditionalBranch(component, "loop") {
+		t.Fatal("component without a DOM root should suppress loop render work")
+	}
+}
+
 func expectOneSignalSet(t *testing.T, sets <-chan string, want string) {
 	t.Helper()
 	select {
