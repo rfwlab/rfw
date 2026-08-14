@@ -11,10 +11,28 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	sysjs "syscall/js"
 
 	events "github.com/rfwlab/rfw/v2/events"
 	js "github.com/rfwlab/rfw/v2/js"
 	"github.com/rfwlab/rfw/v2/state"
+)
+
+type deferredInputFocus struct {
+	id           string
+	selectionAt  int
+	selectionEnd int
+	hasSelection bool
+	queued       bool
+}
+
+var (
+	deferredFocusMu    sync.Mutex
+	deferredFocusState deferredInputFocus
+	deferredFocusFunc  = sysjs.FuncOf(func(sysjs.Value, []sysjs.Value) any {
+		restoreDeferredInputFocus()
+		return nil
+	})
 )
 
 // componentSignals tracks signals associated with each component instance.
@@ -513,6 +531,66 @@ func patchInnerHTML(element js.Value, html string) {
 			if hasActiveSelection {
 				restore.Call("setSelectionRange", activeSelStart, activeSelEnd)
 			}
+		}
+		scheduleDeferredInputFocus(activeID, activeSelStart, activeSelEnd, hasActiveSelection)
+	}
+}
+
+func scheduleDeferredInputFocus(id string, selectionAt, selectionEnd int, hasSelection bool) {
+	deferredFocusMu.Lock()
+	alreadyQueued := deferredFocusState.queued
+	deferredFocusState = deferredInputFocus{
+		id:           id,
+		selectionAt:  selectionAt,
+		selectionEnd: selectionEnd,
+		hasSelection: hasSelection,
+		queued:       true,
+	}
+	deferredFocusMu.Unlock()
+
+	if alreadyQueued {
+		return
+	}
+	global := sysjs.Global()
+	queueMicrotask := global.Get("queueMicrotask")
+	if queueMicrotask.Type() == sysjs.TypeFunction {
+		queueMicrotask.Invoke(deferredFocusFunc)
+		return
+	}
+	global.Call("setTimeout", deferredFocusFunc, 0)
+}
+
+func restoreDeferredInputFocus() {
+	deferredFocusMu.Lock()
+	state := deferredFocusState
+	deferredFocusState = deferredInputFocus{}
+	deferredFocusMu.Unlock()
+
+	if !state.queued || state.id == "" {
+		return
+	}
+	document := sysjs.Global().Get("document")
+	active := document.Get("activeElement")
+	if active.Truthy() {
+		activeID := active.Get("id").String()
+		activeNode := active.Get("nodeName").String()
+		if activeID != "" && activeID != state.id {
+			return
+		}
+		if activeID == "" && activeNode != "BODY" {
+			return
+		}
+	}
+
+	target := document.Call("getElementById", state.id)
+	if !target.Truthy() {
+		return
+	}
+	target.Call("focus")
+	if state.hasSelection {
+		selectionSetter := target.Get("setSelectionRange")
+		if selectionSetter.Type() == sysjs.TypeFunction {
+			target.Call("setSelectionRange", state.selectionAt, state.selectionEnd)
 		}
 	}
 }

@@ -52,6 +52,52 @@ func TestPatchFocusedNumberInputPreservesLiveValue(t *testing.T) {
 	}
 }
 
+func TestDeferredFocusRestoreSurvivesLaterPatchPhase(t *testing.T) {
+	body := js.Doc().Get("body")
+	root := CreateElement("root")
+	root.SetAttr("data-component-id", "search-input")
+	root.SetHTML(`<input id="search" type="search" value="china"><span>old</span>`)
+	body.Call("appendChild", root.Value)
+	defer root.Call("remove")
+
+	input := root.Query("#search")
+	input.SetValue("china")
+	input.Call("focus")
+	input.Call("setSelectionRange", 5, 5)
+
+	patchInnerHTML(root.Value, `<root data-component-id="search-input"><input id="search" type="search" value="china"><span>new</span></root>`)
+	input.Call("blur")
+	restoreDeferredInputFocus()
+
+	patched := root.Query("#search")
+	if !js.Doc().Get("activeElement").Equal(patched.Value) {
+		t.Fatal("search input was not refocused after a later patch phase")
+	}
+	if got := patched.Get("selectionStart").Int(); got != 5 {
+		t.Fatalf("selection start = %d, want 5", got)
+	}
+}
+
+func TestDeferredFocusRestoreDoesNotStealAnotherControl(t *testing.T) {
+	body := js.Doc().Get("body")
+	root := CreateElement("root")
+	root.SetAttr("data-component-id", "focus-switch")
+	root.SetHTML(`<input id="search" type="search"><button id="apply">Apply</button>`)
+	body.Call("appendChild", root.Value)
+	defer root.Call("remove")
+
+	search := root.Query("#search")
+	search.Call("focus")
+	patchInnerHTML(root.Value, `<root data-component-id="focus-switch"><input id="search" type="search"><button id="apply">Apply</button></root>`)
+	apply := root.Query("#apply")
+	apply.Call("focus")
+	restoreDeferredInputFocus()
+
+	if !js.Doc().Get("activeElement").Equal(apply.Value) {
+		t.Fatal("deferred restore stole focus from another control")
+	}
+}
+
 func TestUpdateDOMRecoversAndAcceptsNextUpdate(t *testing.T) {
 	body := js.Doc().Get("body")
 	root := CreateElement("root")
