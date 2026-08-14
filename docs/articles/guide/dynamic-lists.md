@@ -109,6 +109,22 @@ When the list lives in a store, `@for` in the template re-renders it
 reactively without any of the above; this guide covers the imperative case,
 where data arrives from an API call you control.
 
-Put `[key @prop:item.id]` on the row root when the same item can move between
-positions. RFW keeps that row element and patches its changed descendants;
-new keys are inserted and missing keys are removed.
+Give rows a stable key when they can be inserted, removed, or reordered:
+
+```html
+<ul>
+  @for:user in store:app.users.items
+    <li [key @prop:user.id]>@prop:user.name</li>
+  @endfor
+</ul>
+```
+
+The key is scoped to that `@for` block. A row with the same key keeps its DOM
+node while its position and contents change, which also preserves browser-owned
+state inside it. Keys must be unique among siblings in one render. Duplicate
+keys reject the update before any DOM mutation.
+
+Lists without an explicit key remain source compatible and use their iteration
+key (the slice index for slices). That is suitable for append-only rows. For a
+sortable or filtered list, use a domain identifier instead of the index so the
+identity follows the item rather than its old position.

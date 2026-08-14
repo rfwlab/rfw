@@ -81,14 +81,13 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 				store := state.GlobalStoreManager.GetStore(module, storeName)
 				if store != nil {
 					collection = store.Get(key)
-					// a list that changes should cost its own rows, not a
-					// re-render of the whole component: patch the loop subtree
-					// when the body allows it and fall back otherwise
-					unsubscribe := store.OnChange(key, func(newValue any) {
-						if patchForLoop(c, loopID, aliases, loopContent, newValue) {
+					// Rendering is coalesced per component; the common DOM
+					// reconciler then limits mutation to changed loop rows.
+					unsubscribe := store.OnChange(key, func(any) {
+						if loopInHiddenConditionalBranch(c, loopID) {
 							return
 						}
-						dom.UpdateMountedDOM(c.ID, c.RenderFresh())
+						c.requestRender()
 					})
 					c.unsubscribes.Add(unsubscribe)
 				} else {
@@ -138,6 +137,39 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+// loopInHiddenConditionalBranch prevents data arriving for an unmounted view
+// from repainting the visible component. The condition's own subscription will
+// request a render when that branch becomes visible, using the latest data.
+func loopInHiddenConditionalBranch(c *HTMLComponent, loopID string) bool {
+	marker := fmt.Sprintf(`data-for-anchor="%s"`, loopID)
+	for conditionID, content := range c.conditionContents {
+		containsLoop := false
+		for _, branch := range content.Branches {
+			if strings.Contains(branch.Content, marker) {
+				containsLoop = true
+				break
+			}
+		}
+		if !containsLoop {
+			continue
+		}
+
+		root := dom.ComponentRoot(c.ID)
+		condition := root.Query(fmt.Sprintf(`[data-condition="%s"]`, conditionID))
+		if condition.IsNull() || condition.IsUndefined() {
+			return true
+		}
+		selected := condition.Attr("data-condition-branch")
+		for index, branch := range content.Branches {
+			if fmt.Sprintf("%d", index) == selected {
+				return !strings.Contains(branch.Content, marker)
+			}
+		}
+		return true
+	}
+	return false
+}
+
 // forAnchor marks where a loop's rows begin. A template element carries no box
 // and no layout, so it sits inside a flex or grid container without disturbing
 // it, and an empty list still leaves the patch somewhere to insert into.
@@ -162,39 +194,6 @@ func insertRowMarkers(content string, key any, loopID string) string {
 		attrs += fmt.Sprintf(` data-for="%s"`, loopID)
 	}
 	return content[:loc[1]] + attrs + content[loc[1]:]
-}
-
-// singleRootRow reports whether the loop body renders exactly one element per
-// row. Multi-root rows carry the loop id on their first element only, so the
-// patch could not clean them up and falls back to a render instead.
-func singleRootRow(body string) bool {
-	depth, roots := 0, 0
-	for _, m := range reAnyTag.FindAllStringSubmatch(body, -1) {
-		closing, name, selfClosing := m[1] == "/", strings.ToLower(m[2]), strings.HasSuffix(m[0], "/>")
-		if voidElements[name] || selfClosing {
-			if depth == 0 {
-				roots++
-			}
-			continue
-		}
-		if closing {
-			depth--
-			continue
-		}
-		if depth == 0 {
-			roots++
-		}
-		depth++
-	}
-	return roots == 1
-}
-
-var reAnyTag = regexp.MustCompile(`<(/?)([a-zA-Z][\w-]*)[^>]*>`)
-
-var voidElements = map[string]bool{
-	"area": true, "base": true, "br": true, "col": true, "embed": true,
-	"hr": true, "img": true, "input": true, "link": true, "meta": true,
-	"source": true, "track": true, "wbr": true,
 }
 
 // expandForRows renders the loop body once per item. It reports false when the

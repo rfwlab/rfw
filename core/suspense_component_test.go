@@ -4,6 +4,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -63,5 +64,42 @@ func TestSuspenseUpdatesWhenResourceResolves(t *testing.T) {
 			t.Fatalf("resolved content missing: %s", dom.ComponentRoot(suspense.GetID()).HTML())
 		}
 		time.Sleep(time.Millisecond)
+	}
+}
+
+func TestSuspenseCoalescesReactiveDOMUpdates(t *testing.T) {
+	if dom.ByID("app").IsNull() {
+		host := dom.CreateElement("div")
+		host.SetAttr("id", "app")
+		dom.Doc().Body().AppendChild(host)
+	}
+
+	value := state.NewSignal("zero")
+	suspense := NewSuspense(func() (string, error) {
+		return "<p>" + value.Get() + "</p>", nil
+	}, "<p>loading</p>")
+	dom.UpdateDOM(suspense.GetID(), suspense.Render())
+	suspense.Mount()
+	defer suspense.Unmount()
+
+	previousHook := dom.TemplateHook
+	commits := 0
+	dom.TemplateHook = func(componentID, _ string) {
+		if componentID == suspense.GetID() {
+			commits++
+		}
+	}
+	defer func() { dom.TemplateHook = previousHook }()
+
+	for i := 0; i < 10; i++ {
+		value.Set(fmt.Sprintf("value-%d", i))
+	}
+	waitForRenderFlush()
+
+	if commits != 1 {
+		t.Fatalf("Suspense update burst produced %d DOM commits, want 1", commits)
+	}
+	if html := dom.ComponentRoot(suspense.GetID()).HTML(); !strings.Contains(html, "value-9") {
+		t.Fatalf("Suspense committed stale content: %s", html)
 	}
 }

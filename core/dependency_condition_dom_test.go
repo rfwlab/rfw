@@ -54,6 +54,7 @@ func TestMountedDependencyConditionUpdatesDOM(t *testing.T) {
 
 	store.Set("chrome", "off")
 	store.Set("nav", []any{map[string]any{"label": "one"}, map[string]any{"label": "two"}})
+	waitForRenderFlush()
 
 	html := dom.ComponentRoot(parent.GetID()).HTML()
 	if !strings.Contains(html, "two") {

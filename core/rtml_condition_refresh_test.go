@@ -36,6 +36,7 @@ func TestConditionalBranchRefreshesWhenItComesBack(t *testing.T) {
 	}
 
 	st.Set("chrome", "off")
+	waitForRenderFlush()
 	if el := dom.Query("[data-refresh-header]"); !el.IsNull() {
 		t.Fatal("header should be gone while the condition is false")
 	}
@@ -43,6 +44,7 @@ func TestConditionalBranchRefreshesWhenItComesBack(t *testing.T) {
 	// the title moves while the block is out of the DOM
 	st.Set("title", "second")
 	st.Set("chrome", "on")
+	waitForRenderFlush()
 
 	el := dom.Query("[data-refresh-header]")
 	if el.IsNull() {

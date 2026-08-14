@@ -358,6 +358,7 @@ func (c *HTMLComponent) Unmount() {
 		return
 	}
 	c.mounted = false
+	cancelComponentRender(c.ID)
 	devUnregisterComponent(c)
 	if c.component != nil {
 		c.runLifecycle("OnUnmount", c.component.OnUnmount)

@@ -91,37 +91,45 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 	c.condSeq++
 
 	var content ConditionContent
-	for _, br := range cn.Branches {
+	var chosen string
+	chosenBranch := -1
+	branchSelected := false
+	for branchIndex, br := range cn.Branches {
 		var sb strings.Builder
 		for _, n := range br.Nodes {
 			sb.WriteString(n.Render(c))
 		}
 		branchContent := sb.String()
 		content.Branches = append(content.Branches, ConditionalBranchContent{Condition: br.Condition, Content: branchContent})
+
+		if br.Condition != "" {
+			result, _ := evaluateCondition(br.Condition, c)
+			if !branchSelected && result {
+				chosen = branchContent
+				chosenBranch = branchIndex
+				branchSelected = true
+			}
+		} else if !branchSelected {
+			chosen = branchContent
+			chosenBranch = branchIndex
+			branchSelected = true
+		}
 	}
 
 	c.conditionContents[conditionID] = content
-	chosen, branch := selectedConditionalBranch(c, content)
 
-	// A hidden branch keeps its bindings, but they have no node to patch while
-	// the block is out of the DOM, so the markup captured here goes stale. A
-	// branch that carries bindings therefore comes back through a render; a
-	// static one is just swapped in.
-	refresh := func() {
-		updateConditionBindings(c, conditionID)
-	}
-
-	effectReady := false
+	initialEffectRun := true
 	unsub := state.Effect(func() func() {
 		for _, br := range cn.Branches {
 			if br.Condition != "" {
 				evaluateCondition(br.Condition, c)
 			}
 		}
-		if effectReady {
-			updateConditionBindings(c, conditionID)
+		if initialEffectRun {
+			initialEffectRun = false
+		} else {
+			c.requestRender()
 		}
-		effectReady = true
 		return nil
 	})
 	c.unsubscribes.Add(unsub)
@@ -144,13 +152,13 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 				continue
 			}
 			unsub := store.OnChange(dep.key, func(any) {
-				refresh()
+				c.requestRender()
 			})
 			c.unsubscribes.Add(unsub)
 		}
 	}
 
-	return fmt.Sprintf(`<div data-condition="%s" data-condition-branch="%d">%s</div>`, conditionID, branch, chosen)
+	return fmt.Sprintf(`<div data-condition="%s" data-condition-branch="%d">%s</div>`, conditionID, chosenBranch, chosen)
 }
 
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
@@ -1192,7 +1200,7 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 			if store != nil {
 				if val := store.Get(key); val != nil {
 					unsubscribe := store.OnChange(key, func(any) {
-						dom.UpdateMountedDOM(c.ID, c.RenderFresh())
+						c.requestRender()
 					})
 					c.unsubscribes.Add(unsubscribe)
 					switch v := val.(type) {
@@ -1220,67 +1228,8 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 	return 0, fmt.Errorf("invalid number")
 }
 
-// conditionNeedsRender reports whether any branch of a conditional carries a
-// binding whose value could have moved while the branch was hidden.
-func conditionNeedsRender(c *HTMLComponent, conditionID string) bool {
-	for _, br := range c.conditionContents[conditionID].Branches {
-		for _, marker := range []string{"data-store=", "data-store-raw=", "data-signal=", "data-expr=", "data-expr-class=", "data-for-anchor="} {
-			if strings.Contains(br.Content, marker) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func selectedConditionalBranch(c *HTMLComponent, content ConditionContent) (string, int) {
-	fallback := -1
-	for i, br := range content.Branches {
-		if br.Condition == "" {
-			fallback = i
-			continue
-		}
-		matched, _ := evaluateCondition(br.Condition, c)
-		if matched {
-			return br.Content, i
-		}
-	}
-	if fallback >= 0 {
-		return content.Branches[fallback].Content, fallback
-	}
-	return "", -1
-}
-
-func updateConditionBindings(c *HTMLComponent, conditionID string) {
-	element := dom.ComponentRoot(c.ID)
-	if element.IsNull() || element.IsUndefined() {
-		return
-	}
-
-	selector := fmt.Sprintf(`[data-condition="%s"]`, conditionID)
-	node := element.Call("querySelector", selector)
-	if node.IsNull() || node.IsUndefined() {
-		return
-	}
-
-	newContent, branch := selectedConditionalBranch(c, c.conditionContents[conditionID])
-	if node.Call("getAttribute", "data-condition-branch").String() == strconv.Itoa(branch) {
-		return
-	}
-	if conditionNeedsRender(c, conditionID) {
-		dom.UpdateMountedDOM(c.ID, c.RenderFresh())
-		return
-	}
-
-	node.Set("innerHTML", newContent)
-	node.Call("setAttribute", "data-condition-branch", strconv.Itoa(branch))
-
-	dom.BindStoreInputsForComponent(c.ID, node)
-	dom.BindSignalInputs(c.ID, node)
-}
-
 func updateConditionsForStoreVariable(c *HTMLComponent, module, storeName, key string) {
-	for conditionID, content := range c.conditionContents {
+	for _, content := range c.conditionContents {
 		for _, br := range content.Branches {
 			if br.Condition == "" {
 				continue
@@ -1288,8 +1237,8 @@ func updateConditionsForStoreVariable(c *HTMLComponent, module, storeName, key s
 			dependencies, _ := getConditionDependencies(br.Condition)
 			for _, dep := range dependencies {
 				if dep.module == module && dep.storeName == storeName && dep.key == key {
-					updateConditionBindings(c, conditionID)
-					break
+					c.requestRender()
+					return
 				}
 			}
 		}

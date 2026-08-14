@@ -42,11 +42,13 @@ func TestConditionOnStoreReactsWithoutOtherBindings(t *testing.T) {
 	}
 
 	store.Set("chrome", "off")
+	waitForRenderFlush()
 	if html := dom.ComponentRoot(c.GetID()).HTML(); strings.Contains(html, "chrome-block") {
 		t.Fatalf("condition did not react to the store change: %s", html)
 	}
 
 	store.Set("chrome", "on")
+	waitForRenderFlush()
 	if html := dom.ComponentRoot(c.GetID()).HTML(); !strings.Contains(html, "chrome-block") {
 		t.Fatalf("condition did not come back: %s", html)
 	}

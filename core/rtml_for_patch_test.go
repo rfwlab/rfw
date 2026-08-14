@@ -20,7 +20,7 @@ func mountForComponent(t *testing.T, name string, tpl []byte) *HTMLComponent {
 	c := NewHTMLComponent(name, tpl, nil)
 	c.SetComponent(c)
 	c.Init(nil)
-	host.SetHTML(c.Render())
+	dom.UpdateDOMIn(host, c.ID, c.Render())
 	c.Mount()
 	return c
 }
@@ -33,6 +33,7 @@ func TestForPatchLeavesSiblingsAlone(t *testing.T) {
 		map[string]any{"label": "one"},
 		map[string]any{"label": "two"},
 	})
+	waitForRenderFlush()
 
 	tpl := []byte(`<root><div id="forpatch-side">side</div><ul>@for:it in store:app.forpatch.items <li>@prop:it.label</li>@endfor</ul></root>`)
 	mountForComponent(t, "ForPatch", tpl)
@@ -48,6 +49,7 @@ func TestForPatchLeavesSiblingsAlone(t *testing.T) {
 		map[string]any{"label": "two"},
 		map[string]any{"label": "three"},
 	})
+	waitForRenderFlush()
 
 	sideAfter := dom.ByID("forpatch-side")
 	if sideAfter.IsNull() {
@@ -70,6 +72,7 @@ func TestForPatchRendersEveryRow(t *testing.T) {
 		map[string]any{"label": "x"},
 		map[string]any{"label": "y"},
 	})
+	waitForRenderFlush()
 
 	list := dom.Query("[data-list]")
 	rows := list.QueryAll("li")
@@ -85,173 +88,121 @@ func TestForPatchRendersEveryRow(t *testing.T) {
 
 	// emptying the list clears the rows and keeps the anchor for the next value
 	st.Set("items", []any{})
+	waitForRenderFlush()
 	if n := dom.Query("[data-list]").QueryAll("li").Length(); n != 0 {
 		t.Fatalf("expected no rows after clearing, got %d", n)
 	}
 	st.Set("items", []any{map[string]any{"label": "back"}})
+	waitForRenderFlush()
 	if got := dom.Query("[data-list]").QueryAll("li").Length(); got != 1 {
 		t.Fatalf("expected the list to come back, got %d rows", got)
 	}
 }
 
-func TestForPatchPreservesKeyedRows(t *testing.T) {
-	st := state.NewStore("forpatchkeyed", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchkeyed")
-	st.Set("items", []any{
+func TestUnifiedReconcilerPreservesExplicitlyKeyedRows(t *testing.T) {
+	store := state.NewStore("reconcile_keyed", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "reconcile_keyed")
+	store.Set("items", []any{
 		map[string]any{"id": "a", "label": "one"},
 		map[string]any{"id": "b", "label": "two"},
 	})
 
-	tpl := []byte(`<root><ul data-list>@for:it in store:app.forpatchkeyed.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></root>`)
-	mountForComponent(t, "ForPatchKeyed", tpl)
-
+	component := mountForComponent(t, "ReconcileKeyed", []byte(`<root><ul data-list>
+@for:item in store:app.reconcile_keyed.items
+<li [key @prop:item.id]>@prop:item.label</li>
+@endfor
+</ul></root>`))
+	defer component.Unmount()
 	rows := dom.Query("[data-list]").QueryAll("li")
-	rowA := rows.Index(0)
-	rowB := rows.Index(1)
-	rowA.Set("__marker", "a")
-	rowB.Set("__marker", "b")
+	rowA, rowB := rows.Index(0), rows.Index(1)
+	if rowA.Attr("data-key") != "a" || rowB.Attr("data-key") != "b" {
+		t.Fatalf("explicit row keys were not rendered: %s", dom.Query("[data-list]").HTML())
+	}
 
-	st.Set("items", []any{
+	store.Set("items", []any{
 		map[string]any{"id": "b", "label": "two updated"},
 		map[string]any{"id": "c", "label": "three"},
 	})
+	waitForRenderFlush()
 
 	rows = dom.Query("[data-list]").QueryAll("li")
-	if rows.Length() != 2 {
-		t.Fatalf("expected 2 rows, got %d", rows.Length())
+	if rows.Length() != 2 || !rows.Index(0).Equal(rowB.Value) {
+		t.Fatal("keyed row identity was not retained during reorder")
 	}
-	if !rows.Index(0).Equal(rowB.Value) {
-		t.Fatal("keyed row b was replaced during reorder")
-	}
-	if got := rows.Index(0).Text(); got != "two updated" {
-		t.Fatalf("patched row text = %q", got)
+	if rows.Index(0).Text() != "two updated" {
+		t.Fatalf("retained row was not patched: %s", rows.Index(0).Text())
 	}
 	if rowA.Get("isConnected").Bool() {
 		t.Fatal("removed keyed row remains connected")
 	}
-	if got := rows.Index(1).Get("__marker"); got.Truthy() {
-		t.Fatal("inserted row inherited another row's identity")
-	}
 }
 
-func TestForPatchKeepsFocusedInputOutsideLoop(t *testing.T) {
-	st := state.NewStore("forpatchfocus", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchfocus")
-	st.Set("state", "rows")
-	st.Set("query", "premier ")
-	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
+func TestUnifiedReconcilerKeepsFocusedInputOutsideLoop(t *testing.T) {
+	store := state.NewStore("reconcile_focus", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "reconcile_focus")
+	store.Set("state", "rows")
+	store.Set("query", "premier ")
+	store.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
 
-	tpl := []byte(`<root>
-@if:store:app.forpatchfocus.state == "rows"
-<section><input id="forpatch-search" value="@store:app.forpatchfocus.query:w"><ul>@for:it in store:app.forpatchfocus.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></section>
+	component := mountForComponent(t, "ReconcileFocus", []byte(`<root>
+@if:store:app.reconcile_focus.state == "rows"
+<section><input id="reconcile-search" value="@store:app.reconcile_focus.query:w"><ul>
+@for:item in store:app.reconcile_focus.items
+<li [key @prop:item.id]>@prop:item.label</li>
+@endfor
+</ul></section>
 @endif
-</root>`)
-	mountForComponent(t, "ForPatchFocus", tpl)
-
-	input := dom.ByID("forpatch-search")
+</root>`))
+	defer component.Unmount()
+	input := dom.ByID("reconcile-search")
 	input.Call("focus")
-	input.Call("setSelectionRange", 8, 8)
-	st.Set("state", "rows")
-	st.Set("items", []any{map[string]any{"id": "a", "label": "updated"}})
+	input.Call("setSelectionRange", 4, 8)
 
-	if !dom.Doc().Get("activeElement").Equal(input.Value) {
-		t.Fatal("list refresh replaced the focused input")
+	store.Set("state", "rows")
+	store.Set("items", []any{map[string]any{"id": "a", "label": "updated"}})
+	waitForRenderFlush()
+
+	if !dom.ByID("reconcile-search").Equal(input.Value) || !dom.Doc().Get("activeElement").Equal(input.Value) {
+		t.Fatal("same-branch list refresh replaced the focused input")
 	}
-	if got := input.Val(); got != "premier " {
-		t.Fatalf("focused input value = %q", got)
-	}
-	if got := input.Get("selectionStart").Int(); got != 8 {
-		t.Fatalf("selectionStart = %d, want 8", got)
+	if input.Val() != "premier " || input.Get("selectionStart").Int() != 4 || input.Get("selectionEnd").Int() != 8 {
+		t.Fatalf("focused input state changed: value=%q selection=%d:%d", input.Val(), input.Get("selectionStart").Int(), input.Get("selectionEnd").Int())
 	}
 }
 
-func TestHiddenForPatchDoesNotRenderMountedBranch(t *testing.T) {
-	st := state.NewStore("forpatchhidden", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchhidden")
-	st.Set("show", "no")
-	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
+func TestHiddenLoopWaitsForBranchMount(t *testing.T) {
+	store := state.NewStore("reconcile_hidden", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "reconcile_hidden")
+	store.Set("show", "no")
+	store.Set("items", []any{})
 
-	tpl := []byte(`<root><input id="forpatch-visible">
-@if:store:app.forpatchhidden.show == "yes"
-<ul data-hidden-list>@for:it in store:app.forpatchhidden.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul>
+	component := mountForComponent(t, "ReconcileHidden", []byte(`<root><input id="visible-control">
+@if:store:app.reconcile_hidden.show == "yes"
+<ul data-hidden-list>
+@for:item in store:app.reconcile_hidden.items
+<li [key @prop:item.id]>@prop:item.label</li>
+@endfor
+</ul>
 @endif
-</root>`)
-	mountForComponent(t, "ForPatchHidden", tpl)
+</root>`))
+	defer component.Unmount()
+	before := component.Stats().RenderCount
+	visible := dom.ByID("visible-control")
 
-	oldHook := dom.TemplateHook
-	defer func() { dom.TemplateHook = oldHook }()
-	updates := 0
-	dom.TemplateHook = func(string, string) { updates++ }
-
-	st.Set("items", []any{map[string]any{"id": "a", "label": "latest"}})
-	if updates != 0 {
-		t.Fatalf("hidden loop triggered %d component renders", updates)
+	store.Set("items", []any{map[string]any{"id": "a", "label": "latest"}})
+	waitForRenderFlush()
+	if component.Stats().RenderCount != before {
+		t.Fatal("hidden loop scheduled a visible component render")
+	}
+	if !dom.ByID("visible-control").Equal(visible.Value) {
+		t.Fatal("hidden loop update touched the mounted branch")
 	}
 
-	st.Set("show", "yes")
+	store.Set("show", "yes")
+	waitForRenderFlush()
 	rows := dom.Query("[data-hidden-list]").QueryAll("li")
 	if rows.Length() != 1 || rows.Index(0).Text() != "latest" {
-		t.Fatalf("revealed loop did not render latest store value: %s", dom.Query("[data-hidden-list]").HTML())
-	}
-}
-
-func TestHiddenEmptyForRendersRowsWhenBranchMounts(t *testing.T) {
-	st := state.NewStore("forpatchhiddenempty", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchhiddenempty")
-	st.Set("show", "no")
-	st.Set("items", []any{})
-
-	tpl := []byte(`<root>
-@if:store:app.forpatchhiddenempty.show == "yes"
-<ul data-hidden-list>@for:it in store:app.forpatchhiddenempty.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul>
-@endif
-</root>`)
-	mountForComponent(t, "ForPatchHiddenEmpty", tpl)
-
-	st.Set("items", []any{map[string]any{"id": "a", "label": "arrived"}})
-	st.Set("show", "yes")
-
-	rows := dom.Query("[data-hidden-list]").QueryAll("li")
-	if rows.Length() != 1 || rows.Index(0).Text() != "arrived" {
-		t.Fatalf("revealed loop did not render rows received while hidden: %s", dom.Query("[data-hidden-list]").HTML())
-	}
-}
-
-func TestMissingVisibleForAnchorFallsBackToRender(t *testing.T) {
-	st := state.NewStore("forpatchmissinganchor", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchmissinganchor")
-	st.Set("show", "yes")
-	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
-
-	tpl := []byte(`<root>
-@if:store:app.forpatchmissinganchor.show == "yes"
-<ul data-list>@for:it in store:app.forpatchmissinganchor.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul>
-@endif
-</root>`)
-	mountForComponent(t, "ForPatchMissingAnchor", tpl)
-	dom.Query("[data-for-anchor]").Call("remove")
-
-	st.Set("items", []any{map[string]any{"id": "a", "label": "recovered"}})
-	anchor := dom.Query("[data-for-anchor]")
-	if anchor.IsNull() || anchor.IsUndefined() {
-		t.Fatal("full render did not restore a missing visible anchor")
-	}
-	if got := dom.Query("[data-list]").Query("li").Text(); got != "recovered" {
-		t.Fatalf("recovered row text = %q", got)
-	}
-}
-
-// A body the patch cannot own on its own (an include, a nested conditional)
-// falls back to the full render instead of painting something incomplete.
-func TestForPatchFallsBackForRichBodies(t *testing.T) {
-	if incrementalForBody(`<li>@include:child</li>`) {
-		t.Fatal("include body should not be patched incrementally")
-	}
-	if incrementalForBody("<li>@if:prop:x\\nyes\\n@endif</li>") {
-		t.Fatal("conditional body should not be patched incrementally")
-	}
-	if !incrementalForBody(`<li class="@prop:it.cls">@prop:it.label</li>`) {
-		t.Fatal("a plain body should be patchable")
+		t.Fatalf("mounted branch did not use latest loop state: %s", dom.Query("[data-hidden-list]").HTML())
 	}
 }
 
@@ -268,8 +219,10 @@ func TestForPatchRebindsInputsOnce(t *testing.T) {
 	defer c.Unmount()
 
 	st.Set("items", []any{map[string]any{"label": "two"}})
+	waitForRenderFlush()
 	oldRow := dom.Query("[data-row]")
 	st.Set("items", []any{})
+	waitForRenderFlush()
 
 	oldHook := state.StoreHook
 	defer func() { state.StoreHook = oldHook }()
@@ -300,6 +253,35 @@ func TestForPatchRebindsInputsOnce(t *testing.T) {
 	input.Set("value", "AST")
 	input.Call("dispatchEvent", js.CustomEvent().New("input"))
 	expectOneStoreSet(t, sets, "ast")
+}
+
+func TestStoreInputDefersWritesDuringIMEComposition(t *testing.T) {
+	store := state.NewStore("ime_binding", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "ime_binding")
+	store.Set("value", "before")
+
+	component := mountForComponent(t, "IMEBinding", []byte(`<root><input data-ime value="@store:app.ime_binding.value:w"></root>`))
+	defer component.Unmount()
+	input := dom.Query("[data-ime]")
+
+	input.Set("value", "partial")
+	composingOptions := js.NewDict()
+	composingOptions.Set("bubbles", true)
+	composingOptions.Set("isComposing", true)
+	input.Call("dispatchEvent", js.Global().Get("InputEvent").New("input", composingOptions.Value))
+	time.Sleep(20 * time.Millisecond)
+	if got := store.Get("value"); got != "before" {
+		t.Fatalf("composing input wrote store value %q, want before", got)
+	}
+
+	input.Set("value", "final")
+	inputOptions := js.NewDict()
+	inputOptions.Set("bubbles", true)
+	input.Call("dispatchEvent", js.Global().Get("InputEvent").New("input", inputOptions.Value))
+	time.Sleep(20 * time.Millisecond)
+	if got := store.Get("value"); got != "final" {
+		t.Fatalf("completed input wrote store value %q, want final", got)
+	}
 }
 
 func expectOneStoreSet(t *testing.T, sets <-chan string, want string) {
@@ -342,6 +324,7 @@ func TestForPatchRebindsSignalInputsOnce(t *testing.T) {
 
 	st.Set("items", []any{map[string]any{"label": "two"}})
 	st.Set("items", []any{map[string]any{"label": "three"}})
+	waitForRenderFlush()
 
 	legacySets := make(chan string, 2)
 	legacySub := legacy.OnChange(func(value string) { legacySets <- value })
