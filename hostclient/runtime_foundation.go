@@ -57,6 +57,11 @@ var (
 	pendingCalls    = map[string]chan actionReply{}
 )
 
+// Host snapshots can legitimately exceed nhooyr's conservative 32 KiB default
+// (for example, a paginated table's first hydration). Keep a finite ceiling so
+// malformed peers still cannot grow memory without bound.
+const maxInboundMessageBytes int64 = 8 << 20
+
 type message struct {
 	name     string
 	action   string
@@ -208,6 +213,7 @@ func connectionLoop() {
 				if derr != nil {
 					return derr
 				}
+				c.SetReadLimit(maxInboundMessageBytes)
 
 				sendMu.Lock()
 				mu.Lock()
