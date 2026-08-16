@@ -28,18 +28,19 @@ type componentBinding struct {
 }
 
 var (
-	conn      *websocket.Conn
-	bindings  = map[string]componentBinding{}
-	once      sync.Once
-	mu        sync.RWMutex
-	pending   []message
-	outbox    = map[uint64]message{}
-	handlers  = map[string]func(map[string]any){}
-	dedup     = map[string]struct{}{}
-	debug     bool
-	cb        *fnres.CircuitBreaker
-	sendCache *fncaching.InMemoryCache[string]
-	hydrateCB *fnres.CircuitBreaker
+	conn          *websocket.Conn
+	bindings      = map[string]componentBinding{}
+	once          sync.Once
+	mu            sync.RWMutex
+	pending       []message
+	outbox        = map[uint64]message{}
+	handlers      = map[string]func(map[string]any){}
+	handlerTokens = map[string]uint64{}
+	dedup         = map[string]struct{}{}
+	debug         bool
+	cb            *fnres.CircuitBreaker
+	sendCache     *fncaching.InMemoryCache[string]
+	hydrateCB     *fnres.CircuitBreaker
 
 	sessionMu sync.RWMutex
 	sessionID string
@@ -50,9 +51,10 @@ var (
 	nextOutbound uint64
 	lastInbound  uint64
 
-	callSequence atomic.Uint64
-	callMu       sync.Mutex
-	pendingCalls = map[string]chan actionReply{}
+	callSequence    atomic.Uint64
+	handlerSequence atomic.Uint64
+	callMu          sync.Mutex
+	pendingCalls    = map[string]chan actionReply{}
 )
 
 type message struct {
@@ -522,10 +524,16 @@ func Send(name string, payload any) {
 	sendMessage(c, message{name: name, payload: payload})
 }
 
-// RegisterHandler registers a handler for host messages.
-func RegisterHandler(name string, h func(map[string]any)) {
+// RegisterHandler registers a handler for host messages and returns an
+// idempotent unsubscribe function. Unsubscribing removes the handler from
+// reconnect hydration and tells the active host session to stop broadcasts for
+// the component. A stale unsubscribe closure never removes a newer handler
+// registered under the same name.
+func RegisterHandler(name string, h func(map[string]any)) func() {
+	token := handlerSequence.Add(1)
 	mu.Lock()
 	handlers[name] = h
+	handlerTokens[name] = token
 	current := conn
 	if current == nil {
 		pending = append(pending, message{name: name, payload: map[string]any{"init": true}})
@@ -535,6 +543,42 @@ func RegisterHandler(name string, h func(map[string]any)) {
 	if current != nil {
 		sendMessage(current, message{name: name, payload: map[string]any{"init": true}})
 	}
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			mu.Lock()
+			if handlerTokens[name] != token {
+				mu.Unlock()
+				return
+			}
+			delete(handlers, name)
+			delete(handlerTokens, name)
+			filtered := pending[:0]
+			for _, queued := range pending {
+				if queued.name == name && isInitPayload(queued.payload) {
+					continue
+				}
+				filtered = append(filtered, queued)
+			}
+			pending = filtered
+			current := conn
+			mu.Unlock()
+
+			unsubscribe := message{name: name, payload: map[string]any{"unsubscribe": true}}
+			if current != nil {
+				sendMessage(current, unsubscribe)
+				return
+			}
+			mu.Lock()
+			pending = append(pending, unsubscribe)
+			mu.Unlock()
+		})
+	}
+}
+
+func isInitPayload(payload any) bool {
+	values, ok := payload.(map[string]any)
+	return ok && values["init"] == true
 }
 
 // SessionID returns the current SSC session ID.

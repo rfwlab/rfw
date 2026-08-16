@@ -136,6 +136,24 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 			})
 			continue
 		}
+		if msg.Component != "" && msg.Payload != nil && msg.Payload["unsubscribe"] == true {
+			connMu.Lock()
+			if set, ok := connections[msg.Component]; ok {
+				delete(set, ws)
+				if len(set) == 0 {
+					delete(connections, msg.Component)
+				}
+			}
+			for index, name := range subscribed {
+				if name == msg.Component {
+					subscribed = append(subscribed[:index], subscribed[index+1:]...)
+					break
+				}
+			}
+			connMu.Unlock()
+			SendSessionOutbound(ws, session, Outbound{Component: msg.Component, Control: "unsubscribed"})
+			continue
+		}
 		if hc, ok := Get(msg.Component); ok {
 			connMu.Lock()
 			if _, ok := connections[msg.Component]; !ok {
