@@ -28,6 +28,15 @@ func TestGuardedLoopConvertsPanicAndNextLoopRuns(t *testing.T) {
 	}
 }
 
+func TestInboundMessageLimitSupportsHydrationSnapshots(t *testing.T) {
+	if maxInboundMessageBytes < 1<<20 {
+		t.Fatalf("inbound message limit = %d, want at least 1 MiB", maxInboundMessageBytes)
+	}
+	if maxInboundMessageBytes > 16<<20 {
+		t.Fatalf("inbound message limit = %d, want a bounded ceiling", maxInboundMessageBytes)
+	}
+}
+
 func pendingCount() int {
 	mu.RLock()
 	defer mu.RUnlock()
