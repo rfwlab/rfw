@@ -34,6 +34,53 @@ func pendingCount() int {
 	return len(pending)
 }
 
+func TestRegisterHandlerUnsubscribeQueuesWireUnsubscribe(t *testing.T) {
+	name := "scoped-handler"
+	before := pendingCount()
+	unsubscribe := RegisterHandler(name, func(map[string]any) {})
+	if got := pendingCount() - before; got != 1 {
+		t.Fatalf("queued subscribe messages = %d, want 1", got)
+	}
+	unsubscribe()
+
+	mu.RLock()
+	_, stillRegistered := handlers[name]
+	queued := append([]message(nil), pending...)
+	mu.RUnlock()
+	if stillRegistered {
+		t.Fatal("handler remained registered after unsubscribe")
+	}
+	count := 0
+	for _, item := range queued {
+		if item.name == name {
+			values, _ := item.payload.(map[string]any)
+			if values["unsubscribe"] == true {
+				count++
+			}
+			if values["init"] == true {
+				t.Fatal("stale init remained queued after unsubscribe")
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("queued unsubscribe messages = %d, want 1", count)
+	}
+}
+
+func TestStaleUnsubscribeDoesNotRemoveReplacementHandler(t *testing.T) {
+	name := "replacement-handler"
+	first := RegisterHandler(name, func(map[string]any) {})
+	second := RegisterHandler(name, func(map[string]any) {})
+	first()
+	mu.RLock()
+	_, registered := handlers[name]
+	mu.RUnlock()
+	if !registered {
+		t.Fatal("stale unsubscribe removed replacement handler")
+	}
+	second()
+}
+
 // Repeated identical messages must go through by default: two identical user
 // actions within the dedup window (e.g. clicking +1 twice) are intentional.
 func TestSendRepeatedMessagesNotDeduped(t *testing.T) {
