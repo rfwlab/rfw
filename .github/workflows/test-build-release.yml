@@ -76,12 +76,31 @@ jobs:
           sudo chmod +x /usr/bin/google-chrome
           google-chrome --version
 
+      # chromedp allows Chrome 20s to publish its DevTools websocket, and a
+      # cold runner does not always make it: the binary and its first profile
+      # are paged in on the initial launch, so whichever package runs first
+      # fails the job before a single test has run. Pay that cost once here.
+      - name: Warm up Chrome
+        run: google-chrome --headless=new --disable-gpu --dump-dom about:blank > /dev/null
+
       # wasm_exec.js forwards the whole environment to the wasm process and
       # Go's js runtime caps argv+env; the runner env is huge, so trim it.
       - name: Run wasm tests in headless Chrome
         run: |
-          exec env -i HOME="$HOME" PATH="$PATH" \
-            GOOS=js GOARCH=wasm go test -p=1 -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./...
+          set +e
+          log="$(mktemp)"
+          for attempt in 1 2; do
+            env -i HOME="$HOME" PATH="$PATH" \
+              GOOS=js GOARCH=wasm go test -p=1 \
+              -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./... 2>&1 | tee "$log"
+            status="${PIPESTATUS[0]}"
+            [ "$status" -eq 0 ] && exit 0
+            # Only the browser handshake is retried. A failing test is final,
+            # so a flaky test cannot hide behind this.
+            grep -q 'websocket url timeout reached' "$log" || exit "$status"
+            echo "::warning::Chrome DevTools websocket timed out on attempt ${attempt}; retrying"
+          done
+          exit 1
 
   scan:
     name: EUProvGuard Scan
