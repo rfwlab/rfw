@@ -12,6 +12,13 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Fixed
+
+- resolve `@store`, `@rawstore`, writable bindings and conditions whose module,
+  store or key contains a hyphen. `@for` split those paths by hand and accepted
+  them, while the other directives matched `\w` and left themselves in the
+  rendered markup, so the binding silently showed its own source text.
+
 ## [2.2.0] - 2026-08-17
 
 ### Added
