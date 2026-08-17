@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# `go test -exec` wrapper around wasmbrowsertest.
+#
+# chromedp allows Chrome 20s to publish its DevTools websocket and does not let
+# that deadline be configured. A cold runner occasionally misses it, which fails
+# a package before any of its tests have run.
+#
+# The retry lives here, around a single package's binary, rather than around the
+# whole `go test ./...` command: retrying the aggregate run would also re-run
+# packages that failed for real, so one package's timeout could turn another
+# package's failing test into a green job. Anything other than the handshake
+# timeout is returned untouched on the first attempt.
+set -uo pipefail
+
+runner="${WASMBROWSERTEST:-wasmbrowsertest}"
+attempts="${WASMBROWSERTEST_ATTEMPTS:-2}"
+
+log="$(mktemp)"
+trap 'rm -f "$log"' EXIT
+
+status=0
+for ((attempt = 1; attempt <= attempts; attempt++)); do
+	"$runner" "$@" 2>&1 | tee "$log"
+	status="${PIPESTATUS[0]}"
+
+	if ((status == 0)); then
+		exit 0
+	fi
+	if ! grep -q 'websocket url timeout reached' "$log"; then
+		exit "$status"
+	fi
+	if ((attempt < attempts)); then
+		echo "::warning::Chrome DevTools websocket timed out running $(basename "${1:-test binary}"); retrying that package" >&2
+	fi
+done
+
+exit "$status"
