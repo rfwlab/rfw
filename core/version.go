@@ -6,7 +6,7 @@ import "runtime/debug"
 // `go build` inside the repo). Release builds override it with ldflags, and
 // `go install module@version` builds report the module version from build
 // info, so users installed via the proxy see the real tag.
-var version = "v2.2.0"
+var version = "v2.2.1"
 
 // Version returns the framework version for this build.
 func Version() string {
