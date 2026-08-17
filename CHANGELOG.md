@@ -12,6 +12,8 @@ version and include migration notes.
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-08-17
+
 ### Fixed
 
 - resolve `@store`, `@rawstore`, writable bindings and conditions whose module,
