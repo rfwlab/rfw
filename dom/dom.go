@@ -50,7 +50,7 @@ func ReleaseInputBindings(componentID string) {
 }
 
 var (
-	reStoreWrite  = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+):w`)
+	reStoreWrite  = regexp.MustCompile(`@store:([\w-]+)\.([\w-]+)\.([\w-]+):w`)
 	reSignalWrite = regexp.MustCompile(`@signal:(\w+):w`)
 )
 
