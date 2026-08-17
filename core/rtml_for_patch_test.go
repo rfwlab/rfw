@@ -95,14 +95,14 @@ func TestForPatchRendersEveryRow(t *testing.T) {
 }
 
 func TestForPatchPreservesKeyedRows(t *testing.T) {
-	st := state.NewStore("forpatch-keyed", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-keyed")
+	st := state.NewStore("forpatchkeyed", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchkeyed")
 	st.Set("items", []any{
 		map[string]any{"id": "a", "label": "one"},
 		map[string]any{"id": "b", "label": "two"},
 	})
 
-	tpl := []byte(`<root><ul data-list>@for:it in store:app.forpatch-keyed.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></root>`)
+	tpl := []byte(`<root><ul data-list>@for:it in store:app.forpatchkeyed.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></root>`)
 	mountForComponent(t, "ForPatchKeyed", tpl)
 
 	rows := dom.Query("[data-list]").QueryAll("li")
@@ -135,13 +135,17 @@ func TestForPatchPreservesKeyedRows(t *testing.T) {
 }
 
 func TestForPatchKeepsFocusedInputOutsideLoop(t *testing.T) {
-	st := state.NewStore("forpatch-focus", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-focus")
+	st := state.NewStore("forpatchfocus", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchfocus")
 	st.Set("state", "rows")
 	st.Set("query", "premier ")
 	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
 
-	tpl := []byte(`<root>@if:store:app.forpatch-focus.state == "rows" <section><input id="forpatch-search" value="@store:app.forpatch-focus.query:w"><ul>@for:it in store:app.forpatch-focus.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></section> @endif</root>`)
+	tpl := []byte(`<root>
+@if:store:app.forpatchfocus.state == "rows"
+<section><input id="forpatch-search" value="@store:app.forpatchfocus.query:w"><ul>@for:it in store:app.forpatchfocus.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul></section>
+@endif
+</root>`)
 	mountForComponent(t, "ForPatchFocus", tpl)
 
 	input := dom.ByID("forpatch-search")
@@ -162,12 +166,16 @@ func TestForPatchKeepsFocusedInputOutsideLoop(t *testing.T) {
 }
 
 func TestHiddenForPatchDoesNotRenderMountedBranch(t *testing.T) {
-	st := state.NewStore("forpatch-hidden", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-hidden")
+	st := state.NewStore("forpatchhidden", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchhidden")
 	st.Set("show", "no")
 	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
 
-	tpl := []byte(`<root><input id="forpatch-visible">@if:store:app.forpatch-hidden.show == "yes" <ul data-hidden-list>@for:it in store:app.forpatch-hidden.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul> @endif</root>`)
+	tpl := []byte(`<root><input id="forpatch-visible">
+@if:store:app.forpatchhidden.show == "yes"
+<ul data-hidden-list>@for:it in store:app.forpatchhidden.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul>
+@endif
+</root>`)
 	mountForComponent(t, "ForPatchHidden", tpl)
 
 	oldHook := dom.TemplateHook
@@ -188,12 +196,16 @@ func TestHiddenForPatchDoesNotRenderMountedBranch(t *testing.T) {
 }
 
 func TestHiddenEmptyForRendersRowsWhenBranchMounts(t *testing.T) {
-	st := state.NewStore("forpatch-hidden-empty", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-hidden-empty")
+	st := state.NewStore("forpatchhiddenempty", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchhiddenempty")
 	st.Set("show", "no")
 	st.Set("items", []any{})
 
-	tpl := []byte(`<root>@if:store:app.forpatch-hidden-empty.show == "yes" <ul data-hidden-list>@for:it in store:app.forpatch-hidden-empty.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul> @endif</root>`)
+	tpl := []byte(`<root>
+@if:store:app.forpatchhiddenempty.show == "yes"
+<ul data-hidden-list>@for:it in store:app.forpatchhiddenempty.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul>
+@endif
+</root>`)
 	mountForComponent(t, "ForPatchHiddenEmpty", tpl)
 
 	st.Set("items", []any{map[string]any{"id": "a", "label": "arrived"}})
@@ -206,12 +218,16 @@ func TestHiddenEmptyForRendersRowsWhenBranchMounts(t *testing.T) {
 }
 
 func TestMissingVisibleForAnchorFallsBackToRender(t *testing.T) {
-	st := state.NewStore("forpatch-missing-anchor", state.WithModule("app"))
-	defer state.GlobalStoreManager.UnregisterStore("app", "forpatch-missing-anchor")
+	st := state.NewStore("forpatchmissinganchor", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "forpatchmissinganchor")
 	st.Set("show", "yes")
 	st.Set("items", []any{map[string]any{"id": "a", "label": "one"}})
 
-	tpl := []byte(`<root>@if:store:app.forpatch-missing-anchor.show == "yes" <ul data-list>@for:it in store:app.forpatch-missing-anchor.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul> @endif</root>`)
+	tpl := []byte(`<root>
+@if:store:app.forpatchmissinganchor.show == "yes"
+<ul data-list>@for:it in store:app.forpatchmissinganchor.items <li [key @prop:it.id]>@prop:it.label</li>@endfor</ul>
+@endif
+</root>`)
 	mountForComponent(t, "ForPatchMissingAnchor", tpl)
 	dom.Query("[data-for-anchor]").Call("remove")
 
