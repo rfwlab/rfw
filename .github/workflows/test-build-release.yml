@@ -85,22 +85,14 @@ jobs:
 
       # wasm_exec.js forwards the whole environment to the wasm process and
       # Go's js runtime caps argv+env; the runner env is huge, so trim it.
+      # The -exec wrapper retries a single package whose browser handshake timed
+      # out, so an unrelated package's real failure is never re-run.
       - name: Run wasm tests in headless Chrome
         run: |
-          set +e
-          log="$(mktemp)"
-          for attempt in 1 2; do
-            env -i HOME="$HOME" PATH="$PATH" \
-              GOOS=js GOARCH=wasm go test -p=1 \
-              -exec "$(go env GOPATH)/bin/wasmbrowsertest" ./... 2>&1 | tee "$log"
-            status="${PIPESTATUS[0]}"
-            [ "$status" -eq 0 ] && exit 0
-            # Only the browser handshake is retried. A failing test is final,
-            # so a flaky test cannot hide behind this.
-            grep -q 'websocket url timeout reached' "$log" || exit "$status"
-            echo "::warning::Chrome DevTools websocket timed out on attempt ${attempt}; retrying"
-          done
-          exit 1
+          exec env -i HOME="$HOME" PATH="$PATH" \
+            WASMBROWSERTEST="$(go env GOPATH)/bin/wasmbrowsertest" \
+            GOOS=js GOARCH=wasm go test -p=1 \
+            -exec "$PWD/.github/scripts/wasmbrowsertest-retry" ./...
 
   scan:
     name: EUProvGuard Scan
