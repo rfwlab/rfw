@@ -21,8 +21,8 @@ var (
 	rePropKV          = regexp.MustCompile(`(\w+):"([^"]*)"`)
 	reSlotNamed       = regexp.MustCompile(`@slot:(\w+)(?:\.(\w+))?([\s\S]*?)@endslot`)
 	reSlotDefault     = regexp.MustCompile(`@slot(?::(\w+))?([\s\S]*?)@endslot`)
-	reStore           = regexp.MustCompile(`@store:(\w+)\.(\w+)\.(\w+)(:w)?`)
-	reRawStore        = regexp.MustCompile(`@rawstore:(\w+)\.(\w+)\.(\w+)`)
+	reStore           = regexp.MustCompile(`@store:([\w-]+)\.([\w-]+)\.([\w-]+)(:w)?`)
+	reRawStore        = regexp.MustCompile(`@rawstore:([\w-]+)\.([\w-]+)\.([\w-]+)`)
 	reSignal          = regexp.MustCompile(`@signal:(\w+)(:w)?`)
 	reExpr            = regexp.MustCompile(`@expr:([^<@|\n)]+)`)
 	reProp            = regexp.MustCompile(`@prop:(\w+)`)
@@ -34,7 +34,7 @@ var (
 	reRtIs            = regexp.MustCompile(`<([a-zA-Z0-9]+)([^>]*)rt-is="([^"]+)"[^>]*/?>`)
 	reTagName         = regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
 	reConditionalAttr = regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
-	depRegex          = regexp.MustCompile(`(?:store:\w+\.\w+\.\w+|signal:\w+|prop:\w+|\w+(?:\.\w+)*)`)
+	depRegex          = regexp.MustCompile(`(?:store:[\w-]+\.[\w-]+\.[\w-]+|signal:\w+|prop:\w+|\w+(?:\.\w+)*)`)
 )
 
 // Node renders a parsed template node.

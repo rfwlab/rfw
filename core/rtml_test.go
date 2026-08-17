@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/js"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -248,5 +249,85 @@ func TestStoreEscapedByDefault(t *testing.T) {
 	}
 	if !strings.Contains(html, "<i>y</i>") {
 		t.Fatalf("rawstore escaped: %s", html)
+	}
+}
+
+// @for has always split store paths by hand, so it accepted a hyphenated store
+// name while @store, @rawstore and conditions matched \w and quietly left the
+// directive in the markup. A binding that renders as its own source text is
+// worse than one that fails, so the three agree on the character set now.
+func TestHyphenatedStorePathsResolve(t *testing.T) {
+	st := state.NewStore("hyphen-store", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "hyphen-store")
+	st.Set("first-name", "Mirko")
+	st.Set("markup", "<i>y</i>")
+
+	tpl := []byte(`<root>
+@if:store:app.hyphen-store.first-name == "Mirko"
+<div data-hyphen>@store:app.hyphen-store.first-name @rawstore:app.hyphen-store.markup</div>
+@endif
+</root>`)
+	c := NewHTMLComponent("HyphenStore", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+
+	if strings.Contains(html, "@store:") || strings.Contains(html, "@rawstore:") {
+		t.Fatalf("hyphenated store path left in the markup: %s", html)
+	}
+	if !strings.Contains(html, "data-hyphen") {
+		t.Fatalf("condition on a hyphenated store did not select the branch: %s", html)
+	}
+	if !strings.Contains(html, "Mirko") {
+		t.Fatalf("hyphenated store value missing: %s", html)
+	}
+	if !strings.Contains(html, "<i>y</i>") {
+		t.Fatalf("hyphenated rawstore escaped: %s", html)
+	}
+}
+
+// The two-way binding is parsed again from the rendered attribute, so the DOM
+// side has to accept the same paths the template does.
+func TestHyphenatedStoreWriteBindingUpdatesStore(t *testing.T) {
+	st := state.NewStore("hyphen-write", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "hyphen-write")
+	st.Set("query-text", "")
+
+	tpl := []byte(`<root><input data-hyphen-input value="@store:app.hyphen-write.query-text:w"></root>`)
+	c := mountForComponent(t, "HyphenWrite", tpl)
+	defer c.Unmount()
+
+	input := dom.Query("[data-hyphen-input]")
+	input.Set("value", "typed")
+	input.Call("dispatchEvent", js.CustomEvent().New("input"))
+
+	if got := st.Get("query-text"); got != "typed" {
+		t.Fatalf("store key = %v, want %q", got, "typed")
+	}
+}
+
+// A condition's dependencies come from a regex of their own, so a hyphenated
+// store also has to register the subscription that repaints the branch when
+// the value moves. Without it the block renders once and then freezes.
+func TestConditionOnHyphenatedStoreReacts(t *testing.T) {
+	st := state.NewStore("hyphen-cond", state.WithModule("app"))
+	defer state.GlobalStoreManager.UnregisterStore("app", "hyphen-cond")
+	st.Set("chrome-state", "on")
+
+	tpl := []byte(`<root>
+@if:store:app.hyphen-cond.chrome-state == "on"
+<header data-hyphen-header>shown</header>
+@endif
+</root>`)
+	c := mountForComponent(t, "HyphenCond", tpl)
+	defer c.Unmount()
+
+	if dom.Query("[data-hyphen-header]").IsNull() {
+		t.Fatal("header not rendered while the condition holds")
+	}
+
+	st.Set("chrome-state", "off")
+	waitForRenderFlush()
+	if el := dom.Query("[data-hyphen-header]"); !el.IsNull() {
+		t.Fatal("header stayed after the hyphenated store key changed")
 	}
 }
