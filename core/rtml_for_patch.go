@@ -108,11 +108,20 @@ func reconcileForRows(anchor dom.Element, loopID, markup string) bool {
 	keys := make([]string, newRows.Length())
 	seen := make(map[string]struct{}, newRows.Length())
 	for i := 0; i < newRows.Length(); i++ {
-		key := newRows.Index(i).Attr("data-key")
+		newRow := newRows.Index(i)
+		key := newRow.Attr("data-key")
 		if key == "" {
 			return false
 		}
 		if _, duplicate := seen[key]; duplicate {
+			return false
+		}
+		// a reused row is patched in place, and a patch swaps the node out
+		// when its tag changed: that would detach the row this pass still has
+		// to position. The plan is rejected before anything moves so the
+		// render repaints the loop instead.
+		if old, reused := oldByKey[key]; reused &&
+			old.Get("nodeName").String() != newRow.Get("nodeName").String() {
 			return false
 		}
 		seen[key] = struct{}{}
