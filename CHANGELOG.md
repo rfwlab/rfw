@@ -12,6 +12,8 @@ version and include migration notes.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-17
+
 ### Added
 
 - `host.NewMuxFS`, an `fs.FS` variant of `host.NewMux`, so an application can
