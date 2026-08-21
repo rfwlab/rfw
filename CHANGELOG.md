@@ -12,6 +12,14 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Removed
+
+- runtime minification of inline `<script>`/`<style>` template content. It ran
+  on every component render for output that never leaves the browser, costing
+  real per-render CPU and pulling `github.com/tdewolff/minify` into the wasm
+  bundle for no transfer benefit. Rendered inline script/style markup is no
+  longer minified; nothing else about template output changes.
+
 ### Fixed
 
 - resolve `@store`, `@rawstore`, writable bindings and conditions whose module,
