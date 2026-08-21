@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -19,9 +18,6 @@ import (
 	"github.com/rfwlab/rfw/v2/dom"
 	hostclient "github.com/rfwlab/rfw/v2/hostclient"
 	"github.com/rfwlab/rfw/v2/state"
-	"github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/css"
-	tdJs "github.com/tdewolff/minify/v2/js"
 )
 
 var componentSeq atomic.Uint64
@@ -256,8 +252,6 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 		hostclient.RegisterComponent(c.ID, name, c.hostVars)
 	}
 
-	renderedTemplate = minifyInline(renderedTemplate)
-
 	c.cache[key] = renderedTemplate
 	c.lastCacheKey = key
 	return renderedTemplate
@@ -310,33 +304,6 @@ func (c *HTMLComponent) Stats() ComponentStats {
 		stats.Timeline = append(stats.Timeline, c.timeline...)
 	}
 	return stats
-}
-
-var (
-	inlineMinifierOnce sync.Once
-	inlineMinifier     *minify.M
-	inlineRe           = regexp.MustCompile(`(?s)<(script|style)([^>]*)>(.*?)</(script|style)>`)
-)
-
-func minifyInline(src string) string {
-	inlineMinifierOnce.Do(func() {
-		inlineMinifier = minify.New()
-		inlineMinifier.AddFunc("text/javascript", tdJs.Minify)
-		inlineMinifier.AddFunc("text/css", css.Minify)
-	})
-	return inlineRe.ReplaceAllStringFunc(src, func(match string) string {
-		m := inlineRe.FindStringSubmatch(match)
-		tag, attrs, code := m[1], m[2], m[3]
-		media := "text/javascript"
-		if tag == "style" {
-			media = "text/css"
-		}
-		out, err := inlineMinifier.String(media, code)
-		if err != nil {
-			return match
-		}
-		return fmt.Sprintf("<%s%s>%s</%s>", tag, attrs, strings.TrimSpace(out), tag)
-	})
 }
 
 // AddDependency attaches a child component to a template placeholder.
