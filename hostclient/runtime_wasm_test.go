@@ -8,7 +8,6 @@ import (
 	"time"
 
 	js "github.com/rfwlab/rfw/v2/js"
-	"nhooyr.io/websocket"
 )
 
 func TestGuardedLoopConvertsPanicAndNextLoopRuns(t *testing.T) {
@@ -132,7 +131,7 @@ func TestSendMessageSerializesSequenceAndWrite(t *testing.T) {
 	secondEntered := make(chan struct{}, 1)
 	firstDone := make(chan struct{})
 	secondDone := make(chan struct{})
-	firstWriter := func(_ context.Context, _ *websocket.Conn, message wireMessage) error {
+	firstWriter := func(_ context.Context, _ *hostConn, message wireMessage) error {
 		firstEntered <- struct{}{}
 		<-firstRelease
 		if message.Sequence != 1 {
@@ -140,7 +139,7 @@ func TestSendMessageSerializesSequenceAndWrite(t *testing.T) {
 		}
 		return nil
 	}
-	secondWriter := func(_ context.Context, _ *websocket.Conn, message wireMessage) error {
+	secondWriter := func(_ context.Context, _ *hostConn, message wireMessage) error {
 		secondEntered <- struct{}{}
 		if message.Sequence != 2 {
 			t.Errorf("second sequence = %d, want 2", message.Sequence)

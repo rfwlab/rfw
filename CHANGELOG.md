@@ -12,6 +12,16 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Changed
+
+- the host client talks to its host over the browser's own `WebSocket` through
+  the new `js.Socket` helper instead of `nhooyr.io/websocket`, dropping
+  `net/http`, `crypto/tls` and `crypto/x509` from the `hostclient` WebAssembly
+  dependency closure. The browser exposes no protocol ping frames to script, so
+  liveness now uses an unsequenced `ping`/`pong` control message over the
+  existing JSON channel; an older host answers it with the generic `ack` it
+  already sends for unrecognised messages.
+
 ### Fixed
 
 - resolve `@store`, `@rawstore`, writable bindings and conditions whose module,
