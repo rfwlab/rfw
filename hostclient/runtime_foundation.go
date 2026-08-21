@@ -18,8 +18,6 @@ import (
 
 	dom "github.com/rfwlab/rfw/v2/dom"
 	js "github.com/rfwlab/rfw/v2/js"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
 type componentBinding struct {
@@ -28,7 +26,7 @@ type componentBinding struct {
 }
 
 var (
-	conn          *websocket.Conn
+	conn          *hostConn
 	bindings      = map[string]componentBinding{}
 	once          sync.Once
 	mu            sync.RWMutex
@@ -57,9 +55,9 @@ var (
 	pendingCalls    = map[string]chan actionReply{}
 )
 
-// Host snapshots can legitimately exceed nhooyr's conservative 32 KiB default
-// (for example, a paginated table's first hydration). Keep a finite ceiling so
-// malformed peers still cannot grow memory without bound.
+// Host snapshots can legitimately reach several megabytes (for example, a
+// paginated table's first hydration). Keep a finite ceiling so malformed peers
+// still cannot grow memory without bound.
 const maxInboundMessageBytes int64 = 8 << 20
 
 type message struct {
@@ -73,6 +71,7 @@ type message struct {
 type wireMessage struct {
 	Component   string `json:"component,omitempty"`
 	Action      string `json:"action,omitempty"`
+	Control     string `json:"control,omitempty"`
 	ID          string `json:"id,omitempty"`
 	Payload     any    `json:"payload,omitempty"`
 	Sequence    uint64 `json:"sequence"`
@@ -80,7 +79,7 @@ type wireMessage struct {
 	ResumeToken string `json:"resumeToken,omitempty"`
 }
 
-type messageWriter func(context.Context, *websocket.Conn, wireMessage) error
+type messageWriter func(context.Context, *hostConn, wireMessage) error
 
 type actionReply struct {
 	payload any
@@ -209,11 +208,10 @@ func connectionLoop() {
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				c, _, derr := websocket.Dial(ctx, url, nil)
+				c, derr := dial(ctx, url)
 				if derr != nil {
 					return derr
 				}
-				c.SetReadLimit(maxInboundMessageBytes)
 
 				sendMu.Lock()
 				mu.Lock()
@@ -271,10 +269,10 @@ func connectionLoop() {
 				defer cancel2()
 				errCh := make(chan error, 2)
 				go func() { errCh <- guardedLoop("host read loop", func() error { return readLoop(ctx2, c) }) }()
-				go func() { errCh <- guardedLoop("host ping loop", func() error { return pingLoop(ctx2, c) }) }()
+				go func() { errCh <- guardedLoop("host heartbeat loop", func() error { return heartbeatLoop(ctx2, c) }) }()
 				loopErr := <-errCh
 				cancel2()
-				closeErr := c.Close(websocket.StatusInternalError, "connection closed")
+				closeErr := c.close()
 
 				mu.Lock()
 				conn = nil
@@ -311,25 +309,11 @@ func guardedLoop(context string, fn func() error) error {
 	return err
 }
 
-func pingLoop(ctx context.Context, c *websocket.Conn) error {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			pctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			err := c.Ping(pctx)
-			cancel()
-			if err != nil {
-				return err
-			}
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
+func heartbeatLoop(ctx context.Context, c *hostConn) error {
+	return c.heartbeat(ctx, heartbeatInterval, heartbeatTimeout)
 }
 
-func readLoop(ctx context.Context, c *websocket.Conn) error {
+func readLoop(ctx context.Context, c *hostConn) error {
 	for {
 		var msg struct {
 			Component   string       `json:"component"`
@@ -343,7 +327,11 @@ func readLoop(ctx context.Context, c *websocket.Conn) error {
 			Ack         uint64       `json:"ack"`
 			ResumeToken string       `json:"resumeToken"`
 		}
-		if err := wsjson.Read(ctx, c, &msg); err != nil {
+		frame, err := c.read(ctx)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(frame, &msg); err != nil {
 			return err
 		}
 		if debug {
@@ -594,21 +582,21 @@ func SessionID() string {
 	return sessionID
 }
 
-func sendMessage(c *websocket.Conn, msg message) {
+func sendMessage(c *hostConn, msg message) {
 	sendMessageWithWriter(c, msg, writeMessage)
 }
 
-func sendMessageWithWriter(c *websocket.Conn, msg message, writer messageWriter) {
+func sendMessageWithWriter(c *hostConn, msg message, writer messageWriter) {
 	sendMu.Lock()
 	defer sendMu.Unlock()
 	sendMessageUnlockedWithWriter(c, msg, writer)
 }
 
-func sendMessageUnlocked(c *websocket.Conn, msg message) {
+func sendMessageUnlocked(c *hostConn, msg message) {
 	sendMessageUnlockedWithWriter(c, msg, writeMessage)
 }
 
-func sendMessageUnlockedWithWriter(c *websocket.Conn, msg message, writer messageWriter) {
+func sendMessageUnlockedWithWriter(c *hostConn, msg message, writer messageWriter) {
 	deliveryMu.Lock()
 	if msg.sequence == 0 {
 		nextOutbound++
@@ -631,8 +619,8 @@ func sendMessageUnlockedWithWriter(c *websocket.Conn, msg message, writer messag
 	_ = writer(ctx, c, outbound)
 }
 
-func writeMessage(ctx context.Context, c *websocket.Conn, message wireMessage) error {
-	return wsjson.Write(ctx, c, message)
+func writeMessage(_ context.Context, c *hostConn, message wireMessage) error {
+	return c.writeJSON(message)
 }
 
 func initMessageName(msg message) (string, bool) {
