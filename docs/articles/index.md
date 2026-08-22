@@ -22,6 +22,9 @@
   stays on the server, and the auth work rfw leaves to you.
 - [Hot reload: what is instant, what is not](guide/hot-reload.md): measured
   rebuild times and the honest limits of the dev loop.
+- [How the bundle reaches the browser](guide/wasm-delivery.md): the compressed
+  artifacts `rfw build` produces, content negotiation, static hosting, and the
+  cache headers that let a release replace a bundle.
 - [Testing](testing.md): native tests, browser (wasm) tests with
   wasmbrowsertest, race testing and golden templates.
 

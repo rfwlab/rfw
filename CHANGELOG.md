@@ -14,6 +14,37 @@ version and include migration notes.
 
 ### Changed
 
+- `rfw build` writes `app.wasm.gz` alongside `app.wasm.br`, and `host.NewMux`
+  answers a request for `app.wasm` with the best artifact the client advertised
+  in `Accept-Encoding`. One URL now serves every client: an HTTPS page gets
+  brotli and a plain HTTP page gets gzip without any application configuration,
+  because the browser is the one advertising what it can decode.
+- `rfw_config.js` describes the build truthfully. It defines
+  `RFW_WASM_ENCODINGS`, `RFW_WASM_NEGOTIATED` and `RFW_BUILD_MODE` in addition
+  to the version, and always defines them: a loader cannot tell an absent
+  global from a disabled feature, which is how an application ends up silently
+  downloading the raw bundle it has a compressed copy of.
+- `rfw build` stamps the build version onto the `rfw_config.js`, `wasm_exec.js`
+  and `wasm_loader.js` script tags in `index.html`, so a cached loader from an
+  earlier release cannot drive a new bundle. Script tags the build does not
+  recognise are left untouched.
+- the loader picks an artifact instead of guessing. It prefers a negotiated
+  request, falls back to the named artifacts a static host serves, and decodes
+  `app.wasm.gz` itself through `DecompressionStream` when the host does not
+  label it. Brotli cannot be decoded in JavaScript, so it is used only when the
+  server sets `Content-Encoding: br`.
+- a production build no longer falls back to the raw bundle. When every
+  compressed path fails the loader raises a visible error naming what it tried,
+  rather than quietly downloading several megabytes of uncompressed wasm. A
+  development build keeps the raw fallback, since that is the only artifact it
+  produces.
+- `index.html` revalidates in production, as `rfw_config.js` already did. The
+  page carries the stamped bootstrap script tags, so a cached copy would keep a
+  browser loading the previous release's loader.
+- download progress is indeterminate for an encoded response. `Content-Length`
+  is the compressed size while the reader yields decoded bytes, so a percentage
+  computed from the two was a fiction; a real percentage is shown only for an
+  unencoded body.
 - a client-only build no longer links the SSC transport. `core` reached
   `hostclient` for one call, `RegisterComponent`, which pulled
   `nhooyr.io/websocket`, `net/http`, `crypto/tls` and `math/big` into every
