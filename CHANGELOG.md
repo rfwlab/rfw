@@ -12,6 +12,13 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Changed
+
+- `http.SetNativeClient` and `assets.SetNativeClient` take `any` in browser
+  builds. Both are no-ops there and only their `*http.Client` parameter type
+  pulled `net/http` in, one of three paths to the same 943 KB of crypto.
+  Native builds keep the typed signature.
+
 ### Removed
 
 - binding precompilation in `dom`. `RegisterBindings` and `OverrideBindings`

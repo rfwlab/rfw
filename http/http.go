@@ -6,7 +6,6 @@ package http
 import (
 	"encoding/json"
 	"errors"
-	stdhttp "net/http"
 	"sync"
 	"time"
 
@@ -59,8 +58,11 @@ func notifyHTTPHook(hook func(bool, string, int, time.Duration), start bool, url
 	js.Guard("HTTP observer", func() { hook(start, url, status, duration) })
 }
 
-// SetNativeClient has no effect in browser builds.
-func SetNativeClient(_ *stdhttp.Client) {}
+// SetNativeClient has no effect in browser builds. It takes any so the
+// browser build does not import net/http, which would link the whole Go
+// HTTP and TLS stack into every bundle. Native builds keep the typed
+// *http.Client signature.
+func SetNativeClient(_ any) {}
 
 // FetchJSON retrieves JSON data from the given URL and decodes it into v.
 // Results are cached by URL. If a request is already in progress, FetchJSON

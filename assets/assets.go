@@ -5,7 +5,6 @@ package assets
 
 import (
 	"errors"
-	stdhttp "net/http"
 	"sync"
 
 	"github.com/rfwlab/rfw/v2/http"
@@ -68,8 +67,11 @@ type imageEntry struct {
 
 var imageCache sync.Map // map[string]*imageEntry
 
-// SetNativeClient has no effect in browser builds.
-func SetNativeClient(_ *stdhttp.Client) {}
+// SetNativeClient has no effect in browser builds. It takes any so the
+// browser build does not import net/http, which would link the whole Go
+// HTTP and TLS stack into every bundle. Native builds keep the typed
+// *http.Client signature.
+func SetNativeClient(_ any) {}
 
 // LoadImage asynchronously loads an image from url.
 // While loading it returns http.ErrPending.
