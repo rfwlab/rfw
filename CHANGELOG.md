@@ -14,6 +14,12 @@ version and include migration notes.
 
 ### Removed
 
+- binding precompilation in `dom`. `RegisterBindings` and `OverrideBindings`
+  parsed each component template with `golang.org/x/net/html` and stored the
+  result in a map nothing read; event wiring has been done by core's own
+  template pass for some time. Both functions remain as no-ops, and a full
+  server-side HTML parser no longer ships to the browser.
+
 - runtime minification of inline `<script>`/`<style>` template content. It ran
   on every component render for output that never leaves the browser, costing
   real per-render CPU and pulling `github.com/tdewolff/minify` into the wasm
