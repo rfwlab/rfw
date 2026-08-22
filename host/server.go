@@ -63,6 +63,12 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 		})))
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// A compressed artifact answers the raw URL whenever the client says
+		// it can decode one. The raw bundle only reaches a client that asked
+		// for no encoding, or a build that produced no artifact.
+		if negotiateWasm(w, r, rootDir, r.URL.Path) {
+			return
+		}
 		if sfs != nil {
 			if regularFile(staticDir, r.URL.Path) {
 				setWasmEncodingHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
@@ -81,6 +87,8 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 		if strings.Contains(accept, "text/html") || r.URL.Path == "/" || r.URL.Path == "" {
 			if devMode() {
 				w.Header().Set("Cache-Control", "no-store")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
 			}
 			http.ServeFile(w, r, filepath.Join(root, "index.html"))
 			return
@@ -163,33 +171,23 @@ func setWasmEncodingHeaders(w http.ResponseWriter, path string, versioned bool) 
 	// forces a fresh fetch each load. Production keeps the immutable policy.
 	if devMode() {
 		w.Header().Set("Cache-Control", "no-store")
-	} else if strings.Trim(path, "/") == "rfw_config.js" {
-		// This small file points the loader at the content-versioned WASM URL.
-		// It must revalidate across deployments so an old pointer cannot keep a
-		// browser on an otherwise correctly immutable old binary.
+	} else if revalidates(path) {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
-	if !strings.HasSuffix(path, ".wasm") && !strings.HasSuffix(path, ".wasm.br") {
+	if !wasmRequest(path) {
 		return
 	}
 	header := w.Header()
-	if !devMode() {
-		if versioned {
-			header.Set("Cache-Control", "public, max-age=31536000, immutable")
-		} else {
-			header.Set("Cache-Control", "no-cache")
-		}
-	}
-	if !strings.HasSuffix(path, ".wasm.br") {
+	setWasmCacheControl(header, versioned)
+	encoding, compressed := artifactEncoding(path)
+	if !compressed {
 		return
 	}
-	header.Set("Content-Encoding", "br")
+	// A directly addressed artifact still has to be labelled, or the browser
+	// hands compressed bytes to WebAssembly instead of decoding them.
+	header.Set("Content-Encoding", encoding)
 	header.Set("Content-Type", "application/wasm")
-	if vary := header.Get("Vary"); vary == "" {
-		header.Set("Vary", "Accept-Encoding")
-	} else if !strings.Contains(vary, "Accept-Encoding") {
-		header.Set("Vary", vary+", Accept-Encoding")
-	}
+	addVaryAcceptEncoding(header)
 }
 
 func generateSelfSignedCert() (tls.Certificate, error) {
