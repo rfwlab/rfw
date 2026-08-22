@@ -15,7 +15,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/tdewolff/minify/v2 v2.24.3
 	golang.org/x/net v0.57.0
-	nhooyr.io/websocket v1.8.10
 )
 
 require (

@@ -6,6 +6,7 @@ import "fmt"
 type Inbound struct {
 	Component   string         `json:"component,omitempty"`
 	Action      string         `json:"action,omitempty"`
+	Control     string         `json:"control,omitempty"`
 	ID          string         `json:"id,omitempty"`
 	Payload     map[string]any `json:"payload,omitempty"`
 	Sequence    uint64         `json:"sequence,omitempty"`

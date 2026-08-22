@@ -313,3 +313,23 @@ func TestWSSessionResumeExpires(t *testing.T) {
 		t.Fatalf("expired session resumed: %#v", rejected)
 	}
 }
+
+func TestWSControlPingIsAnsweredOutOfBand(t *testing.T) {
+	socket, closeSocket := openProtocolSocket(t)
+	defer closeSocket()
+
+	sendProtocolMessage(t, socket, Inbound{Control: "ping"})
+	pong := receiveProtocolMessage(t, socket)
+	if pong.Control != "pong" {
+		t.Fatalf("unexpected control response: %#v", pong)
+	}
+	if pong.Sequence != 0 || pong.Session != "" {
+		t.Fatalf("pong carried delivery metadata: %#v", pong)
+	}
+
+	sendProtocolMessage(t, socket, Inbound{Component: "unregistered", Sequence: 1})
+	next := receiveProtocolMessage(t, socket)
+	if next.Sequence != 1 {
+		t.Fatalf("pong consumed an outbound sequence: %#v", next)
+	}
+}
