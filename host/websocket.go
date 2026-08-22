@@ -95,6 +95,14 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 			}
 		}
 		session.Acknowledge(msg.Ack)
+		// A browser client cannot send protocol ping frames, so liveness is a
+		// control message. It carries no sequence, its answer stays out of the
+		// replay history and out of the message budget, matching the frame
+		// level pong it replaces.
+		if msg.Control == "ping" {
+			SendOutbound(ws, Outbound{Control: "pong"})
+			continue
+		}
 		if err := session.AcceptInbound(msg.Sequence); err != nil {
 			if errors.Is(err, ErrDuplicateMessage) {
 				continue

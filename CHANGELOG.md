@@ -26,6 +26,13 @@ version and include migration notes.
   builds. Both are no-ops there and only their `*http.Client` parameter type
   pulled `net/http` in, one of three paths to the same 943 KB of crypto.
   Native builds keep the typed signature.
+- the host client talks to its host over the browser's own `WebSocket` through
+  the new `js.Socket` helper instead of `nhooyr.io/websocket`, dropping
+  `net/http`, `crypto/tls` and `crypto/x509` from the `hostclient` WebAssembly
+  dependency closure. The browser exposes no protocol ping frames to script, so
+  liveness now uses an unsequenced `ping`/`pong` control message over the
+  existing JSON channel; an older host answers it with the generic `ack` it
+  already sends for unrecognised messages.
 
 ### Removed
 
@@ -42,6 +49,8 @@ version and include migration notes.
 
 ### Fixed
 
+- derive the default `/ws` path for a host endpoint that ends in a slash.
+  `https://host/` dialled the root instead, which no host serves.
 - resolve `@store`, `@rawstore`, writable bindings and conditions whose module,
   store or key contains a hyphen. `@for` split those paths by hand and accepted
   them, while the other directives matched `\w` and left themselves in the
