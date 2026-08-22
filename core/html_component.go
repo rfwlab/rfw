@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/rfwlab/rfw/v2/dom"
-	hostclient "github.com/rfwlab/rfw/v2/hostclient"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -248,8 +247,10 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle constructor decorators like [ref] and [key expr]
 	renderedTemplate = replaceConstructors(renderedTemplate)
 
-	for _, name := range c.hostComponentNames() {
-		hostclient.RegisterComponent(c.ID, name, c.hostVars)
+	if hostRegisterComponent != nil {
+		for _, name := range c.hostComponentNames() {
+			hostRegisterComponent(c.ID, name, c.hostVars)
+		}
 	}
 
 	c.cache[key] = renderedTemplate
