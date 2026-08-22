@@ -41,8 +41,11 @@ func TestIsGenerated(t *testing.T) {
 	tests := map[string]bool{
 		"rfw_devtools.go":       true,
 		"some/rfw_generated.go": true,
-		"rfw.go":                false,
-		"cmd/rfw/server.go":     false,
+		// The SSC blank import the build writes and removes around every
+		// wasm build. Reacting to it would make the watcher rebuild forever.
+		"rfw_ssc_gen.go":    true,
+		"rfw.go":            false,
+		"cmd/rfw/server.go": false,
 	}
 	for path, want := range tests {
 		if got := isGenerated(path); got != want {

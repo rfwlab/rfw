@@ -14,6 +14,14 @@ version and include migration notes.
 
 ### Changed
 
+- a client-only build no longer links the SSC transport. `core` reached
+  `hostclient` for one call, `RegisterComponent`, which pulled
+  `nhooyr.io/websocket`, `net/http`, `crypto/tls` and `math/big` into every
+  bundle including static ones. Registration now goes through a hook that
+  `hostclient` installs from its own `init`, and `rfw build` generates the
+  blank import for any project whose `build.type` is not `"static"`, so SSC
+  applications are unaffected. A static counter drops from 1,585,453 to
+  1,115,249 brotli bytes.
 - `http.SetNativeClient` and `assets.SetNativeClient` take `any` in browser
   builds. Both are no-ops there and only their `*http.Client` parameter type
   pulled `net/http` in, one of three paths to the same 943 KB of crypto.
@@ -26,7 +34,6 @@ version and include migration notes.
   result in a map nothing read; event wiring has been done by core's own
   template pass for some time. Both functions remain as no-ops, and a full
   server-side HTML parser no longer ships to the browser.
-
 - runtime minification of inline `<script>`/`<style>` template content. It ran
   on every component render for output that never leaves the browser, costing
   real per-render CPU and pulling `github.com/tdewolff/minify` into the wasm
