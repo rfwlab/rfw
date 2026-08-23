@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -15,6 +16,26 @@ import (
 
 	"github.com/andybalholm/brotli"
 )
+
+func TestBrowserLoaderScenarios(t *testing.T) {
+	_, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node is required to exercise the browser loader")
+	}
+	loader, err := filepath.Abs(filepath.Join("..", "initproj", "template", "wasm_loader.js"))
+	if err != nil {
+		t.Fatalf("resolve loader: %v", err)
+	}
+	script, err := filepath.Abs(filepath.Join("testdata", "wasm_loader_test.mjs"))
+	if err != nil {
+		t.Fatalf("resolve loader test: %v", err)
+	}
+	// #nosec G204 -- both script paths are resolved from this repository.
+	cmd := exec.Command("node", script, loader)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("browser loader scenarios failed: %v\n%s", err, output)
+	}
+}
 
 // TestCopyFile ensures copyFile replicates the source file's contents at the
 // destination path.
