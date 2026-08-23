@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
+	"github.com/rfwlab/rfw/v2/cmd/rfw/initproj"
 )
 
 func TestBrowserLoaderScenarios(t *testing.T) {
@@ -34,6 +35,53 @@ func TestBrowserLoaderScenarios(t *testing.T) {
 	cmd := exec.Command("node", script, loader)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("browser loader scenarios failed: %v\n%s", err, output)
+	}
+}
+
+func TestWriteWasmLoaderUsesFrameworkDefault(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	clientDir := filepath.Join("build", "client")
+	if err := makePublicDir(clientDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeWasmLoader(clientDir); err != nil {
+		t.Fatalf("write default loader: %v", err)
+	}
+	// #nosec G304 -- clientDir is a test-owned temporary directory.
+	got, err := os.ReadFile(filepath.Join(clientDir, "wasm_loader.js"))
+	if err != nil {
+		t.Fatalf("read default loader: %v", err)
+	}
+	want, err := initproj.TemplatesFS.ReadFile("template/wasm_loader.js")
+	if err != nil {
+		t.Fatalf("read embedded loader: %v", err)
+	}
+	if string(got) != string(want) {
+		t.Fatal("build did not write the framework loader")
+	}
+}
+
+func TestWriteWasmLoaderPreservesProjectOverride(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := os.WriteFile("wasm_loader.js", []byte("project loader"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	clientDir := filepath.Join("build", "client")
+	if err := makePublicDir(clientDir); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeWasmLoader(clientDir); err != nil {
+		t.Fatalf("write project loader: %v", err)
+	}
+	// #nosec G304 -- clientDir is a test-owned temporary directory.
+	got, err := os.ReadFile(filepath.Join(clientDir, "wasm_loader.js"))
+	if err != nil {
+		t.Fatalf("read project loader: %v", err)
+	}
+	if string(got) != "project loader" {
+		t.Fatalf("loader = %q, want project override", got)
 	}
 }
 

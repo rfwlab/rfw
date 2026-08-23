@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rfwlab/rfw/v2/cmd/rfw/initproj"
 	"github.com/rfwlab/rfw/v2/cmd/rfw/plugins"
 	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/assets"   // Register the assets build plugin.
 	_ "github.com/rfwlab/rfw/v2/cmd/rfw/plugins/bundler"  // Register the bundler build plugin.
@@ -162,10 +163,8 @@ func Build() error {
 		}
 	}
 
-	if _, err := os.Stat("wasm_loader.js"); err == nil {
-		if err := copyFile("wasm_loader.js", filepath.Join(clientDir, "wasm_loader.js")); err != nil {
-			return fmt.Errorf("failed to copy wasm_loader.js: %w", err)
-		}
+	if err := writeWasmLoader(clientDir); err != nil {
+		return err
 	}
 
 	wasm, err := readFile(wasmPath)
@@ -211,6 +210,27 @@ func Build() error {
 		return fmt.Errorf("post build failed: %w", err)
 	}
 
+	return nil
+}
+
+func writeWasmLoader(clientDir string) error {
+	destination := filepath.Join(clientDir, "wasm_loader.js")
+	if _, err := os.Stat("wasm_loader.js"); err == nil {
+		if err := copyFile("wasm_loader.js", destination); err != nil {
+			return fmt.Errorf("failed to copy wasm_loader.js: %w", err)
+		}
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to inspect wasm_loader.js: %w", err)
+	}
+
+	loader, err := initproj.TemplatesFS.ReadFile("template/wasm_loader.js")
+	if err != nil {
+		return fmt.Errorf("failed to read the framework wasm loader: %w", err)
+	}
+	if err := writePublicFile(destination, loader); err != nil {
+		return fmt.Errorf("failed to write the framework wasm loader: %w", err)
+	}
 	return nil
 }
 

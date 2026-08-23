@@ -21,6 +21,9 @@ version and include migration notes.
   `wasm_loader.js` implementation. Importing it no longer replaces the browser
   loader with a second delivery algorithm that could silently fall back to the
   raw production bundle.
+- `rfw build` ships the embedded framework loader when an application has no
+  `wasm_loader.js` override, so removing a stale project copy actually opts in
+  to the current delivery contract.
 - `rfw build` writes `app.wasm.gz` alongside `app.wasm.br`, and `host.NewMux`
   answers a request for `app.wasm` with the best artifact the client advertised
   in `Accept-Encoding`. One URL now serves every client: an HTTPS page gets
