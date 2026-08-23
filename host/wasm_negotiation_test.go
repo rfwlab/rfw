@@ -209,16 +209,18 @@ func TestStampedPageRevalidates(t *testing.T) {
 }
 
 func TestAcceptedEncodings(t *testing.T) {
-	cases := map[string]map[string]bool{
+	cases := map[string]map[string]float64{
 		"":                     nil,
-		"gzip":                 {"gzip": true},
-		"gzip, deflate, br":    {"gzip": true, "deflate": true, "br": true},
-		"BR":                   {"br": true},
-		" gzip ;q=0.5 , br ":   {"gzip": true, "br": true},
-		"br;q=0, gzip":         {"gzip": true},
-		"*":                    {"*": true, "br": true, "gzip": true},
-		"*, br;q=0":            {"*": true, "gzip": true},
-		"identity;q=1, br;q=0": {"identity": true},
+		"gzip":                 {"gzip": 1},
+		"gzip, deflate, br":    {"gzip": 1, "deflate": 1, "br": 1},
+		"BR":                   {"br": 1},
+		" gzip ;q=0.5 , br ":   {"gzip": 0.5, "br": 1},
+		"br;q=0, gzip":         {"br": 0, "gzip": 1},
+		"*":                    {"*": 1},
+		"*, br;q=0":            {"*": 1, "br": 0},
+		"identity;q=1, br;q=0": {"identity": 1, "br": 0},
+		"br;q=bogus, gzip":     {"br": 0, "gzip": 1},
+		"br;q=2, gzip":         {"br": 0, "gzip": 1},
 	}
 	for header, want := range cases {
 		got := acceptedEncodings(header)
@@ -226,10 +228,36 @@ func TestAcceptedEncodings(t *testing.T) {
 			t.Errorf("acceptedEncodings(%q) = %v, want %v", header, got, want)
 			continue
 		}
-		for name := range want {
-			if !got[name] {
-				t.Errorf("acceptedEncodings(%q) is missing %q: %v", header, name, got)
+		for name, quality := range want {
+			if got[name] != quality {
+				t.Errorf("acceptedEncodings(%q)[%q] = %v, want %v", header, name, got[name], quality)
 			}
 		}
+	}
+}
+
+func TestNegotiationHonorsClientEncodingPreference(t *testing.T) {
+	mux, _ := buildDir(t, map[string]string{
+		"app.wasm":    "raw",
+		"app.wasm.br": "brotli",
+		"app.wasm.gz": "gzip",
+	})
+	resp := request(t, mux, "/app.wasm", "gzip;q=1, br;q=0.1")
+	defer func() { _ = resp.Body.Close() }()
+	if got := resp.Header.Get("Content-Encoding"); got != "gzip" {
+		t.Fatalf("Content-Encoding = %q, want gzip", got)
+	}
+}
+
+func TestNegotiationUsesServerPreferenceForEqualQualities(t *testing.T) {
+	mux, _ := buildDir(t, map[string]string{
+		"app.wasm":    "raw",
+		"app.wasm.br": "brotli",
+		"app.wasm.gz": "gzip",
+	})
+	resp := request(t, mux, "/app.wasm", "gzip, br")
+	defer func() { _ = resp.Body.Close() }()
+	if got := resp.Header.Get("Content-Encoding"); got != "br" {
+		t.Fatalf("Content-Encoding = %q, want br", got)
 	}
 }

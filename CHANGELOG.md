@@ -14,6 +14,13 @@ version and include migration notes.
 
 ### Changed
 
+- WebAssembly content negotiation now honors client `q` preferences in
+  `Accept-Encoding`, using the framework's brotli-first server preference only
+  when qualities are equal.
+- the Go `wasmloader` package is now a compatibility adapter to the canonical
+  `wasm_loader.js` implementation. Importing it no longer replaces the browser
+  loader with a second delivery algorithm that could silently fall back to the
+  raw production bundle.
 - `rfw build` writes `app.wasm.gz` alongside `app.wasm.br`, and `host.NewMux`
   answers a request for `app.wasm` with the best artifact the client advertised
   in `Accept-Encoding`. One URL now serves every client: an HTTPS page gets

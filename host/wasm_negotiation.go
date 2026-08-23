@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -35,8 +36,12 @@ func negotiateWasm(w http.ResponseWriter, r *http.Request, dir http.Dir, urlPath
 	if len(accepted) == 0 {
 		return false
 	}
-	for _, encoding := range wasmEncodings {
-		if !accepted[encoding.name] {
+	encodings := append([]wasmEncoding(nil), wasmEncodings...)
+	sort.SliceStable(encodings, func(i, j int) bool {
+		return encodingQuality(accepted, encodings[i].name) > encodingQuality(accepted, encodings[j].name)
+	})
+	for _, encoding := range encodings {
+		if encodingQuality(accepted, encoding.name) <= 0 {
 			continue
 		}
 		file, size, ok := openArtifact(dir, urlPath+encoding.ext)
@@ -81,54 +86,53 @@ func openArtifact(dir http.Dir, name string) (http.File, int64, bool) {
 	return file, info.Size(), true
 }
 
-// acceptedEncodings parses an Accept-Encoding header into the set of codings
-// the client will take. A coding with q=0 is an explicit refusal, so it is
-// dropped rather than merely deprioritised.
-func acceptedEncodings(header string) map[string]bool {
+// acceptedEncodings parses an Accept-Encoding header into coding qualities.
+// Invalid q values reject that coding rather than accidentally preferring it.
+func acceptedEncodings(header string) map[string]float64 {
 	if strings.TrimSpace(header) == "" {
 		return nil
 	}
-	accepted := map[string]bool{}
-	// A refusal is remembered separately: "*, br;q=0" accepts anything except
-	// brotli, so expanding the wildcard must not put brotli back.
-	refused := map[string]bool{}
+	accepted := map[string]float64{}
 	for _, part := range strings.Split(header, ",") {
 		name, params, _ := strings.Cut(strings.TrimSpace(part), ";")
 		name = strings.ToLower(strings.TrimSpace(name))
 		if name == "" {
 			continue
 		}
-		if quality, ok := parseQuality(params); ok && quality == 0 {
-			refused[name] = true
-			delete(accepted, name)
-			continue
-		}
-		accepted[name] = true
-	}
-	if accepted["*"] {
-		for _, encoding := range wasmEncodings {
-			if !refused[encoding.name] {
-				accepted[encoding.name] = true
+		quality := 1.0
+		if parsed, present, valid := parseQuality(params); present {
+			if !valid {
+				quality = 0
+			} else {
+				quality = parsed
 			}
 		}
+		accepted[name] = quality
 	}
 	return accepted
 }
 
+func encodingQuality(accepted map[string]float64, name string) float64 {
+	if quality, ok := accepted[name]; ok {
+		return quality
+	}
+	return accepted["*"]
+}
+
 // parseQuality reads the q value out of an Accept-Encoding parameter list.
-func parseQuality(params string) (float64, bool) {
+func parseQuality(params string) (quality float64, present bool, valid bool) {
 	for _, param := range strings.Split(params, ";") {
 		key, value, found := strings.Cut(strings.TrimSpace(param), "=")
 		if !found || !strings.EqualFold(strings.TrimSpace(key), "q") {
 			continue
 		}
 		quality, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
-		if err != nil {
-			return 0, false
+		if err != nil || quality < 0 || quality > 1 {
+			return 0, true, false
 		}
-		return quality, true
+		return quality, true, true
 	}
-	return 0, false
+	return 0, false, false
 }
 
 // addVaryAcceptEncoding records that the response body depends on the request
