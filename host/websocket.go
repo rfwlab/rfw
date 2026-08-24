@@ -32,6 +32,26 @@ var (
 	connWrites  sync.Map
 )
 
+// AnswerControl replies to an out-of-band control frame and reports whether it
+// consumed the message.
+//
+// A browser client cannot send protocol ping frames, so liveness rides on a
+// control message instead. It carries no sequence, so its answer stays out of
+// the replay history and out of the message budget, matching the frame level
+// pong it replaces.
+//
+// Both this package's handler and the one in ssc route inbound frames through
+// here. They are separate loops over the same protocol, and when only one of
+// them answered a ping an idle connection to an SSC server dropped and
+// reconnected on every heartbeat.
+func AnswerControl(ws *websocket.Conn, msg Inbound) bool {
+	if msg.Control != "ping" {
+		return false
+	}
+	SendOutbound(ws, Outbound{Control: "pong"})
+	return true
+}
+
 func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 	if !runtime.AcquireConnection() {
 		SendOutbound(ws, Outbound{Error: NewActionError("connection_limit", "connection limit reached")})
@@ -95,12 +115,7 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 			}
 		}
 		session.Acknowledge(msg.Ack)
-		// A browser client cannot send protocol ping frames, so liveness is a
-		// control message. It carries no sequence, its answer stays out of the
-		// replay history and out of the message budget, matching the frame
-		// level pong it replaces.
-		if msg.Control == "ping" {
-			SendOutbound(ws, Outbound{Control: "pong"})
+		if AnswerControl(ws, msg) {
 			continue
 		}
 		if err := session.AcceptInbound(msg.Sequence); err != nil {
