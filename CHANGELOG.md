@@ -90,6 +90,11 @@ version and include migration notes.
 
 ### Fixed
 
+- answer the client heartbeat in `ssc.NewSSCServer`. The ssc handler is a
+  second loop over the same protocol and did not reply to the `ping` control
+  frame: it fell through to the empty-component branch, which answers nothing,
+  so an idle connection was dropped and reconnected on every heartbeat cycle.
+  Both servers now route control frames through `host.AnswerControl`.
 - derive the default `/ws` path for a host endpoint that ends in a slash.
   `https://host/` dialled the root instead, which no host serves.
 - resolve `@store`, `@rawstore`, writable bindings and conditions whose module,
