@@ -191,6 +191,13 @@ func wsHandler(ws *websocket.Conn, runtime *host.WSRuntime) {
 			}
 		}
 		session.Acknowledge(msg.Ack)
+		// Same out-of-band control contract as the bundled host. Without it a
+		// ping falls through to the empty-component branch below, which
+		// answers nothing, and the client's heartbeat drops an otherwise
+		// healthy idle connection every cycle.
+		if host.AnswerControl(ws, msg) {
+			continue
+		}
 		if err := session.AcceptInbound(msg.Sequence); err != nil {
 			if errors.Is(err, host.ErrDuplicateMessage) {
 				continue

@@ -257,3 +257,60 @@ func TestSSCServerResumesAtSessionLimit(t *testing.T) {
 		host.ReleaseSession(session)
 	}
 }
+
+// A browser client cannot send protocol ping frames, so hostclient probes
+// liveness with a control message and treats silence as a dead connection.
+// The ssc handler is a second loop over the same protocol: when only the
+// bundled host answered, an idle connection to an SSC server was dropped and
+// reconnected on every heartbeat cycle.
+func TestSSCServerAnswersControlPing(t *testing.T) {
+	server := httptest.NewServer(NewSSCServer(":0", t.TempDir()).Mux)
+	defer server.Close()
+
+	socket, err := websocket.Dial("ws"+strings.TrimPrefix(server.URL, "http")+"/ws", "", server.URL)
+	if err != nil {
+		t.Fatalf("dial websocket: %v", err)
+	}
+	defer func() {
+		if err := socket.Close(); err != nil {
+			t.Errorf("close websocket: %v", err)
+		}
+	}()
+
+	send := func(msg host.Inbound) {
+		t.Helper()
+		if err := websocket.JSON.Send(socket, msg); err != nil {
+			t.Fatalf("send %#v: %v", msg, err)
+		}
+	}
+	receive := func() host.Outbound {
+		t.Helper()
+		if err := socket.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+			t.Fatalf("set read deadline: %v", err)
+		}
+		var out host.Outbound
+		if err := websocket.JSON.Receive(socket, &out); err != nil {
+			t.Fatalf("receive: %v", err)
+		}
+		return out
+	}
+
+	send(host.Inbound{Control: "ping"})
+	pong := receive()
+	if pong.Control != "pong" {
+		t.Fatalf("control response = %#v, want a pong", pong)
+	}
+	// The answer is out of band: it carries no delivery metadata, so it never
+	// enters the replay history.
+	if pong.Sequence != 0 || pong.Session != "" {
+		t.Fatalf("pong carried delivery metadata: %#v", pong)
+	}
+
+	// And it must not have consumed an outbound sequence, or the next real
+	// message would look like a gap to the client.
+	send(host.Inbound{Component: "unregistered", Sequence: 1})
+	next := receive()
+	if next.Sequence != 1 {
+		t.Fatalf("the pong consumed an outbound sequence: %#v", next)
+	}
+}
