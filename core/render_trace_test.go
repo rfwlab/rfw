@@ -22,6 +22,8 @@ type renderTraceSnapshot struct {
 	coalescedCount int
 	hasTimings     bool
 	reason         string
+	templateMS     float64
+	domMS          float64
 }
 
 func captureRenderTrace(t *testing.T) (*[]renderTraceSnapshot, func()) {
@@ -57,6 +59,12 @@ func captureRenderTrace(t *testing.T) (*[]renderTraceSnapshot, func()) {
 		}
 		if value := detail.Get("reason"); value.Type() == js.TypeString {
 			record.reason = value.String()
+		}
+		if value := detail.Get("templateMs"); value.Type() == js.TypeNumber {
+			record.templateMS = value.Float()
+		}
+		if value := detail.Get("domMs"); value.Type() == js.TypeNumber {
+			record.domMS = value.Float()
 		}
 		records = append(records, record)
 		return nil
@@ -184,17 +192,22 @@ func TestRenderTraceReportsFailedJob(t *testing.T) {
 	defer stopErrors()
 
 	requestScheduledRender(renderJob{
-		id:       "trace-failure",
-		active:   func() bool { return true },
-		trace:    newRenderJobTrace("TraceFailure", "", nil),
-		evaluate: func() string { panic("trace failure") },
-		commit:   func(string) {},
+		id:     "trace-failure",
+		active: func() bool { return true },
+		trace:  newRenderJobTrace("TraceFailure", "", nil),
+		evaluate: func() string {
+			started := rendertrace.NowMS()
+			for rendertrace.NowMS()-started < 2 {
+			}
+			panic("trace failure")
+		},
+		commit: func(string) {},
 	})
 	waitForRenderFlush()
 
 	for _, record := range *records {
 		if record.componentID == "trace-failure" && record.event == "failed" {
-			if !record.hasTimings || record.reason != "trace failure" {
+			if !record.hasTimings || record.reason != "trace failure" || record.templateMS < 2 {
 				t.Fatalf("failed trace = %#v", record)
 			}
 			return
