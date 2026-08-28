@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -327,6 +328,23 @@ func (c *HTMLComponent) Unmount() {
 	}
 	c.mounted = false
 	cancelComponentRender(c.ID)
+	if rendertrace.Enabled() {
+		parentID := ""
+		if c.parent != nil {
+			parentID = c.parent.ID
+		}
+		rendertrace.Emit(rendertrace.Record{
+			Event:             "unmounted",
+			BatchID:           rendertrace.NextBatchID(),
+			RenderID:          rendertrace.NextRenderID(),
+			ComponentID:       c.ID,
+			ComponentName:     c.Name,
+			ParentComponentID: parentID,
+			Depth:             componentDepth(c),
+			Cause:             rendertrace.Cause{Kind: "explicit"},
+			Outcome:           "unmounted",
+		})
+	}
 	devUnregisterComponent(c)
 	if c.component != nil {
 		c.runLifecycle("OnUnmount", c.component.OnUnmount)
