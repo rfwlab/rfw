@@ -5,6 +5,7 @@ package core
 import (
 	"syscall/js"
 	"testing"
+	"time"
 
 	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 	"github.com/rfwlab/rfw/v2/state"
@@ -196,9 +197,7 @@ func TestRenderTraceReportsFailedJob(t *testing.T) {
 		active: func() bool { return true },
 		trace:  newRenderJobTrace("TraceFailure", "", nil),
 		evaluate: func() string {
-			started := rendertrace.NowMS()
-			for rendertrace.NowMS()-started < 2 {
-			}
+			time.Sleep(3 * time.Millisecond)
 			panic("trace failure")
 		},
 		commit: func(string) {},

@@ -5,6 +5,7 @@ package router
 import (
 	"syscall/js"
 	"testing"
+	"time"
 
 	"github.com/rfwlab/rfw/v2/core"
 	"github.com/rfwlab/rfw/v2/dom"
@@ -133,9 +134,7 @@ func TestDirectRenderFailureReportsElapsedDOMTime(t *testing.T) {
 			}
 		}()
 		renderComponent(component, rendertrace.Cause{Kind: "router"}, "", 0, func(string) {
-			started := rendertrace.NowMS()
-			for rendertrace.NowMS()-started < 2 {
-			}
+			time.Sleep(3 * time.Millisecond)
 			panic("direct commit failure")
 		})
 	}()
