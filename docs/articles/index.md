@@ -22,6 +22,8 @@
   stays on the server, and the auth work rfw leaves to you.
 - [Hot reload: what is instant, what is not](guide/hot-reload.md): measured
   rebuild times and the honest limits of the dev loop.
+- [Render tracing](guide/render-tracing.md): opt-in browser events for render
+  causes, scheduler coalescing, RTML evaluation, and DOM commit timing.
 - [How the bundle reaches the browser](guide/wasm-delivery.md): the compressed
   artifacts `rfw build` produces, content negotiation, static hosting, and the
   cache headers that let a release replace a bundle.

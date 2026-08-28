@@ -8,6 +8,7 @@ import (
 
 	"github.com/rfwlab/rfw/v2/dom"
 	http "github.com/rfwlab/rfw/v2/http"
+	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -71,11 +72,13 @@ func (s *Suspense) Mount() {
 				active: func() bool {
 					return s.mounted
 				},
-				render: func() {
-					if s.pending == s.last {
+				evaluate: func() string { return s.pending },
+				trace:    newRenderJobTrace("Suspense", "", []rendertrace.Cause{{Kind: "signal"}}),
+				commit: func(html string) {
+					if html == s.last {
 						return
 					}
-					s.last = s.pending
+					s.last = html
 					dom.UpdateMountedDOM(s.id, s.last)
 				},
 			})

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 	"github.com/rfwlab/rfw/v2/rtmlast"
 	"github.com/rfwlab/rfw/v2/rtmleval"
 	"github.com/rfwlab/rfw/v2/state"
@@ -128,7 +129,7 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 		if initialEffectRun {
 			initialEffectRun = false
 		} else {
-			c.requestRender()
+			c.requestRender(rendertrace.Cause{Kind: "signal"})
 		}
 		return nil
 	})
@@ -152,7 +153,9 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 				continue
 			}
 			unsub := store.OnChange(dep.key, func(any) {
-				c.requestRender()
+				c.requestRender(rendertrace.Cause{
+					Kind: "store", Module: dep.module, Store: dep.storeName, Key: dep.key,
+				})
 			})
 			c.unsubscribes.Add(unsub)
 		}
@@ -1200,7 +1203,9 @@ func resolveNumber(expr string, c *HTMLComponent) (int, error) {
 			if store != nil {
 				if val := store.Get(key); val != nil {
 					unsubscribe := store.OnChange(key, func(any) {
-						c.requestRender()
+						c.requestRender(rendertrace.Cause{
+							Kind: "store", Module: module, Store: storeName, Key: key,
+						})
 					})
 					c.unsubscribes.Add(unsubscribe)
 					switch v := val.(type) {
@@ -1237,7 +1242,9 @@ func updateConditionsForStoreVariable(c *HTMLComponent, module, storeName, key s
 			dependencies, _ := getConditionDependencies(br.Condition)
 			for _, dep := range dependencies {
 				if dep.module == module && dep.storeName == storeName && dep.key == key {
-					c.requestRender()
+					c.requestRender(rendertrace.Cause{
+						Kind: "store", Module: module, Store: storeName, Key: key,
+					})
 					return
 				}
 			}
