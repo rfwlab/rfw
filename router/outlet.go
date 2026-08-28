@@ -112,7 +112,12 @@ func (o *Outlet) renderChild(c core.Component, cause rendertrace.Cause) {
 	if target.IsNull() || target.IsUndefined() {
 		target = root
 	}
-	renderComponent(c, cause, o.GetID(), componentDOMDepth(o.GetID())+1, func(html string) {
+	parentID, depth := "", 0
+	if rendertrace.Enabled() {
+		parentID = o.GetID()
+		depth = componentDOMDepth(parentID) + 1
+	}
+	renderComponent(c, cause, parentID, depth, func(html string) {
 		dom.UpdateDOMIn(target, c.GetID(), html)
 	})
 }
@@ -151,15 +156,22 @@ func renderComponent(c core.Component, cause rendertrace.Cause, parentID string,
 		Depth:             depth,
 		Cause:             cause,
 		Causes:            []rendertrace.Cause{cause},
-		QueueDepth:        1,
 	}
 	startedRecord := base
 	startedRecord.Event = "started"
 	rendertrace.Emit(startedRecord)
 
 	var templateMS, domMS float64
+	phase, phaseStarted := "template", rendertrace.NowMS()
 	defer func() {
 		if recovered := recover(); recovered != nil {
+			now := rendertrace.NowMS()
+			switch phase {
+			case "template":
+				templateMS = now - phaseStarted
+			case "dom":
+				domMS = now - phaseStarted
+			}
 			failed := base
 			failed.Event = "failed"
 			failed.TemplateMS = templateMS
@@ -172,12 +184,12 @@ func renderComponent(c core.Component, cause rendertrace.Cause, parentID string,
 		}
 	}()
 
-	templateStarted := rendertrace.NowMS()
 	html := core.TryRender(c)
-	templateMS = rendertrace.NowMS() - templateStarted
-	domStarted := rendertrace.NowMS()
+	templateMS = rendertrace.NowMS() - phaseStarted
+	phase, phaseStarted = "dom", rendertrace.NowMS()
 	commit(html)
-	domMS = rendertrace.NowMS() - domStarted
+	domMS = rendertrace.NowMS() - phaseStarted
+	phase = ""
 
 	completed := base
 	completed.Event = "committed"

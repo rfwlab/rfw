@@ -219,11 +219,17 @@ func runRenderJob(job renderJob) {
 	trace := job.trace
 	started := rendertrace.NowMS()
 	emitRenderJob("started", job, firstCause(trace.causes), "", "")
-	templateStarted := rendertrace.NowMS()
 	var templateMS, domMS float64
+	phase, phaseStarted := "template", rendertrace.NowMS()
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			totalMS := rendertrace.NowMS() - started
+			now := rendertrace.NowMS()
+			switch phase {
+			case "template":
+				templateMS = now - phaseStarted
+			case "dom":
+				domMS = now - phaseStarted
+			}
 			rendertrace.Emit(rendertrace.Record{
 				Event:             "failed",
 				BatchID:           trace.batchID,
@@ -238,7 +244,7 @@ func runRenderJob(job renderJob) {
 				CoalescedCount:    trace.coalesced,
 				TemplateMS:        templateMS,
 				DOMMS:             domMS,
-				TotalMS:           totalMS,
+				TotalMS:           now - started,
 				Outcome:           "failed",
 				Reason:            fmt.Sprint(recovered),
 			})
@@ -247,10 +253,11 @@ func runRenderJob(job renderJob) {
 	}()
 
 	html := job.evaluate()
-	templateMS = rendertrace.NowMS() - templateStarted
-	domStarted := rendertrace.NowMS()
+	templateMS = rendertrace.NowMS() - phaseStarted
+	phase, phaseStarted = "dom", rendertrace.NowMS()
 	job.commit(html)
-	domMS = rendertrace.NowMS() - domStarted
+	domMS = rendertrace.NowMS() - phaseStarted
+	phase = ""
 	rendertrace.Emit(rendertrace.Record{
 		Event:             "committed",
 		BatchID:           trace.batchID,
