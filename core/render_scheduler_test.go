@@ -122,16 +122,18 @@ func TestRenderSchedulerCommitsSiblingsByStableID(t *testing.T) {
 	var commits []string
 	active := func() bool { return true }
 	requestScheduledRender(renderJob{
-		id:     "sibling-b",
-		depth:  1,
-		active: active,
-		render: func() { commits = append(commits, "sibling-b") },
+		id:       "sibling-b",
+		depth:    1,
+		active:   active,
+		evaluate: func() string { return "" },
+		commit:   func(string) { commits = append(commits, "sibling-b") },
 	})
 	requestScheduledRender(renderJob{
-		id:     "sibling-a",
-		depth:  1,
-		active: active,
-		render: func() { commits = append(commits, "sibling-a") },
+		id:       "sibling-a",
+		depth:    1,
+		active:   active,
+		evaluate: func() string { return "" },
+		commit:   func(string) { commits = append(commits, "sibling-a") },
 	})
 	waitForRenderFlush()
 

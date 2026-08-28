@@ -14,6 +14,7 @@ import (
 	"github.com/rfwlab/rfw/v2/core"
 	"github.com/rfwlab/rfw/v2/dom"
 	events "github.com/rfwlab/rfw/v2/events"
+	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 	js "github.com/rfwlab/rfw/v2/js"
 	"github.com/rfwlab/rfw/v2/state"
 	"github.com/rfwlab/rfw/v2/types"
@@ -356,9 +357,11 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 			if c != nil {
 				currentComponent = c
 				if liveOutlet != nil {
-					liveOutlet.renderChild(c)
+					liveOutlet.renderChild(c, rendertrace.Cause{Kind: "router"})
 				} else {
-					dom.UpdateDOM(c.GetID(), core.TryRender(c))
+					renderComponent(c, rendertrace.Cause{Kind: "router"}, "", 0, func(html string) {
+						dom.UpdateDOM(c.GetID(), html)
+					})
 				}
 				core.TryMount(c)
 				core.TriggerMount(c)
@@ -465,9 +468,11 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 	}
 	currentComponent = r.component
 	if liveOutlet != nil {
-		liveOutlet.renderChild(r.component)
+		liveOutlet.renderChild(r.component, rendertrace.Cause{Kind: "router"})
 	} else {
-		dom.UpdateDOM(r.component.GetID(), r.component.Render())
+		renderComponent(r.component, rendertrace.Cause{Kind: "router"}, "", 0, func(html string) {
+			dom.UpdateDOM(r.component.GetID(), html)
+		})
 	}
 	r.component.Mount()
 	core.TriggerMount(r.component)

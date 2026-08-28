@@ -5,6 +5,7 @@ package router
 import (
 	"github.com/rfwlab/rfw/v2/core"
 	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 )
 
 // Outlet is a plain component that marks where routed components render.
@@ -70,7 +71,7 @@ func (o *Outlet) repaint() {
 	}
 	repainting = true
 	defer func() { repainting = false }()
-	o.renderChild(currentComponent)
+	o.renderChild(currentComponent, rendertrace.Cause{Kind: "parent"})
 	currentComponent.Mount()
 }
 
@@ -81,7 +82,7 @@ func (o *Outlet) OnMount() {
 	liveOutlet = o
 	o.HTMLComponent.OnMount()
 	if currentComponent != nil {
-		o.renderChild(currentComponent)
+		o.renderChild(currentComponent, rendertrace.Cause{Kind: "router"})
 		currentComponent.Mount()
 	}
 }
@@ -99,17 +100,21 @@ func (o *Outlet) OnUnmount() {
 // different component trees leaves stale nodes behind. The marker div stays
 // in place as the anchor, so a re-render of the shell around it can recognise
 // the subtree as the router's and leave it alone.
-func (o *Outlet) renderChild(c core.Component) {
+func (o *Outlet) renderChild(c core.Component, cause rendertrace.Cause) {
 	root := dom.ComponentRoot(o.GetID())
 	if root.IsNull() || root.IsUndefined() {
-		dom.UpdateDOM(c.GetID(), core.TryRender(c))
+		renderComponent(c, cause, "", 0, func(html string) {
+			dom.UpdateDOM(c.GetID(), html)
+		})
 		return
 	}
 	target := root.Query("[data-router-outlet]")
 	if target.IsNull() || target.IsUndefined() {
 		target = root
 	}
-	dom.UpdateDOMIn(target, c.GetID(), core.TryRender(c))
+	renderComponent(c, cause, o.GetID(), componentDOMDepth(o.GetID())+1, func(html string) {
+		dom.UpdateDOMIn(target, c.GetID(), html)
+	})
 }
 
 // mountedRoot pins the persistent root: without a live reference the GC
@@ -121,7 +126,78 @@ var mountedRoot core.Component
 // the outlet inside it. Call it before InitRouter.
 func MountRoot(c core.Component) {
 	mountedRoot = c
-	dom.UpdateDOM(mountedRoot.GetID(), core.TryRender(mountedRoot))
+	renderComponent(mountedRoot, rendertrace.Cause{Kind: "mount"}, "", 0, func(html string) {
+		dom.UpdateDOM(mountedRoot.GetID(), html)
+	})
 	mountedRoot.Mount()
 	core.TriggerMount(mountedRoot)
+}
+
+func renderComponent(c core.Component, cause rendertrace.Cause, parentID string, depth int, commit func(string)) {
+	if !rendertrace.Enabled() {
+		commit(core.TryRender(c))
+		return
+	}
+	cause = rendertrace.NormalizeCause(cause)
+	batchID := rendertrace.NextBatchID()
+	renderID := rendertrace.NextRenderID()
+	started := rendertrace.NowMS()
+	base := rendertrace.Record{
+		BatchID:           batchID,
+		RenderID:          renderID,
+		ComponentID:       c.GetID(),
+		ComponentName:     c.GetName(),
+		ParentComponentID: parentID,
+		Depth:             depth,
+		Cause:             cause,
+		Causes:            []rendertrace.Cause{cause},
+		QueueDepth:        1,
+	}
+	startedRecord := base
+	startedRecord.Event = "started"
+	rendertrace.Emit(startedRecord)
+
+	var templateMS, domMS float64
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			failed := base
+			failed.Event = "failed"
+			failed.TemplateMS = templateMS
+			failed.DOMMS = domMS
+			failed.TotalMS = rendertrace.NowMS() - started
+			failed.Outcome = "failed"
+			failed.Reason = "panic"
+			rendertrace.Emit(failed)
+			panic(recovered)
+		}
+	}()
+
+	templateStarted := rendertrace.NowMS()
+	html := core.TryRender(c)
+	templateMS = rendertrace.NowMS() - templateStarted
+	domStarted := rendertrace.NowMS()
+	commit(html)
+	domMS = rendertrace.NowMS() - domStarted
+
+	completed := base
+	completed.Event = "committed"
+	completed.TemplateMS = templateMS
+	completed.DOMMS = domMS
+	completed.TotalMS = rendertrace.NowMS() - started
+	completed.Outcome = "committed"
+	rendertrace.Emit(completed)
+}
+
+func componentDOMDepth(componentID string) int {
+	root := dom.ComponentRoot(componentID)
+	if root.IsNull() || root.IsUndefined() || root.Attr("data-component-id") != componentID {
+		return 0
+	}
+	depth := 0
+	for parent := root.Get("parentElement"); parent.Truthy(); parent = parent.Get("parentElement") {
+		if parent.Call("hasAttribute", "data-component-id").Bool() {
+			depth++
+		}
+	}
+	return depth
 }

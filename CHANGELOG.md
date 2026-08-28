@@ -14,6 +14,11 @@ version and include migration notes.
 
 ### Changed
 
+- WebAssembly applications can opt into structured `rfw:render-trace` browser
+  events before startup. The versioned records distinguish scheduler requests,
+  coalescing, RTML evaluation and DOM commit time, route/outlet commits,
+  cancellation, failure and unmount cleanup. Tracing is disabled by default,
+  retains no framework-side buffer, and does not add a production dependency.
 - WebAssembly content negotiation now honors client `q` preferences in
   `Accept-Encoding`, using the framework's brotli-first server preference only
   when qualities are equal.

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/rfwlab/rfw/v2/dom"
+	"github.com/rfwlab/rfw/v2/internal/rendertrace"
 	"github.com/rfwlab/rfw/v2/state"
 )
 
@@ -87,7 +88,9 @@ func replaceForPlaceholders(template string, c *HTMLComponent) string {
 						if loopInHiddenConditionalBranch(c, loopID) {
 							return
 						}
-						c.requestRender()
+						c.requestRender(rendertrace.Cause{
+							Kind: "store", Module: module, Store: storeName, Key: key,
+						})
 					})
 					c.unsubscribes.Add(unsubscribe)
 				} else {
