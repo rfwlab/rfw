@@ -1,3 +1,4 @@
+// Package rendertrace emits opt-in browser diagnostics for RFW render work.
 package rendertrace
 
 // Cause identifies why a component render was requested.
