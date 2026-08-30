@@ -146,6 +146,56 @@ if errors.As(err, &host) {
 }
 ```
 
+## Revalidating the mounted route
+
+Guards run on the way into a route. When the authority they read changes while
+the user is already on the page, `router.Revalidate()` runs them again against
+the committed path and applies their decision to the route that is mounted:
+
+```go
+func onSessionChanged(snapshot Session) {
+    session.Install(snapshot) // the authority the guards read
+    router.Revalidate()       // the guards decide what happens to the page
+}
+```
+
+The session authority installs the newer snapshot first and revalidates
+afterwards; the guards stay the only place that decides access, and they stay
+declarative. Nothing about them changes: the same parent-before-child chain runs
+with the same parameters, `Guards` before `ResultGuards`.
+
+- A route the guards still allow is a true no-op: no loader, no component, no
+  render, no history entry, no route data or metadata change. A loader that a
+  revalidation cancelled leaves the status back on `ready`.
+- `router.Forbid()`, and a `Route.Guards` guard that now returns false, unmount
+  the routed component, run its scope cleanup and its host registrations, and
+  remove its subtree. The shell mounted with `MountRoot` and the outlet inside
+  it stay where they are. What the route loaded goes with it: `router.Data()`
+  returns `nil` and `router.Meta()` an empty map, so nothing renders the revoked
+  page's data after the refusal. The status goes to `error` with
+  `router.ErrNavigationForbidden` or `router.ErrNavigationBlocked`, and the
+  committed path is kept, so an explicit navigation can enter the route again
+  once the guards allow it.
+- `router.RedirectTo(path)` and `router.ReplaceWith(path)` both replace the
+  current history entry, since it is the one the guard just refused, and then
+  route normally to the destination.
+- `router.HostReplace(path)` hands the document to the host with the same
+  contract it has during navigation: nothing is unmounted, written or committed
+  before the browser unloads the page.
+
+With no routed component mounted, or none matching the committed path, nothing
+happens, so calling it again after a refusal is a no-op, and so is calling it
+during a navigation that has not committed yet (that navigation still has its
+own guards ahead of it).
+
+`router.RevalidateContext(ctx)` returns the outcome, and answers a cancelled
+context before running any guard. Do not call either from a guard, for the same
+reason `router.Navigate` must not be called from one.
+
+Outside browser builds there is no DOM or history to keep aligned: a refused
+route is unmounted and dropped, a redirect navigates, and a host handoff returns
+the `*router.HostNavigationError` described above.
+
 ## Data loaders
 
 A loader completes before the new component is created and the previous page

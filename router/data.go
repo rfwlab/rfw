@@ -372,6 +372,37 @@ func failNavigation(err error) {
 	})
 }
 
+// revokeCommittedRoute fails navigation for a route that was committed and has
+// just been taken back. What it loaded goes with it: the data and the metadata
+// belong to a page the guards no longer allow, so they are dropped in the same
+// batch that reports the refusal, and Data and Meta never keep serving what the
+// revocation removed from the screen. A denied navigation still uses
+// failNavigation, where the route the user is on stays allowed and keeps
+// everything it committed.
+func revokeCommittedRoute(err error) {
+	state.Batch(func() {
+		currentRouteData.Set(nil)
+		currentRouteMeta.Set(map[string]any{})
+		navigationError.Set(err)
+		navigationStatus.Set(NavigationError)
+	})
+}
+
+// settleRevalidatedRoute leaves a route its guards still allow exactly as it
+// is. The one thing it repairs is the loading status of the navigation the
+// revalidation cancelled: that navigation can no longer reach a status of its
+// own, and the route the user is looking at is ready, with the data and the
+// metadata it committed when it was entered.
+func settleRevalidatedRoute() {
+	if navigationStatus.Get() != NavigationLoading {
+		return
+	}
+	state.Batch(func() {
+		navigationError.Set(nil)
+		navigationStatus.Set(NavigationReady)
+	})
+}
+
 func cloneMeta(meta map[string]any) map[string]any {
 	if meta == nil {
 		return map[string]any{}
@@ -451,6 +482,32 @@ func routeQuery(raw string) (map[string]string, url.Values) {
 		}
 	}
 	return params, values
+}
+
+// matchCurrentRoute resolves a committed full path the way navigation resolves
+// a destination: the same matcher, the same guard chain, and the same
+// parameters, route and query merged in the same order. Revalidation reuses it
+// so a guard cannot see one set of parameters when it decides on entry and
+// another when it decides whether the route may stay.
+func matchCurrentRoute(fullPath string) (*route, []guardEntry, map[string]string) {
+	path := fullPath
+	query := ""
+	if idx := strings.Index(fullPath, "?"); idx != -1 {
+		path = fullPath[:idx]
+		query = fullPath[idx+1:]
+	}
+	r, guards, params := matchRoute(routes, path)
+	if r == nil {
+		return nil, nil, nil
+	}
+	if params == nil {
+		params = map[string]string{}
+	}
+	queryParams, _ := routeQuery(query)
+	for key, value := range queryParams {
+		params[key] = value
+	}
+	return r, guards, params
 }
 
 type redirectDepthKey struct{}
