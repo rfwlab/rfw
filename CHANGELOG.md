@@ -26,7 +26,24 @@ version and include migration notes.
   does not return to the denied page. `Route.Guards`, `router.Page` and the
   `Group` builder are unchanged; a route may declare both, and its bool guards
   run first. New errors: `router.ErrNavigationForbidden` and
-  `router.ErrInvalidGuardResult`.
+  `router.ErrInvalidGuardResult`. `RedirectTo` and `ReplaceWith` are SPA
+  navigation: their destination goes through the route matcher and never leaves
+  the application.
+- `router.HostReplace(path)`, the result guard outcome for a page the host owns
+  rather than the SPA: a server-rendered login or session-expiry page. The
+  browser loads the path as a document with `location.replace`, so it replaces
+  the current history entry and back does not return to the refused route. The
+  guard chain ends there: no loader, component, unmount, history entry, DOM
+  write or route state commit runs for the protected route, and the page stays
+  as it is until the browser unloads it. The target must already be a rooted
+  same-origin path, validated as the guard returned it and never trimmed into
+  shape, against browser URL normalization (control characters, surrounding
+  whitespace, backslash authorities, scheme-relative and malformed targets fail
+  closed with `router.ErrInvalidGuardResult`); cross-origin handoff is
+  intentionally unsupported. Outside
+  browser builds `NavigateContext` returns a `*router.HostNavigationError`
+  carrying the target and wrapping the new `router.ErrHostNavigation`, and
+  commits nothing.
 - `core.SetHostRegistrar`, the cleanup-capable form of `core.SetHostRegister`.
   Both remain; the legacy hook registers without a release.
 - `hostclient.RegisterComponentOwned`, the cleanup-capable form of
