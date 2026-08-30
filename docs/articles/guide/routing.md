@@ -34,6 +34,56 @@ router.RegisterRoute(router.Route{
 })
 ```
 
+## Guards
+
+`Route.Guards` holds the original guards: a `func(map[string]string) bool` that
+allows or blocks. They keep working exactly as before, including
+`router.Page(path, component, guards...)` and the `Group` builder.
+
+`Route.ResultGuards` adds guards that say what should happen instead of the
+route they refuse:
+
+```go
+router.RegisterRoute(router.Route{
+    Path:      "/account",
+    Component: NewAccountPage,
+    ResultGuards: []router.ResultGuard{
+        func(params map[string]string) router.GuardResult {
+            switch {
+            case !session.Authenticated():
+                return router.ReplaceWith("/login")
+            case !session.Can("account:read"):
+                return router.Forbid()
+            default:
+                return router.Allow()
+            }
+        },
+    },
+})
+```
+
+- `router.Allow()` continues to the next guard and then to the route.
+- `router.Forbid()` stops navigation with `router.ErrNavigationForbidden`.
+- `router.RedirectTo(path)` navigates elsewhere and keeps a history entry for
+  the current page.
+- `router.ReplaceWith(path)` navigates elsewhere in place of the current entry,
+  which is what a login redirect wants: back must not return to the page the
+  user was denied.
+
+Guards run parent before child, and for each route its `Guards` run before its
+`ResultGuards`. The first guard that does not allow decides: the guards behind
+it, the route loader, the component factory, the unmount of the current page,
+the history entry, and the DOM commit are all skipped. A redirect result
+navigates to its destination without ever loading the protected route, bounded
+by the same redirect-loop limit as `Route.Redirect`. A destination that is
+empty or not a rooted path, and an unknown action, fail closed with
+`router.ErrInvalidGuardResult`.
+
+Do not call `router.Navigate` or `router.Replace` inside a guard: it reenters
+navigation while one is in flight. Return the destination instead and let the
+router apply it once. Outside browser builds the router keeps no history, so
+`RedirectTo` and `ReplaceWith` both navigate to the destination.
+
 ## Data loaders
 
 A loader completes before the new component is created and the previous page

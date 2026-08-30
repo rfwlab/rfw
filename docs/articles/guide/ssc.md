@@ -46,6 +46,26 @@ declare server-synced bindings on the struct; every host field name is
 registered against the server-side component of the same name. HTML
 components link to their host explicitly with `AddHostComponent(name)`.
 
+A declared host component is bound once per mounted lifecycle, not once per
+render: a component that is rendered but never mounted binds nothing, since no
+unmount would come to release it. Unmounting the component, which is what
+leaving a route does, drops the binding, discards its queued reconnect
+initialization and unsubscribes from the host, so the feed stops and a late push
+reaches neither the old component root nor its host signals: a frame that was
+already in flight when the cleanup ran is discarded rather than applied, and
+delivery only ever addresses the exact root the binding owns, whatever
+characters its id carries. A host signal setter may unmount or remount its own
+component, which releases and registers the binding from inside the frame being
+applied; that ends the frame and never deadlocks. Mounting again binds it
+again.
+
+Code that drives the runtime directly keeps both entry points.
+`hostclient.RegisterComponent(id, name, vars)` binds until another registration
+replaces it, and `hostclient.RegisterComponentOwned` returns the idempotent
+cleanup for a component that can unmount. While the client is disconnected the
+queue holds only the latest state per host component, so entering and leaving a
+route offline does not pile up reconnect messages.
+
 On the wire, `hostclient.Send(name, payload)` delivers a payload to the
 host component. Repeated identical messages are delivered as-is; call
 `hostclient.EnableSendDedup(name)` if a channel should drop identical
@@ -159,6 +179,13 @@ history so overflowed delivery remains resumable. `hostclient.ConnectionStateSig
 reports `connecting`, `connected`, `disconnected`, or `desynced`.
 Use `host.WithoutSSCResume()` when detached session state must be discarded
 immediately.
+
+A resume token reattaches whatever session it names, so an authenticated
+deployment decides who may present it with
+`host.WithSSCResumeAuthorizer(func(r *http.Request, session *host.Session) error)`.
+The callback runs before the session is touched and a refusal serves the caller
+a new session instead, leaving the retained one available to its owner. See
+[SSC security](ssc-security.md).
 
 During development `rfw dev` detects `"type": "ssc"` in `rfw.json`, builds
 the host binary and restarts it on every rebuild.

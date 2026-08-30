@@ -12,6 +12,32 @@ version and include migration notes.
 
 ## [Unreleased]
 
+### Added
+
+- `host.WithSSCResumeAuthorizer(func(*http.Request, *host.Session) error)`, run
+  before a retained session is reattached. An authenticated deployment decides
+  whether the upgrade request may resume the session its token names; refusing
+  serves the caller a new session and leaves the retained one untouched. Left
+  unset, resume keeps its token-only behavior.
+- `router.ResultGuard` and `Route.ResultGuards`, guards that return
+  `router.Allow()`, `router.Forbid()`, `router.RedirectTo(path)` or
+  `router.ReplaceWith(path)` instead of a bool. A login redirect is now
+  declarative and replaces the history entry rather than pushing one, so back
+  does not return to the denied page. `Route.Guards`, `router.Page` and the
+  `Group` builder are unchanged; a route may declare both, and its bool guards
+  run first. New errors: `router.ErrNavigationForbidden` and
+  `router.ErrInvalidGuardResult`.
+- `core.SetHostRegistrar`, the cleanup-capable form of `core.SetHostRegister`.
+  Both remain; the legacy hook registers without a release.
+- `hostclient.RegisterComponentOwned`, the cleanup-capable form of
+  `hostclient.RegisterComponent`. It returns an idempotent release that owns the
+  binding's lifecycle; `RegisterComponent` keeps its signature and its
+  register-until-replaced behavior.
+- `state.Signal.SetFromHostGated` and `state.Signal.HostWriteBarrier`, the pair
+  a host delivery uses to make its ownership check and its write one step
+  against a concurrent revocation. `SetFromHost` is unchanged and is the ungated
+  form of the same write.
+
 ### Changed
 
 - WebAssembly applications can opt into structured `rfw:render-trace` browser
@@ -95,6 +121,44 @@ version and include migration notes.
 
 ### Fixed
 
+- release a host component binding when its client component unmounts.
+  `AddHostComponent` registered the binding on every render and never undid it,
+  so leaving a route kept the `hostclient` binding, its queued reconnect init
+  and the server subscription alive, and a late push still reached the
+  unmounted component root. Registration now happens once per mounted
+  lifecycle, its cleanup is owned by the component, and a remount registers
+  again; a component that is rendered but never mounted binds nothing, so a
+  preparatory render cannot leave a binding no unmount would release. No
+  published signature changes: `hostclient.RegisterComponent` keeps
+  its own, and the cleanup comes from the new `RegisterComponentOwned`, which
+  `hostclient` installs into `core.SetHostRegistrar`.
+- deliver host frames only to the binding that is still registered, and only to
+  the root it owns. Delivery snapshotted a binding, released the lock and then
+  wrote to the DOM, so a frame that overlapped a route exit could still update a
+  released component; it also resolved its target through `dom.ComponentRoot`,
+  whose fallback would have written into `#app` once the component's own root
+  left the document. Delivery is now serialized against registration and
+  release, revalidates the registration it was snapshotted for, and ignores a
+  frame whose `[data-component-id]` root is absent. `RegisterComponent` takes
+  any id, so the id is escaped through `CSS.escape` before it reaches a
+  selector, and compared attribute by attribute where that API is missing.
+- stop a host frame from writing the signals of a released component. Delivery
+  re-checked the registration and then ran the setters with no lock held, so a
+  cleanup that returned in between still saw a stale frame set a host signal and
+  schedule the effects that follow one after the unmount. A registration now
+  hands every frame it carries a gate the signal evaluates under the same lock
+  it stores the value with, and the cleanup closes that gate before waiting out
+  the writes it had already allowed: once the cleanup returns, neither the root
+  it owned nor its host signals take another frame. No lock covers application
+  code, so a setter that unmounts or remounts its own component from inside the
+  frame cannot deadlock against its own registration.
+- keep the disconnected message queue bounded across offline route churn. Every
+  mount and unmount appended its own reconnect control, so a route entered and
+  left 100 times offline retained 100 unsubscribes. The queue now holds one
+  control per host component, the latest desired state: a registration replaces
+  a queued unsubscribe and a release replaces a queued init, in the position the
+  superseded control held. Other messages, and the controls of other components,
+  keep their order.
 - isolate SSC broadcasts behind bounded per-connection outbound queues and a
   write deadline. A slow socket no longer stalls later broadcast targets; a
   full queue requests resynchronization and closes that connection so retained

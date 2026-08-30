@@ -60,6 +60,7 @@ type HTMLComponent struct {
 	classExprContents map[string]string
 	hostVars          []string
 	hostCmds          []string
+	hostRegistrations []hostRegistration
 	component         Component
 	mounted           bool
 	onMount           func(*HTMLComponent)
@@ -174,6 +175,11 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	key := c.cacheKey()
 	if c.cache != nil {
 		if val, ok := c.cache[key]; ok {
+			// A cache hit returns before the rest of the render, so the host
+			// bindings are registered here too: Mount bound the names declared
+			// by then, this covers one declared since. Unmounted, it is a
+			// no-op.
+			c.registerHostComponents()
 			renderedTemplate = val
 			return
 		}
@@ -248,11 +254,7 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 	// Handle constructor decorators like [ref] and [key expr]
 	renderedTemplate = replaceConstructors(renderedTemplate)
 
-	if hostRegisterComponent != nil {
-		for _, name := range c.hostComponentNames() {
-			hostRegisterComponent(c.ID, name, c.hostVars)
-		}
-	}
+	c.registerHostComponents()
 
 	c.cache[key] = renderedTemplate
 	c.lastCacheKey = key
@@ -351,6 +353,9 @@ func (c *HTMLComponent) Unmount() {
 	}
 	dom.UnmountLifecycleHooks(c.ID)
 	c.releaseDOMHooks()
+	// Before the signals go: releasing a host binding waits out the writes an
+	// in-flight frame had already been allowed to make on them.
+	c.releaseHostComponents()
 	if c.scope != nil {
 		c.scope.Close()
 	}
@@ -379,6 +384,9 @@ func (c *HTMLComponent) Mount() {
 	}
 	c.registerHandlers()
 	c.registerDOMHooks()
+	// The mount owns the host bindings: it opens the lifecycle the matching
+	// Unmount releases, whether or not this component is ever rendered again.
+	c.registerHostComponents()
 	for _, dep := range c.Dependencies {
 		dependency := dep
 		c.runLifecycle("dependency mount", dependency.Mount)
@@ -601,6 +609,63 @@ func (c *HTMLComponent) AddHostComponent(name string) {
 	if c.HostComponent == "" {
 		c.HostComponent = name
 	}
+}
+
+// hostRegistration keeps the cleanup returned when a host component was bound
+// to the SSC runtime for the current mounted lifecycle.
+type hostRegistration struct {
+	name    string
+	release func()
+}
+
+// registerHostComponents binds every declared host component once per mounted
+// lifecycle. Ownership is mount-bound: only Mount opens a lifecycle that
+// Unmount closes, so a component that is merely rendered (a preparatory or
+// discarded render) never registers a binding nothing would ever release.
+// Mount binds every name declared by then; renders call it again to cover a
+// name declared afterwards, and otherwise find the registration in place and
+// leave it alone, so a re-render never re-initializes or unsubscribes a live
+// SSC feed.
+//
+// A registration carries the host variables known when it was made and is never
+// remade mid-lifecycle to pick up ones discovered later, so mounting before the
+// first render binds with none: the template discovers them while rendering.
+// The framework's own paths render first (the router and MountRoot both do), so
+// a component mounted through them binds with its variables.
+func (c *HTMLComponent) registerHostComponents() {
+	if !c.mounted || hostRegisterComponent == nil {
+		return
+	}
+	for _, name := range c.hostComponentNames() {
+		if c.hostRegistered(name) {
+			continue
+		}
+		release := hostRegisterComponent(c.ID, name, c.hostVars)
+		c.hostRegistrations = append(c.hostRegistrations, hostRegistration{name: name, release: release})
+	}
+}
+
+// releaseHostComponents runs the host registration cleanups in reverse order,
+// so unmounting drops the bindings and a later mount registers them again.
+func (c *HTMLComponent) releaseHostComponents() {
+	registrations := c.hostRegistrations
+	c.hostRegistrations = nil
+	for index := len(registrations) - 1; index >= 0; index-- {
+		registration := registrations[index]
+		if registration.release == nil {
+			continue
+		}
+		c.runLifecycle("host unregister: "+registration.name, registration.release)
+	}
+}
+
+func (c *HTMLComponent) hostRegistered(name string) bool {
+	for _, registration := range c.hostRegistrations {
+		if registration.name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // hostComponentNames returns every host component linked to this component,

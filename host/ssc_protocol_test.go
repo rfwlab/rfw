@@ -314,6 +314,102 @@ func TestWSSessionResumeExpires(t *testing.T) {
 	}
 }
 
+// A detached session is reattached only for a request the resume authorizer
+// approves. The refused client is served a new session and the retained one
+// stays available to the identity that created it.
+func TestWSResumeAuthorizationRejectsForeignToken(t *testing.T) {
+	type request struct{}
+	const action = "test.ws.resume.identity"
+	if err := RegisterAction(action, func(_ context.Context, session *Session, _ request) (string, error) {
+		user, _ := session.ContextGet("user")
+		text, _ := user.(string)
+		return text, nil
+	}); err != nil {
+		t.Fatalf("register action: %v", err)
+	}
+
+	server := httptest.NewServer(NewMux(t.TempDir(),
+		WithSSCLimits(SSCLimits{ResumeTTL: 5 * time.Second, ReplayMessages: 8}),
+		WithSSCSessionInitializer(bindResumeIdentity),
+		WithSSCResumeAuthorizer(authorizeSameUserResume),
+	))
+	defer server.Close()
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	dial := func(user string) *websocket.Conn {
+		config, err := websocket.NewConfig(wsURL, server.URL)
+		if err != nil {
+			t.Fatalf("websocket config: %v", err)
+		}
+		config.Header.Set(resumeIdentityHeader, user)
+		socket, err := websocket.DialConfig(config)
+		if err != nil {
+			t.Fatalf("dial websocket: %v", err)
+		}
+		return socket
+	}
+
+	ownerSocket := dial("alice")
+	sendProtocolMessage(t, ownerSocket, Inbound{Action: action, ID: "alice", Sequence: 1})
+	owner := receiveProtocolMessage(t, ownerSocket)
+	if owner.Payload != "alice" || owner.ResumeToken == "" {
+		t.Fatalf("session identity was not bound: %#v", owner)
+	}
+	closeTestResource(t, ownerSocket)
+
+	intruderSocket := dial("mallory")
+	defer closeTestResource(t, intruderSocket)
+	sendProtocolMessage(t, intruderSocket, Inbound{
+		Action:      action,
+		ID:          "mallory",
+		Sequence:    1,
+		Ack:         owner.Sequence,
+		ResumeToken: owner.ResumeToken,
+	})
+	rejected := receiveProtocolMessage(t, intruderSocket)
+	if rejected.Control != "resume_rejected" || rejected.Error == nil {
+		t.Fatalf("foreign token was not refused: %#v", rejected)
+	}
+	if rejected.Session == owner.Session {
+		t.Fatalf("refused client attached the retained session: %#v", rejected)
+	}
+	response := receiveProtocolMessage(t, intruderSocket)
+	if response.Payload != "mallory" || response.Session == owner.Session {
+		t.Fatalf("refused client did not get its own session: %#v", response)
+	}
+
+	var (
+		resumedSocket *websocket.Conn
+		restored      Outbound
+	)
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		resumedSocket = dial("alice")
+		sendProtocolMessage(t, resumedSocket, Inbound{
+			Action:      action,
+			ID:          "resume",
+			Sequence:    2,
+			Ack:         owner.Sequence,
+			ResumeToken: owner.ResumeToken,
+		})
+		restored = receiveProtocolMessage(t, resumedSocket)
+		if restored.Session == owner.Session {
+			break
+		}
+		closeTestResource(t, resumedSocket)
+		if time.Now().After(deadline) {
+			t.Fatalf("owner could not resume after the refused attempt: %#v", restored)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	defer closeTestResource(t, resumedSocket)
+	if restored.ID != "resume" || restored.Payload != "alice" {
+		t.Fatalf("resumed session lost its identity: %#v", restored)
+	}
+	if session, ok := SessionByID(owner.Session); ok {
+		ReleaseSession(session)
+	}
+}
+
 func TestWSControlPingIsAnsweredOutOfBand(t *testing.T) {
 	socket, closeSocket := openProtocolSocket(t)
 	defer closeSocket()

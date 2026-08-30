@@ -126,7 +126,35 @@ Apply these controls together:
    })
    ```
 
-3. **Authorize messages and actions.** `host.WithSSCAuthorizer` can reject
+   The initializer runs for new sessions only. A resumed session keeps the
+   identity it was created with, which is the point of the next control.
+3. **Authorize resume.** A resume token reattaches the session it names. The
+   upgrade guard proves the new request is authenticated; it does not prove it
+   is authenticated *as the user the token belongs to*. Without
+   `host.WithSSCResumeAuthorizer`, any client that obtains a valid token
+   reattaches that session, private store contents included:
+
+   ```go
+   host.WithSSCResumeAuthorizer(func(r *http.Request, session *host.Session) error {
+       user, ok := session.ContextGet("user")
+       if !ok || user != authenticatedUser(r) || revoked(r) {
+           return errors.New("resume denied")
+       }
+       return nil
+   })
+   ```
+
+   The callback runs before the session is attached, its retention timer
+   cleared or its connection replaced. Refusing changes nothing: the caller is
+   served a new session and receives the `resume_rejected` control frame that
+   clears its stale token, while the retained session stays detached and
+   resumable by its owner until the TTL expires. Two upgrades racing on the
+   same token cannot cross-attach; the loser gets a new session too. An
+   authenticated multi-user deployment must configure a resume authorizer or
+   disable resume with `host.WithoutSSCResume()`. The default remains
+   token-only for compatibility with single-user and unauthenticated
+   deployments.
+4. **Authorize messages and actions.** `host.WithSSCAuthorizer` can reject
    every decoded message before dispatch. `host.WithActionAuthorizer` applies
    a typed policy after an action request is decoded. Legacy component
    handlers should still perform their own object-level checks.
@@ -155,8 +183,21 @@ Apply these controls together:
   `host.WithSessionTarget(sessionID)` for per-user data; broadcasting a
   payload that contains one user's data sends it to all users on that
   component.
+- **Client-side delivery scope.** A payload is applied only to the root the
+  binding names (`[data-component-id]`) and to that component's host signals,
+  and only while that binding is registered. A frame that arrives after its
+  component unmounted, including one already in flight when the route changed,
+  is dropped rather than applied to the page shell, to whatever mounted next, or
+  to a signal the unmounted component still holds. The id is escaped before it
+  reaches a selector, so an id carrying CSS metacharacters cannot widen the
+  match to a root the binding does not own. That bounds the damage a stale
+  broadcast can do to the DOM; it is not an authorization control, since the
+  browser still received the payload. Scope the data itself with
+  `host.WithSessionTarget`.
 - **Transport security.** A resume token can reattach detached session state.
-  Treat it as a bearer credential, do not log it, and use `wss://`.
+  Treat it as a bearer credential, do not log it, use `wss://`, and pair it
+  with `host.WithSSCResumeAuthorizer` so a stolen token is not enough on its
+  own.
   `host.Start` serves HTTP and, on the next port,
   HTTPS with a self-signed certificate generated at boot. That certificate
   is a development convenience. In production, terminate TLS with real
