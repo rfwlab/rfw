@@ -26,6 +26,8 @@ type Outbound struct {
 	Sequence    uint64       `json:"sequence,omitempty"`
 	Ack         uint64       `json:"ack,omitempty"`
 	ResumeToken string       `json:"resumeToken,omitempty"`
+
+	encodedPayload []byte
 }
 
 // ActionError is a public, machine-readable action failure.
