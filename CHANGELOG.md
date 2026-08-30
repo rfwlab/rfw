@@ -95,6 +95,10 @@ version and include migration notes.
 
 ### Fixed
 
+- isolate SSC broadcasts behind bounded per-connection outbound queues and a
+  write deadline. A slow socket no longer stalls later broadcast targets; a
+  full queue requests resynchronization and closes that connection so retained
+  sequenced messages can be replayed after resume.
 - answer the client heartbeat in `ssc.NewSSCServer`. The ssc handler is a
   second loop over the same protocol and did not reply to the `ping` control
   frame: it fell through to the empty-component branch, which answers nothing,

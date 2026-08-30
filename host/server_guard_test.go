@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func wsProbe(t *testing.T, mux *http.ServeMux, origin string) int {
@@ -76,4 +77,19 @@ func TestWSConnectionLimit(t *testing.T) {
 		t.Fatal("released connection slot was not reusable")
 	}
 	runtime.ReleaseConnection()
+}
+
+func TestWSOutboundLimits(t *testing.T) {
+	defaults := DefaultSSCLimits()
+	if defaults.WriteTimeout != 10*time.Second || defaults.OutboundQueueSize != 64 {
+		t.Fatalf("unexpected outbound defaults: timeout=%s queue=%d", defaults.WriteTimeout, defaults.OutboundQueueSize)
+	}
+
+	runtime := NewWSRuntime(WithSSCLimits(SSCLimits{
+		WriteTimeout:      250 * time.Millisecond,
+		OutboundQueueSize: 8,
+	}))
+	if runtime.limits.WriteTimeout != 250*time.Millisecond || runtime.limits.OutboundQueueSize != 8 {
+		t.Fatalf("outbound overrides were not applied: %#v", runtime.limits)
+	}
 }
