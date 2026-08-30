@@ -114,14 +114,18 @@ func (writer *connectionWriter) endWrite() {
 	writer.mu.Unlock()
 }
 
-func (writer *connectionWriter) enqueue(batch func() []Outbound) bool {
+func (writer *connectionWriter) enqueue(batch func() ([]Outbound, error)) bool {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
 	if writer.stopped {
 		return false
 	}
 
-	messages := batch()
+	messages, err := batch()
+	if err != nil {
+		log.Printf("marshal outbound payload: %v", err)
+		return false
+	}
 	select {
 	case writer.queue <- messages:
 		return true
@@ -424,14 +428,14 @@ func ReplaySession(ws *websocket.Conn, session *Session, acknowledged uint64) {
 		return
 	}
 	if writerValue, ok := connWriters.Load(ws); ok {
-		writerValue.(*connectionWriter).enqueue(func() []Outbound {
+		writerValue.(*connectionWriter).enqueue(func() ([]Outbound, error) {
 			messages, err := session.ReplayAfter(acknowledged)
 			if err != nil {
 				return []Outbound{session.PrepareOutbound(Outbound{
 					Error: NewActionError("resync_required", "message history is no longer available"),
-				})}
+				})}, nil
 			}
-			return messages
+			return messages, nil
 		})
 		return
 	}
@@ -471,9 +475,14 @@ func SendSessionOutbound(ws *websocket.Conn, session *Session, out Outbound) {
 		}
 		return
 	}
+	out, err := prepareOutboundPayload(out)
+	if err != nil {
+		log.Printf("marshal outbound payload: %v", err)
+		return
+	}
 	if writerValue, ok := connWriters.Load(ws); ok {
-		writerValue.(*connectionWriter).enqueue(func() []Outbound {
-			return []Outbound{session.PrepareOutbound(out)}
+		writerValue.(*connectionWriter).enqueue(func() ([]Outbound, error) {
+			return []Outbound{session.PrepareOutbound(out)}, nil
 		})
 		return
 	}
@@ -532,14 +541,24 @@ func sessionAcceptsConnection(session *Session, ws *websocket.Conn, handoff bool
 // synchronously with the default deadline.
 func SendOutbound(ws *websocket.Conn, out Outbound) {
 	if writerValue, ok := connWriters.Load(ws); ok {
-		writerValue.(*connectionWriter).enqueue(func() []Outbound {
-			return []Outbound{out}
+		writerValue.(*connectionWriter).enqueue(func() ([]Outbound, error) {
+			prepared, err := prepareOutboundPayload(out)
+			if err != nil {
+				return nil, err
+			}
+			return []Outbound{prepared}, nil
 		})
 		return
 	}
 	lock := connectionWriteLock(ws)
 	lock.Lock()
 	defer lock.Unlock()
+	var err error
+	out, err = prepareOutboundPayload(out)
+	if err != nil {
+		log.Printf("marshal outbound payload: %v", err)
+		return
+	}
 	if err := sendOutboundUnlocked(ws, out, DefaultSSCLimits().WriteTimeout); err != nil {
 		log.Printf("send: %v", err)
 		_ = ws.Close()
@@ -552,7 +571,7 @@ func connectionWriteLock(ws *websocket.Conn) *sync.Mutex {
 }
 
 func sendOutboundUnlocked(ws *websocket.Conn, out Outbound, writeTimeout time.Duration) error {
-	b, err := json.Marshal(out)
+	b, err := marshalOutbound(out)
 	if err != nil {
 		return err
 	}
@@ -568,6 +587,27 @@ func sendOutboundUnlocked(ws *websocket.Conn, out Outbound, writeTimeout time.Du
 		return ws.SetWriteDeadline(time.Time{})
 	}
 	return nil
+}
+
+func prepareOutboundPayload(out Outbound) (Outbound, error) {
+	if out.Payload == nil || out.encodedPayload != nil {
+		return out, nil
+	}
+	payload, err := json.Marshal(out.Payload)
+	if err != nil {
+		return out, err
+	}
+	out.encodedPayload = payload
+	return out, nil
+}
+
+func marshalOutbound(out Outbound) ([]byte, error) {
+	if out.encodedPayload == nil {
+		return json.Marshal(out)
+	}
+	wire := out
+	wire.Payload = json.RawMessage(out.encodedPayload)
+	return json.Marshal(wire)
 }
 
 // ForgetConnection releases the connection's outbound delivery resources.

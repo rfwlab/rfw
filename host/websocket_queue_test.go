@@ -5,6 +5,7 @@ package host
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -168,8 +169,25 @@ func TestWriteDeadlineClosesAClientThatDoesNotRead(t *testing.T) {
 		if err := websocket.Message.Receive(client, &raw); err == nil {
 			t.Fatalf("slow client remained open after the write deadline: %s", raw)
 		}
+	} else if !errors.Is(err, io.ErrClosedPipe) && !errors.Is(err, net.ErrClosed) {
+		t.Fatalf("set client read deadline: %v", err)
 	}
 	ReleaseSession(session)
+}
+
+func TestInvalidPayloadDoesNotCloseConnectionOrConsumeSequence(t *testing.T) {
+	client, server, closeSockets := openWriteTestSocket(t)
+	defer closeSockets()
+	configureConnectionWriter(server, time.Second, 4)
+	session := newSession("invalid-payload")
+	BindSessionConnection(server, session)
+
+	SendSessionOutbound(server, session, Outbound{Payload: make(chan int)})
+	SendSessionOutbound(server, session, Outbound{Payload: "valid"})
+	message := receiveOrderedMessage(t, client)
+	if message.Sequence != 1 || message.Payload != "valid" {
+		t.Fatalf("valid message after marshal failure = %#v", message)
+	}
 }
 
 func TestBroadcastDoesNotWaitForSlowClientAndOverflowResumes(t *testing.T) {

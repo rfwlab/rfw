@@ -165,7 +165,7 @@ Apply these controls together:
 - **Resource exhaustion.** The default endpoint caps frames at 1 MiB,
   connections at 4096, retained sessions at 8192, messages at 600 per session
   per minute, typed action execution at 15 seconds, writes at 10 seconds, the
-  per-connection outbound queue at 64 messages, and replay history at 256
+  per-connection outbound queue at 64 pending batches, and replay history at 256
   messages. A full outbound queue disconnects the client for a clean resume
   instead of dropping a sequenced frame. Override these
   values with `host.WithSSCLimits` for the deployment. Keep proxy limits too.
