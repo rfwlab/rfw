@@ -80,7 +80,7 @@ func TestCleanupBetweenTheSignalCheckAndTheWriteWins(t *testing.T) {
 	t.Cleanup(releaseLive)
 
 	cleanupReturned := make(chan struct{})
-	setHostSignalWriteHook(func(component, name string) {
+	setHostSignalWriteHook(func(component, _ string) {
 		if component != "signal-ticker" {
 			return
 		}
