@@ -592,7 +592,7 @@ func TestRevalidateCancelsAnInFlightLoader(t *testing.T) {
 			pending++
 			return newRevalidatePage("pending")
 		},
-		Loader: func(ctx context.Context, _ LoadContext) (any, error) {
+		Loader: func(_ context.Context, _ LoadContext) (any, error) {
 			entered <- struct{}{}
 			<-release
 			return "late", nil

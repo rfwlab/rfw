@@ -94,7 +94,7 @@ func TestRevalidateClearsTheRoutedSubtreeAndKeepsTheShell(t *testing.T) {
 	if page.unmounted != 0 {
 		t.Fatalf("an allowed revalidation unmounted the page %d times", page.unmounted)
 	}
-	if got := mustComponentRoot(t, shell.GetID()); !got.Value.Equal(shellNode.Value) {
+	if got := mustComponentRoot(t, shell.GetID()); !got.Equal(shellNode.Value) {
 		t.Fatal("an allowed revalidation replaced the shell root")
 	}
 
@@ -115,17 +115,17 @@ func TestRevalidateClearsTheRoutedSubtreeAndKeepsTheShell(t *testing.T) {
 	if strings.Contains(dom.ByID("app").HTML(), "reval-built") {
 		t.Fatalf("the protected DOM survived the revocation: %s", dom.ByID("app").HTML())
 	}
-	if got := dom.ByID("app"); !got.Value.Equal(appNode.Value) {
+	if got := dom.ByID("app"); !got.Equal(appNode.Value) {
 		t.Fatal("the revocation replaced the application container")
 	}
-	if got := mustComponentRoot(t, shell.GetID()); !got.Value.Equal(shellNode.Value) {
+	if got := mustComponentRoot(t, shell.GetID()); !got.Equal(shellNode.Value) {
 		t.Fatal("the revocation replaced the shell root MountRoot mounted")
 	}
 	if !strings.Contains(shellNode.HTML(), "data-router-outlet") {
 		t.Fatalf("the revocation emptied the shell instead of the route: %s", shellNode.HTML())
 	}
 	after := dom.Query("[data-router-outlet]")
-	if after.IsNull() || !after.Value.Equal(outletNode.Value) {
+	if after.IsNull() || !after.Equal(outletNode.Value) {
 		t.Fatal("the revocation replaced the outlet marker instead of emptying it")
 	}
 	if html := after.HTML(); html != "" {
@@ -198,7 +198,7 @@ func TestRevalidateWithoutAnOutletClearsOnlyTheRouteRoot(t *testing.T) {
 	if root := dom.Query("[data-host-page='bare']"); !root.IsNull() {
 		t.Fatalf("the protected subtree is still in the document: %s", dom.ByID("app").HTML())
 	}
-	if got := dom.ByID("app"); got.IsNull() || !got.Value.Equal(appNode.Value) {
+	if got := dom.ByID("app"); got.IsNull() || !got.Equal(appNode.Value) {
 		t.Fatal("the revocation removed the application container instead of the route")
 	}
 }
