@@ -38,7 +38,8 @@ const (
 	// GuardForbid stops navigation with ErrNavigationForbidden.
 	GuardForbid
 	// GuardRedirect navigates to another path and keeps a history entry for
-	// the current one.
+	// the current one, except on an initial load or a popstate, where the
+	// denied entry is replaced instead.
 	GuardRedirect
 	// GuardReplace navigates to another path in place of the current history
 	// entry, which is what a login redirect wants.
@@ -64,7 +65,8 @@ func Allow() GuardResult { return GuardResult{Action: GuardAllow} }
 // Forbid refuses navigation without a destination to fall back to.
 func Forbid() GuardResult { return GuardResult{Action: GuardForbid} }
 
-// RedirectTo sends navigation to path and keeps the current history entry.
+// RedirectTo sends navigation to path and keeps the current history entry,
+// unless navigation came from an initial load or a popstate.
 func RedirectTo(path string) GuardResult {
 	return GuardResult{Action: GuardRedirect, Path: path}
 }

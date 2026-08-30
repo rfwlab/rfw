@@ -145,7 +145,7 @@ func TestLegacyHostRegisterUnmountsWithoutCleanup(t *testing.T) {
 
 // A host component is bound once per mounted lifecycle: repeated renders reuse
 // the live binding instead of re-initializing the SSC feed.
-func TestHostRegistrarBindsOncePerRender(t *testing.T) {
+func TestHostRegistrarBindsOncePerMountedLifecycle(t *testing.T) {
 	prev := hostRegisterComponent
 	t.Cleanup(func() { hostRegisterComponent = prev })
 	registrations := 0
