@@ -104,6 +104,13 @@ var NotFoundComponent any
 // unregistered route. It receives the requested path.
 var NotFoundCallback func(string)
 
+// hostReplace hands the document to a host-owned path. It is a variable so
+// browser tests can watch the handoff without unloading the page running them;
+// production always performs the real navigation.
+var hostReplace = func(path string) {
+	js.Location().Call("replace", path)
+}
+
 // Reset clears the router's registered routes and current component.
 // It is primarily intended for use in tests to ensure a clean state.
 func Reset() {
@@ -399,6 +406,14 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 		}
 		failNavigation(guardErr)
 		return guardErr
+	}
+	if guardResult.Action == GuardHostReplace {
+		// The host owns the destination, so the browser loads it as a document
+		// instead of the router matching a route for it. Nothing commits: the
+		// page the user is on stays exactly as it is until the browser unloads
+		// it, and navigation never reenters here.
+		hostReplace(guardResult.Path)
+		return nil
 	}
 	if guardResult.Action != GuardAllow {
 		redirectCtx, err := nextRedirectContext(parent)

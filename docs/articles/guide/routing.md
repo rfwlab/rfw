@@ -71,6 +71,13 @@ router.RegisterRoute(router.Route{
 - `router.ReplaceWith(path)` navigates elsewhere in place of the current entry,
   which is what a login redirect wants: back must not return to the page the
   user was denied.
+- `router.HostReplace(path)` leaves the application and lets the host serve the
+  path as a document.
+
+`RedirectTo` and `ReplaceWith` are SPA navigation: the destination goes through
+the same route matcher as `router.Navigate`, so it must be a registered route,
+and an unregistered one lands on the not-found handling. Neither ever leaves
+the application.
 
 Guards run parent before child, and for each route its `Guards` run before its
 `ResultGuards`. The first guard that does not allow decides: the guards behind
@@ -85,6 +92,59 @@ Do not call `router.Navigate` or `router.Replace` inside a guard: it reenters
 navigation while one is in flight. Return the destination instead and let the
 router apply it once. Outside browser builds the router keeps no history, so
 `RedirectTo` and `ReplaceWith` both navigate to the destination.
+
+### Handing a route to the host
+
+Some pages belong to the server, not the SPA: a login form, a session-expiry
+page, an SSO endpoint. `router.HostReplace(path)` hands the document to one:
+
+```go
+ResultGuards: []router.ResultGuard{
+    func(map[string]string) router.GuardResult {
+        if !session.Valid() {
+            return router.HostReplace("/login?next=%2Fadmin")
+        }
+        return router.Allow()
+    },
+},
+```
+
+In the browser the guard chain ends there and the browser performs a real
+navigation with `location.replace`. Nothing about the refused route is
+committed first: no loader, no component, no unmount, no history entry, no DOM
+write, and no route state change. The page the user is on stays exactly as it
+is until the browser unloads it. Because the load replaces the current history
+entry, back returns to the page before the protected one rather than to the
+path the guard refused.
+
+The target must already be a rooted path on the same origin, and it is validated
+before any handoff, exactly as the guard returned it: nothing is trimmed or
+otherwise repaired first, so a string that is not a valid target is refused
+instead of being turned into one. Anything else fails closed with
+`router.ErrInvalidGuardResult` and nothing reaches the browser: another scheme,
+a scheme-relative `//host`, a backslash authority such as `/\host`, any ASCII
+control character (browsers strip tabs and newlines from a URL, which turns
+`/<tab>/host` into `//host`), a leading or trailing space, and a malformed
+percent escape. A rooted path with a query and a fragment is accepted and is
+handed over byte for byte.
+
+Cross-origin host handoff is intentionally unsupported: a guard cannot send the
+document to another origin, and there is no variant of this API that would. A
+guard stays a declaration of where navigation may go, with no side effect of its
+own, so the router remains the only thing that acts on the decision.
+
+Outside browser builds there is no document to replace and the host page is not
+a route the router can load, so `router.NavigateContext` returns a
+`*router.HostNavigationError` carrying the target and wrapping
+`router.ErrHostNavigation`. The current component, the active path and route
+data are left untouched, and navigation status goes to `error`:
+
+```go
+var host *router.HostNavigationError
+if errors.As(err, &host) {
+    // host.Path is the path the browser build would have loaded
+}
+```
 
 ## Data loaders
 

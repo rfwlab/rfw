@@ -321,6 +321,14 @@ func NavigateContext(parent context.Context, fullPath string) error {
 		failNavigation(guardErr)
 		return guardErr
 	}
+	if guardResult.Action == GuardHostReplace {
+		// There is no document to replace here, and the host page is not a
+		// route this router could load in its place. Report the handoff with
+		// its target and leave the current component and route state alone.
+		err := &HostNavigationError{Path: guardResult.Path}
+		failNavigation(err)
+		return err
+	}
 	if guardResult.Action != GuardAllow {
 		redirectCtx, err := nextRedirectContext(parent)
 		if err != nil {

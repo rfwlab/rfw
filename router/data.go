@@ -27,7 +27,27 @@ var (
 	// ErrInvalidGuardResult reports a result guard that returned an unknown
 	// action or a redirect without a usable destination.
 	ErrInvalidGuardResult = errors.New("router: invalid guard result")
+	// ErrHostNavigation reports a host handoff that the current build cannot
+	// perform. Browser builds replace the document instead of returning it.
+	ErrHostNavigation = errors.New("router: host navigation requested")
 )
+
+// HostNavigationError carries the host path a guard handed navigation to.
+// Outside browser builds there is no document to replace, so the router
+// reports the request rather than pretending the host page loaded. It wraps
+// ErrHostNavigation, so errors.Is identifies it without a type assertion.
+type HostNavigationError struct {
+	// Path is the validated rooted path the host was asked to serve.
+	Path string
+}
+
+// Error reports the handoff and the path it targets.
+func (e *HostNavigationError) Error() string {
+	return ErrHostNavigation.Error() + ": " + e.Path
+}
+
+// Unwrap returns ErrHostNavigation, the sentinel callers match on.
+func (e *HostNavigationError) Unwrap() error { return ErrHostNavigation }
 
 // GuardAction is the outcome a result guard asks the router to apply.
 type GuardAction uint8
@@ -44,10 +64,13 @@ const (
 	// GuardReplace navigates to another path in place of the current history
 	// entry, which is what a login redirect wants.
 	GuardReplace
+	// GuardHostReplace leaves the application: the browser loads the path from
+	// the host, so the router matches no route and commits nothing.
+	GuardHostReplace
 )
 
 // GuardResult is the decision a ResultGuard returns. Build it with Allow,
-// Forbid, RedirectTo or ReplaceWith rather than by hand.
+// Forbid, RedirectTo, ReplaceWith or HostReplace rather than by hand.
 type GuardResult struct {
 	Action GuardAction
 	Path   string
@@ -74,6 +97,17 @@ func RedirectTo(path string) GuardResult {
 // ReplaceWith sends navigation to path in place of the current history entry.
 func ReplaceWith(path string) GuardResult {
 	return GuardResult{Action: GuardReplace, Path: path}
+}
+
+// HostReplace hands the document to a host-owned path on the same origin, the
+// server-rendered login or session-expiry page an application does not route
+// itself. The browser loads it as a real navigation and replaces the current
+// history entry; RedirectTo and ReplaceWith stay inside the SPA and only
+// target registered routes. The path must already be rooted and same origin as
+// written, surrounding whitespace included: an external or ambiguous target
+// fails closed with ErrInvalidGuardResult.
+func HostReplace(path string) GuardResult {
+	return GuardResult{Action: GuardHostReplace, Path: path}
 }
 
 // guardEntry is one guard in evaluation order. Exactly one of its fields is
@@ -117,8 +151,8 @@ func joinGuards(parent, child []guardEntry) []guardEntry {
 
 // runGuards evaluates the chain and stops at the first guard that does not
 // allow navigation. The returned result is meaningful only when err is nil: a
-// GuardRedirect or GuardReplace action carries the validated destination, and
-// GuardAllow means the route may be loaded.
+// GuardRedirect, GuardReplace or GuardHostReplace action carries the validated
+// destination, and GuardAllow means the route may be loaded.
 func runGuards(entries []guardEntry, params map[string]string) (GuardResult, error) {
 	for _, entry := range entries {
 		if entry.legacy != nil {
@@ -138,6 +172,13 @@ func runGuards(entries []guardEntry, params map[string]string) (GuardResult, err
 			return GuardResult{}, ErrNavigationForbidden
 		case GuardRedirect, GuardReplace:
 			destination, err := guardRedirectTarget(result.Path)
+			if err != nil {
+				return GuardResult{}, err
+			}
+			result.Path = destination
+			return result, nil
+		case GuardHostReplace:
+			destination, err := guardHostReplaceTarget(result.Path)
 			if err != nil {
 				return GuardResult{}, err
 			}
@@ -165,6 +206,56 @@ func guardRedirectTarget(path string) (string, error) {
 	}
 	return destination, nil
 }
+
+// guardHostReplaceTarget validates a host handoff destination. This one is not
+// matched against a route: the browser loads it, so what matters is the URL the
+// browser ends up with after its own normalization. The string a guard returned
+// is therefore checked as it is and never repaired first: trimming would accept
+// " /login" by turning it into a different string, and the caller would have
+// handed the browser something validation never saw. A target that is not
+// already a rooted same-origin path fails closed, and an accepted one is
+// returned byte for byte.
+func guardHostReplaceTarget(path string) (string, error) {
+	if path == "" || !strings.HasPrefix(path, "/") {
+		return "", ErrInvalidGuardResult
+	}
+	// Browsers remove tabs and newlines from anywhere in a URL, so "/<tab>/host"
+	// reaches the network as "//host", and they strip C0 characters and spaces
+	// from both ends before parsing. Refuse them rather than validate a string
+	// the browser will rewrite: a leading one already fails the rooted check
+	// above, and a trailing space is the only stripped byte left to catch.
+	if strings.ContainsFunc(path, isURLControl) {
+		return "", ErrInvalidGuardResult
+	}
+	if strings.HasSuffix(path, " ") {
+		return "", ErrInvalidGuardResult
+	}
+	// A backslash is read as a slash, which turns "/\host" into a
+	// protocol-relative URL pointing somewhere else entirely.
+	if strings.ContainsRune(path, '\\') {
+		return "", ErrInvalidGuardResult
+	}
+	if strings.HasPrefix(path, "//") {
+		return "", ErrInvalidGuardResult
+	}
+	parsed, err := url.Parse(path)
+	if err != nil {
+		return "", ErrInvalidGuardResult
+	}
+	if parsed.Scheme != "" || parsed.Opaque != "" || parsed.Host != "" || parsed.User != nil {
+		return "", ErrInvalidGuardResult
+	}
+	if !strings.HasPrefix(parsed.Path, "/") {
+		return "", ErrInvalidGuardResult
+	}
+	// Parse keeps the query raw, so a malformed escape there survives it.
+	if _, err := url.ParseQuery(parsed.RawQuery); err != nil {
+		return "", ErrInvalidGuardResult
+	}
+	return path, nil
+}
+
+func isURLControl(r rune) bool { return r < 0x20 || r == 0x7f }
 
 // LoadContext describes the destination passed to a route loader.
 type LoadContext struct {
