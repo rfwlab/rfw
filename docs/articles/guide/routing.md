@@ -65,7 +65,9 @@ router.RegisterRoute(router.Route{
 - `router.Allow()` continues to the next guard and then to the route.
 - `router.Forbid()` stops navigation with `router.ErrNavigationForbidden`.
 - `router.RedirectTo(path)` navigates elsewhere and keeps a history entry for
-  the current page.
+  the current page. On an initial load or a browser back/forward, where the
+  denied path is already the current entry, it replaces that entry instead, so
+  back does not return to the page the guard refused.
 - `router.ReplaceWith(path)` navigates elsewhere in place of the current entry,
   which is what a login redirect wants: back must not return to the page the
   user was denied.

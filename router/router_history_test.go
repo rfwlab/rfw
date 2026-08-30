@@ -132,6 +132,40 @@ func TestGuardRedirectPushesHistoryEntry(t *testing.T) {
 	}
 }
 
+// A push redirect served on an initial load or a popstate replaces the denied
+// entry instead: back and forward must not run through the refused path.
+func TestGuardRedirectOnHistoryNoneReplacesEntry(t *testing.T) {
+	Reset()
+	restoreHistoryPath(t)
+
+	RegisterRoute(Route{Path: "/none-origin", Component: func() core.Component { return routeComponent{} }})
+	RegisterRoute(Route{Path: "/none-offers", Component: func() core.Component { return routeComponent{} }})
+	RegisterRoute(Route{
+		Path:         "/none-promo",
+		Component:    func() core.Component { return routeComponent{} },
+		ResultGuards: []ResultGuard{func(map[string]string) GuardResult { return RedirectTo("/none-offers") }},
+	})
+
+	Navigate("/none-origin")
+	js.History().Call("pushState", nil, "", "/none-promo")
+	before := js.History().Get("length").Int()
+
+	navigate("/none-promo", historyNone)
+
+	if got := js.Location().Get("pathname").String(); got != "/none-offers" {
+		t.Fatalf("path after the guard redirect = %q", got)
+	}
+	if got := js.History().Get("length").Int(); got != before {
+		t.Fatalf("history length changed from %d to %d", before, got)
+	}
+	if got := travelHistory(t, "back"); got != "/none-origin" {
+		t.Fatalf("back landed on %q, want /none-origin", got)
+	}
+	if got := travelHistory(t, "forward"); got != "/none-offers" {
+		t.Fatalf("forward landed on %q, want /none-offers", got)
+	}
+}
+
 // Landing directly on a protected path, the way a deep link does, ends on the
 // login route without committing the protected one.
 func TestGuardReplaceOnDeepLink(t *testing.T) {

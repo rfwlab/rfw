@@ -406,8 +406,12 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 			failNavigation(err)
 			return err
 		}
+		// A historyNone navigation (initial load or popstate) is already sitting
+		// on the denied entry, so the redirect replaces it whatever the action
+		// is: pushing would leave the refused path behind for back to return to,
+		// where the guard denies it again and bounces forward.
 		mode := historyPush
-		if guardResult.Action == GuardReplace {
+		if guardResult.Action == GuardReplace || history == historyNone {
 			mode = historyReplace
 		}
 		return navigateImpl(redirectCtx, guardResult.Path, mode)
