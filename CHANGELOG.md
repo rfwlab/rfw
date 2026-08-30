@@ -44,6 +44,19 @@ version and include migration notes.
   browser builds `NavigateContext` returns a `*router.HostNavigationError`
   carrying the target and wrapping the new `router.ErrHostNavigation`, and
   commits nothing.
+- `router.Revalidate()` and `router.RevalidateContext(ctx)`, which re-run the
+  guards of the route that is already mounted against the committed path and
+  apply their decision to it. An application whose session authority changes
+  installs the newer snapshot and then revalidates, instead of teaching each
+  page to police itself: the guards stay declarative and keep their existing
+  order and parameters. An allowed route is a true no-op; `Forbid()` and a
+  `Route.Guards` guard that now blocks unmount the routed component with its
+  scope and host registrations, clear its subtree and drop the data and
+  metadata it committed, leaving the `MountRoot` shell and the outlet mounted
+  and the committed path in place; `RedirectTo` and `ReplaceWith` replace the
+  refused history entry and route normally; `HostReplace` keeps its handoff
+  contract. With nothing mounted for the
+  committed path it does nothing, so repeating it after a refusal is a no-op.
 - `core.SetHostRegistrar`, the cleanup-capable form of `core.SetHostRegister`.
   Both remain; the legacy hook registers without a release.
 - `hostclient.RegisterComponentOwned`, the cleanup-capable form of
