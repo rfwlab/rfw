@@ -99,16 +99,50 @@ func (s *Signal[T]) Read() any {
 // so payloads that do not assert directly to T are converted through a
 // JSON round-trip into T. Payloads that cannot represent T are ignored.
 func (s *Signal[T]) SetFromHost(raw any) {
+	s.SetFromHostGated(raw, nil)
+}
+
+// SetFromHostGated sets the signal value from an untyped host payload like
+// SetFromHost, unless allow refuses the write. allow runs under the same lock
+// as the store itself, so a caller that revoked the delivery elsewhere and then
+// waited on HostWriteBarrier knows the refused frame never reached the value.
+// It must therefore only read the caller's own revocation state: it runs on the
+// hot path of every host update and must not block or call back into the
+// signal. It reports whether the value was stored, which a payload that cannot
+// represent T never is.
+func (s *Signal[T]) SetFromHostGated(raw any, allow func() bool) bool {
+	if s == nil {
+		return false
+	}
+	v, ok := hostValue[T](raw)
+	if !ok {
+		return false
+	}
+	return s.set(v, allow)
+}
+
+// HostWriteBarrier blocks until a gated host write already in flight has
+// finished. A caller that closed its gate first can then be sure no write it
+// had allowed is still on its way into the value.
+func (s *Signal[T]) HostWriteBarrier() {
 	if s == nil {
 		return
 	}
+	// Taking the value lock is the whole barrier: a gated write holds it across
+	// its permission check and its store, so once it is free that write has
+	// landed and every later one reads the revoked permission instead.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+}
+
+// hostValue converts an untyped host payload into T. The conversion happens on
+// a local value so it never touches a stored one outside the lock.
+func hostValue[T any](raw any) (T, bool) {
 	if v, ok := raw.(T); ok {
-		s.Set(v)
-		return
+		return v, true
 	}
 	if val, ok := raw.(float64); ok {
-		// Fast paths for the common numeric targets. The conversion happens
-		// on a local value so it never touches s.value outside the lock.
+		// Fast paths for the common numeric targets.
 		var conv T
 		switch p := any(&conv).(type) {
 		case *int:
@@ -136,27 +170,26 @@ func (s *Signal[T]) SetFromHost(raw any) {
 		case *float64:
 			*p = val
 		default:
-			s.setViaJSON(raw)
-			return
+			return valueFromJSON[T](raw)
 		}
-		s.Set(conv)
-		return
+		return conv, true
 	}
-	s.setViaJSON(raw)
+	return valueFromJSON[T](raw)
 }
 
-// setViaJSON converts an arbitrary decoded payload into T by re-encoding it,
+// valueFromJSON converts an arbitrary decoded payload into T by re-encoding it,
 // covering structs, slices and maps that arrive as map[string]any/[]any.
-func (s *Signal[T]) setViaJSON(raw any) {
+func valueFromJSON[T any](raw any) (T, bool) {
+	var zero T
 	blob, err := json.Marshal(raw)
 	if err != nil {
-		return
+		return zero, false
 	}
 	var v T
 	if err := json.Unmarshal(blob, &v); err != nil {
-		return
+		return zero, false
 	}
-	s.Set(v)
+	return v, true
 }
 
 // Set updates the signal's value and notifies dependent effects. Effects run
@@ -165,7 +198,18 @@ func (s *Signal[T]) Set(v T) {
 	if s == nil {
 		return
 	}
+	s.set(v, nil)
+}
+
+// set stores v and notifies, unless allow refuses the write. allow is the only
+// thing that runs under the lock beside the store, so a refusal and the write
+// it beats are one atomic step for whoever else takes that lock.
+func (s *Signal[T]) set(v T, allow func() bool) bool {
 	s.mu.Lock()
+	if allow != nil && !allow() {
+		s.mu.Unlock()
+		return false
+	}
 	s.value = v
 	snapshot := make([]*effect, 0, len(s.subs))
 	for eff := range s.subs {
@@ -176,6 +220,7 @@ func (s *Signal[T]) Set(v T) {
 		scheduleEffect(eff)
 	}
 	s.notifyOnChange(v)
+	return true
 }
 
 // OnChange registers a callback that fires whenever the signal's value changes.

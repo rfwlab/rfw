@@ -23,11 +23,46 @@ import (
 type componentBinding struct {
 	id   string
 	vars []string
+	// gate carries the registration's ownership into the host signal writes a
+	// frame makes, which happen with no binding lock held.
+	gate *deliveryGate
 }
+
+// deliveryGate is the revocation switch a registration hands to every frame
+// delivered under it. A release closes it inside the same section that drops
+// the registration and then waits out the writes it may already have allowed,
+// so a frame the read loop snapshotted before a cleanup cannot update a host
+// signal once that cleanup returned. Reading it costs one atomic load and takes
+// no lock, so a signal setter that re-enters registration or release cannot
+// deadlock against a delivery holding it.
+type deliveryGate struct{ closed atomic.Bool }
+
+// open reports whether the registration this gate belongs to is still the live
+// one. The zero binding carries no gate and owns nothing.
+func (g *deliveryGate) open() bool { return g != nil && !g.closed.Load() }
+
+func (g *deliveryGate) close() {
+	if g != nil {
+		g.closed.Store(true)
+	}
+}
+
+// gatedHostSetter is a host signal that can fold the caller's ownership check
+// into its own store, so the two are one step against a concurrent release.
+type gatedHostSetter interface {
+	SetFromHostGated(raw any, allow func() bool) bool
+}
+
+// hostSetter is the plain host signal contract, without the gate.
+type hostSetter interface{ SetFromHost(any) }
+
+// hostWriteBarrier waits out a gated write that was already allowed.
+type hostWriteBarrier interface{ HostWriteBarrier() }
 
 var (
 	conn          *hostConn
 	bindings      = map[string]componentBinding{}
+	bindingTokens = map[string]uint64{}
 	once          sync.Once
 	mu            sync.RWMutex
 	pending       []message
@@ -51,8 +86,28 @@ var (
 
 	callSequence    atomic.Uint64
 	handlerSequence atomic.Uint64
+	bindingSequence atomic.Uint64
 	callMu          sync.Mutex
 	pendingCalls    = map[string]chan actionReply{}
+
+	// bindingMu serializes host binding delivery against registration and
+	// release. A frame is validated against the live registration token and its
+	// DOM applied while it is held, so a release that returns has already waited
+	// out any in-flight DOM update and every later frame fails the token check.
+	// It is always taken before mu and never while mu is held. Host signal
+	// writes run application code and cannot be held under it; they carry the
+	// registration's deliveryGate instead, and a signal lock is never taken
+	// while either binding lock is held.
+	bindingMu sync.Mutex
+	// afterBindingSnapshot is nil outside tests and is read under mu with the
+	// binding snapshot itself. It opens the window between snapshotting a
+	// binding in the read loop and taking bindingMu, which is where a
+	// concurrent release has to win.
+	afterBindingSnapshot func(component string)
+	// beforeHostSignalWrite is nil outside tests and is read under mu. It opens
+	// the window between the ownership check a delivery makes and the write
+	// itself, the one the gate exists to close.
+	beforeHostSignalWrite func(component, name string)
 )
 
 // Host snapshots can legitimately reach several megabytes (for example, a
@@ -385,7 +440,9 @@ func readLoop(ctx context.Context, c *hostConn) error {
 		}
 		mu.RLock()
 		h, hasHandler := handlers[msg.Component]
-		b, hasBinding := bindings[msg.Component]
+		_, hasBinding := bindings[msg.Component]
+		token := bindingTokens[msg.Component]
+		barrier := afterBindingSnapshot
 		mu.RUnlock()
 		if hasHandler {
 			if msg.Session != "" {
@@ -395,41 +452,29 @@ func readLoop(ctx context.Context, c *hostConn) error {
 			continue
 		}
 		if hasBinding {
+			if barrier != nil {
+				barrier(msg.Component)
+			}
 			js.Guard("host binding: "+msg.Component, func() {
-				applyHostBinding(msg.Component, payload, b)
+				applyHostBinding(msg.Component, payload, token)
 			})
 		}
 	}
 }
 
-func applyHostBinding(component string, payload map[string]any, binding componentBinding) {
-	rootEl := dom.ComponentRoot(binding.id)
-	if !rootEl.Truthy() {
-		return
-	}
-	root := newComponentRoot(rootEl)
-	if snap := decodeInitSnapshotPayload(payload["initSnapshot"]); snap != nil {
-		applyInitSnapshot(root, snap)
-		if len(snap.Vars) > 0 {
-			binding.vars = append([]string(nil), snap.Vars...)
-			mu.Lock()
-			bindings[component] = binding
-			mu.Unlock()
-		}
-		return
-	}
+// hostSignalUpdate is one host variable a delivered frame carries, held until
+// the DOM work is done and its signal can be set outside bindingMu.
+type hostSignalUpdate struct {
+	name  string
+	value any
+}
 
-	mismatches := handleHostPayload(root, payload, func(name string, raw any) {
-		signals := dom.SnapshotComponentSignals(binding.id)
-		if signals == nil {
-			return
-		}
-		if signal, ok := signals[name]; ok {
-			if setter, ok := signal.(interface{ SetFromHost(any) }); ok {
-				setter.SetFromHost(raw)
-			}
-		}
-	})
+// applyHostBinding delivers one host frame to the binding that owns it: the DOM
+// of the root under bindingMu, then the signals and any resync with the lock
+// released, since both run code that reacquires it.
+func applyHostBinding(component string, payload map[string]any, token uint64) {
+	updates, mismatches := deliverHostFrame(component, payload, token)
+	applyHostSignals(component, token, updates)
 	if len(mismatches) == 0 {
 		return
 	}
@@ -443,6 +488,189 @@ func applyHostBinding(component string, payload map[string]any, binding componen
 	if resyncErr != nil {
 		log.Printf("hostclient: hydration circuit open, skipping resync for %s", component)
 	}
+}
+
+// deliverHostFrame updates the DOM of the root the binding owns and reports the
+// signal updates the frame carries. It runs under bindingMu and re-reads the
+// registration token there: a frame the read loop snapshotted before a cleanup
+// blocks until the release completes and then finds the token gone, so it
+// reaches neither the released root nor the replacement registered under the
+// same name. mu is taken only for the token read and the snapshot bookkeeping.
+func deliverHostFrame(component string, payload map[string]any, token uint64) ([]hostSignalUpdate, []hydrationMismatch) {
+	bindingMu.Lock()
+	defer bindingMu.Unlock()
+
+	binding, live := liveBinding(component, token)
+	if !live {
+		return nil, nil
+	}
+	rootEl := hostComponentRoot(binding.id)
+	if !rootEl.Truthy() {
+		return nil, nil
+	}
+	root := newComponentRoot(rootEl)
+	if snap := decodeInitSnapshotPayload(payload["initSnapshot"]); snap != nil {
+		applyInitSnapshot(root, snap)
+		if len(snap.Vars) > 0 {
+			binding.vars = append([]string(nil), snap.Vars...)
+			mu.Lock()
+			// Only the registration this frame was validated against may be
+			// updated: a snapshot must not reinstate a released binding nor
+			// overwrite a newer one.
+			if bindingTokens[component] == token {
+				bindings[component] = binding
+			}
+			mu.Unlock()
+		}
+		return nil, nil
+	}
+
+	var updates []hostSignalUpdate
+	mismatches := handleHostPayload(root, payload, func(name string, raw any) {
+		updates = append(updates, hostSignalUpdate{name: name, value: raw})
+	})
+	return updates, mismatches
+}
+
+// applyHostSignals pushes a delivered frame into the component's host signals.
+// A setter runs application code, which may register or release a host binding
+// in turn, so it must not run under bindingMu. The registration's gate carries
+// the ownership check into the write instead: the signal evaluates it under the
+// same lock it stores the value with, so a release either refused the write or
+// waited it out before returning, and neither side holds a binding lock while
+// application code runs.
+func applyHostSignals(component string, token uint64, updates []hostSignalUpdate) {
+	if len(updates) == 0 {
+		return
+	}
+	binding, live := liveBinding(component, token)
+	if !live {
+		return
+	}
+	signals := dom.SnapshotComponentSignals(binding.id)
+	if len(signals) == 0 {
+		return
+	}
+	hook := hostSignalWriteHook()
+	for _, update := range updates {
+		signal, ok := signals[update.name]
+		if !ok {
+			continue
+		}
+		if hook != nil {
+			hook(component, update.name)
+		}
+		if !applyHostSignal(signal, binding.gate, update.value) {
+			// The registration was released mid-frame: the rest of the frame
+			// was addressed to it too.
+			return
+		}
+	}
+}
+
+// applyHostSignal writes one update and reports whether the registration was
+// still live for it. A signal that predates the gated setter cannot fold the
+// check into its store, so it is checked before the write instead, which leaves
+// the window the gate exists to close.
+func applyHostSignal(signal any, gate *deliveryGate, value any) bool {
+	if gated, ok := signal.(gatedHostSetter); ok {
+		if gated.SetFromHostGated(value, gate.open) {
+			return true
+		}
+		// A refused write is either a revoked registration or a payload the
+		// signal cannot represent; only the first one ends the frame.
+		return gate.open()
+	}
+	setter, ok := signal.(hostSetter)
+	if !ok {
+		return true
+	}
+	if !gate.open() {
+		return false
+	}
+	setter.SetFromHost(value)
+	return true
+}
+
+// fenceHostSignalWrites waits out the host signal writes a now closed gate had
+// already allowed. Each barrier takes only that signal's own value lock, which
+// never covers application code, so a release re-entered from a setter never
+// waits on itself. It covers the signals the component still has registered,
+// which is why core unmounts a component by releasing its host bindings before
+// it drops its signals.
+func fenceHostSignalWrites(id string) {
+	if id == "" {
+		return
+	}
+	for _, signal := range dom.SnapshotComponentSignals(id) {
+		if barrier, ok := signal.(hostWriteBarrier); ok {
+			barrier.HostWriteBarrier()
+		}
+	}
+}
+
+func hostSignalWriteHook() func(component, name string) {
+	mu.RLock()
+	defer mu.RUnlock()
+	return beforeHostSignalWrite
+}
+
+// liveBinding returns the binding still registered under token. A token that no
+// longer matches means the registration was released or replaced, so the caller
+// owns nothing to update.
+func liveBinding(component string, token uint64) (componentBinding, bool) {
+	mu.RLock()
+	defer mu.RUnlock()
+	if bindingTokens[component] != token {
+		return componentBinding{}, false
+	}
+	binding, bound := bindings[component]
+	return binding, bound
+}
+
+// hostComponentRoot resolves the exact root a binding owns. dom.ComponentRoot
+// falls back to #app when the id matches nothing, which for host delivery would
+// mean a frame addressed to an unmounted component writing into the application
+// shell or into whatever mounted after it. A missing root is a frame to ignore.
+// RegisterComponent is public and takes any id, so the id never reaches a
+// selector unescaped: a quote or a bracket in it would otherwise throw a
+// DOMException out of querySelector, or select a root the caller never owned.
+func hostComponentRoot(id string) dom.Element {
+	if id == "" {
+		return dom.Element{Value: js.Null()}
+	}
+	if selector, ok := componentIDSelector(id); ok {
+		return dom.Doc().Query(selector)
+	}
+	return scanComponentRoot(id)
+}
+
+// componentIDSelector builds the attribute selector for id and leaves the
+// escaping rules to the browser. CSS.escape returns an identifier, which is
+// what the value position of an attribute selector accepts.
+func componentIDSelector(id string) (string, bool) {
+	css := js.Get("CSS")
+	if !css.Truthy() || css.Get("escape").Type() != js.TypeFunction {
+		return "", false
+	}
+	return "[data-component-id=" + css.Call("escape", id).String() + "]", true
+}
+
+// scanComponentRoot is the fallback for a runtime without CSS.escape: the
+// candidates are selected on the bare attribute and compared on its value, so
+// no part of the id is ever parsed as a selector.
+func scanComponentRoot(id string) dom.Element {
+	roots := dom.Doc().QueryAll("[data-component-id]")
+	if !roots.Truthy() {
+		return dom.Element{Value: js.Null()}
+	}
+	for index := 0; index < roots.Length(); index++ {
+		candidate := roots.Index(index)
+		if candidate.Attr("data-component-id") == id {
+			return candidate
+		}
+	}
+	return dom.Element{Value: js.Null()}
 }
 
 func prepareInboundDelivery(remoteSession, control string) {
@@ -461,19 +689,126 @@ func prepareInboundDelivery(remoteSession, control string) {
 	deliveryMu.Unlock()
 }
 
-// RegisterComponent binds a client component to a host component name.
+// RegisterComponent binds a client component to a host component name. The
+// binding lives until another registration replaces it. Use
+// RegisterComponentOwned when the caller has to release the binding again, for
+// instance because its component can unmount.
 func RegisterComponent(id, name string, vars []string) {
-	mu.Lock()
-	bindings[name] = componentBinding{id: id, vars: vars}
-	current := conn
-	if current == nil {
-		pending = append(pending, message{name: name, payload: map[string]any{"init": true}})
+	registerComponent(id, name, vars)
+}
+
+// RegisterComponentOwned binds like RegisterComponent and returns an idempotent
+// cleanup that owns the binding's lifecycle. Releasing removes the binding from
+// reconnect hydration and tells the active host session to stop broadcasts for
+// the component; once the cleanup returns, no frame still in flight and no
+// later frame can update the root it owned or write into its host signals. A
+// stale cleanup closure never removes a newer binding registered under the same
+// name. The cleanup is safe to call from a host signal setter, which is where a
+// component that unmounts on an update ends up calling it.
+func RegisterComponentOwned(id, name string, vars []string) func() {
+	token := registerComponent(id, name, vars)
+	var once sync.Once
+	return func() {
+		once.Do(func() { releaseComponent(name, token) })
 	}
+}
+
+// registerComponent installs the binding and returns the token identifying this
+// registration. Delivery validates against it, so registering also invalidates
+// the cleanup of the binding it replaced.
+func registerComponent(id, name string, vars []string) uint64 {
+	token := bindingSequence.Add(1)
+	bindingMu.Lock()
+	mu.Lock()
+	previous := bindings[name]
+	bindings[name] = componentBinding{id: id, vars: vars, gate: &deliveryGate{}}
+	bindingTokens[name] = token
+	current := conn
+	recordPendingControl(name, map[string]any{"init": true}, current)
 	mu.Unlock()
+	// The registration this one replaces stops being deliverable here. Its
+	// frames already fail the token check; closing its gate stops one that was
+	// snapshotted before the replacement from writing a signal on its way out.
+	previous.gate.close()
+	bindingMu.Unlock()
 	connect()
 	if current != nil {
 		sendMessage(current, message{name: name, payload: map[string]any{"init": true}})
 	}
+	return token
+}
+
+func releaseComponent(name string, token uint64) {
+	bindingMu.Lock()
+	mu.Lock()
+	if bindingTokens[name] != token {
+		mu.Unlock()
+		bindingMu.Unlock()
+		return
+	}
+	binding := bindings[name]
+	delete(bindings, name)
+	delete(bindingTokens, name)
+	current := conn
+	recordPendingControl(name, map[string]any{"unsubscribe": true}, current)
+	mu.Unlock()
+	// Closing the gate in the section that dropped the registration means no
+	// delivery can read it open again afterwards.
+	binding.gate.close()
+	// Every delivery for this binding is now either finished or bound to fail
+	// its token check, so the unsubscribe can go out without the lock.
+	bindingMu.Unlock()
+
+	// The root is safe by now, the signals are not: a frame that read the gate
+	// open before it closed may be committing a write. Waiting that write out,
+	// with no binding lock held, is what makes the cleanup final.
+	fenceHostSignalWrites(binding.id)
+
+	if current != nil {
+		sendMessage(current, message{name: name, payload: map[string]any{"unsubscribe": true}})
+	}
+}
+
+// recordPendingControl keeps the reconnect queue holding one registration
+// control per host component, the latest desired state: a registration
+// supersedes a queued unsubscribe and a release supersedes a queued init, so
+// route churn while offline cannot retain one message per cycle. The control
+// the caller just decided on is queued only when there is no connection to send
+// it on; a superseded one is dropped either way, since sending the new state
+// makes replaying the old one wrong.
+//
+// The new state takes the queue position of the control it supersedes rather
+// than the tail: everything else in the queue, the controls of other names and
+// this name's own messages, keeps the order it was queued in, so a reconnect
+// replays the component's init before the command that assumed it.
+// It must be called with mu held.
+func recordPendingControl(name string, payload map[string]any, current *hostConn) {
+	replaced := false
+	filtered := pending[:0]
+	for _, queued := range pending {
+		if queued.name != name || !isRegistrationControl(queued.payload) {
+			filtered = append(filtered, queued)
+			continue
+		}
+		if current != nil || replaced {
+			continue
+		}
+		queued.payload = payload
+		filtered = append(filtered, queued)
+		replaced = true
+	}
+	pending = filtered
+	if current == nil && !replaced {
+		pending = append(pending, message{name: name, payload: payload})
+	}
+}
+
+func isRegistrationControl(payload any) bool {
+	values, ok := payload.(map[string]any)
+	if !ok {
+		return false
+	}
+	return values["init"] == true || values["unsubscribe"] == true
 }
 
 // EnableSendDedup turns on payload-based deduplication for the named channel:
@@ -533,9 +868,7 @@ func RegisterHandler(name string, h func(map[string]any)) func() {
 	handlers[name] = h
 	handlerTokens[name] = token
 	current := conn
-	if current == nil {
-		pending = append(pending, message{name: name, payload: map[string]any{"init": true}})
-	}
+	recordPendingControl(name, map[string]any{"init": true}, current)
 	mu.Unlock()
 	connect()
 	if current != nil {
@@ -551,32 +884,15 @@ func RegisterHandler(name string, h func(map[string]any)) func() {
 			}
 			delete(handlers, name)
 			delete(handlerTokens, name)
-			filtered := pending[:0]
-			for _, queued := range pending {
-				if queued.name == name && isInitPayload(queued.payload) {
-					continue
-				}
-				filtered = append(filtered, queued)
-			}
-			pending = filtered
 			current := conn
+			recordPendingControl(name, map[string]any{"unsubscribe": true}, current)
 			mu.Unlock()
 
-			unsubscribe := message{name: name, payload: map[string]any{"unsubscribe": true}}
 			if current != nil {
-				sendMessage(current, unsubscribe)
-				return
+				sendMessage(current, message{name: name, payload: map[string]any{"unsubscribe": true}})
 			}
-			mu.Lock()
-			pending = append(pending, unsubscribe)
-			mu.Unlock()
 		})
 	}
-}
-
-func isInitPayload(payload any) bool {
-	values, ok := payload.(map[string]any)
-	return ok && values["init"] == true
 }
 
 // SessionID returns the current SSC session ID.

@@ -5,6 +5,7 @@ package ssc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -254,6 +255,97 @@ func TestSSCServerResumesAtSessionLimit(t *testing.T) {
 		t.Fatalf("session state was not retained: %#v", second.Payload)
 	}
 	if session, ok := host.SessionByID(first.Session); ok {
+		host.ReleaseSession(session)
+	}
+}
+
+// The ssc handler opens sessions through the same runtime as the bundled host,
+// so a resume authorizer configured on the server refuses a token presented by
+// another identity there too.
+func TestSSCServerRefusesUnauthorizedResume(t *testing.T) {
+	const identityHeader = "X-Test-User"
+	type request struct{}
+	const action = "test.ssc.resume.identity"
+	if err := host.RegisterAction(action, func(_ context.Context, session *host.Session, _ request) (string, error) {
+		user, _ := session.ContextGet("user")
+		text, _ := user.(string)
+		return text, nil
+	}); err != nil {
+		t.Fatalf("register action: %v", err)
+	}
+
+	server := httptest.NewServer(NewSSCServer(":0", t.TempDir(),
+		host.WithSSCLimits(host.SSCLimits{ResumeTTL: 5 * time.Second, ReplayMessages: 8}),
+		host.WithSSCSessionInitializer(func(r *http.Request, session *host.Session) error {
+			session.ContextSet("user", r.Header.Get(identityHeader))
+			return nil
+		}),
+		host.WithSSCResumeAuthorizer(func(r *http.Request, session *host.Session) error {
+			user, _ := session.ContextGet("user")
+			if user != r.Header.Get(identityHeader) {
+				return errors.New("resume denied")
+			}
+			return nil
+		}),
+	).Mux)
+	defer server.Close()
+
+	dial := func(user string) *websocket.Conn {
+		config, err := websocket.NewConfig("ws"+strings.TrimPrefix(server.URL, "http")+"/ws", server.URL)
+		if err != nil {
+			t.Fatalf("websocket config: %v", err)
+		}
+		config.Header.Set(identityHeader, user)
+		socket, err := websocket.DialConfig(config)
+		if err != nil {
+			t.Fatalf("dial websocket: %v", err)
+		}
+		return socket
+	}
+	send := func(socket *websocket.Conn, msg host.Inbound) {
+		t.Helper()
+		if err := websocket.JSON.Send(socket, msg); err != nil {
+			t.Fatalf("send %#v: %v", msg, err)
+		}
+	}
+	receive := func(socket *websocket.Conn) host.Outbound {
+		t.Helper()
+		if err := socket.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+			t.Fatalf("set read deadline: %v", err)
+		}
+		var out host.Outbound
+		if err := websocket.JSON.Receive(socket, &out); err != nil {
+			t.Fatalf("receive: %v", err)
+		}
+		return out
+	}
+
+	ownerSocket := dial("alice")
+	send(ownerSocket, host.Inbound{Action: action, ID: "alice", Sequence: 1})
+	owner := receive(ownerSocket)
+	if owner.Payload != "alice" || owner.ResumeToken == "" {
+		t.Fatalf("session identity was not bound: %#v", owner)
+	}
+	closeTestResource(t, ownerSocket)
+
+	intruderSocket := dial("mallory")
+	defer closeTestResource(t, intruderSocket)
+	send(intruderSocket, host.Inbound{
+		Action:      action,
+		ID:          "mallory",
+		Sequence:    1,
+		Ack:         owner.Sequence,
+		ResumeToken: owner.ResumeToken,
+	})
+	rejected := receive(intruderSocket)
+	if rejected.Control != "resume_rejected" || rejected.Session == owner.Session {
+		t.Fatalf("foreign token was not refused: %#v", rejected)
+	}
+	response := receive(intruderSocket)
+	if response.Payload != "mallory" || response.Session == owner.Session {
+		t.Fatalf("refused client did not get its own session: %#v", response)
+	}
+	if session, ok := host.SessionByID(owner.Session); ok {
 		host.ReleaseSession(session)
 	}
 }

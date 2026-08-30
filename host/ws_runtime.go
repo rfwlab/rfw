@@ -43,17 +43,23 @@ type MessageAuthorizer func(context.Context, *Session, Inbound) error
 // SessionInitializer copies authenticated request state into a new session.
 type SessionInitializer func(*http.Request, *Session) error
 
+// ResumeAuthorizer decides whether an upgrade request may reattach a retained
+// session. It receives the new request and the detached session the presented
+// token identifies, and returns a non-nil error to refuse the reattachment.
+type ResumeAuthorizer func(*http.Request, *Session) error
+
 // MuxOption configures the WebSocket endpoint created by NewMux.
 type MuxOption func(*WSRuntime)
 
 // WSRuntime holds the guards, limits, and connection count for one endpoint.
 type WSRuntime struct {
-	authFunc    func(*http.Request) bool
-	origins     []string
-	authorize   MessageAuthorizer
-	initialize  SessionInitializer
-	limits      SSCLimits
-	connections atomic.Int64
+	authFunc        func(*http.Request) bool
+	origins         []string
+	authorize       MessageAuthorizer
+	initialize      SessionInitializer
+	authorizeResume ResumeAuthorizer
+	limits          SSCLimits
+	connections     atomic.Int64
 }
 
 // NewWSRuntime resolves MuxOptions into an endpoint runtime.
@@ -83,8 +89,27 @@ func WithSSCAuthorizer(authorize MessageAuthorizer) MuxOption {
 }
 
 // WithSSCSessionInitializer initializes session identity from the upgrade request.
+// It runs for new sessions only; a resumed session keeps the identity bound
+// when it was created, so use WithSSCResumeAuthorizer to decide who may
+// reattach it.
 func WithSSCSessionInitializer(initialize SessionInitializer) MuxOption {
 	return func(runtime *WSRuntime) { runtime.initialize = initialize }
+}
+
+// WithSSCResumeAuthorizer authorizes reattachment of a retained session.
+// The callback compares the authenticated upgrade request with the session it
+// would resume (identity bound by the session initializer, revocation state,
+// anything else the deployment tracks) and returns an error to refuse.
+//
+// A refusal leaves the retained session untouched and detached, so its owner
+// can still resume it while its TTL lasts, and the caller is served a fresh
+// session exactly like an unknown token.
+//
+// Without this option any client presenting a valid token resumes the session,
+// which is the historical behavior. An authenticated multi-user deployment must
+// configure a resume authorizer or disable resume with WithoutSSCResume.
+func WithSSCResumeAuthorizer(authorize ResumeAuthorizer) MuxOption {
+	return func(runtime *WSRuntime) { runtime.authorizeResume = authorize }
 }
 
 // WithSSCLimits overrides non-zero SSC resource limits.
@@ -215,13 +240,34 @@ func (runtime *WSRuntime) NewSession(request *http.Request) (*Session, error) {
 	return session, nil
 }
 
-// OpenSession resumes a retained session before allocating a new one.
+// OpenSession resumes a retained session before allocating a new one. A token
+// the request is not allowed to reattach is treated like an unresumable one:
+// the caller gets a new session and the retained one stays available to its
+// owner.
 func (runtime *WSRuntime) OpenSession(request *http.Request, resumeToken string) (*Session, bool, error) {
-	if resumed, ok := ResumeSession(resumeToken); ok {
+	if resumed, ok := runtime.resumeSession(request, resumeToken); ok {
 		return resumed, true, nil
 	}
 	session, err := runtime.NewSession(request)
 	return session, false, err
+}
+
+// resumeSession authorizes a reattachment before any session state changes.
+func (runtime *WSRuntime) resumeSession(request *http.Request, resumeToken string) (*Session, bool) {
+	if runtime == nil || runtime.authorizeResume == nil {
+		return ResumeSession(resumeToken)
+	}
+	candidate, ok := resumeCandidate(resumeToken)
+	if !ok {
+		return nil, false
+	}
+	if err := runtime.authorizeResume(request, candidate); err != nil {
+		return nil, false
+	}
+	if !commitResume(resumeToken, candidate) {
+		return nil, false
+	}
+	return candidate, true
 }
 
 // Authorize validates a decoded message.

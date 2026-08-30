@@ -164,28 +164,76 @@ func SuspendSession(session *Session, ttl time.Duration) {
 // ResumeSession attaches a disconnected session by opaque token.
 // The new socket must call ReplaySession or BindSessionConnection before sends.
 func ResumeSession(token string) (*Session, bool) {
-	if token == "" {
-		return nil, false
-	}
-	sessionMu.RLock()
-	session := sessionByToken[token]
-	sessionMu.RUnlock()
+	session := sessionForToken(token)
 	if session == nil {
 		return nil, false
 	}
 	session.deliveryMu.Lock()
 	defer session.deliveryMu.Unlock()
-	if session.released || session.attached || (!session.expires.IsZero() && time.Now().After(session.expires)) {
+	if !session.resumableLocked() {
 		return nil, false
 	}
-	session.attached = true
-	session.resumePending = true
-	session.expires = time.Time{}
-	if session.expiryTimer != nil {
-		session.expiryTimer.Stop()
-		session.expiryTimer = nil
+	session.markResumedLocked()
+	return session, true
+}
+
+// resumeCandidate reports the session a token can currently resume without
+// mutating it, so an authorization decision can be taken before the session is
+// attached, its expiry cleared or its connection replaced.
+func resumeCandidate(token string) (*Session, bool) {
+	session := sessionForToken(token)
+	if session == nil {
+		return nil, false
+	}
+	session.deliveryMu.Lock()
+	defer session.deliveryMu.Unlock()
+	if !session.resumableLocked() {
+		return nil, false
 	}
 	return session, true
+}
+
+// commitResume attaches a candidate that authorization approved. It fails
+// closed when the token stopped mapping to that exact session or the session is
+// no longer resumable, so a concurrent attempt cannot reattach a session other
+// than the one that was authorized.
+func commitResume(token string, candidate *Session) bool {
+	if candidate == nil || sessionForToken(token) != candidate {
+		return false
+	}
+	candidate.deliveryMu.Lock()
+	defer candidate.deliveryMu.Unlock()
+	if !candidate.resumableLocked() {
+		return false
+	}
+	candidate.markResumedLocked()
+	return true
+}
+
+func sessionForToken(token string) *Session {
+	if token == "" {
+		return nil
+	}
+	sessionMu.RLock()
+	defer sessionMu.RUnlock()
+	return sessionByToken[token]
+}
+
+// resumableLocked reports whether a detached session can still be reattached.
+func (s *Session) resumableLocked() bool {
+	return !s.released && !s.attached &&
+		(s.expires.IsZero() || !time.Now().After(s.expires))
+}
+
+// markResumedLocked attaches the session and cancels its retention timer.
+func (s *Session) markResumedLocked() {
+	s.attached = true
+	s.resumePending = true
+	s.expires = time.Time{}
+	if s.expiryTimer != nil {
+		s.expiryTimer.Stop()
+		s.expiryTimer = nil
+	}
 }
 
 // ReleaseSession removes a session from the registry.

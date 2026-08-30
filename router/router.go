@@ -36,10 +36,13 @@ type Route struct {
 	Name      string
 	Component any
 	Guards    []Guard
-	Children  []Route
-	Loader    Loader
-	Redirect  string
-	Meta      map[string]any
+	// ResultGuards run after Guards for this route and can redirect or forbid
+	// instead of only blocking.
+	ResultGuards []ResultGuard
+	Children     []Route
+	Loader       Loader
+	Redirect     string
+	Meta         map[string]any
 }
 
 // Singleton wraps a pre-created View into a Route.Component value.
@@ -59,7 +62,7 @@ type route struct {
 	loader     func() core.Component
 	singleton  bool
 	children   []route
-	guards     []Guard
+	guards     []guardEntry
 	dataLoader Loader
 	redirect   string
 	meta       map[string]any
@@ -183,7 +186,7 @@ func buildRouteAt(r Route, parent string) route {
 		matchNames: matchNames,
 		loader:     loader,
 		singleton:  singleton,
-		guards:     r.Guards,
+		guards:     routeGuardEntries(r.Guards, r.ResultGuards),
 		dataLoader: r.Loader,
 		redirect:   r.Redirect,
 		meta:       cloneMeta(r.Meta),
@@ -248,13 +251,13 @@ type routeParamReceiver interface {
 	SetRouteParams(map[string]string)
 }
 
-func matchRoute(routes []route, path string) (*route, []Guard, map[string]string) {
+func matchRoute(routes []route, path string) (*route, []guardEntry, map[string]string) {
 	for i := range routes {
 		r := &routes[i]
 		matches := r.regex.FindStringSubmatch(path)
 		if matches == nil {
 			if child, guards, params := matchRoute(r.children, path); child != nil {
-				return child, append(r.guards, guards...), params
+				return child, joinGuards(r.guards, guards), params
 			}
 			continue
 		}
@@ -265,7 +268,7 @@ func matchRoute(routes []route, path string) (*route, []Guard, map[string]string
 			}
 		}
 		if child, guards, childParams := matchRoute(r.children, path); child != nil {
-			return child, append(r.guards, guards...), childParams
+			return child, joinGuards(r.guards, guards), childParams
 		}
 		matchedPath := strings.TrimSuffix(matches[0], "/")
 		if (r.loader != nil || r.redirect != "") && matchedPath == strings.TrimSuffix(path, "/") {
@@ -384,13 +387,30 @@ func navigateImpl(parent context.Context, fullPath string, history historyMode) 
 	for key, value := range queryParams {
 		params[key] = value
 	}
-	for _, g := range guards {
-		if !g(params) {
+	// Guards decide before anything commits: no loader, no component, no
+	// unmount, no history entry runs for a destination they refuse.
+	guardResult, guardErr := runGuards(guards, params)
+	if guardErr != nil {
+		if guardErr == ErrNavigationBlocked {
 			if currentComponent == nil && path != "/" {
 				navigate("/", history)
 			}
-			return ErrNavigationBlocked
+			return guardErr
 		}
+		failNavigation(guardErr)
+		return guardErr
+	}
+	if guardResult.Action != GuardAllow {
+		redirectCtx, err := nextRedirectContext(parent)
+		if err != nil {
+			failNavigation(err)
+			return err
+		}
+		mode := historyPush
+		if guardResult.Action == GuardReplace {
+			mode = historyReplace
+		}
+		return navigateImpl(redirectCtx, guardResult.Path, mode)
 	}
 
 	if r.redirect != "" {
