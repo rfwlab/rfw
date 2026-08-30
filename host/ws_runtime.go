@@ -16,6 +16,8 @@ type SSCLimits struct {
 	MaxSessions       int
 	MessagesPerMinute int
 	HandlerTimeout    time.Duration
+	WriteTimeout      time.Duration
+	OutboundQueueSize int
 	ResumeTTL         time.Duration
 	ReplayMessages    int
 }
@@ -28,6 +30,8 @@ func DefaultSSCLimits() SSCLimits {
 		MaxSessions:       8192,
 		MessagesPerMinute: 600,
 		HandlerTimeout:    15 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		OutboundQueueSize: 64,
 		ResumeTTL:         2 * time.Minute,
 		ReplayMessages:    256,
 	}
@@ -101,6 +105,12 @@ func WithSSCLimits(limits SSCLimits) MuxOption {
 		if limits.HandlerTimeout > 0 {
 			runtime.limits.HandlerTimeout = limits.HandlerTimeout
 		}
+		if limits.WriteTimeout > 0 {
+			runtime.limits.WriteTimeout = limits.WriteTimeout
+		}
+		if limits.OutboundQueueSize > 0 {
+			runtime.limits.OutboundQueueSize = limits.OutboundQueueSize
+		}
 		if limits.ResumeTTL > 0 {
 			runtime.limits.ResumeTTL = limits.ResumeTTL
 		}
@@ -171,11 +181,15 @@ func (runtime *WSRuntime) ReleaseConnection() {
 	}
 }
 
-// ConfigureConnection applies the frame-size limit.
+// ConfigureConnection applies frame and outbound delivery limits.
 func (runtime *WSRuntime) ConfigureConnection(ws *websocket.Conn) {
-	if runtime != nil && runtime.limits.MaxMessageBytes > 0 {
+	if runtime == nil {
+		return
+	}
+	if runtime.limits.MaxMessageBytes > 0 {
 		ws.MaxPayloadBytes = runtime.limits.MaxMessageBytes
 	}
+	configureConnectionWriter(ws, runtime.limits.WriteTimeout, runtime.limits.OutboundQueueSize)
 }
 
 // NewSession allocates and initializes a resumable session.

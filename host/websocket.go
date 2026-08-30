@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	"golang.org/x/net/websocket"
 )
@@ -30,7 +31,148 @@ var (
 	connections = make(map[string]map[*websocket.Conn]*Session)
 	connMu      sync.RWMutex
 	connWrites  sync.Map
+	connWriters sync.Map
 )
+
+type connectionWriter struct {
+	ws           *websocket.Conn
+	writeTimeout time.Duration
+	queue        chan []Outbound
+	resync       chan struct{}
+	done         chan struct{}
+
+	mu      sync.Mutex
+	stopped bool
+	writing bool
+}
+
+func configureConnectionWriter(ws *websocket.Conn, writeTimeout time.Duration, queueSize int) {
+	if ws == nil || queueSize <= 0 {
+		return
+	}
+	writer := &connectionWriter{
+		ws:           ws,
+		writeTimeout: writeTimeout,
+		queue:        make(chan []Outbound, queueSize),
+		resync:       make(chan struct{}, 1),
+		done:         make(chan struct{}),
+	}
+	if _, loaded := connWriters.LoadOrStore(ws, writer); loaded {
+		return
+	}
+	go writer.run()
+}
+
+func (writer *connectionWriter) run() {
+writerLoop:
+	for {
+		select {
+		case <-writer.resync:
+			writer.sendResyncRequired()
+			return
+		case <-writer.done:
+			return
+		default:
+		}
+
+		select {
+		case <-writer.resync:
+			writer.sendResyncRequired()
+			return
+		case <-writer.done:
+			return
+		case batch := <-writer.queue:
+			for _, out := range batch {
+				if !writer.beginWrite() {
+					continue writerLoop
+				}
+				if err := sendOutboundUnlocked(writer.ws, out, writer.writeTimeout); err != nil {
+					writer.endWrite()
+					log.Printf("send: %v", err)
+					writer.stopAndClose()
+					return
+				}
+				writer.endWrite()
+			}
+		}
+	}
+}
+
+func (writer *connectionWriter) beginWrite() bool {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	if writer.stopped {
+		return false
+	}
+	writer.writing = true
+	return true
+}
+
+func (writer *connectionWriter) endWrite() {
+	writer.mu.Lock()
+	writer.writing = false
+	writer.mu.Unlock()
+}
+
+func (writer *connectionWriter) enqueue(batch func() []Outbound) bool {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	if writer.stopped {
+		return false
+	}
+
+	messages := batch()
+	select {
+	case writer.queue <- messages:
+		return true
+	default:
+		writer.stopped = true
+		writer.resync <- struct{}{}
+		return false
+	}
+}
+
+func (writer *connectionWriter) sendResyncRequired() {
+	writer.mu.Lock()
+	writer.writing = true
+	writer.mu.Unlock()
+	err := sendOutboundUnlocked(writer.ws, Outbound{
+		Control: "resync_required",
+		Error:   NewActionError("resync_required", "outbound delivery could not keep up"),
+	}, writer.writeTimeout)
+	if err != nil {
+		log.Printf("send resync_required: %v", err)
+	}
+	writer.endWrite()
+	writer.close(true)
+}
+
+func (writer *connectionWriter) stopAndClose() {
+	writer.mu.Lock()
+	writer.stopped = true
+	writer.mu.Unlock()
+	writer.close(false)
+}
+
+func (writer *connectionWriter) close(resetDeadline bool) {
+	if resetDeadline && writer.writeTimeout > 0 {
+		_ = writer.ws.SetWriteDeadline(time.Now().Add(writer.writeTimeout))
+	}
+	if err := writer.ws.Close(); err != nil {
+		logger.Debug("close outbound websocket", "error", err)
+	}
+}
+
+func (writer *connectionWriter) forget() {
+	writer.mu.Lock()
+	writer.stopped = true
+	writing := writer.writing
+	close(writer.done)
+	writer.mu.Unlock()
+	if writing {
+		_ = writer.ws.SetWriteDeadline(time.Now())
+	}
+}
 
 // AnswerControl replies to an out-of-band control frame and reports whether it
 // consumed the message.
@@ -281,18 +423,34 @@ func ReplaySession(ws *websocket.Conn, session *Session, acknowledged uint64) {
 	if !accepted {
 		return
 	}
+	if writerValue, ok := connWriters.Load(ws); ok {
+		writerValue.(*connectionWriter).enqueue(func() []Outbound {
+			messages, err := session.ReplayAfter(acknowledged)
+			if err != nil {
+				return []Outbound{session.PrepareOutbound(Outbound{
+					Error: NewActionError("resync_required", "message history is no longer available"),
+				})}
+			}
+			return messages
+		})
+		return
+	}
 	lock := connectionWriteLock(ws)
 	lock.Lock()
 	defer lock.Unlock()
 	messages, err := session.ReplayAfter(acknowledged)
 	if err != nil {
-		sendOutboundUnlocked(ws, session.PrepareOutbound(Outbound{
+		_ = sendOutboundUnlocked(ws, session.PrepareOutbound(Outbound{
 			Error: NewActionError("resync_required", "message history is no longer available"),
-		}))
+		}), DefaultSSCLimits().WriteTimeout)
 		return
 	}
 	for _, message := range messages {
-		sendOutboundUnlocked(ws, message)
+		if err := sendOutboundUnlocked(ws, message, DefaultSSCLimits().WriteTimeout); err != nil {
+			log.Printf("send replay: %v", err)
+			_ = ws.Close()
+			return
+		}
 	}
 }
 
@@ -313,10 +471,19 @@ func SendSessionOutbound(ws *websocket.Conn, session *Session, out Outbound) {
 		}
 		return
 	}
+	if writerValue, ok := connWriters.Load(ws); ok {
+		writerValue.(*connectionWriter).enqueue(func() []Outbound {
+			return []Outbound{session.PrepareOutbound(out)}
+		})
+		return
+	}
 	lock := connectionWriteLock(ws)
 	lock.Lock()
 	defer lock.Unlock()
-	sendOutboundUnlocked(ws, session.PrepareOutbound(out))
+	if err := sendOutboundUnlocked(ws, session.PrepareOutbound(out), DefaultSSCLimits().WriteTimeout); err != nil {
+		log.Printf("send: %v", err)
+		_ = ws.Close()
+	}
 }
 
 // BindSessionConnection marks ws as the active connection for session delivery.
@@ -361,12 +528,22 @@ func sessionAcceptsConnection(session *Session, ws *websocket.Conn, handoff bool
 	return true, false
 }
 
-// SendOutbound serializes writes per connection.
+// SendOutbound queues a write on configured connections and otherwise writes
+// synchronously with the default deadline.
 func SendOutbound(ws *websocket.Conn, out Outbound) {
+	if writerValue, ok := connWriters.Load(ws); ok {
+		writerValue.(*connectionWriter).enqueue(func() []Outbound {
+			return []Outbound{out}
+		})
+		return
+	}
 	lock := connectionWriteLock(ws)
 	lock.Lock()
 	defer lock.Unlock()
-	sendOutboundUnlocked(ws, out)
+	if err := sendOutboundUnlocked(ws, out, DefaultSSCLimits().WriteTimeout); err != nil {
+		log.Printf("send: %v", err)
+		_ = ws.Close()
+	}
 }
 
 func connectionWriteLock(ws *websocket.Conn) *sync.Mutex {
@@ -374,17 +551,29 @@ func connectionWriteLock(ws *websocket.Conn) *sync.Mutex {
 	return lockValue.(*sync.Mutex)
 }
 
-func sendOutboundUnlocked(ws *websocket.Conn, out Outbound) {
+func sendOutboundUnlocked(ws *websocket.Conn, out Outbound, writeTimeout time.Duration) error {
 	b, err := json.Marshal(out)
 	if err != nil {
-		return
+		return err
+	}
+	if writeTimeout > 0 {
+		if err := ws.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+			return err
+		}
 	}
 	if err := websocket.Message.Send(ws, b); err != nil {
-		log.Printf("send: %v", err)
+		return err
 	}
+	if writeTimeout > 0 {
+		return ws.SetWriteDeadline(time.Time{})
+	}
+	return nil
 }
 
-// ForgetConnection releases the connection write lock.
+// ForgetConnection releases the connection's outbound delivery resources.
 func ForgetConnection(ws *websocket.Conn) {
+	if writerValue, ok := connWriters.LoadAndDelete(ws); ok {
+		writerValue.(*connectionWriter).forget()
+	}
 	connWrites.Delete(ws)
 }

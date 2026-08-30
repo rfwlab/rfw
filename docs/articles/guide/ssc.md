@@ -131,8 +131,8 @@ host.ListenAndServeWithMux(":8080", mux)
 adds an event bus (`ssc.SubscribeSSC`) fed by every inbound message.
 
 `host.WithSSCLimits` overrides frame size, connection count, per-session
-message rate, handler deadline, resume lifetime, and replay history. The
-defaults are:
+message rate, handler and write deadlines, the bounded outbound queue, resume
+lifetime, and replay history. The defaults are:
 
 ```go
 host.SSCLimits{
@@ -141,6 +141,8 @@ host.SSCLimits{
     MaxSessions:       8192,
     MessagesPerMinute: 600,
     HandlerTimeout:    15 * time.Second,
+    WriteTimeout:      10 * time.Second,
+    OutboundQueueSize: 64,
     ResumeTTL:         2 * time.Minute,
     ReplayMessages:    256,
 }
@@ -149,8 +151,12 @@ host.SSCLimits{
 The protocol assigns sequence numbers in both directions and acknowledges
 received messages. The client retains unacknowledged writes. On reconnect it
 presents an opaque resume token, the host reattaches the session, and retained
-host responses are replayed. `hostclient.ConnectionStateSignal` reports
-`connecting`, `connected`, `disconnected`, or `desynced`.
+host responses are replayed. Broadcasts enqueue independently per connection,
+so one slow client cannot delay the others. A connection that exhausts its
+outbound queue is sent `resync_required` when possible and disconnected rather
+than silently losing a sequenced message. Keep the queue smaller than replay
+history so overflowed delivery remains resumable. `hostclient.ConnectionStateSignal`
+reports `connecting`, `connected`, `disconnected`, or `desynced`.
 Use `host.WithoutSSCResume()` when detached session state must be discarded
 immediately.
 
