@@ -110,6 +110,13 @@ version and include migration notes.
   store or key contains a hyphen. `@for` split those paths by hand and accepted
   them, while the other directives matched `\w` and left themselves in the
   rendered markup, so the binding silently showed its own source text.
+- reject a read-only `@store`, `@rawstore` or `@signal` binding written inside a
+  start tag. Those bindings render a `<span>`, so substituting one into an
+  attribute value closed the element early and left the rest of the start tag in
+  the document as text. The render now fails closed through the existing
+  recovery with an error naming the binding and the attribute, instead of
+  painting a half-built element. `@if` controls whether an element is rendered;
+  the writable `:w` form used by form attributes is unchanged.
 
 ## [2.2.0] - 2026-08-17
 

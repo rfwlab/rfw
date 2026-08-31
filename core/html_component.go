@@ -190,6 +190,13 @@ func (c *HTMLComponent) Render() (renderedTemplate string) {
 		}
 	}()
 
+	// A read binding inside a start tag cannot be substituted without breaking
+	// the element: fail the whole render closed here, so the recover above
+	// reports it and no half-built markup reaches the DOM.
+	if err := validateAttributeBindings(c.Template); err != nil {
+		panic(err)
+	}
+
 	c.unsubscribes.Run()
 
 	renderedTemplate = c.Template

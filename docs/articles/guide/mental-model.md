@@ -71,6 +71,25 @@ delegated `data-on-click` resolves to the `increment` handler, the handler
 mutates the store, the store notifies the `@store` binding, the `<span>`
 holding the count updates. State moved; the DOM followed.
 
+## Bindings render content, not attributes
+
+`@store:module.store.key`, `@rawstore:` and `@signal:name` are read bindings:
+they render the value as content, wrapped in a marked `<span>` the runtime
+updates. They are not attribute interpolation, so writing one inside a start
+tag (`<a data-show="@store:app.ui.visible">`) is unsupported and the render
+fails with an error naming the binding and the attribute. Use `@if:` to decide
+whether an element is rendered at all:
+
+```html
+@if:store:app.ui.visible == "yes"
+<a href="/history">History</a>
+@endif
+```
+
+The one exception is the writable `:w` suffix on a form attribute
+(`<input value="@store:app.form.query:w">`), which stays in the markup as a
+placeholder and is bound to the input by the runtime.
+
 ## If you come from Node
 
 There is no build pipeline to assemble: no npm, no bundler, no transpiler,
