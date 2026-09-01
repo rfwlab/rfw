@@ -144,6 +144,8 @@ type actionReply struct {
 	resetErr error
 }
 
+// ErrSessionReset is returned by an in-flight Call when ResetSession discards
+// the authenticated SSC session that owned it.
 var ErrSessionReset = errors.New("hostclient: session reset")
 
 func decodeInitSnapshotPayload(raw any) *initSnapshotPayload {
