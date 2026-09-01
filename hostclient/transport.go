@@ -35,8 +35,15 @@ var errConnectionClosed = errors.New("hostclient: connection closed")
 type hostConn struct {
 	socket   *js.Socket
 	send     func(string) error
-	messages chan []byte
-	open     chan struct{}
+	shutdown func() error
+	release  func()
+	// generation binds the transport to the authenticated client session that
+	// created it. ResetSession advances the global generation before closing
+	// the socket, so a late frame from the old native/browser callback cannot
+	// reach handlers owned by the replacement identity.
+	generation uint64
+	messages   chan []byte
+	open       chan struct{}
 	// done is closed once, so every reader observes the end of the connection.
 	// A one-shot error channel would hand the failure to whichever read
 	// happened to be waiting and leave the next one blocked forever.
@@ -56,8 +63,9 @@ func newHostConn() *hostConn {
 	}
 }
 
-// dial opens a connection and waits for the browser handshake to complete.
-func dial(ctx context.Context, url string) (*hostConn, error) {
+// dialBrowser opens a connection and waits for the browser handshake to
+// complete. It remains the default SSC transport for existing applications.
+func dialBrowser(ctx context.Context, url string) (*hostConn, error) {
 	c := newHostConn()
 	socket, err := js.OpenSocket(url, js.SocketHandlers{
 		MaxMessageBytes: int(maxInboundMessageBytes),
@@ -74,6 +82,7 @@ func dial(ctx context.Context, url string) (*hostConn, error) {
 	}
 	c.socket = socket
 	c.send = socket.SendText
+	c.shutdown = func() error { return socket.Close(normalClosure, "connection closed") }
 
 	select {
 	case <-c.open:
@@ -88,6 +97,13 @@ func dial(ctx context.Context, url string) (*hostConn, error) {
 }
 
 func (c *hostConn) deliver(payload []byte) {
+	if int64(len(payload)) > maxInboundMessageBytes {
+		c.fail(fmt.Errorf(
+			"hostclient: inbound message of %d bytes exceeds the %d byte limit",
+			len(payload), maxInboundMessageBytes,
+		))
+		return
+	}
 	select {
 	case c.messages <- payload:
 		c.received.Add(1)
@@ -155,10 +171,17 @@ func (c *hostConn) writeJSON(payload any) error {
 }
 
 func (c *hostConn) close() error {
-	if c.socket == nil {
-		return nil
+	var err error
+	if c.shutdown != nil {
+		err = c.shutdown()
+	} else if c.socket != nil {
+		err = c.socket.Close(normalClosure, "connection closed")
 	}
-	return c.socket.Close(normalClosure, "connection closed")
+	if c.release != nil {
+		c.release()
+		c.release = nil
+	}
+	return err
 }
 
 // heartbeat probes liveness with a control message. The browser WebSocket API

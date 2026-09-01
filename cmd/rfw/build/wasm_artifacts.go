@@ -8,6 +8,7 @@ package build
 import (
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -49,6 +50,26 @@ var compressors = map[Encoding]func(io.Writer) io.WriteCloser{
 		}
 		return writer
 	},
+}
+
+// prepareWasmArtifacts writes the artifacts a build will advertise and reports
+// the encodings that exist on disk afterwards. Compression is the production
+// default; a dev build never recompresses, and an embedded build has no
+// network transfer to compress. Both of those cases drop artifacts an earlier
+// build left behind, because the loader prefers a compressed artifact over the
+// raw one and a stale copy would be served under an immutable cache header.
+func prepareWasmArtifacts(wasmPath string, shape buildShape, isDev bool) ([]Encoding, error) {
+	if isDev || !shape.compresses() {
+		if err := removeStaleArtifacts(wasmPath); err != nil {
+			return nil, fmt.Errorf("failed to remove stale wasm artifacts: %w", err)
+		}
+		return nil, nil
+	}
+	encodings, err := compressWasm(wasmPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress wasm: %w", err)
+	}
+	return encodings, nil
 }
 
 // compressWasm writes every production artifact next to src and reports the

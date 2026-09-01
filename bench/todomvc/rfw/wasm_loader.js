@@ -79,7 +79,25 @@
                 : [],
             negotiated: global.RFW_WASM_NEGOTIATED === true,
             production: global.RFW_BUILD_MODE === "production",
+            embedded: global.RFW_WASM_DELIVERY === "embedded",
         };
+    }
+
+    // deliveryGuidance names the next thing to check when the bundle cannot be
+    // loaded. The two delivery modes fail for unrelated reasons, and a packaged
+    // application has no address bar or network panel to investigate with.
+    function deliveryGuidance(config) {
+        if (config.embedded) {
+            return (
+                "Check that `rfw build` ran with build.delivery set to embedded in rfw.json, " +
+                "that build/client/app.wasm exists, and that the native container packaged it " +
+                "unmodified."
+            );
+        }
+        return (
+            "Check that `rfw build` produced app.wasm.br and app.wasm.gz and that the server " +
+            "sends Content-Encoding for them."
+        );
     }
 
     // buildPlan orders the ways this bundle can be fetched, best first. A
@@ -88,6 +106,14 @@
     function buildPlan(url, config) {
         const trimmed = url.trim();
         if (!trimmed) return [];
+        // An embedded build packages the raw bundle with the application:
+        // there is no server to negotiate with and no compressed artifact on
+        // disk. The raw wasm is the whole plan, in production as much as in
+        // development, because it is a local read rather than the
+        // multi-megabyte download the production rule exists to prevent.
+        if (config.embedded) {
+            return [{ url: trimmed, kind: "embedded" }];
+        }
         const queryIndex = trimmed.indexOf("?");
         const base = queryIndex === -1 ? trimmed : trimmed.slice(0, queryIndex);
         const query = queryIndex === -1 ? "" : trimmed.slice(queryIndex);
@@ -132,6 +158,12 @@
         }
         if (step.kind === "identity") {
             return { response, encoded: false };
+        }
+        if (step.kind === "embedded") {
+            // A native asset handler serves the packaged file as it is. Report
+            // whatever it did send, so the progress bar stays honest on a
+            // handler that happens to label the response.
+            return { response, encoded };
         }
         if (encoding === step.kind) {
             // The server labelled it, so the browser already decoded it.
@@ -316,8 +348,7 @@
             const error = new Error(
                 `Failed to load the WebAssembly bundle. Tried ${plan
                     .map((step) => step.kind)
-                    .join(", ")}. ${detail}. ` +
-                    "Check that `rfw build` produced app.wasm.br and app.wasm.gz and that the server sends Content-Encoding for them.",
+                    .join(", ")}. ${detail}. ` + deliveryGuidance(config),
             );
             console.error(error);
             showRuntimeFailure(error);
@@ -363,7 +394,17 @@
         } catch (err) {
             if (bar) bar.finish(false);
             console.error("Failed to instantiate Wasm bundle", err);
-            throw err;
+            // A corrupt bundle fails here rather than at fetch time. Recovery
+            // has to be as visible as a failed download; otherwise the only
+            // symptom is a blank page.
+            const failure = new Error(
+                `Failed to instantiate the WebAssembly bundle from ${url}: ` +
+                    `${err.message}. ` +
+                    deliveryGuidance(config),
+                { cause: err },
+            );
+            showRuntimeFailure(failure);
+            throw failure;
         }
         if (bar) bar.finish(true);
         const key = recoveryKey(url);

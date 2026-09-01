@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,6 +83,61 @@ func TestWriteWasmLoaderPreservesProjectOverride(t *testing.T) {
 	}
 	if string(got) != "project loader" {
 		t.Fatalf("loader = %q, want project override", got)
+	}
+}
+
+// The examples and the benchmark carry their own copy of the loader, which is
+// what they actually run. A copy left behind by an earlier change would keep
+// passing every test while implementing a different delivery contract, so the
+// repository owns one loader and every copy of it is that one.
+func TestRepositoryLoaderCopiesMatchTheFrameworkLoader(t *testing.T) {
+	want, err := initproj.TemplatesFS.ReadFile("template/wasm_loader.js")
+	if err != nil {
+		t.Fatalf("read embedded loader: %v", err)
+	}
+	root, err := os.OpenRoot(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatalf("open the repository root: %v", err)
+	}
+	defer func() {
+		if closeErr := root.Close(); closeErr != nil {
+			t.Errorf("close the repository root: %v", closeErr)
+		}
+	}()
+	// Walking and reading through the root keeps every path relative to the
+	// repository, so no read can reach outside the checkout.
+	repo := root.FS()
+	copies := 0
+	if err := fs.WalkDir(repo, ".", func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			// build directories hold generated copies and node_modules holds
+			// somebody else's files.
+			switch entry.Name() {
+			case ".git", "build", "node_modules":
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if entry.Name() != "wasm_loader.js" {
+			return nil
+		}
+		copies++
+		got, err := fs.ReadFile(repo, path)
+		if err != nil {
+			return err
+		}
+		if string(got) != string(want) {
+			t.Errorf("%s has diverged from the framework loader", path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("walk the repository: %v", err)
+	}
+	if copies < 2 {
+		t.Fatalf("found %d loaders, expected the framework loader and the copies that use it", copies)
 	}
 }
 
@@ -183,11 +239,97 @@ func TestCompressWasmWritesEveryArtifact(t *testing.T) {
 	}
 }
 
+// A production build advertises what it wrote. Embedded delivery writes only
+// the raw bundle, and it has to leave the directory in that state even when an
+// earlier network build filled it with compressed copies: a packaged
+// application would otherwise ship megabytes nothing will ever request.
+func TestPrepareWasmArtifacts(t *testing.T) {
+	wasm := []byte(strings.Repeat("rfw wasm", 32))
+	for _, tc := range []struct {
+		name       string
+		shape      buildShape
+		isDev      bool
+		want       []Encoding
+		compressed bool
+	}{
+		{
+			name:       "network production compresses",
+			shape:      buildShape{delivery: deliveryNetwork},
+			want:       []Encoding{EncodingBrotli, EncodingGzip},
+			compressed: true,
+		},
+		{
+			name:  "embedded production packages only the raw bundle",
+			shape: buildShape{delivery: deliveryEmbedded},
+		},
+		{
+			name:  "embedded static behaves like embedded ssc",
+			shape: buildShape{static: true, delivery: deliveryEmbedded},
+		},
+		{
+			name:  "development never compresses",
+			shape: buildShape{delivery: deliveryNetwork},
+			isDev: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Chdir(dir)
+			src := "app.wasm"
+			if err := os.WriteFile(src, wasm, 0o600); err != nil {
+				t.Fatalf("write wasm: %v", err)
+			}
+			for _, ext := range []string{".br", ".gz"} {
+				if err := os.WriteFile(src+ext, []byte("stale"), 0o600); err != nil {
+					t.Fatalf("write stale %s: %v", ext, err)
+				}
+			}
+
+			got, err := prepareWasmArtifacts(src, tc.shape, tc.isDev)
+			if err != nil {
+				t.Fatalf("prepareWasmArtifacts: %v", err)
+			}
+			if len(got) != len(tc.want) {
+				t.Fatalf("encodings = %v, want %v", got, tc.want)
+			}
+			for i, encoding := range tc.want {
+				if got[i] != encoding {
+					t.Fatalf("encodings = %v, want %v", got, tc.want)
+				}
+			}
+			for _, ext := range []string{".br", ".gz"} {
+				// #nosec G304 -- src is a test-owned temporary file.
+				data, err := os.ReadFile(src + ext)
+				switch {
+				case tc.compressed:
+					if err != nil {
+						t.Fatalf("read %s: %v", src+ext, err)
+					}
+					if string(data) == "stale" {
+						t.Fatalf("%s was left from the previous build", src+ext)
+					}
+				case !os.IsNotExist(err):
+					t.Fatalf("expected %s removed, stat err=%v", src+ext, err)
+				}
+			}
+			// The raw bundle is the artifact an embedded build ships, so it
+			// has to survive untouched.
+			raw, err := os.ReadFile(src)
+			if err != nil {
+				t.Fatalf("read wasm: %v", err)
+			}
+			if string(raw) != string(wasm) {
+				t.Fatal("the raw wasm was rewritten")
+			}
+		})
+	}
+}
+
 func TestWriteClientConfig(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 	encodings := []Encoding{EncodingBrotli, EncodingGzip}
-	if err := writeClientConfig(".", "wss://example.com/rfw", "abc123", encodings, true, true); err != nil {
+	if err := writeClientConfig(".", "wss://example.com/rfw", "abc123", encodings, true, true, deliveryNetwork, sscTransportBrowser); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 
@@ -199,8 +341,10 @@ func TestWriteClientConfig(t *testing.T) {
 	for _, want := range []string{
 		`window.RFW_HOST_URL = "wss://example.com/rfw";`,
 		`window.RFW_WASM_VERSION = "abc123";`,
+		`window.RFW_WASM_DELIVERY = "network";`,
 		`window.RFW_WASM_ENCODINGS = ["br", "gzip"];`,
 		`window.RFW_WASM_NEGOTIATED = true;`,
+		`window.RFW_SSC_TRANSPORT = "browser";`,
 		`window.RFW_BUILD_MODE = "production";`,
 	} {
 		if !strings.Contains(got, want) {
@@ -215,7 +359,7 @@ func TestWriteClientConfig(t *testing.T) {
 func TestWriteClientConfigDescribesAnUncompressedBuild(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := writeClientConfig(".", "", "devbuild", nil, false, false); err != nil {
+	if err := writeClientConfig(".", "", "devbuild", nil, false, false, deliveryNetwork, sscTransportBrowser); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 	config, err := os.ReadFile("rfw_config.js")
@@ -237,12 +381,41 @@ func TestWriteClientConfigDescribesAnUncompressedBuild(t *testing.T) {
 	}
 }
 
+// An embedded production build has no artifact to advertise and nothing to
+// negotiate with, but it is still a production build: the mode stays honest and
+// the delivery global is what tells the loader why the encoding list is empty.
+func TestWriteClientConfigDescribesAnEmbeddedBuild(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := writeClientConfig(".", "wss://api.example.com/ws", "abc123", nil, false, true, deliveryEmbedded, sscTransportCapacitor); err != nil {
+		t.Fatalf("writeClientConfig: %v", err)
+	}
+	config, err := os.ReadFile("rfw_config.js")
+	if err != nil {
+		t.Fatalf("read client config: %v", err)
+	}
+	got := string(config)
+	for _, want := range []string{
+		// An embedded SSC application still talks to its remote host.
+		`window.RFW_HOST_URL = "wss://api.example.com/ws";`,
+		`window.RFW_WASM_DELIVERY = "embedded";`,
+		`window.RFW_WASM_ENCODINGS = [];`,
+		`window.RFW_WASM_NEGOTIATED = false;`,
+		`window.RFW_SSC_TRANSPORT = "capacitor";`,
+		`window.RFW_BUILD_MODE = "production";`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("client config is missing %q:\n%s", want, got)
+		}
+	}
+}
+
 // Every global the loader reads has to be defined by the config, or the loader
 // cannot tell a disabled feature from a stale build.
 func TestWriteClientConfigDefinesEveryGlobalTheLoaderReads(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := writeClientConfig(".", "", "abc123", []Encoding{EncodingGzip}, false, true); err != nil {
+	if err := writeClientConfig(".", "", "abc123", []Encoding{EncodingGzip}, false, true, deliveryNetwork, sscTransportBrowser); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 	config, err := os.ReadFile("rfw_config.js")

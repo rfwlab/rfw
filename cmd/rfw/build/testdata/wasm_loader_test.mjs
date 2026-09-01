@@ -57,6 +57,7 @@ async function load(config, fetcher) {
     window.RFW_WASM_ENCODINGS = config.encodings;
     window.RFW_WASM_NEGOTIATED = config.negotiated;
     window.RFW_BUILD_MODE = config.production ? "production" : "development";
+    window.RFW_WASM_DELIVERY = config.delivery ?? "network";
     const requests = [];
     globalThis.fetch = async (url) => {
         requests.push(url);
@@ -139,3 +140,97 @@ assert.deepEqual(
     ),
     ["/app.wasm?v=test"],
 );
+
+// An embedded production build loads the raw bundle and nothing else. The
+// encodings and the negotiation flag are deliberately set to what a network
+// build would emit: delivery decides, not the leftovers.
+assert.deepEqual(
+    await load(
+        {
+            encodings: ["br", "gzip"],
+            negotiated: true,
+            production: true,
+            delivery: "embedded",
+        },
+        (url) => {
+            assert.equal(url, "/app.wasm?v=test");
+            return new Response(wasm, {
+                status: 200,
+                headers: { "content-type": "application/wasm" },
+            });
+        },
+    ),
+    ["/app.wasm?v=test"],
+);
+
+// A packaged bundle that is missing fails visibly, and the error names the
+// packaged path rather than sending the reader to look for server headers.
+window.RFW_WASM_ENCODINGS = [];
+window.RFW_WASM_NEGOTIATED = false;
+window.RFW_BUILD_MODE = "production";
+window.RFW_WASM_DELIVERY = "embedded";
+const embeddedRequests = [];
+globalThis.fetch = async (url) => {
+    embeddedRequests.push(url);
+    return new Response(null, { status: 404 });
+};
+await assert.rejects(
+    WasmLoader.load("/app.wasm?v=test", {
+        go: { importObject: {}, run() {} },
+        skipLoader: true,
+    }),
+    /Tried embedded.+build\.delivery set to embedded/s,
+);
+assert.deepEqual(embeddedRequests, ["/app.wasm?v=test"]);
+
+// A corrupt packaged bundle fails at instantiation instead of at fetch, and
+// that path has to be as visible as a failed download.
+globalThis.fetch = async () =>
+    new Response(Buffer.from("corrupt"), {
+        status: 200,
+        headers: { "content-type": "application/wasm" },
+    });
+const instantiateStreaming = WebAssembly.instantiateStreaming;
+const instantiate = WebAssembly.instantiate;
+WebAssembly.instantiateStreaming = async () => {
+    throw new Error("magic word not detected");
+};
+WebAssembly.instantiate = async () => {
+    throw new Error("magic word not detected");
+};
+await assert.rejects(
+    WasmLoader.load("/app.wasm?v=test", {
+        go: { importObject: {}, run() {} },
+        skipLoader: true,
+    }),
+    /Failed to instantiate.+build\.delivery set to embedded/s,
+);
+WebAssembly.instantiateStreaming = instantiateStreaming;
+WebAssembly.instantiate = instantiate;
+
+// A configuration written by an older build defines no delivery mode. That is
+// the network contract, unchanged.
+delete window.RFW_WASM_DELIVERY;
+window.RFW_WASM_ENCODINGS = ["br", "gzip"];
+window.RFW_WASM_NEGOTIATED = true;
+window.RFW_BUILD_MODE = "production";
+const legacyRequests = [];
+globalThis.fetch = async (url) => {
+    legacyRequests.push(url);
+    return new Response(wasm, {
+        status: 200,
+        headers: {
+            "content-encoding": "br",
+            "content-type": "application/wasm",
+        },
+    });
+};
+instantiated = undefined;
+await WasmLoader.load("/app.wasm?v=test", {
+    go: { importObject: {}, run: () => new Promise(() => {}) },
+    skipLoader: true,
+    reloadOnExit: false,
+    recoveryWindow: 1,
+});
+assert.deepEqual(instantiated, wasm);
+assert.deepEqual(legacyRequests, ["/app.wasm?v=test"]);

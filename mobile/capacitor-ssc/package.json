@@ -1,0 +1,26 @@
+{
+  "name": "@rfwlab/capacitor-ssc",
+  "version": "0.0.0-dev",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Native iOS SSC transport for RFW Capacitor applications",
+  "files": [
+    "ios/Sources",
+    "ios/Tests",
+    "scripts",
+    "Package.swift",
+    "RFWCapacitorSSC.podspec",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0 <9.0.0"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "scripts": {
+    "verify:ios": "bash scripts/verify-ios.sh"
+  }
+}
