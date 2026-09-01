@@ -67,6 +67,27 @@ version and include migration notes.
   a host delivery uses to make its ownership check and its write one step
   against a concurrent revocation. `SetFromHost` is unchanged and is the ungated
   form of the same write.
+- `hostclient.ResetSession` for authoritative authenticated-identity changes.
+  It closes the active SSC transport, generation-fences late frames, clears the
+  previous session's resume token, sequence/replay state, queued messages and
+  pending calls, while preserving registrations owned by components that are
+  still mounted. User-owned scopes must be unmounted before reset; the
+  connection loop then initializes the remaining live owners against the new
+  cookie identity.
+- `build.delivery` in `rfw.json`. The default, `"network"`, is the existing
+  contract: compressed artifacts and a loader that picks one. `"embedded"` is
+  for a client packaged with the application, the way a native container ships
+  it. An embedded production build keeps the optimized raw `app.wasm`, writes no
+  compressed artifact and removes any an earlier build left behind, and the
+  loader loads that one file rather than demanding a content coding a local
+  asset handler cannot provide. It stays a production build: `RFW_BUILD_MODE`
+  remains `production` and a hosted build still refuses to fall back to the raw
+  bundle. The setting is orthogonal to `build.type`, so an embedded `"ssc"`
+  application still links the host client and still reaches its host over WSS.
+  An unknown value fails the build instead of being ignored. A project that
+  ships its own `wasm_loader.js` keeps that copy, and a copy predating this
+  setting ignores `RFW_WASM_DELIVERY`: update the override or delete it so the
+  build writes the framework loader, before opting into `"embedded"`.
 
 ### Changed
 
