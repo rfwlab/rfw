@@ -4,11 +4,20 @@ package hostclient
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	js "github.com/rfwlab/rfw/v2/js"
 )
+
+var runtimeTestSequence atomic.Uint64
+
+func uniqueRuntimeTestName(prefix string) string {
+	return fmt.Sprintf("%s-%d", prefix, runtimeTestSequence.Add(1))
+}
 
 func TestGuardedLoopConvertsPanicAndNextLoopRuns(t *testing.T) {
 	previous := js.OnRuntimePanic
@@ -43,7 +52,7 @@ func pendingCount() int {
 }
 
 func TestRegisterHandlerUnsubscribeQueuesWireUnsubscribe(t *testing.T) {
-	name := "scoped-handler"
+	name := uniqueRuntimeTestName("scoped-handler")
 	before := pendingCount()
 	unsubscribe := RegisterHandler(name, func(map[string]any) {})
 	if got := pendingCount() - before; got != 1 {
@@ -76,7 +85,7 @@ func TestRegisterHandlerUnsubscribeQueuesWireUnsubscribe(t *testing.T) {
 }
 
 func TestStaleUnsubscribeDoesNotRemoveReplacementHandler(t *testing.T) {
-	name := "replacement-handler"
+	name := uniqueRuntimeTestName("replacement-handler")
 	first := RegisterHandler(name, func(map[string]any) {})
 	second := RegisterHandler(name, func(map[string]any) {})
 	first()
@@ -103,10 +112,11 @@ func TestSendRepeatedMessagesNotDeduped(t *testing.T) {
 // Dedup is opt-in per channel: after EnableSendDedup identical payloads within
 // the TTL window are dropped.
 func TestSendDedupOptIn(t *testing.T) {
-	EnableSendDedup("DedupHost")
+	name := uniqueRuntimeTestName("DedupHost")
+	EnableSendDedup(name)
 	before := pendingCount()
-	Send("DedupHost", map[string]any{"cmd": "refresh"})
-	Send("DedupHost", map[string]any{"cmd": "refresh"})
+	Send(name, map[string]any{"cmd": "refresh"})
+	Send(name, map[string]any{"cmd": "refresh"})
 	if got := pendingCount() - before; got != 1 {
 		t.Fatalf("expected 1 queued message after dedup, got %d", got)
 	}
@@ -234,5 +244,155 @@ func TestPrepareInboundDeliveryResetsRejectedResume(t *testing.T) {
 	deliveryMu.Unlock()
 	if currentInbound != 0 || currentToken != "" {
 		t.Fatalf("rejected resume state was not reset: inbound=%d token=%q", currentInbound, currentToken)
+	}
+}
+
+func TestResetSessionClearsIdentityDeliveryAndPendingCalls(t *testing.T) {
+	lifecycleMu.Lock()
+	savedGeneration := connectionGeneration.Load()
+	mu.Lock()
+	savedConn := conn
+	savedPending := pending
+	savedBinding := bindings["reset-live"]
+	_, hadBinding := bindings["reset-live"]
+	savedHandler := handlers["reset-live"]
+	_, hadHandler := handlers["reset-live"]
+	current := newHostConn()
+	closed := 0
+	current.shutdown = func() error { closed++; current.fail(errConnectionClosed); return nil }
+	current.generation = savedGeneration
+	conn = current
+	pending = []message{{name: "old-user", payload: map[string]any{"cmd": "stale"}}}
+	bindings["reset-live"] = componentBinding{id: "component-live"}
+	handlers["reset-live"] = func(map[string]any) {}
+	mu.Unlock()
+
+	sessionMu.Lock()
+	savedSession := sessionID
+	sessionID = "ssc-old"
+	sessionMu.Unlock()
+
+	deliveryMu.Lock()
+	savedToken := resumeToken
+	savedNext := nextOutbound
+	savedInbound := lastInbound
+	savedOutbox := outbox
+	resumeToken = "resume-old"
+	nextOutbound = 4
+	lastInbound = 7
+	outbox = map[uint64]message{4: {name: "old-user", sequence: 4}}
+	deliveryMu.Unlock()
+
+	callMu.Lock()
+	savedCalls := pendingCalls
+	reply := make(chan actionReply, 1)
+	pendingCalls = map[string]chan actionReply{"call-old": reply}
+	callMu.Unlock()
+	lifecycleMu.Unlock()
+
+	t.Cleanup(func() {
+		lifecycleMu.Lock()
+		connectionGeneration.Store(savedGeneration)
+		mu.Lock()
+		conn = savedConn
+		pending = savedPending
+		if hadBinding {
+			bindings["reset-live"] = savedBinding
+		} else {
+			delete(bindings, "reset-live")
+		}
+		if hadHandler {
+			handlers["reset-live"] = savedHandler
+		} else {
+			delete(handlers, "reset-live")
+		}
+		mu.Unlock()
+		sessionMu.Lock()
+		sessionID = savedSession
+		sessionMu.Unlock()
+		deliveryMu.Lock()
+		resumeToken = savedToken
+		nextOutbound = savedNext
+		lastInbound = savedInbound
+		outbox = savedOutbox
+		deliveryMu.Unlock()
+		callMu.Lock()
+		pendingCalls = savedCalls
+		callMu.Unlock()
+		lifecycleMu.Unlock()
+	})
+
+	ResetSession()
+
+	if closed != 1 {
+		t.Fatalf("transport closes = %d, want 1", closed)
+	}
+	if got := connectionGeneration.Load(); got != savedGeneration+1 {
+		t.Fatalf("generation = %d, want %d", got, savedGeneration+1)
+	}
+	mu.RLock()
+	currentConn := conn
+	queued := len(pending)
+	_, bindingPreserved := bindings["reset-live"]
+	_, handlerPreserved := handlers["reset-live"]
+	mu.RUnlock()
+	if currentConn != nil || queued != 0 {
+		t.Fatalf("connection state after reset: conn=%v pending=%d", currentConn, queued)
+	}
+	if !bindingPreserved || !handlerPreserved {
+		t.Fatal("reset removed a live binding or handler")
+	}
+	if got := SessionID(); got != "" {
+		t.Fatalf("session ID after reset = %q", got)
+	}
+	deliveryMu.Lock()
+	gotToken, gotNext, gotInbound, gotOutbox := resumeToken, nextOutbound, lastInbound, len(outbox)
+	deliveryMu.Unlock()
+	if gotToken != "" || gotNext != 0 || gotInbound != 0 || gotOutbox != 0 {
+		t.Fatalf("delivery after reset: token=%q next=%d inbound=%d outbox=%d", gotToken, gotNext, gotInbound, gotOutbox)
+	}
+	select {
+	case got := <-reply:
+		if !errors.Is(got.resetErr, ErrSessionReset) {
+			t.Fatalf("pending call error = %v, want ErrSessionReset", got.resetErr)
+		}
+	default:
+		t.Fatal("reset did not fail the pending call")
+	}
+}
+
+func TestOldGenerationFrameIsRejectedAfterSessionReset(t *testing.T) {
+	lifecycleMu.Lock()
+	savedGeneration := connectionGeneration.Load()
+	connectionGeneration.Store(savedGeneration + 1)
+	mu.Lock()
+	savedHandler := handlers["old-generation"]
+	_, hadHandler := handlers["old-generation"]
+	deliveries := 0
+	handlers["old-generation"] = func(map[string]any) { deliveries++ }
+	mu.Unlock()
+	lifecycleMu.Unlock()
+	t.Cleanup(func() {
+		lifecycleMu.Lock()
+		connectionGeneration.Store(savedGeneration)
+		mu.Lock()
+		if hadHandler {
+			handlers["old-generation"] = savedHandler
+		} else {
+			delete(handlers, "old-generation")
+		}
+		mu.Unlock()
+		lifecycleMu.Unlock()
+	})
+
+	stale := newHostConn()
+	stale.generation = savedGeneration
+	stale.deliver([]byte(`{"component":"old-generation","payload":{"value":"stale"},"sequence":1}`))
+	err := readLoop(context.Background(), stale)
+	if !errors.Is(err, ErrSessionReset) {
+		t.Fatalf("stale frame error = %v, want ErrSessionReset", err)
+	}
+	if deliveries != 0 {
+		t.Fatalf("stale frame deliveries = %d, want 0", deliveries)
 	}
 }

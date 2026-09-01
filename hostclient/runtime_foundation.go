@@ -60,20 +60,22 @@ type hostSetter interface{ SetFromHost(any) }
 type hostWriteBarrier interface{ HostWriteBarrier() }
 
 var (
-	conn          *hostConn
-	bindings      = map[string]componentBinding{}
-	bindingTokens = map[string]uint64{}
-	once          sync.Once
-	mu            sync.RWMutex
-	pending       []message
-	outbox        = map[uint64]message{}
-	handlers      = map[string]func(map[string]any){}
-	handlerTokens = map[string]uint64{}
-	dedup         = map[string]struct{}{}
-	debug         bool
-	cb            *fnres.CircuitBreaker
-	sendCache     *fncaching.InMemoryCache[string]
-	hydrateCB     *fnres.CircuitBreaker
+	conn                 *hostConn
+	bindings             = map[string]componentBinding{}
+	bindingTokens        = map[string]uint64{}
+	once                 sync.Once
+	mu                   sync.RWMutex
+	pending              []message
+	outbox               = map[uint64]message{}
+	handlers             = map[string]func(map[string]any){}
+	handlerTokens        = map[string]uint64{}
+	dedup                = map[string]struct{}{}
+	debug                bool
+	cb                   *fnres.CircuitBreaker
+	sendCache            *fncaching.InMemoryCache[string]
+	hydrateCB            *fnres.CircuitBreaker
+	lifecycleMu          sync.RWMutex
+	connectionGeneration atomic.Uint64
 
 	sessionMu sync.RWMutex
 	sessionID string
@@ -137,9 +139,12 @@ type wireMessage struct {
 type messageWriter func(context.Context, *hostConn, wireMessage) error
 
 type actionReply struct {
-	payload any
-	err     *ActionError
+	payload  any
+	err      *ActionError
+	resetErr error
 }
+
+var ErrSessionReset = errors.New("hostclient: session reset")
 
 func decodeInitSnapshotPayload(raw any) *initSnapshotPayload {
 	if raw == nil {
@@ -262,6 +267,7 @@ func connectionLoop() {
 
 		err := fnres.Retry(context.Background(), func() error {
 			return cb.Execute(func() error {
+				generation := connectionGeneration.Load()
 				if debug {
 					log.Printf("hostclient: dialing %s", url)
 				}
@@ -270,6 +276,13 @@ func connectionLoop() {
 				c, derr := dial(ctx, url)
 				if derr != nil {
 					return derr
+				}
+				c.generation = generation
+				lifecycleMu.RLock()
+				if generation != connectionGeneration.Load() {
+					lifecycleMu.RUnlock()
+					_ = c.close()
+					return nil
 				}
 
 				sendMu.Lock()
@@ -323,6 +336,7 @@ func connectionLoop() {
 					sendMessageUnlocked(c, message{name: name, payload: map[string]any{"init": true}})
 				}
 				sendMu.Unlock()
+				lifecycleMu.RUnlock()
 
 				ctx2, cancel2 := context.WithCancel(context.Background())
 				defer cancel2()
@@ -334,9 +348,14 @@ func connectionLoop() {
 				closeErr := c.close()
 
 				mu.Lock()
-				conn = nil
+				if conn == c {
+					conn = nil
+				}
 				mu.Unlock()
 				connectionState.Set(ConnectionDisconnected)
+				if generation != connectionGeneration.Load() {
+					return nil
+				}
 				if loopErr != nil {
 					return loopErr
 				}
@@ -389,6 +408,9 @@ func readLoop(ctx context.Context, c *hostConn) error {
 		frame, err := c.read(ctx)
 		if err != nil {
 			return err
+		}
+		if c.generation != connectionGeneration.Load() {
+			return ErrSessionReset
 		}
 		if err := json.Unmarshal(frame, &msg); err != nil {
 			return err
@@ -831,9 +853,11 @@ func dedupEnabled(name string) bool {
 
 // Send queues or transmits a host component message.
 func Send(name string, payload any) {
+	lifecycleMu.RLock()
+	defer lifecycleMu.RUnlock()
 	connect()
 	if dedupEnabled(name) {
-		key := fmt.Sprintf("%s|%v", name, payload)
+		key := fmt.Sprintf("%d|%s|%v", connectionGeneration.Load(), name, payload)
 		if _, ok, _ := sendCache.Get(context.Background(), key); ok {
 			return
 		}
@@ -902,6 +926,41 @@ func SessionID() string {
 	return sessionID
 }
 
+// ResetSession closes the active SSC transport and discards all delivery
+// state owned by its authenticated session. Live registrations are preserved;
+// callers must unmount user-owned scopes before invoking it.
+func ResetSession() {
+	lifecycleMu.Lock()
+	defer lifecycleMu.Unlock()
+
+	connectionGeneration.Add(1)
+	connectionState.Set(ConnectionDisconnected)
+	mu.Lock()
+	current := conn
+	conn = nil
+	pending = nil
+	mu.Unlock()
+	sessionMu.Lock()
+	sessionID = ""
+	sessionMu.Unlock()
+	deliveryMu.Lock()
+	resumeToken = ""
+	nextOutbound = 0
+	lastInbound = 0
+	outbox = map[uint64]message{}
+	deliveryMu.Unlock()
+	callMu.Lock()
+	calls := pendingCalls
+	pendingCalls = map[string]chan actionReply{}
+	callMu.Unlock()
+	for _, reply := range calls {
+		reply <- actionReply{resetErr: ErrSessionReset}
+	}
+	if current != nil {
+		_ = current.close()
+	}
+}
+
 func sendMessage(c *hostConn, msg message) {
 	sendMessageWithWriter(c, msg, writeMessage)
 }
@@ -963,6 +1022,7 @@ func Call[Request, Response any](ctx context.Context, action string, request Req
 	if action == "" {
 		return zero, errors.New("hostclient: empty action name")
 	}
+	lifecycleMu.RLock()
 	connect()
 	id := fmt.Sprintf("call-%d", callSequence.Add(1))
 	replyChannel := make(chan actionReply, 1)
@@ -981,9 +1041,13 @@ func Call[Request, Response any](ctx context.Context, action string, request Req
 	} else {
 		sendMessage(current, msg)
 	}
+	lifecycleMu.RUnlock()
 
 	select {
 	case reply := <-replyChannel:
+		if reply.resetErr != nil {
+			return zero, reply.resetErr
+		}
 		if reply.err != nil {
 			return zero, reply.err
 		}
