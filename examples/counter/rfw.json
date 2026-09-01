@@ -1,0 +1,6 @@
+{
+  "transport": "websocket",
+  "build": {
+    "type": "static"
+  }
+}

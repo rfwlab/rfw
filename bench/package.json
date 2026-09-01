@@ -1,0 +1,11 @@
+{
+  "name": "rfw-bench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "measure": "node measure.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

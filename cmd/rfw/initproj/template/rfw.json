@@ -1,0 +1,7 @@
+{
+  "transport": "websocket",
+  "build": {
+    "type": "ssc",
+    "host": ""
+  }
+}

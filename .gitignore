@@ -1,7 +1,23 @@
-main.wasm
+app.wasm
 wasm_exec.js
 
 # not willing to share my crazy notes
 *.txt
 gen.sh
 testing/
+tailwindcss
+tailwind.css
+
+examples/ssr_example/index.html
+
+dist/
+docs/host/host
+docs/build
+
+routes_gen.go
+rfw_*.go
+
+demo/build/
+v2/scan.test
+
+check-tests.md

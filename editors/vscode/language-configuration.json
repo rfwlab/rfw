@@ -1,0 +1,49 @@
+{
+  "comments": {
+    "blockComment": ["<!--", "-->"]
+  },
+  "brackets": [
+    ["<!--", "-->"],
+    ["<", ">"],
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "'", "close": "'", "notIn": ["string"] },
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "<!--", "close": "-->", "notIn": ["comment", "string"] }
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["'", "'"],
+    ["\"", "\""],
+    ["<", ">"]
+  ],
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\<\\>\\/\\s]+)",
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*@(if|else-if):.*$",
+      "action": { "indent": "indent" }
+    },
+    {
+      "beforeText": "^\\s*@for:.*$",
+      "action": { "indent": "indent" }
+    },
+    {
+      "beforeText": "^\\s*@slot(:.*)?$",
+      "action": { "indent": "indent" }
+    }
+  ],
+  "folding": {
+    "markers": {
+      "start": "^\\s*@(if:|for:|slot)",
+      "end": "^\\s*@(endif|endfor|endslot)\\b"
+    }
+  }
+}
