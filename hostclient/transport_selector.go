@@ -30,6 +30,14 @@ var nativeConnectionSequence atomic.Uint64
 func dial(ctx context.Context, url string) (*hostConn, error) {
 	switch sscTransport() {
 	case sscTransportBrowser:
+		mode := preferredHostTransport()
+		if mode == hostTransportStreamBus || mode == hostTransportAuto {
+			if connection, err := dialStreamBus(ctx, hostStreamBusURL()); err == nil {
+				return connection, nil
+			} else if debug {
+				fmt.Printf("hostclient: StreamBus unavailable, falling back to WebSocket: %v\n", err)
+			}
+		}
 		return dialBrowser(ctx, url)
 	case sscTransportCapacitor:
 		return dialCapacitor(ctx, url)

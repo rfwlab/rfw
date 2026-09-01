@@ -329,7 +329,7 @@ func TestWriteClientConfig(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 	encodings := []Encoding{EncodingBrotli, EncodingGzip}
-	if err := writeClientConfig(".", "wss://example.com/rfw", "abc123", encodings, true, true, deliveryNetwork, sscTransportBrowser); err != nil {
+	if err := writeClientConfig(".", "wss://example.com/rfw", "abc123", encodings, true, true, deliveryNetwork, sscTransportBrowser, hostTransportStreamBus); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 
@@ -345,6 +345,7 @@ func TestWriteClientConfig(t *testing.T) {
 		`window.RFW_WASM_ENCODINGS = ["br", "gzip"];`,
 		`window.RFW_WASM_NEGOTIATED = true;`,
 		`window.RFW_SSC_TRANSPORT = "browser";`,
+		`window.RFW_TRANSPORT = "streambus";`,
 		`window.RFW_BUILD_MODE = "production";`,
 	} {
 		if !strings.Contains(got, want) {
@@ -359,7 +360,7 @@ func TestWriteClientConfig(t *testing.T) {
 func TestWriteClientConfigDescribesAnUncompressedBuild(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := writeClientConfig(".", "", "devbuild", nil, false, false, deliveryNetwork, sscTransportBrowser); err != nil {
+	if err := writeClientConfig(".", "", "devbuild", nil, false, false, deliveryNetwork, sscTransportBrowser, hostTransportWebSocket); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 	config, err := os.ReadFile("rfw_config.js")
@@ -387,7 +388,7 @@ func TestWriteClientConfigDescribesAnUncompressedBuild(t *testing.T) {
 func TestWriteClientConfigDescribesAnEmbeddedBuild(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := writeClientConfig(".", "wss://api.example.com/ws", "abc123", nil, false, true, deliveryEmbedded, sscTransportCapacitor); err != nil {
+	if err := writeClientConfig(".", "wss://api.example.com/ws", "abc123", nil, false, true, deliveryEmbedded, sscTransportCapacitor, hostTransportWebSocket); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 	config, err := os.ReadFile("rfw_config.js")
@@ -415,7 +416,7 @@ func TestWriteClientConfigDescribesAnEmbeddedBuild(t *testing.T) {
 func TestWriteClientConfigDefinesEveryGlobalTheLoaderReads(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := writeClientConfig(".", "", "abc123", []Encoding{EncodingGzip}, false, true, deliveryNetwork, sscTransportBrowser); err != nil {
+	if err := writeClientConfig(".", "", "abc123", []Encoding{EncodingGzip}, false, true, deliveryNetwork, sscTransportBrowser, hostTransportWebSocket); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 	config, err := os.ReadFile("rfw_config.js")

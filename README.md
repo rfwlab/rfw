@@ -17,7 +17,7 @@
 
 rfw is "Phoenix LiveView for Go". It lets you build interactive, real-time web apps using Server Side Computed (SSC) components. 
 
-Instead of writing a REST API and a frontend framework, you write Go. rfw handles the WebSocket synchronization and DOM updates for you. It is ideal for:
+Instead of writing a REST API and a frontend framework, you write Go. rfw handles synchronization over WebSocket or Warp StreamBus and updates the DOM for you. It is ideal for:
 - Real-time dashboards
 - Internal admin tools
 - Control planes
@@ -125,7 +125,7 @@ Using rfw in production or in a side project? Open a PR and add yourself here.
 
 ## Server Side Computed (SSC)
 
-SSC is the core of rfw. Most application logic runs on the server, while the browser loads a lightweight binary to hydrate the HTML. The server and client keep state synchronized through a persistent WebSocket connection. 
+SSC is the core of rfw. Most application logic runs on the server, while the browser loads a lightweight binary to hydrate the HTML. The server and client keep state synchronized through WebSocket or Warp StreamBus over WebTransport. The transport is selected through `rfw.json` or `RFW_TRANSPORT` without changing application code.
 
 Components use host signal types (`t.HInt`, `t.HString`, etc.) to declare server-synced bindings. See the [SSC guide](./docs/articles/guide/ssc.md) for more details.
 

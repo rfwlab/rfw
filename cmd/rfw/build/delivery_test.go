@@ -114,7 +114,12 @@ func TestDecodeBuildShapeKeepsDeliveryAndTypeSeparate(t *testing.T) {
 		{
 			name:     "embedded SSC can select the Capacitor transport",
 			manifest: `{"build":{"type":"ssc","host":"wss://api.example.com/ws","delivery":"embedded","sscTransport":"capacitor"}}`,
-			want:     buildShape{host: "wss://api.example.com/ws", delivery: deliveryEmbedded, transport: sscTransportCapacitor},
+			want:     buildShape{host: "wss://api.example.com/ws", delivery: deliveryEmbedded, transport: sscTransportCapacitor, hostWire: hostTransportWebSocket},
+		},
+		{
+			name:     "SSC can select StreamBus independently from its runtime",
+			manifest: `{"transport":"streambus","build":{"type":"ssc","host":"https://api.example.com"}}`,
+			want:     buildShape{host: "https://api.example.com", delivery: deliveryNetwork, transport: sscTransportBrowser, hostWire: hostTransportStreamBus},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -134,6 +139,9 @@ func TestDecodeBuildShapeKeepsDeliveryAndTypeSeparate(t *testing.T) {
 			if got.transport != tc.want.transport {
 				t.Fatalf("transport = %q, want %q", got.transport, tc.want.transport)
 			}
+			if got.hostWire != tc.want.hostWire && tc.want.hostWire != "" {
+				t.Fatalf("host wire transport = %q, want %q", got.hostWire, tc.want.hostWire)
+			}
 		})
 	}
 }
@@ -150,6 +158,12 @@ func TestDecodeBuildShapeRejectsAnUnknownSSCTransport(t *testing.T) {
 	}
 }
 
+func TestDecodeBuildShapeRejectsAnUnknownHostTransport(t *testing.T) {
+	if _, err := decodeBuildShape([]byte(`{"transport":"telepathy"}`)); err == nil {
+		t.Fatal("an unknown host transport built without an error")
+	}
+}
+
 // An unreadable manifest has always fallen back to the defaults rather than
 // failing the build, and it still does.
 func TestDecodeBuildShapeToleratesAnUnparsableManifest(t *testing.T) {
@@ -157,7 +171,7 @@ func TestDecodeBuildShapeToleratesAnUnparsableManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decodeBuildShape: %v", err)
 	}
-	if got.delivery != deliveryNetwork || got.transport != sscTransportBrowser || got.static || got.plugins != nil {
+	if got.delivery != deliveryNetwork || got.transport != sscTransportBrowser || got.hostWire != hostTransportWebSocket || got.static || got.plugins != nil {
 		t.Fatalf("shape = %+v, want the defaults", got)
 	}
 }

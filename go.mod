@@ -8,19 +8,26 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/mirkobrombin/go-cli-builder v1.0.0
-	github.com/mirkobrombin/go-foundation/v2 v2.1.0
+	github.com/mirkobrombin/go-foundation/v2 v2.4.0
 	github.com/mirkobrombin/go-logger v0.2.0
 	github.com/mirkobrombin/go-signal/v2 v2.0.0
+	github.com/mirkobrombin/go-warp/v2 v2.1.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+	github.com/quic-go/quic-go v0.59.0
+	github.com/quic-go/webtransport-go v0.10.0
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/tdewolff/minify/v2 v2.24.3
-	golang.org/x/net v0.57.0
+	golang.org/x/net v0.58.0
 )
 
 require (
+	github.com/dunglas/httpsfv v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.3 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )

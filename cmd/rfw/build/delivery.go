@@ -23,6 +23,11 @@ type delivery string
 // origin boundary.
 type sscTransport string
 
+// hostTransport names the browser-to-host wire transport used by SSC. It is
+// orthogonal to sscTransport: the browser runtime can use WebSocket or
+// StreamBus, while the Capacitor runtime keeps using its native bridge.
+type hostTransport string
+
 const (
 	// deliveryNetwork is the default. The bundle is downloaded, so the build
 	// writes compressed artifacts and the loader picks one.
@@ -36,6 +41,10 @@ const (
 
 	sscTransportBrowser   sscTransport = "browser"
 	sscTransportCapacitor sscTransport = "capacitor"
+
+	hostTransportWebSocket hostTransport = "websocket"
+	hostTransportStreamBus hostTransport = "streambus"
+	hostTransportAuto      hostTransport = "auto"
 )
 
 // parseDelivery resolves the build.delivery value from rfw.json. An empty value
@@ -72,6 +81,22 @@ func parseSSCTransport(value string) (sscTransport, error) {
 	}
 }
 
+func parseHostTransport(value string) (hostTransport, error) {
+	switch transport := hostTransport(strings.ToLower(strings.TrimSpace(value))); transport {
+	case "", hostTransportWebSocket, "ws":
+		return hostTransportWebSocket, nil
+	case hostTransportStreamBus, "webtransport", "warp-streambus":
+		return hostTransportStreamBus, nil
+	case hostTransportAuto:
+		return hostTransportAuto, nil
+	default:
+		return "", fmt.Errorf(
+			"rfw.json: transport %q is not a host transport; use %q, %q or %q",
+			value, hostTransportWebSocket, hostTransportStreamBus, hostTransportAuto,
+		)
+	}
+}
+
 // buildShape is the delivery-relevant view of rfw.json. It exists so the two
 // settings that shape a build stay separable: "static" decides whether the SSC
 // client is linked, "embedded" decides how the bundle is delivered, and neither
@@ -81,6 +106,7 @@ type buildShape struct {
 	host      string
 	delivery  delivery
 	transport sscTransport
+	hostWire  hostTransport
 	plugins   map[string]json.RawMessage
 }
 
@@ -102,7 +128,8 @@ func (s buildShape) compresses() bool {
 // unknown delivery mode fails the build rather than quietly ignoring it.
 func decodeBuildShape(data []byte) (buildShape, error) {
 	var manifest struct {
-		Build struct {
+		Transport string `json:"transport"`
+		Build     struct {
 			Type         string `json:"type"`
 			Host         string `json:"host"`
 			Delivery     string `json:"delivery"`
@@ -111,7 +138,7 @@ func decodeBuildShape(data []byte) (buildShape, error) {
 		Plugins map[string]json.RawMessage `json:"plugins"`
 	}
 	if err := json.Unmarshal(data, &manifest); err != nil {
-		return buildShape{delivery: deliveryNetwork, transport: sscTransportBrowser}, nil
+		return buildShape{delivery: deliveryNetwork, transport: sscTransportBrowser, hostWire: hostTransportWebSocket}, nil
 	}
 	mode, err := parseDelivery(manifest.Build.Delivery)
 	if err != nil {
@@ -121,11 +148,16 @@ func decodeBuildShape(data []byte) (buildShape, error) {
 	if err != nil {
 		return buildShape{}, err
 	}
+	hostWire, err := parseHostTransport(manifest.Transport)
+	if err != nil {
+		return buildShape{}, err
+	}
 	return buildShape{
 		static:    manifest.Build.Type == "static",
 		host:      manifest.Build.Host,
 		delivery:  mode,
 		transport: transport,
+		hostWire:  hostWire,
 		plugins:   manifest.Plugins,
 	}, nil
 }

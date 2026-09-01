@@ -24,6 +24,7 @@ type Session struct {
 	deliveryMu        sync.Mutex
 	outboundMu        sync.Mutex
 	connection        *websocket.Conn
+	streamConnection  *streamBusConnection
 	connectionManaged bool
 	resumePending     bool
 	attached          bool
@@ -145,6 +146,7 @@ func SuspendSession(session *Session, ttl time.Duration) {
 		return
 	}
 	session.connection = nil
+	session.streamConnection = nil
 	session.attached = false
 	if ttl <= 0 || session.resumeToken == "" {
 		session.deliveryMu.Unlock()
@@ -259,6 +261,7 @@ func releaseSession(session *Session, expectedExpiry time.Time) {
 		session.expiryTimer = nil
 	}
 	session.connection = nil
+	session.streamConnection = nil
 	session.connectionManaged = false
 	session.resumePending = false
 	session.attached = false
