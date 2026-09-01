@@ -31,15 +31,6 @@ type textEntry struct {
 var cache sync.Map     // map[string]*cacheEntry
 var textCache sync.Map // map[string]*textEntry
 
-// RegisterHTTPHook adds a callback invoked on request start and completion.
-// The callback receives a start flag, request URL, status code and duration.
-var httpHook func(start bool, url string, status int, duration time.Duration)
-
-// RegisterHTTPHook registers fn to receive HTTP request events.
-func RegisterHTTPHook(fn func(start bool, url string, status int, duration time.Duration)) {
-	httpHook = fn
-}
-
 // FetchJSON retrieves JSON data from the given URL and decodes it into v.
 // Results are cached by URL. If a request is already in progress, FetchJSON
 // returns ErrPending.
@@ -49,9 +40,7 @@ func FetchJSON(url string, v any) error {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
-			}
+			emitHTTPHook(true, url, 0, 0)
 			start := time.Now()
 			js.Fetch(url).Call("then",
 				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
@@ -63,17 +52,13 @@ func FetchJSON(url string, v any) error {
 							jsonStr := js.JSON().Call("stringify", obj).String()
 							ce.data = []byte(jsonStr)
 							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
-							}
+							emitHTTPHook(false, url, status, time.Since(start))
 							return nil
 						}),
 						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
 							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
-							}
+							emitHTTPHook(false, url, status, time.Since(start))
 							return nil
 						}),
 					)
@@ -82,9 +67,7 @@ func FetchJSON(url string, v any) error {
 				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
 					close(ce.ready)
-					if httpHook != nil {
-						httpHook(false, url, 0, time.Since(start))
-					}
+					emitHTTPHook(false, url, 0, time.Since(start))
 					return nil
 				}),
 			)
@@ -110,9 +93,7 @@ func FetchText(url string) (string, error) {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
-			}
+			emitHTTPHook(true, url, 0, 0)
 			start := time.Now()
 			js.Fetch(url).Call("then",
 				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
@@ -122,17 +103,13 @@ func FetchText(url string) (string, error) {
 						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							ce.text = args[0].String()
 							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
-							}
+							emitHTTPHook(false, url, status, time.Since(start))
 							return nil
 						}),
 						js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 							ce.err = errors.New(args[0].String())
 							close(ce.ready)
-							if httpHook != nil {
-								httpHook(false, url, status, time.Since(start))
-							}
+							emitHTTPHook(false, url, status, time.Since(start))
 							return nil
 						}),
 					)
@@ -141,9 +118,7 @@ func FetchText(url string) (string, error) {
 				js.SafeFuncOf(func(this js.Value, args []js.Value) any {
 					ce.err = errors.New(args[0].String())
 					close(ce.ready)
-					if httpHook != nil {
-						httpHook(false, url, 0, time.Since(start))
-					}
+					emitHTTPHook(false, url, 0, time.Since(start))
 					return nil
 				}),
 			)

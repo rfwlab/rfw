@@ -31,15 +31,6 @@ type textEntry struct {
 var cache sync.Map     // map[string]*cacheEntry
 var textCache sync.Map // map[string]*textEntry
 
-// RegisterHTTPHook adds a callback invoked on request start and completion.
-// The callback receives a start flag, request URL, status code and duration.
-var httpHook func(start bool, url string, status int, duration time.Duration)
-
-// RegisterHTTPHook registers fn to receive HTTP request events.
-func RegisterHTTPHook(fn func(start bool, url string, status int, duration time.Duration)) {
-	httpHook = fn
-}
-
 func fetchBytes(url string) (status int, body []byte, err error) {
 	resp, err := stdhttp.Get(url)
 	if err != nil {
@@ -66,17 +57,13 @@ func FetchJSON(url string, v any) error {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
-			}
+			emitHTTPHook(true, url, 0, 0)
 			start := time.Now()
 			status, b, err := fetchBytes(url)
 			ce.data = b
 			ce.err = err
 			close(ce.ready)
-			if httpHook != nil {
-				httpHook(false, url, status, time.Since(start))
-			}
+			emitHTTPHook(false, url, status, time.Since(start))
 		}()
 	})
 
@@ -99,17 +86,13 @@ func FetchText(url string) (string, error) {
 
 	ce.once.Do(func() {
 		go func() {
-			if httpHook != nil {
-				httpHook(true, url, 0, 0)
-			}
+			emitHTTPHook(true, url, 0, 0)
 			start := time.Now()
 			status, b, err := fetchBytes(url)
 			ce.text = string(b)
 			ce.err = err
 			close(ce.ready)
-			if httpHook != nil {
-				httpHook(false, url, status, time.Since(start))
-			}
+			emitHTTPHook(false, url, status, time.Since(start))
 		}()
 	})
 

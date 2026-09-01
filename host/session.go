@@ -21,19 +21,20 @@ type Session struct {
 	ctxMu sync.RWMutex
 	ctx   map[string]any
 
-	deliveryMu  sync.Mutex
-	outboundMu  sync.Mutex
-	connection  *websocket.Conn
-	attached    bool
-	released    bool
-	expires     time.Time
-	expiryTimer *time.Timer
-	inboundSeq  uint64
-	outboundSeq uint64
-	rateStart   time.Time
-	rateCount   int
-	replayLimit int
-	replay      []Outbound
+	deliveryMu       sync.Mutex
+	outboundMu       sync.Mutex
+	connection       *websocket.Conn
+	streamConnection *streamBusConnection
+	attached         bool
+	released         bool
+	expires          time.Time
+	expiryTimer      *time.Timer
+	inboundSeq       uint64
+	outboundSeq      uint64
+	rateStart        time.Time
+	rateCount        int
+	replayLimit      int
+	replay           []Outbound
 }
 
 type sessionOptions struct {
@@ -140,6 +141,7 @@ func SuspendSession(session *Session, ttl time.Duration) {
 		return
 	}
 	session.connection = nil
+	session.streamConnection = nil
 	session.attached = false
 	if ttl <= 0 || session.resumeToken == "" {
 		session.deliveryMu.Unlock()
@@ -203,6 +205,7 @@ func releaseSession(session *Session, expectedExpiry time.Time) {
 		session.expiryTimer = nil
 	}
 	session.connection = nil
+	session.streamConnection = nil
 	session.attached = false
 	session.deliveryMu.Unlock()
 	session.outboundMu.Unlock()

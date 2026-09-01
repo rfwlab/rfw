@@ -16,11 +16,8 @@ func TestRegisterHTTPHook(t *testing.T) {
 			completes++
 		}
 	})
-	if httpHook == nil {
-		t.Fatal("hook not registered")
-	}
-	httpHook(true, "u", 0, 0)
-	httpHook(false, "u", 200, time.Millisecond)
+	emitHTTPHook(true, "u", 0, 0)
+	emitHTTPHook(false, "u", 200, time.Millisecond)
 	if starts != 1 || completes != 1 {
 		t.Fatalf("expected 1 start and 1 complete, got %d and %d", starts, completes)
 	}

@@ -85,6 +85,7 @@ func NewMux(root string, opts ...MuxOption) *http.ServeMux {
 	mux.Handle("/ws", runtime.Guard(websocket.Handler(func(ws *websocket.Conn) {
 		wsHandler(ws, runtime)
 	})))
+	registerStreamBus(mux, runtime)
 	return mux
 }
 
@@ -108,10 +109,13 @@ func ListenAndServeTLS(addr, root string) error {
 	if err != nil {
 		return err
 	}
+	mux := NewMux(root)
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+	startStreamBusHTTP3(addr, mux, tlsConfig)
 	srv := &http.Server{
 		Addr:      addr,
-		Handler:   loggingMiddleware(NewMux(root)),
-		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
+		Handler:   loggingMiddleware(mux),
+		TLSConfig: tlsConfig,
 	}
 	logger.Info("serving HTTPS", "addr", addr)
 	return srv.ListenAndServeTLS("", "")
@@ -124,10 +128,12 @@ func ListenAndServeTLSWithMux(addr string, mux *http.ServeMux) error {
 	if err != nil {
 		return err
 	}
+	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+	startStreamBusHTTP3(addr, mux, tlsConfig)
 	srv := &http.Server{
 		Addr:      addr,
 		Handler:   loggingMiddleware(mux),
-		TLSConfig: &tls.Config{Certificates: []tls.Certificate{cert}},
+		TLSConfig: tlsConfig,
 	}
 	logger.Info("serving HTTPS", "addr", addr)
 	return srv.ListenAndServeTLS("", "")
@@ -163,10 +169,12 @@ func generateSelfSignedCert() (tls.Certificate, error) {
 	tmpl := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		DNSNames:     []string{"localhost"},
+		// WebTransport accepts certificate hashes for development certificates
+		// only when their validity is at most two weeks.
+		NotAfter:    time.Now().Add(13 * 24 * time.Hour),
+		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		DNSNames:    []string{"localhost"},
 	}
 	der, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &priv.PublicKey, priv)
 	if err != nil {

@@ -201,6 +201,25 @@ func Broadcast(name string, payload any, opts ...BroadcastOption) {
 		}
 		SendSessionOutbound(t.ws, t.session, Outbound{Component: name, Payload: payload})
 	}
+
+	streamClientsMu.RLock()
+	streamTargets := make([]struct {
+		connection *streamBusConnection
+		session    *Session
+	}, 0, len(streamClients[name]))
+	for connection, session := range streamClients[name] {
+		streamTargets = append(streamTargets, struct {
+			connection *streamBusConnection
+			session    *Session
+		}{connection: connection, session: session})
+	}
+	streamClientsMu.RUnlock()
+	for _, target := range streamTargets {
+		if options.Session != "" && target.session.ID() != options.Session {
+			continue
+		}
+		sendStreamBusSession(target.connection, target.session, Outbound{Component: name, Payload: payload})
+	}
 }
 
 // DispatchAction executes a typed action within the configured handler deadline.
@@ -277,6 +296,7 @@ func BindSessionConnection(ws *websocket.Conn, session *Session) {
 	}
 	session.outboundMu.Lock()
 	session.connection = ws
+	session.streamConnection = nil
 	session.outboundMu.Unlock()
 }
 

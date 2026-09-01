@@ -67,7 +67,7 @@ func TestCompressWasmBrotli(t *testing.T) {
 
 func TestWriteClientConfig(t *testing.T) {
 	dir := t.TempDir()
-	if err := writeClientConfig(dir, "wss://example.com/rfw", "abc123"); err != nil {
+	if err := writeClientConfig(dir, "wss://example.com/rfw", "streambus", "abc123"); err != nil {
 		t.Fatalf("writeClientConfig: %v", err)
 	}
 
@@ -78,6 +78,9 @@ func TestWriteClientConfig(t *testing.T) {
 	got := string(config)
 	if !strings.Contains(got, `window.RFW_HOST_URL = "wss://example.com/rfw";`) {
 		t.Fatalf("host URL missing from client config: %q", got)
+	}
+	if !strings.Contains(got, `window.RFW_TRANSPORT = "streambus";`) {
+		t.Fatalf("transport missing from client config: %q", got)
 	}
 	if !strings.Contains(got, `window.RFW_WASM_VERSION = "abc123";`) {
 		t.Fatalf("wasm version missing from client config: %q", got)

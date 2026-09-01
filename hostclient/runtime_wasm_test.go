@@ -4,6 +4,7 @@ package hostclient
 
 import (
 	"context"
+	stdjs "syscall/js"
 	"testing"
 	"time"
 
@@ -14,6 +15,29 @@ func pendingCount() int {
 	mu.RLock()
 	defer mu.RUnlock()
 	return len(pending)
+}
+
+func TestStreamBusURLUsesAdvertisedHTTP3Port(t *testing.T) {
+	got := replaceURLPort("https://localhost:8081/streambus", "8083")
+	if got != "https://localhost:8083/streambus" {
+		t.Fatalf("URL = %q", got)
+	}
+}
+
+func TestPreferredTransportReadsGeneratedConfig(t *testing.T) {
+	global := stdjs.Global()
+	previous := global.Get("RFW_TRANSPORT")
+	global.Set("RFW_TRANSPORT", "streambus")
+	t.Cleanup(func() {
+		if previous.Type() == stdjs.TypeUndefined {
+			global.Delete("RFW_TRANSPORT")
+		} else {
+			global.Set("RFW_TRANSPORT", previous)
+		}
+	})
+	if got := preferredTransport(); got != "streambus" {
+		t.Fatalf("transport = %q", got)
+	}
 }
 
 // Repeated identical messages must go through by default: two identical user

@@ -28,7 +28,7 @@ type componentBinding struct {
 }
 
 var (
-	conn      *websocket.Conn
+	conn      transportConnection
 	bindings  = map[string]componentBinding{}
 	once      sync.Once
 	mu        sync.RWMutex
@@ -125,7 +125,7 @@ func hostWSURL() string {
 			return s
 		}
 	}
-	host := js.Location().Get("host").String()
+	host := browserLocationHost()
 	if h := js.Get("RFW_HOST"); h.Truthy() {
 		host = h.String()
 	}
@@ -148,7 +148,7 @@ func normalizeWSURL(raw string) string {
 		raw = "wss://" + strings.TrimPrefix(raw, "https://")
 	default:
 		scheme := "wss"
-		if js.Location().Get("protocol").String() == "http:" {
+		if browserLocationProtocol() == "http:" {
 			scheme = "ws"
 		}
 		raw = scheme + "://" + raw
@@ -161,17 +161,13 @@ func normalizeWSURL(raw string) string {
 
 func connectionLoop() {
 	for {
-		url := hostWSURL()
 		connectionState.Set(ConnectionConnecting)
 
 		err := fnres.Retry(context.Background(), func() error {
 			return cb.Execute(func() error {
-				if debug {
-					log.Printf("hostclient: dialing %s", url)
-				}
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				c, _, derr := websocket.Dial(ctx, url, nil)
+				c, derr := dialPreferredTransport(ctx)
 				if derr != nil {
 					return derr
 				}
@@ -184,7 +180,7 @@ func connectionLoop() {
 				mu.Unlock()
 
 				if debug {
-					log.Printf("hostclient: connected")
+					log.Printf("hostclient: connected via %s", c.Name())
 				}
 				connectionState.Set(ConnectionConnected)
 
@@ -235,7 +231,7 @@ func connectionLoop() {
 				go func() { errCh <- pingLoop(ctx2, c) }()
 				loopErr := <-errCh
 				cancel2()
-				c.Close(websocket.StatusInternalError, "connection closed")
+				c.Close()
 
 				mu.Lock()
 				conn = nil
@@ -261,7 +257,7 @@ func connectionLoop() {
 	}
 }
 
-func pingLoop(ctx context.Context, c *websocket.Conn) error {
+func pingLoop(ctx context.Context, c transportConnection) error {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -279,21 +275,10 @@ func pingLoop(ctx context.Context, c *websocket.Conn) error {
 	}
 }
 
-func readLoop(ctx context.Context, c *websocket.Conn) error {
+func readLoop(ctx context.Context, c transportConnection) error {
 	for {
-		var msg struct {
-			Component   string       `json:"component"`
-			Action      string       `json:"action"`
-			Control     string       `json:"control"`
-			ID          string       `json:"id"`
-			Payload     any          `json:"payload"`
-			Error       *ActionError `json:"error"`
-			Session     string       `json:"session"`
-			Sequence    uint64       `json:"sequence"`
-			Ack         uint64       `json:"ack"`
-			ResumeToken string       `json:"resumeToken"`
-		}
-		if err := wsjson.Read(ctx, c, &msg); err != nil {
+		var msg serverWireMessage
+		if err := c.Read(ctx, &msg); err != nil {
 			return err
 		}
 		if debug {
@@ -490,8 +475,10 @@ func SessionID() string {
 	return sessionID
 }
 
-func sendMessage(c *websocket.Conn, msg message) {
-	sendMessageWithWriter(c, msg, writeMessage)
+func sendMessage(c transportConnection, msg message) {
+	sendMu.Lock()
+	defer sendMu.Unlock()
+	sendMessageUnlocked(c, msg)
 }
 
 func sendMessageWithWriter(c *websocket.Conn, msg message, writer messageWriter) {
@@ -500,8 +487,21 @@ func sendMessageWithWriter(c *websocket.Conn, msg message, writer messageWriter)
 	sendMessageUnlockedWithWriter(c, msg, writer)
 }
 
-func sendMessageUnlocked(c *websocket.Conn, msg message) {
-	sendMessageUnlockedWithWriter(c, msg, writeMessage)
+func sendMessageUnlocked(c transportConnection, msg message) {
+	deliveryMu.Lock()
+	if msg.sequence == 0 {
+		nextOutbound++
+		msg.sequence = nextOutbound
+		outbox[msg.sequence] = msg
+	}
+	token := resumeToken
+	ack := lastInbound
+	deliveryMu.Unlock()
+	outbound := wireMessage{
+		Component: msg.name, Action: msg.action, ID: msg.id, Payload: msg.payload,
+		Sequence: msg.sequence, Ack: ack, ResumeToken: token,
+	}
+	_ = c.Write(context.Background(), outbound)
 }
 
 func sendMessageUnlockedWithWriter(c *websocket.Conn, msg message, writer messageWriter) {
