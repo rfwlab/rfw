@@ -2,7 +2,8 @@
 
 SSC splits a component in two: an HTML component that renders in the
 browser, and a host component that runs in your Go server process. A
-persistent WebSocket at `/ws` keeps them synchronized. The browser loads a
+persistent transport keeps them synchronized. WebSocket remains available at
+`/ws`, while Warp StreamBus can run over WebTransport at `/streambus`. The browser loads a
 lightweight wasm binary that hydrates the HTML; your logic, queries and
 secrets stay on the server. For the trust boundary and hardening options,
 read the [SSC security model](ssc-security.md).

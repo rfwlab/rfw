@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Add transparent Warp StreamBus transport selection through the top-level
+  `transport` manifest key or `RFW_TRANSPORT`.
+- Serve bounded StreamBus queues over WebTransport and HTTP/3 while preserving
+  WebSocket as an automatic compatibility fallback.
+- Keep SSC components, actions, hydration, sessions, replay and broadcasts
+  transport-independent.
+
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
