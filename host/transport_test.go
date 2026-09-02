@@ -3,10 +3,14 @@ package host
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 func TestResolveTransportPrecedence(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("os.Chdir is not implemented on js")
+	}
 	dir := t.TempDir()
 	previous, err := os.Getwd()
 	if err != nil {
@@ -20,7 +24,7 @@ func TestResolveTransportPrecedence(t *testing.T) {
 	if got := ResolveTransport(); got != TransportWebSocket {
 		t.Fatalf("default = %q", got)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "rfw.json"), []byte(`{"transport":"streambus"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "rfw.json"), []byte(`{"transport":"streambus"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if got := ResolveTransport(); got != TransportStreamBus {

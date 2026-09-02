@@ -10,9 +10,12 @@ import (
 type Transport string
 
 const (
+	// TransportWebSocket uses the existing SSC WebSocket connection.
 	TransportWebSocket Transport = "websocket"
+	// TransportStreamBus uses WebTransport for StreamBus frames.
 	TransportStreamBus Transport = "streambus"
-	TransportAuto      Transport = "auto"
+	// TransportAuto enables StreamBus alongside the WebSocket default.
+	TransportAuto Transport = "auto"
 )
 
 // ResolveTransport reads RFW_TRANSPORT first, then the top-level transport

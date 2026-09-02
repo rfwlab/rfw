@@ -16,7 +16,7 @@ func BenchmarkStreamBusFanout(b *testing.B) {
 	for _, subscribers := range []int{1, 10, 100} {
 		b.Run(fmt.Sprintf("subscribers-%d", subscribers), func(b *testing.B) {
 			bus := streambus.NewInMemory(streambus.Config{DefaultBuffer: 4096, MaxBuffer: 4096})
-			defer bus.Close()
+			defer func() { _ = bus.Close() }()
 			topics := make([]string, subscribers)
 			for i := 0; i < subscribers; i++ {
 				topics[i] = fmt.Sprintf("rfw/connection/%d", i)
@@ -26,9 +26,10 @@ func BenchmarkStreamBusFanout(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				defer subscription.Close()
+				defer func() { _ = subscription.Close() }()
 				go func() {
 					for range subscription.Frames() {
+						continue
 					}
 				}()
 			}
