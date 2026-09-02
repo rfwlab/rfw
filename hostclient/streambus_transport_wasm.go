@@ -189,7 +189,10 @@ func readStreamBusFrame(reader *bufio.Reader, maximum int) ([]byte, error) {
 	if maximum > 0 && size > uint64(maximum) {
 		return nil, fmt.Errorf("hostclient: StreamBus frame of %d bytes exceeds %d", size, maximum)
 	}
-	payload := make([]byte, int(size))
+	if size > uint64(^uint(0)>>1) {
+		return nil, fmt.Errorf("hostclient: StreamBus frame of %d bytes exceeds platform limit", size)
+	}
+	payload := make([]byte, size)
 	if _, err := io.ReadFull(reader, payload); err != nil {
 		return nil, err
 	}

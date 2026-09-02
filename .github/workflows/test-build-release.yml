@@ -54,7 +54,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25
+          go-version: 1.26
 
       - name: Build for js/wasm
         run: GOOS=js GOARCH=wasm go build ./...
@@ -63,7 +63,7 @@ jobs:
         run: GOOS=js GOARCH=wasm go vet ./...
 
       - name: Install wasmbrowsertest
-        run: go install github.com/agnivade/wasmbrowsertest@v0.11.0
+        run: go install github.com/agnivade/wasmbrowsertest@ff350cc7eb281242c0572c9e068246c0916d29ec
 
       - name: Allow Chrome sandbox (Ubuntu 24 AppArmor)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0

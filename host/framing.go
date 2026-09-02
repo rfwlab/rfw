@@ -24,7 +24,10 @@ func readFrame(r *bufio.Reader, maximum int) ([]byte, error) {
 	if maximum > 0 && size > uint64(maximum) {
 		return nil, fmt.Errorf("host: frame length %d exceeds %d", size, maximum)
 	}
-	payload := make([]byte, int(size))
+	if size > uint64(^uint(0)>>1) {
+		return nil, fmt.Errorf("host: frame length %d exceeds platform limit", size)
+	}
+	payload := make([]byte, size)
 	if _, err := io.ReadFull(r, payload); err != nil {
 		return nil, err
 	}

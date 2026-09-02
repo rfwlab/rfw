@@ -3,6 +3,7 @@ package host
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"testing"
 )
 
@@ -18,5 +19,13 @@ func TestFrameRoundTrip(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("frame = %q, want %q", got, want)
+	}
+}
+
+func TestFrameRejectsPlatformOverflow(t *testing.T) {
+	var prefix [binary.MaxVarintLen64]byte
+	n := binary.PutUvarint(prefix[:], uint64(^uint(0)>>1)+1)
+	if _, err := readFrame(bufio.NewReader(bytes.NewReader(prefix[:n])), 0); err == nil {
+		t.Fatal("readFrame accepted a length larger than int")
 	}
 }

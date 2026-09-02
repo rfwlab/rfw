@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -21,7 +22,7 @@ import (
 func TestStreamBusWebTransportProtocol(t *testing.T) {
 	t.Setenv("RFW_TRANSPORT", "streambus")
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	mux := NewMux(root)
@@ -35,6 +36,12 @@ func TestStreamBusWebTransportProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	leaf, err := x509.ParseCertificate(certificate.Certificate[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	roots := x509.NewCertPool()
+	roots.AddCert(leaf)
 	serverTLS := &tls.Config{Certificates: []tls.Certificate{certificate}, NextProtos: []string{http3.NextProtoH3}}
 	h3 := &http3.Server{
 		TLSConfig: serverTLS, Handler: mux, EnableDatagrams: true,
@@ -67,7 +74,7 @@ func TestStreamBusWebTransportProtocol(t *testing.T) {
 	})
 
 	dialer := &wt.Dialer{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{RootCAs: roots, ServerName: "localhost"},
 		QUICConfig:      &quic.Config{EnableDatagrams: true, EnableStreamResetPartialDelivery: true},
 	}
 	t.Cleanup(func() { _ = dialer.Close() })
@@ -78,6 +85,7 @@ func TestStreamBusWebTransportProtocol(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d", response.StatusCode)
 	}
