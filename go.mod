@@ -13,8 +13,8 @@ require (
 	github.com/mirkobrombin/go-signal/v2 v2.0.0
 	github.com/mirkobrombin/go-warp/v2 v2.1.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
-	github.com/quic-go/quic-go v0.59.0
-	github.com/quic-go/webtransport-go v0.10.0
+	github.com/quic-go/quic-go v0.60.0
+	github.com/quic-go/webtransport-go v0.11.1
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/tdewolff/minify/v2 v2.24.3
 	golang.org/x/net v0.58.0
