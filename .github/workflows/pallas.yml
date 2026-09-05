@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.25
+          go-version: 1.26
 
       - name: Install pallas
         run: go install github.com/vanilla-os/pallas/cmd/pallas@a07d6a955f40871655158d66178f90e69bd417a2

@@ -8,6 +8,8 @@
   WebSocket as an automatic compatibility fallback.
 - Keep SSC components, actions, hydration, sessions, replay and broadcasts
   transport-independent.
+- Keep StreamBus outbound failures from consuming SSC sequence numbers before
+  the connection can accept a frame.
 
 All notable changes to this project are documented in this file.
 

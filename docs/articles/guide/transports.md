@@ -39,7 +39,8 @@ Accepted values are:
 StreamBus runs on WebTransport over HTTP/3 at `/streambus`. RFW preserves its
 existing JSON SSC protocol and length-prefixes messages on a reliable QUIC
 stream. On the server, Warp StreamBus provides bounded queues, priorities,
-replay storage and explicit backpressure before frames reach the network.
+and explicit backpressure before frames reach the network. SSC keeps its own
+sequenced replay history above the transport.
 
 The WebSocket endpoint remains mounted as a compatibility fallback. No
 application code or component API changes when the selected transport changes.
