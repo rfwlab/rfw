@@ -24,8 +24,11 @@ import (
 )
 
 const streamBusPath = "/streambus"
+const streamBusConnectionBuffer = 256
 
 var (
+	errStreamBusBackpressure = errors.New("streambus: outbound queue is full")
+
 	streamEndpoints sync.Map
 	streamClientsMu sync.RWMutex
 	streamClients   = make(map[string]map[*streamBusConnection]*Session)
@@ -49,7 +52,7 @@ func newStreamBusEndpoint(runtime *WSRuntime) *streamBusEndpoint {
 	return &streamBusEndpoint{
 		runtime: runtime,
 		bus: streambus.NewInMemory(streambus.Config{
-			DefaultBuffer: 256, MaxBuffer: 4096, ReplayCapacity: 256,
+			DefaultBuffer: streamBusConnectionBuffer, MaxBuffer: 4096,
 			MaxPayloadBytes: maximum,
 		}),
 	}
@@ -117,6 +120,7 @@ type streamBusConnection struct {
 	bus          *streambus.InMemory
 	topic        string
 	subscription *streambus.Subscription
+	buffer       int
 	maximum      int
 	writeMu      sync.Mutex
 	closeOnce    sync.Once
@@ -125,13 +129,14 @@ type streamBusConnection struct {
 
 func newStreamBusConnection(ctx context.Context, request *http.Request, transport *wt.Session, stream *wt.Stream, bus *streambus.InMemory, maximum int) (*streamBusConnection, error) {
 	topic := fmt.Sprintf("rfw/connection/%d", streamID.Add(1))
-	subscription, err := bus.Subscribe(ctx, streambus.SubscribeOptions{Topic: topic, Buffer: 256, Overflow: streambus.Block})
+	subscription, err := bus.Subscribe(ctx, streambus.SubscribeOptions{Topic: topic, Buffer: streamBusConnectionBuffer, Overflow: streambus.Block})
 	if err != nil {
 		return nil, err
 	}
 	connection := &streamBusConnection{
 		request: request, transport: transport, stream: stream, reader: bufio.NewReader(stream),
-		bus: bus, topic: topic, subscription: subscription, maximum: maximum, done: make(chan struct{}),
+		bus: bus, topic: topic, subscription: subscription, buffer: streamBusConnectionBuffer,
+		maximum: maximum, done: make(chan struct{}),
 	}
 	go connection.writeLoop()
 	return connection, nil
@@ -150,6 +155,9 @@ func (c *streamBusConnection) Send(out Outbound) error {
 	if err != nil {
 		return err
 	}
+	if !c.canAcceptOutbound() {
+		return errStreamBusBackpressure
+	}
 	ctx, cancel := context.WithTimeout(c.transport.Context(), 5*time.Second)
 	defer cancel()
 	_, err = c.bus.Publish(ctx, streambus.Frame{
@@ -157,6 +165,17 @@ func (c *streamBusConnection) Send(out Outbound) error {
 		Priority: streambus.PriorityInteractive,
 	})
 	return err
+}
+
+func (c *streamBusConnection) canAcceptOutbound() bool {
+	if c == nil || c.subscription == nil {
+		return false
+	}
+	buffer := c.buffer
+	if buffer <= 0 {
+		buffer = streamBusConnectionBuffer
+	}
+	return c.subscription.Stats().Queued < buffer
 }
 
 func (c *streamBusConnection) writeLoop() {
@@ -174,11 +193,17 @@ func (c *streamBusConnection) writeLoop() {
 
 func (c *streamBusConnection) Close() {
 	c.closeOnce.Do(func() {
-		_ = c.transport.CloseWithError(0, "")
-		_ = c.subscription.Close()
-		c.writeMu.Lock()
-		_ = c.stream.Close()
-		c.writeMu.Unlock()
+		if c.transport != nil {
+			_ = c.transport.CloseWithError(0, "")
+		}
+		if c.subscription != nil {
+			_ = c.subscription.Close()
+		}
+		if c.stream != nil {
+			c.writeMu.Lock()
+			_ = c.stream.Close()
+			c.writeMu.Unlock()
+		}
 	})
 }
 
@@ -330,7 +355,11 @@ func bindStreamBusConnection(connection *streamBusConnection, session *Session, 
 }
 
 func sendStreamBusSession(connection *streamBusConnection, session *Session, out Outbound) {
-	if session == nil {
+	if connection == nil || session == nil {
+		return
+	}
+	if _, err := json.Marshal(out); err != nil {
+		log.Printf("streambus marshal outbound payload: %v", err)
 		return
 	}
 	session.outboundMu.Lock()
@@ -338,7 +367,14 @@ func sendStreamBusSession(connection *streamBusConnection, session *Session, out
 	if session.streamConnection != connection {
 		return
 	}
-	_ = connection.Send(session.PrepareOutbound(out))
+	if !connection.canAcceptOutbound() {
+		connection.Close()
+		return
+	}
+	if err := connection.Send(session.PrepareOutbound(out)); err != nil {
+		log.Printf("streambus send: %v", err)
+		connection.Close()
+	}
 }
 
 func replayStreamBus(connection *streamBusConnection, session *Session, acknowledged uint64) {
@@ -349,11 +385,18 @@ func replayStreamBus(connection *streamBusConnection, session *Session, acknowle
 	}
 	messages, err := session.ReplayAfter(acknowledged)
 	if err != nil {
-		_ = connection.Send(session.PrepareOutbound(Outbound{Error: NewActionError("resync_required", "message history is no longer available")}))
+		if err := connection.Send(session.PrepareOutbound(Outbound{Error: NewActionError("resync_required", "message history is no longer available")})); err != nil {
+			log.Printf("streambus replay: %v", err)
+			connection.Close()
+		}
 		return
 	}
 	for _, message := range messages {
-		_ = connection.Send(message)
+		if err := connection.Send(message); err != nil {
+			log.Printf("streambus replay: %v", err)
+			connection.Close()
+			return
+		}
 	}
 }
 

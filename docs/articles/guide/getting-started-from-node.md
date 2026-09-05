@@ -4,7 +4,7 @@ You know npm, `package.json`, and `npm run dev`. You have never installed Go.
 This guide gets you from zero to a running rfw app without assuming any Go
 background.
 
-rfw requires **Go 1.25 or newer**.
+rfw requires **Go 1.26 or newer**.
 
 ## 1. Install Go
 
@@ -13,9 +13,9 @@ rfw requires **Go 1.25 or newer**.
 Most distro packages lag behind. Prefer the official tarball:
 
 ```bash
-curl -LO https://go.dev/dl/go1.25.0.linux-amd64.tar.gz
+curl -LO https://go.dev/dl/go1.26.0.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.26.0.linux-amd64.tar.gz
 ```
 
 Then add Go to your PATH (in `~/.bashrc` or `~/.zshrc`):
@@ -24,7 +24,7 @@ Then add Go to your PATH (in `~/.bashrc` or `~/.zshrc`):
 export PATH=$PATH:/usr/local/go/bin
 ```
 
-If you prefer your package manager, check the version first: you need 1.25+.
+If you prefer your package manager, check the version first: you need 1.26+.
 On Arch `pacman -S go` is current; on Debian/Ubuntu the `golang` package is
 often too old, use the tarball instead.
 
@@ -50,7 +50,7 @@ winget install GoLang.Go
 
 ```bash
 go version
-# go version go1.25.0 linux/amd64
+# go version go1.26.0 linux/amd64
 ```
 
 ## 2. The PATH gotcha

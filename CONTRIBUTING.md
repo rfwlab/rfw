@@ -5,7 +5,7 @@ pull request.
 
 ## Development setup
 
-You need Go **1.25** or later (see `go.mod`).
+You need Go **1.26** or later (see `go.mod`).
 
 Clone the repository and verify everything builds for both targets:
 

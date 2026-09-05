@@ -5,7 +5,7 @@ metrics, a component that renders them, a simulated data feed driven by a
 goroutine and a `time.Ticker`, a list rendered with `@for`, and a pause button
 wired with `@on:click`. No JavaScript is written at any point.
 
-Prerequisites: Go 1.25+ and the rfw CLI. If you have neither, start with
+Prerequisites: Go 1.26+ and the rfw CLI. If you have neither, start with
 [Getting started from Node](getting-started-from-node.md).
 
 ## 1. Scaffold the project

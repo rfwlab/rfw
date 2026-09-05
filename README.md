@@ -39,7 +39,7 @@ rfw 2.1 includes:
 
 ## Getting Started
 
-rfw requires Go 1.25 or newer. Coming from Node and never installed Go? See
+rfw requires Go 1.26 or newer. Coming from Node and never installed Go? See
 [Getting started from Node](./docs/articles/guide/getting-started-from-node.md).
 
 ```bash
