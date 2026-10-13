@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"runtime"
 	"sort"
 	"strconv"
@@ -367,7 +366,14 @@ func (c *HTMLComponent) Unmount() {
 	if !root.IsNull() && !root.IsUndefined() {
 		dom.RemoveDelegatedEvents(c.ID, root.Value)
 	}
-	log.Printf("Unsubscribing %s from all stores", c.Name)
+	// Through the pluggable Logger (see logger.go), not a raw log.Printf: an
+	// app mounting many components per view - an issue board's date pickers,
+	// custom selects, filter strip, comments panel - paid one unconditional
+	// console write per unmounted component with no way to turn it off
+	// (SetLogger only intercepted the router's own unmount line, this one
+	// bypassed it entirely). A consuming app can now silence/level this the
+	// same way it already can for every other framework log line.
+	Log().Debug("Unsubscribing %s from all stores", c.Name)
 	c.unsubscribes.Run()
 
 	for _, dep := range c.Dependencies {
