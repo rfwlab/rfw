@@ -108,7 +108,6 @@ func BenchmarkRenderBoardStatic(b *testing.B) {
 		out = replaceEventHandlers(out)
 		out = replaceRtIsAttributes(out, c)
 		out = replaceConstructors(out)
-		out = minifyInline(out)
 		if out == "" {
 			b.Fatal("empty render")
 		}
