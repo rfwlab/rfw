@@ -58,6 +58,11 @@ jobs:
         with:
           go-version: "1.26.9"
 
+      - name: Verify browser loader with runner Node.js
+        run: |
+          node --version
+          go test -v ./cmd/rfw/build -count=1 -run '^(TestBrowserLoaderScenarios|TestWriteClientConfigDefinesEveryGlobalTheLoaderReads)$'
+
       - name: Build for js/wasm
         run: GOOS=js GOARCH=wasm go build ./...
 
