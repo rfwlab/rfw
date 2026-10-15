@@ -35,7 +35,9 @@ globalThis.sessionStorage = {
 };
 
 let instantiated;
-globalThis.WebAssembly = {
+// Node's response implementation may compile its own parser lazily.
+// Keep the native API available while observing loader instantiation.
+globalThis.WebAssembly = Object.assign(Object.create(globalThis.WebAssembly), {
     async instantiateStreaming(response) {
         instantiated = Buffer.from(await response.arrayBuffer());
         return { instance: {} };
@@ -44,7 +46,9 @@ globalThis.WebAssembly = {
         instantiated = Buffer.from(bytes);
         return { instance: {} };
     },
-};
+});
+
+assert.equal(typeof WebAssembly.compile, "function");
 
 vm.runInThisContext(await fs.readFile(loaderPath, "utf8"), {
     filename: loaderPath,
