@@ -25,6 +25,7 @@ func TestScaffoldBuildsOfflineAfterTidy(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir("scaffoldcheck")
+	// #nosec G204 -- the executable/module are fixed; root is this checkout, not project input.
 	edit := exec.Command("go", "mod", "edit", "-require=github.com/rfwlab/rfw/v2@v2.0.0", "-replace=github.com/rfwlab/rfw/v2="+root)
 	if out, err := edit.CombinedOutput(); err != nil {
 		t.Fatalf("configure local framework: %v\n%s", err, out)
