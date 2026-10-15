@@ -5,7 +5,6 @@ on:
     branches: ["main"]
     tags: [ 'v*' ]
   pull_request:
-    branches: ["main"]
 
 permissions:
   contents: read
@@ -24,10 +23,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26
+          go-version: "1.26.9"
 
       - name: Run Unit Tests
         run: go test -v ./...
+
+      - name: Check reachable Go vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 
       - name: Build Application
         run: go build -o rfw -ldflags="-X 'github.com/rfwlab/rfw/v2/core.version=${{ github.sha }}'" ./cmd/rfw/main.go
@@ -54,7 +56,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26
+          go-version: "1.26.9"
 
       - name: Build for js/wasm
         run: GOOS=js GOARCH=wasm go build ./...
@@ -163,7 +165,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.26
+          go-version: "1.26.9"
 
       - name: Build release assets
         run: |
@@ -228,7 +230,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.26"
+          go-version: "1.26.9"
       - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2

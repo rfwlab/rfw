@@ -1,0 +1,7 @@
+//go:build rfwtools && js && wasm
+
+package main
+
+// The CLI adds this import for SSC builds. Keep its module graph during tidy
+// without linking the SSC client into static application builds.
+import _ "github.com/rfwlab/rfw/v2/hostclient"
