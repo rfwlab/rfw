@@ -400,14 +400,18 @@ func replayStreamBus(connection *streamBusConnection, session *Session, acknowle
 	}
 }
 
-func startStreamBusHTTP3(addr string, mux *http.ServeMux, tlsConfig *tls.Config) {
+func prepareStreamBusHTTP3(addr string, mux *http.ServeMux, tlsConfig *tls.Config) (*wt.Server, net.PacketConn, error) {
 	value, ok := streamEndpoints.Load(mux)
 	if !ok {
-		return
+		return nil, nil, nil
+	}
+	packets, err := net.ListenPacket("udp", addr)
+	if err != nil {
+		return nil, nil, err
 	}
 	endpoint := value.(*streamBusEndpoint)
-	port := strings.TrimPrefix(addr, ":")
-	if _, parsedPort, err := net.SplitHostPort(addr); err == nil {
+	port := strings.TrimPrefix(packets.LocalAddr().String(), ":")
+	if _, parsedPort, err := net.SplitHostPort(packets.LocalAddr().String()); err == nil {
 		port = parsedPort
 	}
 	streamHTTP3Port.Store(port)
@@ -416,17 +420,15 @@ func startStreamBusHTTP3(addr string, mux *http.ServeMux, tlsConfig *tls.Config)
 		streamCertHash.Store(fmt.Sprintf("%x", hash[:]))
 	}
 	h3 := &http3.Server{
-		Addr: addr, Handler: mux, TLSConfig: tlsConfig.Clone(), EnableDatagrams: true,
+		Addr: addr, Handler: mux, TLSConfig: http3.ConfigureTLSConfig(tlsConfig), EnableDatagrams: true,
 		QUICConfig: &quic.Config{EnableDatagrams: true, EnableStreamResetPartialDelivery: true},
 	}
-	server := &wt.Server{H3: h3}
+	// The mux's runtime.Guard owns the shared WS/StreamBus origin policy.
+	// A second same-origin check would reject the HTTP frontend's HTTPS port.
+	server := &wt.Server{H3: h3, CheckOrigin: func(*http.Request) bool { return true }}
 	wt.ConfigureHTTP3Server(h3)
 	endpoint.mu.Lock()
 	endpoint.server = server
 	endpoint.mu.Unlock()
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			log.Printf("streambus HTTP/3 server: %v", err)
-		}
-	}()
+	return server, packets, nil
 }

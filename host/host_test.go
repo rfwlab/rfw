@@ -1,7 +1,11 @@
 package host
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/x509"
 	"testing"
+	"time"
 )
 
 // TestHostComponent verifies registration and handler execution.
@@ -75,5 +79,23 @@ func TestGenerateSelfSignedCert(t *testing.T) {
 	}
 	if len(cert.Certificate) == 0 {
 		t.Fatalf("expected certificate data")
+	}
+}
+
+func TestDevelopmentCertificateSupportsWebTransportHashes(t *testing.T) {
+	cert, err := generateSelfSignedCert()
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := x509.ParseCertificate(cert.Certificate[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, ok := leaf.PublicKey.(*ecdsa.PublicKey)
+	if !ok || key.Curve != elliptic.P256() {
+		t.Fatalf("development certificate key is %T", leaf.PublicKey)
+	}
+	if leaf.NotAfter.Sub(leaf.NotBefore) > 14*24*time.Hour {
+		t.Fatalf("development certificate validity is %s", leaf.NotAfter.Sub(leaf.NotBefore))
 	}
 }

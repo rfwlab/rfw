@@ -1,13 +1,15 @@
 package host
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"expvar"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -118,32 +120,50 @@ func ListenAndServeWithMux(addr string, mux *http.ServeMux) error {
 // ListenAndServeTLS starts an HTTPS server using a self-signed certificate
 // and NewMux to serve files and the WebSocket endpoint.
 func ListenAndServeTLS(addr, root string) error {
-	cert, err := generateSelfSignedCert()
-	if err != nil {
-		return err
-	}
-	mux := NewMux(root)
-	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-	startStreamBusHTTP3(addr, mux, tlsConfig)
-	srv := newHTTPServer(addr, loggingMiddleware(mux))
-	srv.TLSConfig = tlsConfig
-	logger.Info("serving HTTPS", "addr", addr)
-	return srv.ListenAndServeTLS("", "")
+	return ListenAndServeTLSWithMux(addr, NewMux(root))
 }
 
 // ListenAndServeTLSWithMux starts an HTTPS server using a self-signed certificate
 // and the provided mux, preserving any additional routes registered by callers.
 func ListenAndServeTLSWithMux(addr string, mux *http.ServeMux) error {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = listener.Close() }()
+	return serveHost(nil, listener, mux)
+}
+
+func serveHost(plain, secure net.Listener, mux *http.ServeMux) error {
 	cert, err := generateSelfSignedCert()
 	if err != nil {
 		return err
 	}
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-	startStreamBusHTTP3(addr, mux, tlsConfig)
-	srv := newHTTPServer(addr, loggingMiddleware(mux))
+	addr := secure.Addr().String()
+	stream, packets, err := prepareStreamBusHTTP3(addr, mux, tlsConfig)
+	if err != nil {
+		return err
+	}
+	results := make(chan error, 3)
+	if stream != nil {
+		defer func() { _ = stream.Close() }()
+		defer func() { _ = packets.Close() }()
+		go func() { results <- stream.Serve(packets) }()
+	}
+	handler := loggingMiddleware(mux)
+	srv := newHTTPServer(addr, handler)
 	srv.TLSConfig = tlsConfig
+	defer func() { _ = srv.Close() }()
 	logger.Info("serving HTTPS", "addr", addr)
-	return srv.ListenAndServeTLS("", "")
+	go func() { results <- srv.ServeTLS(secure, "", "") }()
+	if plain != nil {
+		httpServer := newHTTPServer(plain.Addr().String(), handler)
+		defer func() { _ = httpServer.Close() }()
+		logger.Info("serving HTTP", "addr", plain.Addr().String())
+		go func() { results <- httpServer.Serve(plain) }()
+	}
+	return <-results
 }
 
 func newHTTPServer(addr string, handler http.Handler) *http.Server {
@@ -197,7 +217,7 @@ func setWasmEncodingHeaders(w http.ResponseWriter, path string, versioned bool) 
 }
 
 func generateSelfSignedCert() (tls.Certificate, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
@@ -216,6 +236,10 @@ func generateSelfSignedCert() (tls.Certificate, error) {
 		return tls.Certificate{}, err
 	}
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+	key, err := x509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: key})
 	return tls.X509KeyPair(certPEM, keyPEM)
 }
