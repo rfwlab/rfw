@@ -414,6 +414,10 @@ func TestWriteClientConfigDescribesAnEmbeddedBuild(t *testing.T) {
 // Every global the loader reads has to be defined by the config, or the loader
 // cannot tell a disabled feature from a stale build.
 func TestWriteClientConfigDefinesEveryGlobalTheLoaderReads(t *testing.T) {
+	loader, err := os.ReadFile(filepath.Join("..", "initproj", "template", "wasm_loader.js"))
+	if err != nil {
+		t.Fatalf("read loader template: %v", err)
+	}
 	dir := t.TempDir()
 	t.Chdir(dir)
 	if err := writeClientConfig(".", "", "abc123", []Encoding{EncodingGzip}, false, true, deliveryNetwork, sscTransportBrowser, hostTransportWebSocket); err != nil {
@@ -422,10 +426,6 @@ func TestWriteClientConfigDefinesEveryGlobalTheLoaderReads(t *testing.T) {
 	config, err := os.ReadFile("rfw_config.js")
 	if err != nil {
 		t.Fatalf("read client config: %v", err)
-	}
-	loader, err := os.ReadFile(filepath.Join("..", "..", "initproj", "template", "wasm_loader.js"))
-	if err != nil {
-		t.Skipf("loader template unavailable: %v", err)
 	}
 	defined := string(config)
 	for _, global := range regexp.MustCompile(`window\.(RFW_[A-Z_]+)`).FindAllStringSubmatch(string(loader), -1) {

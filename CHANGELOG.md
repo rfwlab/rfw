@@ -6,7 +6,9 @@
   as components registered with SetComponent. Explicit registration still invokes
   each callback once per lifecycle event.
 - Preserve native WebAssembly APIs in the loader scenario fixture so Node's
-  lazily initialized HTTP parser can still compile its own module.
+  lazily initialized HTTP parser can still compile its own module. Run loader
+  scenarios on the Node-equipped browser CI runner, and fail the config contract
+  test when its repository template is missing instead of silently skipping it.
 
 - Bind all stock host listeners before serving and return HTTP, HTTPS or
   StreamBus bind failures to the caller. Stop sibling servers on a serve error.
