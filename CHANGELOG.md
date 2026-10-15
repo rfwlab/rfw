@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Keep SSC client dependencies in a fresh scaffold's module graph so its first
+  build succeeds after tidy, including with a read-only offline module graph.
+  The dependency anchor is excluded from application builds and does not link
+  hostclient into static source builds.
+
 - Require Go 1.26.9 and update x/net to 0.60.0, with its selected x/crypto,
   x/sys and x/text versions, for the October HTTP/2 security fixes. CI and
   generated/example projects use the same minimum patched toolchain.
