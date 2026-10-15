@@ -36,6 +36,15 @@ var (
 	reTagName         = regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9-]*)`)
 	reConditionalAttr = regexp.MustCompile(`<([a-zA-Z][\w-]*)([^>]*?)\s\[([^\] ]+)(?:\s+([^\]]+))?\]([^>]*)>`)
 	depRegex          = regexp.MustCompile(`(?:store:[\w-]+\.[\w-]+\.[\w-]+|signal:\w+|prop:\w+|\w+(?:\.\w+)*)`)
+	reClassExpr       = regexp.MustCompile(`class="([^"]*@expr:[^"]*)"`)
+	reExprInAttr      = regexp.MustCompile(`@expr:((?:[^"<@]|'[^']*')+)`)
+
+	// includes carrying inline props, bare and wrapped in the <p> a Markdown
+	// renderer leaves around them
+	reInlinePropIncludes = []*regexp.Regexp{
+		regexp.MustCompile(`<p>@include:([\w-]+):\{([^}]*)\}</p>`),
+		regexp.MustCompile(`@include:([\w-]+):\{([^}]*)\}`),
+	}
 )
 
 // Node renders a parsed template node.
@@ -164,7 +173,15 @@ func (cn *ConditionalNode) Render(c *HTMLComponent) string {
 	return fmt.Sprintf(`<div data-condition="%s" data-condition-branch="%d">%s</div>`, conditionID, chosenBranch, chosen)
 }
 
+// A ReplaceAllStringFunc that matches nothing still copies the whole document,
+// on top of walking it with the regexp engine. The passes below therefore look
+// for their directive first: on an expanded loop the document is large and the
+// directives are almost always absent from the rows.
+
 func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) string {
+	if !strings.Contains(renderedTemplate, "@include:") {
+		return renderedTemplate
+	}
 	includeRegex := reInclude
 	return includeRegex.ReplaceAllStringFunc(renderedTemplate, func(match string) string {
 		name := includeRegex.FindStringSubmatch(match)[1]
@@ -183,17 +200,14 @@ func replaceIncludePlaceholders(c *HTMLComponent, renderedTemplate string) strin
 // are replaced with standard @include placeholders after instantiating the
 // component and registering it as a dependency.
 func replaceComponentIncludes(template string, c *HTMLComponent) string {
+	if !strings.Contains(template, "@include:") {
+		return template
+	}
 	idx := 0
 
 	// Handle includes that may be wrapped in <p> tags produced by Markdown
 	// renderers as well as bare @include directives.
-	patterns := []string{
-		`<p>@include:([\w-]+):\{([^}]*)\}</p>`,
-		`@include:([\w-]+):\{([^}]*)\}`,
-	}
-
-	for _, pat := range patterns {
-		re := regexp.MustCompile(pat)
+	for _, re := range reInlinePropIncludes {
 		template = re.ReplaceAllStringFunc(template, func(match string) string {
 			parts := re.FindStringSubmatch(match)
 			if len(parts) < 3 {
@@ -227,6 +241,9 @@ func replaceComponentIncludes(template string, c *HTMLComponent) string {
 }
 
 func extractSlotContents(template string, c *HTMLComponent) string {
+	if !strings.Contains(template, "@slot") {
+		return template
+	}
 	slotRegex := reSlotNamed
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := slotRegex.FindStringSubmatch(match)
@@ -251,6 +268,9 @@ func extractSlotContents(template string, c *HTMLComponent) string {
 }
 
 func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
+	if !strings.Contains(template, "@slot") {
+		return template
+	}
 	slotRegex := reSlotDefault
 	idx := 0
 	return slotRegex.ReplaceAllStringFunc(template, func(match string) string {
@@ -283,30 +303,19 @@ func replaceSlotPlaceholders(template string, c *HTMLComponent) string {
 // escapeValue renders a substituted value HTML-escaped: template bindings are
 // text by default; @rawstore/@rawprop opt into trusted markup injection.
 func escapeValue(v any) string {
+	if s, ok := v.(string); ok {
+		return html.EscapeString(s)
+	}
 	return html.EscapeString(fmt.Sprintf("%v", v))
 }
 
 func replaceStorePlaceholders(template string, c *HTMLComponent) string {
-	template = reRawStore.ReplaceAllStringFunc(template, func(match string) string {
-		parts := reRawStore.FindStringSubmatch(match)
-		if len(parts) < 4 {
-			return match
-		}
-		module, storeName, key := parts[1], parts[2], parts[3]
-		store := state.GlobalStoreManager.GetStore(module, storeName)
-		if store == nil {
-			return match
-		}
-		value := store.Get(key)
-		if value == nil {
-			value = ""
-		}
-		unsubscribe := store.OnChange(key, func(newValue any) {
-			updateStoreBindings(c, module, storeName, key, newValue)
-		})
-		c.unsubscribes.Add(unsubscribe)
-		return fmt.Sprintf(`<span data-store-raw="%s.%s.%s">%v</span>`, module, storeName, key, value)
-	})
+	if strings.Contains(template, "@rawstore:") {
+		template = replaceRawStorePlaceholders(template, c)
+	}
+	if !strings.Contains(template, "@store:") {
+		return template
+	}
 	storeRegex := reStore
 	return storeRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := storeRegex.FindStringSubmatch(match)
@@ -343,7 +352,33 @@ func replaceStorePlaceholders(template string, c *HTMLComponent) string {
 	})
 }
 
+func replaceRawStorePlaceholders(template string, c *HTMLComponent) string {
+	return reRawStore.ReplaceAllStringFunc(template, func(match string) string {
+		parts := reRawStore.FindStringSubmatch(match)
+		if len(parts) < 4 {
+			return match
+		}
+		module, storeName, key := parts[1], parts[2], parts[3]
+		store := state.GlobalStoreManager.GetStore(module, storeName)
+		if store == nil {
+			return match
+		}
+		value := store.Get(key)
+		if value == nil {
+			value = ""
+		}
+		unsubscribe := store.OnChange(key, func(newValue any) {
+			updateStoreBindings(c, module, storeName, key, newValue)
+		})
+		c.unsubscribes.Add(unsubscribe)
+		return fmt.Sprintf(`<span data-store-raw="%s.%s.%s">%v</span>`, module, storeName, key, value)
+	})
+}
+
 func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
+	if !strings.Contains(template, "@signal:") {
+		return template
+	}
 	sigRegex := reSignal
 	return sigRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := sigRegex.FindStringSubmatch(match)
@@ -376,6 +411,9 @@ func replaceSignalPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceExprPlaceholders(template string, c *HTMLComponent) string {
+	if !strings.Contains(template, "@expr:") {
+		return template
+	}
 	exprRegex := reExpr
 	idx := 0
 	return exprRegex.ReplaceAllStringFunc(template, func(match string) string {
@@ -406,7 +444,13 @@ func replaceExprPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replaceExprInClassAttr(template string, c *HTMLComponent) string {
-	classRe := regexp.MustCompile(`class="([^"]*@expr:[^"]*)"`)
+	// the pattern is anchored on class=", which every element carries, so it
+	// restarts at every element to match nothing; the same condition costs a
+	// byte scan instead of a regexp walk
+	if !hasClassExpr(template) {
+		return template
+	}
+	classRe := reClassExpr
 	idx := 0
 	result := classRe.ReplaceAllStringFunc(template, func(match string) string {
 		parts := classRe.FindStringSubmatch(match)
@@ -415,7 +459,7 @@ func replaceExprInClassAttr(template string, c *HTMLComponent) string {
 		}
 		classVal := parts[1]
 
-		exprInAttrRe := regexp.MustCompile(`@expr:((?:[^"<@]|'[^']*')+)`)
+		exprInAttrRe := reExprInAttr
 		var exprIDs []string
 		newClassVal := exprInAttrRe.ReplaceAllStringFunc(classVal, func(exprMatch string) string {
 			eparts := exprInAttrRe.FindStringSubmatch(exprMatch)
@@ -452,6 +496,29 @@ func replaceExprInClassAttr(template string, c *HTMLComponent) string {
 		return fmt.Sprintf(`class="%s" data-expr-class="%s"`, newClassVal, idsStr)
 	})
 	return result
+}
+
+// hasClassExpr reports whether any class attribute holds an @expr:, which is
+// what reClassExpr matches.
+func hasClassExpr(template string) bool {
+	for i := 0; i < len(template); {
+		j := strings.Index(template[i:], `class="`)
+		if j < 0 {
+			return false
+		}
+		start := i + j + len(`class="`)
+		end := strings.IndexByte(template[start:], '"')
+		if end < 0 {
+			return false
+		}
+		if strings.Contains(template[start:start+end], "@expr:") {
+			return true
+		}
+		// resume right after the token, not after the attribute: the regexp
+		// can still start at a class=" that sits inside this value
+		i = start
+	}
+	return false
 }
 
 func collectExprSignals(expr rtmlast.Expr, c *HTMLComponent) map[string]any {
@@ -772,16 +839,21 @@ func updateClassExprBindings(c *HTMLComponent, exprID string, newValue any) {
 }
 
 func replacePropPlaceholders(template string, c *HTMLComponent) string {
-	template = reRawProp.ReplaceAllStringFunc(template, func(match string) string {
-		parts := reRawProp.FindStringSubmatch(match)
-		if len(parts) != 2 {
+	if strings.Contains(template, "@rawprop:") {
+		template = reRawProp.ReplaceAllStringFunc(template, func(match string) string {
+			parts := reRawProp.FindStringSubmatch(match)
+			if len(parts) != 2 {
+				return match
+			}
+			if value, exists := c.Props[parts[1]]; exists {
+				return fmt.Sprintf("%v", value)
+			}
 			return match
-		}
-		if value, exists := c.Props[parts[1]]; exists {
-			return fmt.Sprintf("%v", value)
-		}
-		return match
-	})
+		})
+	}
+	if !strings.Contains(template, "@prop:") {
+		return template
+	}
 	propRegex := reProp
 	idx := 0
 	return propRegex.ReplaceAllStringFunc(template, func(match string) string {
@@ -809,23 +881,28 @@ func replacePropPlaceholders(template string, c *HTMLComponent) string {
 }
 
 func replacePluginPlaceholders(template string) string {
-	varRegex := rePluginVar
-	template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
-		parts := varRegex.FindStringSubmatch(match)
-		if len(parts) != 3 {
+	if strings.Contains(template, "{plugin:") {
+		varRegex := rePluginVar
+		template = varRegex.ReplaceAllStringFunc(template, func(match string) string {
+			parts := varRegex.FindStringSubmatch(match)
+			if len(parts) != 3 {
+				return match
+			}
+			plug, name := parts[1], parts[2]
+			if v, ok := getRTMLVar(plug, name); ok {
+				return fmt.Sprintf("%v", v)
+			}
+			if DevMode {
+				Log().Warn("plugin variable %s.%s not found", plug, name)
+			}
 			return match
-		}
-		plug, name := parts[1], parts[2]
-		if v, ok := getRTMLVar(plug, name); ok {
-			return fmt.Sprintf("%v", v)
-		}
-		if DevMode {
-			Log().Warn("plugin variable %s.%s not found", plug, name)
-		}
-		return match
-	})
+		})
+	}
+	if !strings.Contains(template, "@plugin:") {
+		return template
+	}
 	cmdRegex := rePluginCmd
-	template = cmdRegex.ReplaceAllStringFunc(template, func(match string) string {
+	return cmdRegex.ReplaceAllStringFunc(template, func(match string) string {
 		parts := cmdRegex.FindStringSubmatch(match)
 		if len(parts) != 4 {
 			return match
@@ -833,7 +910,6 @@ func replacePluginPlaceholders(template string) string {
 		plug, name, suffix := parts[1], parts[2], parts[3]
 		return fmt.Sprintf(`data-plugin-cmd="%s.%s"%s`, plug, name, suffix)
 	})
-	return template
 }
 
 func replaceHostPlaceholders(template string, c *HTMLComponent) string {
@@ -875,6 +951,11 @@ func replaceEventHandlers(template string) string {
 // placeholder so standard include processing can render the referenced
 // component and manage its lifecycle.
 func replaceRtIsAttributes(template string, c *HTMLComponent) string {
+	// the pattern starts at every opening tag, so a document without a single
+	// rt-is still pays a backtracking scan per element
+	if !strings.Contains(template, `rt-is="`) {
+		return template
+	}
 	re := reRtIs
 	idx := 0
 	return re.ReplaceAllStringFunc(template, func(match string) string {
@@ -906,11 +987,21 @@ func parseTemplate(template string) ([]Node, error) {
 
 func parseBlock(lines []string, idx *int) ([]Node, error) {
 	var nodes []Node
+	// a run of plain lines becomes one node: a node per line meant two
+	// allocations for every line of an expanded loop
+	run := -1
+	flush := func() {
+		if run < 0 {
+			return
+		}
+		nodes = append(nodes, &TextNode{Text: strings.Join(lines[run:*idx], "\n") + "\n"})
+		run = -1
+	}
 	for *idx < len(lines) {
-		line := lines[*idx]
-		trimmed := strings.TrimSpace(line)
+		trimmed := strings.TrimSpace(lines[*idx])
 		switch {
 		case strings.HasPrefix(trimmed, "@if:"):
+			flush()
 			cond := trimmed
 			*idx++
 			n, err := parseConditional(lines, idx, cond)
@@ -919,12 +1010,16 @@ func parseBlock(lines []string, idx *int) ([]Node, error) {
 			}
 			nodes = append(nodes, n)
 		case strings.HasPrefix(trimmed, "@else-if:"), trimmed == "@else", trimmed == "@endif":
+			flush()
 			return nodes, nil
 		default:
-			nodes = append(nodes, &TextNode{Text: line + "\n"})
+			if run < 0 {
+				run = *idx
+			}
 			*idx++
 		}
 	}
+	flush()
 	return nodes, nil
 }
 
@@ -966,6 +1061,13 @@ func parseConditional(lines []string, idx *int, firstCond string) (Node, error) 
 
 // replaceConditionals parses conditionals using the AST and renders them.
 func replaceConditionals(template string, c *HTMLComponent) string {
+	// parsing splits the expanded markup into one node per line and joins it
+	// back together; with no block to render that is pure copying. The parser
+	// terminates every line, including the last one, so the shortcut has to
+	// add the newline the join would have produced.
+	if !strings.Contains(template, "@if:") {
+		return template + "\n"
+	}
 	nodes, err := parseTemplate(template)
 	if err != nil {
 		return template
@@ -1168,6 +1270,9 @@ func insertDataKey(content string, key any) string {
 //
 // Only a single constructor per element is handled.
 func replaceConstructors(template string) string {
+	if !hasConstructorToken(template) {
+		return template
+	}
 	re := reConditionalAttr
 	return re.ReplaceAllStringFunc(template, func(match string) string {
 		parts := re.FindStringSubmatch(match)
@@ -1189,6 +1294,28 @@ func replaceConstructors(template string) string {
 		}
 		return fmt.Sprintf("<%s%s%s%s>", tag, before, attr, after)
 	})
+}
+
+// hasConstructorToken reports whether the template can hold a constructor at
+// all. reConditionalAttr requires whitespace immediately before the opening
+// bracket, and it restarts at every opening tag, so without that pair the pass
+// backtracks across the whole document to find nothing.
+func hasConstructorToken(template string) bool {
+	for i := 0; i < len(template); {
+		j := strings.IndexByte(template[i:], '[')
+		if j < 0 {
+			return false
+		}
+		at := i + j
+		if at > 0 {
+			switch template[at-1] {
+			case ' ', '\t', '\n', '\f', '\r':
+				return true
+			}
+		}
+		i = at + 1
+	}
+	return false
 }
 
 func resolveNumber(expr string, c *HTMLComponent) (int, error) {

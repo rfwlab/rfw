@@ -307,6 +307,14 @@ version and include migration notes.
   without extra configuration. An explicit `"plugins"` block, including an empty
   one, still opts out.
 
+### Changed
+
+- RTML render passes skip the templates they cannot match instead of walking
+  and copying the whole document, loop rows reuse their compiled patterns, and
+  `dom.ExpandEvents` runs its pattern once per match. A 118 row `@for` renders
+  in 5.0 ms against 59.4 ms, with 2403 allocations against 18136. See
+  `PERF.md`.
+
 ## [2.1.0] - 2026-07-31
 
 ### Added

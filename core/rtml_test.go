@@ -235,6 +235,135 @@ func TestForMapScalarsEscapedByDefault(t *testing.T) {
 	}
 }
 
+// hasClassExpr stands in for reClassExpr, so it has to agree with it on every
+// input: a disagreement silently skips the pass.
+func TestHasClassExprMatchesPattern(t *testing.T) {
+	cases := []string{
+		``,
+		`<div class="a b">`,
+		`<div class="">`,
+		`<div class="a @expr:x b">`,
+		`<div class="a">@expr:x</div>`,
+		`<div class="class="@expr:x">`,
+		"<code>class=\"</code>\n<div class=\"@expr:tone\">x</div>",
+		`<div class="a`,
+		`<div class="a"><span class="@expr:y">`,
+	}
+	for _, in := range cases {
+		if got, want := hasClassExpr(in), reClassExpr.MatchString(in); got != want {
+			t.Errorf("hasClassExpr(%q) = %v, pattern says %v", in, got, want)
+		}
+	}
+}
+
+// hasConstructorToken only has to be implied by reConditionalAttr: it may be
+// true without a match, never false with one.
+func TestConstructorTokenImpliedByPattern(t *testing.T) {
+	cases := []string{
+		`<div [header] class="box"></div>`,
+		`<li [key {item.ID}]></li>`,
+		"<div\n[ref]>",
+		"<div\t[ref]>",
+		`<div class="grid-cols-[1fr]"></div>`,
+		`<div>no constructor</div>`,
+	}
+	for _, in := range cases {
+		if reConditionalAttr.MatchString(in) && !hasConstructorToken(in) {
+			t.Errorf("hasConstructorToken(%q) = false while the pattern matches", in)
+		}
+	}
+}
+
+// An @if body holding sibling elements renders them inside one container, in
+// order. Callers style around that wrapper, so it stays part of the contract.
+func TestConditionalWrapsSiblingsInOneContainer(t *testing.T) {
+	tpl := []byte(`<root><div>
+@if:prop:show=="yes"
+<span class="a">A</span>
+<span class="b">B</span>
+@endif
+</div></root>`)
+	c := NewHTMLComponent("CondSiblings", tpl, map[string]any{"show": "yes"})
+	c.Init(nil)
+	html := c.Render()
+	if n := strings.Count(html, "data-condition="); n != 1 {
+		t.Fatalf("expected one conditional container, got %d: %s", n, html)
+	}
+	open := strings.Index(html, "data-condition=")
+	closeIdx := strings.Index(html[open:], "</div>")
+	block := html[open : open+closeIdx]
+	a, b := strings.Index(block, `class="a"`), strings.Index(block, `class="b"`)
+	if a < 0 || b < 0 {
+		t.Fatalf("siblings not both inside the container: %s", block)
+	}
+	if a > b {
+		t.Fatalf("siblings reordered: %s", block)
+	}
+}
+
+// An @if inside a @for body is expanded per row and every row keeps its own
+// conditional block, so one row's branch cannot patch another's.
+func TestForBodyConditionalPerRow(t *testing.T) {
+	st := state.NewStore("forcond", state.WithModule("app"))
+	st.Set("items", []any{
+		map[string]any{"name": "one"},
+		map[string]any{"name": "two"},
+	})
+	tpl := []byte(`<root><div>
+@for:i in store:app.forcond.items
+<article data-key="k">
+@if:prop:flag=="on"
+<span class="x">X</span>
+<span class="y">@prop:i.name</span>
+@endif
+</article>
+@endfor
+</div></root>`)
+	c := NewHTMLComponent("ForCond", tpl, map[string]any{"flag": "on"})
+	c.Init(nil)
+	html := c.Render()
+	if n := strings.Count(html, "data-condition="); n != 2 {
+		t.Fatalf("expected one conditional per row, got %d: %s", n, html)
+	}
+	if strings.Count(html, `class="x"`) != 2 {
+		t.Fatalf("branch not rendered on every row: %s", html)
+	}
+	for _, name := range []string{"one", "two"} {
+		if !strings.Contains(html, ">"+name+"<") {
+			t.Fatalf("row value %q missing inside the conditional: %s", name, html)
+		}
+	}
+	if strings.Contains(html, "@prop") || strings.Contains(html, "@if") {
+		t.Fatalf("directives leaked into the output: %s", html)
+	}
+}
+
+// A loop body carrying no directive at all still renders one row per item.
+func TestForBodyWithoutDirectives(t *testing.T) {
+	st := state.NewStore("forplain", state.WithModule("app"))
+	st.Set("items", []any{
+		map[string]any{"name": "a"},
+		map[string]any{"name": "b"},
+		map[string]any{"name": "c"},
+	})
+	tpl := []byte(`<root><ul>
+@for:i in store:app.forplain.items
+<li class="row"><b>@prop:i.name</b></li>
+@endfor
+</ul></root>`)
+	c := NewHTMLComponent("ForPlain", tpl, nil)
+	c.Init(nil)
+	html := c.Render()
+	if n := strings.Count(html, `class="row"`); n != 3 {
+		t.Fatalf("expected three rows, got %d: %s", n, html)
+	}
+	for _, name := range []string{"a", "b", "c"} {
+		if !strings.Contains(html, ">"+name+"<") {
+			t.Fatalf("row %q missing: %s", name, html)
+		}
+	}
+}
+
 // @store values are escaped by default; @rawstore injects trusted markup.
 func TestStoreEscapedByDefault(t *testing.T) {
 	st := state.NewStore("escstore", state.WithModule("app"))

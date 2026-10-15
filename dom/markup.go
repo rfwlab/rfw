@@ -19,20 +19,33 @@ var reExpandEvent = regexp.MustCompile(`@(on:)?(\w+(?:\.\w+)*):(\w+)([\s>/])`)
 //	rows += `<tr @on:click:openRow data-id="` + id + `">...</tr>`
 //	el.SetHTML(dom.ExpandEvents(rows))
 func ExpandEvents(markup string) string {
-	return reExpandEvent.ReplaceAllStringFunc(markup, func(match string) string {
-		parts := reExpandEvent.FindStringSubmatch(match)
-		if len(parts) != 5 {
-			return match
+	// one execution per match: ReplaceAllStringFunc would run the pattern
+	// again inside the callback just to reach the groups, and a row-heavy
+	// document carries one directive per row
+	locs := reExpandEvent.FindAllStringSubmatchIndex(markup, -1)
+	if locs == nil {
+		return markup
+	}
+	var sb strings.Builder
+	sb.Grow(len(markup))
+	last := 0
+	for _, loc := range locs {
+		fullEvent := markup[loc[4]:loc[5]]
+		handler := markup[loc[6]:loc[7]]
+		suffix := markup[loc[8]:loc[9]]
+		event, modifiers := fullEvent, ""
+		if dot := strings.IndexByte(fullEvent, '.'); dot >= 0 {
+			event = fullEvent[:dot]
+			modifiers = strings.ReplaceAll(fullEvent[dot+1:], ".", ",")
 		}
-		fullEvent := parts[2]
-		handler := parts[3]
-		suffix := parts[4]
-		eventParts := strings.Split(fullEvent, ".")
-		event := eventParts[0]
-		attr := fmt.Sprintf("data-on-%s=%q", event, handler)
-		if len(eventParts) > 1 {
-			attr += fmt.Sprintf(" data-on-%s-modifiers=%q", event, strings.Join(eventParts[1:], ","))
+		sb.WriteString(markup[last:loc[0]])
+		fmt.Fprintf(&sb, "data-on-%s=%q", event, handler)
+		if modifiers != "" {
+			fmt.Fprintf(&sb, " data-on-%s-modifiers=%q", event, modifiers)
 		}
-		return attr + suffix
-	})
+		sb.WriteString(suffix)
+		last = loc[1]
+	}
+	sb.WriteString(markup[last:])
+	return sb.String()
 }

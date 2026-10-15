@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/rfwlab/rfw/v2/dom"
 	"github.com/rfwlab/rfw/v2/internal/rendertrace"
@@ -14,6 +15,10 @@ import (
 )
 
 func resolveNestedKey(m map[string]any, key string) (any, bool) {
+	if strings.IndexByte(key, '.') < 0 {
+		val, ok := m[key]
+		return val, ok
+	}
 	parts := strings.Split(key, ".")
 	val := any(m)
 	for _, part := range parts {
@@ -29,8 +34,12 @@ func resolveNestedKey(m map[string]any, key string) (any, bool) {
 	return val, true
 }
 
+// reFor is compiled once. It used to be built inside replaceForPlaceholders,
+// which meant recompiling the program on every render pass.
+var reFor = regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
+
 func replaceForPlaceholders(template string, c *HTMLComponent) string {
-	forRegex := regexp.MustCompile(`@for:(\w+(?:,\w+)?)\s+in\s+(\S+)([\s\S]*?)@endfor`)
+	forRegex := reFor
 	// loop ids are positional, so a re-render hands every loop the id its rows
 	// already carry in the DOM
 	c.forSeq = 0
@@ -268,25 +277,60 @@ func expandForRows(c *HTMLComponent, aliases []string, loopContent string, colle
 }
 
 // substituteItemFields fills the @prop / @rawprop field references of one item.
+// aliasRe caches the per-alias @prop / @rawprop matchers. substituteItemFields
+// runs once per item of a loop, so compiling these inline cost two regexp
+// compilations per row: a hundred-row list paid two hundred of them on every
+// render.
+var aliasRe sync.Map // alias -> [2]*regexp.Regexp{raw, field}
+
+func aliasRegexps(alias string) (*regexp.Regexp, *regexp.Regexp) {
+	if v, ok := aliasRe.Load(alias); ok {
+		p := v.([2]*regexp.Regexp)
+		return p[0], p[1]
+	}
+	pair := [2]*regexp.Regexp{
+		regexp.MustCompile(fmt.Sprintf(`@rawprop:%s\.(\w+(?:\.\w+)*)`, regexp.QuoteMeta(alias))),
+		regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+(?:\.\w+)*)`, regexp.QuoteMeta(alias))),
+	}
+	aliasRe.Store(alias, pair)
+	return pair[0], pair[1]
+}
+
 func substituteItemFields(content, alias string, item map[string]any) string {
-	rawRegex := regexp.MustCompile(fmt.Sprintf(`@rawprop:%s\.(\w+(?:\.\w+)*)`, alias))
-	content = rawRegex.ReplaceAllStringFunc(content, func(fieldMatch string) string {
-		fieldParts := rawRegex.FindStringSubmatch(fieldMatch)
-		if len(fieldParts) == 2 {
-			if fieldValue, ok := resolveNestedKey(item, fieldParts[1]); ok {
-				return fmt.Sprintf("%v", fieldValue)
-			}
+	rawRegex, fieldRegex := aliasRegexps(alias)
+	content = substituteFieldRefs(rawRegex, content, item, false)
+	return substituteFieldRefs(fieldRegex, content, item, true)
+}
+
+// substituteFieldRefs replaces every match of re, whose first group is the
+// field path, with the item's value. Going through the match indexes keeps the
+// pattern to one execution per row: ReplaceAllStringFunc would run it a second
+// time inside the callback only to reach the group.
+func substituteFieldRefs(re *regexp.Regexp, content string, item map[string]any, escape bool) string {
+	locs := re.FindAllStringSubmatchIndex(content, -1)
+	if locs == nil {
+		return content
+	}
+	var sb strings.Builder
+	sb.Grow(len(content))
+	last := 0
+	for _, loc := range locs {
+		fieldValue, ok := resolveNestedKey(item, content[loc[2]:loc[3]])
+		if !ok {
+			// an unresolved reference stays in the markup, as it did when the
+			// callback returned the match untouched
+			continue
 		}
-		return fieldMatch
-	})
-	fieldRegex := regexp.MustCompile(fmt.Sprintf(`@prop:%s\.(\w+(?:\.\w+)*)`, alias))
-	return fieldRegex.ReplaceAllStringFunc(content, func(fieldMatch string) string {
-		fieldParts := fieldRegex.FindStringSubmatch(fieldMatch)
-		if len(fieldParts) == 2 {
-			if fieldValue, ok := resolveNestedKey(item, fieldParts[1]); ok {
-				return escapeValue(fieldValue)
-			}
+		sb.WriteString(content[last:loc[0]])
+		if escape {
+			sb.WriteString(escapeValue(fieldValue))
+		} else if s, ok := fieldValue.(string); ok {
+			sb.WriteString(s)
+		} else {
+			fmt.Fprintf(&sb, "%v", fieldValue)
 		}
-		return fieldMatch
-	})
+		last = loc[1]
+	}
+	sb.WriteString(content[last:])
+	return sb.String()
 }
