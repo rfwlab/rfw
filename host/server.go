@@ -130,7 +130,7 @@ func ListenAndServeTLSWithMux(addr string, mux *http.ServeMux) error {
 	if err != nil {
 		return err
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	return serveHost(nil, listener, mux)
 }
 
@@ -147,19 +147,19 @@ func serveHost(plain, secure net.Listener, mux *http.ServeMux) error {
 	}
 	results := make(chan error, 3)
 	if stream != nil {
-		defer stream.Close()
-		defer packets.Close()
+		defer func() { _ = stream.Close() }()
+		defer func() { _ = packets.Close() }()
 		go func() { results <- stream.Serve(packets) }()
 	}
 	handler := loggingMiddleware(mux)
 	srv := newHTTPServer(addr, handler)
 	srv.TLSConfig = tlsConfig
-	defer srv.Close()
+	defer func() { _ = srv.Close() }()
 	logger.Info("serving HTTPS", "addr", addr)
 	go func() { results <- srv.ServeTLS(secure, "", "") }()
 	if plain != nil {
 		httpServer := newHTTPServer(plain.Addr().String(), handler)
-		defer httpServer.Close()
+		defer func() { _ = httpServer.Close() }()
 		logger.Info("serving HTTP", "addr", plain.Addr().String())
 		go func() { results <- httpServer.Serve(plain) }()
 	}

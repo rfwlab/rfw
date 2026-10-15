@@ -65,11 +65,11 @@ func Start(root string) error {
 	if err != nil {
 		return err
 	}
-	defer httpListener.Close()
+	defer func() { _ = httpListener.Close() }()
 	httpsListener, err := net.Listen("tcp", fmt.Sprintf(":%d", httpsPort))
 	if err != nil {
 		return err
 	}
-	defer httpsListener.Close()
+	defer func() { _ = httpsListener.Close() }()
 	return serveHost(httpListener, httpsListener, NewMux(root))
 }

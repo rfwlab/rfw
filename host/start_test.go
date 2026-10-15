@@ -28,8 +28,8 @@ func TestStreamBusPreparationAdvertisesHTTP3OnActualPort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer packets.Close()
-	defer server.Close()
+	defer func() { _ = packets.Close() }()
+	defer func() { _ = server.Close() }()
 	config := server.H3.TLSConfig
 	if len(config.NextProtos) != 1 || config.NextProtos[0] != http3.NextProtoH3 {
 		t.Fatalf("HTTP/3 protocols are %v", config.NextProtos)
@@ -49,12 +49,12 @@ func TestHostRefusesOccupiedStreamBusPortBeforeServing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	packets, err := net.ListenPacket("udp", listener.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer packets.Close()
+	defer func() { _ = packets.Close() }()
 	result := make(chan error, 1)
 	mux := NewMux(t.TempDir())
 	go func() { result <- serveHost(nil, listener, mux) }()
