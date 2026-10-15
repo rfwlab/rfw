@@ -70,3 +70,47 @@ func TestUnmountCleanupContinuesAfterLifecyclePanic(t *testing.T) {
 		t.Fatal("scope cleanup stopped after lifecycle panic")
 	}
 }
+
+func TestPlainHTMLComponentRunsConfiguredLifecycle(t *testing.T) {
+	if dom.ByID("app").IsNull() {
+		host := dom.CreateElement("div")
+		host.SetAttr("id", "app")
+		dom.Doc().Body().AppendChild(host)
+	}
+	component := NewHTMLComponent("PlainLifecycle", []byte("<root><p>plain</p></root>"), nil)
+	mounted, unmounted := 0, 0
+	component.WithLifecycle(func(*HTMLComponent) { mounted++ }, func(*HTMLComponent) { unmounted++ })
+	component.Init(nil)
+	dom.UpdateDOM(component.ID, component.Render())
+	component.Mount()
+	component.Unmount()
+	component.Unmount()
+	if mounted != 1 || unmounted != 1 {
+		t.Fatalf("plain lifecycle counts: mount=%d unmount=%d", mounted, unmounted)
+	}
+	component.Mount()
+	component.Unmount()
+	if mounted != 2 || unmounted != 2 {
+		t.Fatalf("remounted lifecycle counts: mount=%d unmount=%d", mounted, unmounted)
+	}
+}
+
+func TestExplicitHTMLComponentDoesNotRunCallbacksTwice(t *testing.T) {
+	if dom.ByID("app").IsNull() {
+		host := dom.CreateElement("div")
+		host.SetAttr("id", "app")
+		dom.Doc().Body().AppendChild(host)
+	}
+	component := NewHTMLComponent("ExplicitLifecycle", []byte("<root><p>explicit</p></root>"), nil)
+	component.SetComponent(component)
+	mounted, unmounted := 0, 0
+	component.SetOnMount(func(*HTMLComponent) { mounted++ })
+	component.SetOnUnmount(func(*HTMLComponent) { unmounted++ })
+	component.Init(nil)
+	dom.UpdateDOM(component.ID, component.Render())
+	component.Mount()
+	component.Unmount()
+	if mounted != 1 || unmounted != 1 {
+		t.Fatalf("explicit lifecycle counts: mount=%d unmount=%d", mounted, unmounted)
+	}
+}
