@@ -3,6 +3,7 @@ package host
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -60,13 +61,15 @@ func Start(root string) error {
 	port := readPort()
 	httpsPort := port + 1
 
-	go func() {
-		addr := fmt.Sprintf(":%d", port)
-		if err := ListenAndServe(addr, root); err != nil {
-			logger.Error("HTTP server error", "err", err)
-		}
-	}()
-
-	httpsAddr := fmt.Sprintf(":%d", httpsPort)
-	return ListenAndServeTLS(httpsAddr, root)
+	httpListener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return err
+	}
+	defer httpListener.Close()
+	httpsListener, err := net.Listen("tcp", fmt.Sprintf(":%d", httpsPort))
+	if err != nil {
+		return err
+	}
+	defer httpsListener.Close()
+	return serveHost(httpListener, httpsListener, NewMux(root))
 }

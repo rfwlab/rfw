@@ -87,3 +87,22 @@ compared with 112,964 B and 1,801 allocations for synchronous WebSocket
 fan-out. That is about 3.9x less allocated memory and 3.6x fewer allocations on
 the producer path. The StreamBus benchmark includes the distinct SSC JSON
 serialization and queue publish required for every target session.
+
+## Stock host startup
+
+`host.Start` binds the HTTP port, HTTPS port and, when enabled, the UDP
+StreamBus port before serving requests. A bind failure returns an error rather
+than leaving only one transport running. A later serve failure stops the sibling
+HTTP servers and HTTP/3 listener. This is error cleanup, not an application
+shutdown or in-flight request draining API.
+
+The generated host uses a short-lived P-256 self-signed certificate. Certificate
+hash validation [requires P-256 support and excludes RSA keys](https://www.w3.org/TR/webtransport/#certificate-hashes).
+HTTP/3 advertises `h3` through its TLS configuration. The same mux origin and
+identity guards protect WebSocket and StreamBus, including when the HTTP frontend
+connects to the adjacent HTTPS port. Configure an origin allowlist and identity
+guard for authenticated deployments; the default mux permits any origin.
+
+A successful SSC greeting alone does not prove StreamBus was selected: it may
+have arrived over the documented WebSocket fallback. Browser acceptance must
+observe a ready WebTransport connection and SSC traffic without WebSocket frames.

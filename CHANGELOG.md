@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bind all stock host listeners before serving and return HTTP, HTTPS or
+  StreamBus bind failures to the caller. Stop sibling servers on a serve error.
+- Configure HTTP/3 ALPN and use P-256 development certificates for browser
+  WebTransport certificate hashes. Apply the mux origin policy to both transports.
+
 - Keep SSC client dependencies in a fresh scaffold's module graph so its first
   build succeeds after tidy, including with a read-only offline module graph.
   The dependency anchor is excluded from application builds and does not link
