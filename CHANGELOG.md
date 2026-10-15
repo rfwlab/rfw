@@ -2,15 +2,26 @@
 
 ## Unreleased
 
-- Reject HTTP error statuses in cached browser `http.FetchJSON` and
-  `http.FetchText`, matching native behavior. Error responses no longer become
-  application data; use `ClearCache` before retrying a cached failure.
+- Keep SSC client dependencies in a fresh scaffold's module graph so its first
+  build succeeds after tidy, including with a read-only offline module graph.
+  The dependency anchor is excluded from application builds and does not link
+  hostclient into static source builds.
+
+- Require Go 1.26.9 and update x/net to 0.60.0, with its selected x/crypto,
+  x/sys and x/text versions, for the October HTTP/2 security fixes. CI and
+  generated/example projects use the same minimum patched toolchain.
+  See [GO-2026-6610](https://pkg.go.dev/vuln/GO-2026-6610) and
+  [GO-2026-6354](https://pkg.go.dev/vuln/GO-2026-6354). Callers using Go 1.27
+  need 1.27.2 or a later patched release.
+
 - Add transparent Warp StreamBus transport selection through the top-level
   `transport` manifest key or `RFW_TRANSPORT`.
 - Serve bounded StreamBus queues over WebTransport and HTTP/3 while preserving
   WebSocket as an automatic compatibility fallback.
 - Keep SSC components, actions, hydration, sessions, replay and broadcasts
   transport-independent.
+- Keep StreamBus outbound failures from consuming SSC sequence numbers before
+  the connection can accept a frame.
 
 All notable changes to this project are documented in this file.
 
@@ -295,6 +306,14 @@ version and include migration notes.
   key, so a scaffolded project and the examples register their file-based routes
   without extra configuration. An explicit `"plugins"` block, including an empty
   one, still opts out.
+
+### Changed
+
+- RTML render passes skip the templates they cannot match instead of walking
+  and copying the whole document, loop rows reuse their compiled patterns, and
+  `dom.ExpandEvents` runs its pattern once per match. A 118 row `@for` renders
+  in 5.0 ms against 59.4 ms, with 2403 allocations against 18136. See
+  `PERF.md`.
 
 ## [2.1.0] - 2026-07-31
 
