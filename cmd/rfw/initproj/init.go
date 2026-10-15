@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const scaffoldGoVersion = "1.26.0"
+const scaffoldGoVersion = "1.26.9"
 
 // InitProject creates a new rfw project from the embedded template.
 func InitProject(projectName string, skipTidy bool) (err error) {

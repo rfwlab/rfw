@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Require Go 1.26.9 and update x/net to 0.60.0, with its selected x/crypto,
+  x/sys and x/text versions, for the October HTTP/2 security fixes. CI and
+  generated/example projects use the same minimum patched toolchain.
+  See [GO-2026-6610](https://pkg.go.dev/vuln/GO-2026-6610) and
+  [GO-2026-6354](https://pkg.go.dev/vuln/GO-2026-6354). Callers using Go 1.27
+  need 1.27.2 or a later patched release.
+
 - Add transparent Warp StreamBus transport selection through the top-level
   `transport` manifest key or `RFW_TRANSPORT`.
 - Serve bounded StreamBus queues over WebTransport and HTTP/3 while preserving
