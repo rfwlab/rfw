@@ -100,7 +100,8 @@ func fetchBytes(rawURL string) (status int, body []byte, err error) {
 
 // FetchJSON retrieves JSON data from the given URL and decodes it into v.
 // Results are cached by URL. If a request is already in progress, FetchJSON
-// returns ErrPending.
+// returns ErrPending. HTTP status codes >= 400 return an error containing the
+// response text without decoding into v. ClearCache allows retrying a failure.
 func FetchJSON(url string, v any) error {
 	ceIface, _ := cache.LoadOrStore(url, &cacheEntry{ready: make(chan struct{})})
 	ce := ceIface.(*cacheEntry)
@@ -135,6 +136,7 @@ func FetchJSON(url string, v any) error {
 
 // FetchText retrieves text data from url. Results are cached by URL.
 // If a request is already in progress, FetchText returns ErrPending.
+// HTTP status codes >= 400 return an error containing the response text.
 func FetchText(url string) (string, error) {
 	ceIface, _ := textCache.LoadOrStore(url, &textEntry{ready: make(chan struct{})})
 	ce := ceIface.(*textEntry)

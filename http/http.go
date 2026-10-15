@@ -66,7 +66,8 @@ func SetNativeClient(_ any) {}
 
 // FetchJSON retrieves JSON data from the given URL and decodes it into v.
 // Results are cached by URL. If a request is already in progress, FetchJSON
-// returns ErrPending.
+// returns ErrPending. HTTP status codes >= 400 return an error containing the
+// response text without decoding into v. ClearCache allows retrying a failure.
 func FetchJSON(url string, v any) error {
 	ceIface, _ := cache.LoadOrStore(url, &cacheEntry{ready: make(chan struct{})})
 	ce := ceIface.(*cacheEntry)
@@ -80,11 +81,19 @@ func FetchJSON(url string, v any) error {
 				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
 					resp := args[0]
 					status := resp.Get("status").Int()
-					resp.Call("json").Call("then",
+					method := "json"
+					if status >= 400 {
+						method = "text"
+					}
+					resp.Call(method).Call("then",
 						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-							obj := args[0]
-							jsonStr := js.GlobalJSON().Call("stringify", obj).String()
-							ce.data = []byte(jsonStr)
+							if status >= 400 {
+								ce.err = errors.New(args[0].String())
+							} else {
+								obj := args[0]
+								jsonStr := js.GlobalJSON().Call("stringify", obj).String()
+								ce.data = []byte(jsonStr)
+							}
 							notifyHTTPHook(hook, false, url, status, time.Since(start))
 							close(ce.ready)
 							return nil
@@ -121,6 +130,7 @@ func FetchJSON(url string, v any) error {
 
 // FetchText retrieves text data from url. Results are cached by URL.
 // If a request is already in progress, FetchText returns ErrPending.
+// HTTP status codes >= 400 return an error containing the response text.
 func FetchText(url string) (string, error) {
 	ceIface, _ := textCache.LoadOrStore(url, &textEntry{ready: make(chan struct{})})
 	ce := ceIface.(*textEntry)
@@ -136,7 +146,11 @@ func FetchText(url string) (string, error) {
 					status := resp.Get("status").Int()
 					resp.Call("text").Call("then",
 						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-							ce.text = args[0].String()
+							if status >= 400 {
+								ce.err = errors.New(args[0].String())
+							} else {
+								ce.text = args[0].String()
+							}
 							notifyHTTPHook(hook, false, url, status, time.Since(start))
 							close(ce.ready)
 							return nil

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Reject HTTP error statuses in cached browser `http.FetchJSON` and
+  `http.FetchText`, matching native behavior. Error responses no longer become
+  application data; use `ClearCache` before retrying a cached failure.
 - Add transparent Warp StreamBus transport selection through the top-level
   `transport` manifest key or `RFW_TRANSPORT`.
 - Serve bounded StreamBus queues over WebTransport and HTTP/3 while preserving
