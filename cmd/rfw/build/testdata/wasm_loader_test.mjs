@@ -35,20 +35,29 @@ globalThis.sessionStorage = {
 };
 
 let instantiated;
+const nativeWebAssembly = globalThis.WebAssembly;
 // Node's response implementation may compile its own parser lazily.
 // Keep the native API available while observing loader instantiation.
-globalThis.WebAssembly = Object.assign(Object.create(globalThis.WebAssembly), {
+globalThis.WebAssembly = Object.assign(Object.create(nativeWebAssembly), {
     async instantiateStreaming(response) {
         instantiated = Buffer.from(await response.arrayBuffer());
         return { instance: {} };
     },
-    async instantiate(bytes) {
+    async instantiate(bytes, imports) {
+        if (bytes instanceof nativeWebAssembly.Module) {
+            return nativeWebAssembly.instantiate(bytes, imports);
+        }
         instantiated = Buffer.from(bytes);
         return { instance: {} };
     },
 });
 
 assert.equal(typeof WebAssembly.compile, "function");
+const nativeModule = await WebAssembly.compile(
+    Uint8Array.from([0, 97, 115, 109, 1, 0, 0, 0]),
+);
+assert.ok(await WebAssembly.instantiate(nativeModule, {}) instanceof nativeWebAssembly.Instance);
+assert.equal(instantiated, undefined);
 
 vm.runInThisContext(await fs.readFile(loaderPath, "utf8"), {
     filename: loaderPath,
