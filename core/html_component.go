@@ -349,6 +349,8 @@ func (c *HTMLComponent) Unmount() {
 	devUnregisterComponent(c)
 	if c.component != nil {
 		c.runLifecycle("OnUnmount", c.component.OnUnmount)
+	} else {
+		c.runLifecycle("OnUnmount", c.OnUnmount)
 	}
 	dom.UnmountLifecycleHooks(c.ID)
 	c.releaseDOMHooks()
@@ -403,6 +405,8 @@ func (c *HTMLComponent) Mount() {
 	}
 	if c.component != nil {
 		c.runLifecycle("OnMount", c.component.OnMount)
+	} else {
+		c.runLifecycle("OnMount", c.OnMount)
 	}
 	dom.MountLifecycleHooks(c.ID)
 }
