@@ -77,7 +77,6 @@ func eventTagAttributes(markup string) [][2]int {
 	for i < len(markup) && !eventTagSpace(markup[i]) && markup[i] != '/' && markup[i] != '>' {
 		i++
 	}
-	start := i
 	var attrs [][2]int
 	for i < len(markup) {
 		for i < len(markup) && eventTagSpace(markup[i]) {
@@ -93,7 +92,7 @@ func eventTagAttributes(markup string) [][2]int {
 			i++
 			continue
 		}
-		start = i
+		start := i
 		for i < len(markup) && !eventTagSpace(markup[i]) && markup[i] != '=' && markup[i] != '>' && markup[i] != '/' {
 			i++
 		}
