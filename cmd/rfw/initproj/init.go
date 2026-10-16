@@ -174,6 +174,7 @@ func initGoModule(projectPath, moduleName string, skipTidy bool, rfwVersion stri
 	}
 
 	if rfwVersion != "" && rfwVersion != "(devel)" {
+		// #nosec G204 -- fixed executable and one go.mod argument; no shell expansion.
 		cmd := exec.Command("go", "mod", "edit", "-require=github.com/rfwlab/rfw/v2@"+rfwVersion)
 		cmd.Dir = projectPath
 		if out, err := cmd.CombinedOutput(); err != nil {

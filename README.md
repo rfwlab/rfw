@@ -56,7 +56,7 @@ installed CLI version before running `go mod tidy`. A source-built CLI without
 module version metadata requires an explicit version:
 
 ```bash
-rfw init github.com/user/app --rfw-version v2.3.0
+rfw init --rfw-version v2.3.0 github.com/user/app
 ```
 
 Use a published v2 tag or Go pseudo-version. `--skip-tidy` skips dependency

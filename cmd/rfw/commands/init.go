@@ -14,11 +14,11 @@ import (
 func NewInitCommand() *command.Command {
 	cmd := &command.Command{
 		Name:        "init",
-		Usage:       "init <project-name>",
+		Usage:       "init [--rfw-version <version>] [--skip-tidy] <project-name>",
 		Description: "Initialize a new rfw project",
 		Run:         runInit,
 	}
-	cmd.AddFlag("rfw-version", "", "Framework v2 tag or pseudo-version (default: CLI version)", "", true)
+	cmd.AddFlag("rfw-version", "", "Framework v2 tag or pseudo-version (default: CLI version)", "", false)
 	cmd.AddBoolFlag("skip-tidy", "", "Skip running go mod tidy", false, false)
 	return cmd
 }
@@ -26,6 +26,9 @@ func NewInitCommand() *command.Command {
 func runInit(cmd *command.Command, _ *command.RootFlags, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("please specify a project name")
+	}
+	if len(args) != 1 {
+		return fmt.Errorf("specify one project name; place options before the project name")
 	}
 	projectName := args[0]
 	skipTidy := cmd.GetFlagBool("skip-tidy")
