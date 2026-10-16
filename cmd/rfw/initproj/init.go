@@ -12,14 +12,25 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/rfwlab/rfw/v2/core"
 )
 
 const scaffoldGoVersion = "1.26.9"
 
 // InitProject creates a new rfw project from the embedded template.
-func InitProject(projectName string, skipTidy bool) (err error) {
+func InitProject(projectName string, skipTidy bool) error {
+	return InitProjectWithVersion(projectName, skipTidy, core.Version())
+}
+
+// InitProjectWithVersion pins the scaffold to the selected framework version.
+func InitProjectWithVersion(projectName string, skipTidy bool, rfwVersion string) (err error) {
 	if err := validateModulePath(projectName); err != nil {
 		return err
+	}
+
+	if (rfwVersion == "" || rfwVersion == "(devel)") && !skipTidy {
+		return fmt.Errorf("framework version unavailable; use --rfw-version with a v2 tag or pseudo-version")
 	}
 
 	moduleName := projectName
@@ -82,7 +93,7 @@ func InitProject(projectName string, skipTidy bool) (err error) {
 		return fmt.Errorf("failed to copy wasm_exec.js: %w", err)
 	}
 
-	if err := initGoModule(projectPath, moduleName, skipTidy); err != nil {
+	if err := initGoModule(projectPath, moduleName, skipTidy, rfwVersion); err != nil {
 		return fmt.Errorf("failed to initialize go module: %w", err)
 	}
 
@@ -144,7 +155,7 @@ func copyWasmExec(projectDir string) (err error) {
 	return nil
 }
 
-func initGoModule(projectPath, moduleName string, skipTidy bool) (err error) {
+func initGoModule(projectPath, moduleName string, skipTidy bool, rfwVersion string) (err error) {
 	if err := validateModulePath(moduleName); err != nil {
 		return err
 	}
@@ -160,6 +171,14 @@ func initGoModule(projectPath, moduleName string, skipTidy bool) (err error) {
 	}()
 	if err := writeRootFile(projectRoot, "go.mod", []byte(goMod)); err != nil {
 		return fmt.Errorf("write go.mod: %w", err)
+	}
+
+	if rfwVersion != "" && rfwVersion != "(devel)" {
+		cmd := exec.Command("go", "mod", "edit", "-require=github.com/rfwlab/rfw/v2@"+rfwVersion)
+		cmd.Dir = projectPath
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("pin framework version: %w: %s", err, strings.TrimSpace(string(out)))
+		}
 	}
 
 	if !skipTidy {

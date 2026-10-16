@@ -51,8 +51,19 @@ rfw dev
 ```
 
 `rfw init` takes a Go module path and creates the project in a directory named
-after its last segment (`app` here). The scaffold is a working hello world: a
-page, a component, and an RTML template. The component
+after its last segment (`app` here). It pins the framework dependency to the
+installed CLI version before running `go mod tidy`. A source-built CLI without
+module version metadata requires an explicit version:
+
+```bash
+rfw init github.com/user/app --rfw-version v2.3.0
+```
+
+Use a published v2 tag or Go pseudo-version. `--skip-tidy` skips dependency
+resolution; an unversioned development CLI also leaves the dependency unpinned
+in that mode, so select `--rfw-version` before building an independent project.
+The scaffold is a working hello world: a page, a component, and an RTML
+template. The component
 (`components/app_component.go`):
 
 ```go

@@ -2,18 +2,37 @@ package core
 
 import "runtime/debug"
 
-// version is the fallback when no build metadata is available (e.g. a plain
-// `go build` inside the repo). Release builds override it with ldflags, and
-// `go install module@version` builds report the module version from build
-// info, so users installed via the proxy see the real tag.
-var version = "v2.2.0"
+// Release builds override version with ldflags.
+var version = "(devel)"
 
 // Version returns the framework version for this build.
 func Version() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
-		v := info.Main.Version
-		if v != "" && v != "(devel)" {
+		return frameworkVersion(info)
+	}
+	return version
+}
+
+func frameworkVersion(info *debug.BuildInfo) string {
+	const modulePath = "github.com/rfwlab/rfw/v2"
+	if info.Main.Path == modulePath {
+		if v := info.Main.Version; v != "" && v != "(devel)" {
 			return v
+		}
+		return version
+	}
+	for _, dep := range info.Deps {
+		if dep.Path != modulePath {
+			continue
+		}
+		if dep.Replace != nil {
+			if dep.Replace.Path != modulePath || dep.Replace.Version == "" {
+				return "(devel)"
+			}
+			dep = dep.Replace
+		}
+		if dep.Version != "" && dep.Version != "(devel)" {
+			return dep.Version
 		}
 	}
 	return version
