@@ -1,0 +1,16 @@
+<root>
+ <main class="p-4">
+  <h1 class="text-2xl font-bold">Notes</h1>
+  <p>Local HTTP CRUD example. The API stores notes in memory until it stops.</p>
+  <p id="notes-message" role="status" aria-live="polite">Loading notes...</p>
+  <form @on:submit:saveNote>
+   <label for="note-text">Note text</label>
+   <input id="note-text" type="text" required maxlength="200" />
+   <button type="submit">Save note</button>
+   <button type="button" @on:click:cancelNote>New note</button>
+  </form>
+  <button @on:click:refreshNotes>Refresh list</button>
+  <ul id="notes-list"></ul>
+  <p><a href="/about">About this example</a></p>
+ </main>
+</root>

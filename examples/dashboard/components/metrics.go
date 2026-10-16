@@ -9,6 +9,7 @@ import "github.com/rfwlab/rfw/v2/state"
 var metrics = state.NewStore("metrics", state.WithModule("app"))
 
 func seedMetrics() {
+	paused = false
 	metrics.Set("status", "live")
 	metrics.Set("cpu", "0.0")
 	metrics.Set("mem", "0")

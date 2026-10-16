@@ -34,6 +34,15 @@ jobs:
       - name: Build Application
         run: go build -o rfw -ldflags="-X 'github.com/rfwlab/rfw/v2/core.version=${{ github.sha }}'" ./cmd/rfw/main.go
 
+      - name: Build stock examples and check the Notes API
+        run: |
+          set -eu
+          cli="$PWD/rfw"
+          for example in counter dynamic-list dashboard notes; do
+            (cd "examples/$example" && GOFLAGS=-mod=readonly "$cli" build)
+          done
+          (cd examples/notes && go test ./server)
+
       - name: Calculate and Save Checksums
         run: sha256sum rfw > checksums.txt
 

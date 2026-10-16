@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a runnable Notes HTTP CRUD example and tutorial with stable IDs, stale-write
+  refusal, draft retention and mount-scoped response handling. The loopback API
+  is an in-memory teaching server, not a production authentication/persistence layer.
+- Reset the dashboard example's paused flag on remount so its live label and feed
+  state agree after leaving a paused page.
+
 - Expand event directives only in whole, valueless tag attributes. Preserve
   literal SSH URLs, quoted/unquoted values, comments and raw-text contents.
   Existing explicit data-on-* attributes and event modifiers keep their syntax.
