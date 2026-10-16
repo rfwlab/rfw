@@ -96,6 +96,25 @@ dom.Query("#form-name").SetValue("")
 agreed := dom.Query("#form-tos").Checked()
 ```
 
+## Request failures
+
+`http.Request` and `http.RequestBytes` complete once with status `0` and an
+empty body when the browser refuses a request or cannot read its response.
+This includes JavaScript exceptions thrown before a promise is returned.
+In that case the callback can run before `Request` returns. Internal JavaScript
+callbacks are released on completion. Panics in your callback retain the normal
+framework error reporting.
+
+Requests are not retried. For a mutation, a missing response does not prove the
+server rejected the write: reconcile server state before trying it again.
+
+`FetchJSON` and `FetchText` use this request path and cache failures as errors,
+rather than leaving them pending. `ClearCache(url)` allows a later explicit
+fetch. HTTP error bodies are preserved; transport failures use a generic error.
+Do not classify failures by parsing a browser-specific exception string.
+Browser JSON is decoded in Go, so integer values do not pass through JavaScript
+number conversion before reaching your target type.
+
 ## Binary responses
 
 `http.Request` decodes the response as text, which corrupts binary payloads.
