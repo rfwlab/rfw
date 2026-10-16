@@ -19,7 +19,11 @@ handlers registered from Go. Two consequences:
 ## Rendering a list
 
 Fetch, build rows, inject. Runtime markup can use the same `@on:` syntax as
-`.rtml` templates by passing it through `dom.ExpandEvents`:
+`.rtml` templates by passing it through `dom.ExpandEvents`.
+Only whole, valueless tag attributes are expanded. Text, URLs, attribute values,
+comments and raw-text contents stay literal. Keep escaping untrusted HTML data;
+event expansion is not a sanitizer.
+
 
 ```go
 //go:embed templates/users.rtml

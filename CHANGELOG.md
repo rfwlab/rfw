@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Expand event directives only in whole, valueless tag attributes. Preserve
+  literal SSH URLs, quoted/unquoted values, comments and raw-text contents.
+  Existing explicit data-on-* attributes and event modifiers keep their syntax.
+
 - Run configured mount/unmount callbacks on plain HTMLComponent values as well
   as components registered with SetComponent. Explicit registration still invokes
   each callback once per lifecycle event.
