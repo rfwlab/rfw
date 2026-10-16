@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Apply the directory server's compressed-WASM negotiation, SPA entry cache policy
+  and selected StreamBus registration to embedded NewMuxFS deployments. Both
+  transport paths share the configured origin/identity guard.
+
 - Add a runnable Notes HTTP CRUD example and tutorial with stable IDs, stale-write
   refusal, draft retention and mount-scoped response handling. The loopback API
   is an in-memory teaching server, not a production authentication/persistence layer.

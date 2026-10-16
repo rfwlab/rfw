@@ -29,6 +29,12 @@
 - [How the bundle reaches the browser](guide/wasm-delivery.md): the compressed
   artifacts `rfw build` produces, content negotiation, static hosting, and the
   cache headers that let a release replace a bundle.
+- [Deployment](guide/deployment.md): complete asset generations, embedded/disk
+  serving, guarded transports and application-owned upgrade/rollback boundaries.
+- [Troubleshooting](guide/troubleshooting.md): status/header/lifecycle symptoms
+  and bounded reproduction paths.
+- [Updating a v2 consumer](guide/migration-v2.md): candidate compatibility changes
+  and application acceptance boundaries.
 - [Testing](testing.md): native tests, browser (wasm) tests with
   wasmbrowsertest, race testing and golden templates.
 

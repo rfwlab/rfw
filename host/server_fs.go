@@ -19,7 +19,8 @@ import (
 //
 // fsys is treated as the complete served tree: index.html, app.wasm and any
 // static assets must live inside it. Unlike NewMux there is no on-disk sibling
-// static directory. Options gate the WebSocket endpoint exactly as in NewMux.
+// static directory. Options gate both transports exactly as in NewMux.
+// Compressed bundle negotiation and entry cache policy also match.
 func NewMuxFS(fsys fs.FS, opts ...MuxOption) *http.ServeMux {
 	runtime := NewWSRuntime(opts...)
 	mux := http.NewServeMux()
@@ -32,7 +33,11 @@ func NewMuxFS(fsys fs.FS, opts ...MuxOption) *http.ServeMux {
 		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	}
 	fileServer := http.FileServerFS(fsys)
+	files := http.FS(fsys)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if negotiateWasm(w, r, files, r.URL.Path) {
+			return
+		}
 		if regularFileFS(fsys, r.URL.Path) {
 			setWasmEncodingHeaders(w, r.URL.Path, r.URL.Query().Get("v") != "")
 			fileServer.ServeHTTP(w, r)
@@ -50,11 +55,13 @@ func NewMuxFS(fsys fs.FS, opts ...MuxOption) *http.ServeMux {
 	mux.Handle("/ws", runtime.Guard(websocket.Handler(func(ws *websocket.Conn) {
 		wsHandler(ws, runtime)
 	})))
+	registerStreamBus(mux, runtime)
 	return mux
 }
 
 // serveIndexFS writes fsys's index.html, the SPA entry point.
 func serveIndexFS(w http.ResponseWriter, r *http.Request, fsys fs.FS) {
+	setWasmEncodingHeaders(w, "index.html", false)
 	http.ServeFileFS(w, r, fsys, "index.html")
 }
 
