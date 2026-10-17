@@ -3,6 +3,8 @@
 package http
 
 import (
+	"context"
+	"sync"
 	syscalljs "syscall/js"
 
 	"github.com/rfwlab/rfw/v2/js"
@@ -51,90 +53,121 @@ func (o RequestOptions) apply() js.Value {
 // invoked on the JS event loop; it may be nil. Browser, network and body-read
 // failures complete with status 0 and an empty body. Requests are not retried.
 func Request(url string, opts RequestOptions, cb func(status int, body string)) {
-	status := 0
-	var onResp, onText, onErr js.Func
-	done := false
-	finish := func(code int, body string) {
-		if done {
+	RequestContext(context.Background(), url, opts, cb)
+}
+
+// RequestContext is Request with browser fetch/body cancellation. Cancelled or
+// expired contexts complete once with status0 and an empty body. Abort does not
+// prove that a server mutation rolled back; callers must reconcile unknown writes.
+// A nil context has the same unbounded lifetime as Request.
+func RequestContext(ctx context.Context, url string, opts RequestOptions, cb func(status int, body string)) {
+	requestBody(ctx, url, opts, "text", func(status int, value js.Value) {
+		if cb == nil {
 			return
 		}
-		done = true
-		onResp.Release()
-		onText.Release()
-		onErr.Release()
-		if cb != nil {
-			cb(code, body)
+		if status == 0 {
+			cb(0, "")
+			return
 		}
-	}
-	onText = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
-		finish(status, a[0].String())
-		return nil
+		cb(status, value.String())
 	})
-	onResp = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
-		if !requestCall(func() {
-			status = a[0].Get("status").Int()
-			a[0].Call("text").Call("then", onText).Call("catch", onErr)
-		}) {
-			finish(0, "")
-		}
-		return nil
-	})
-	onErr = js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
-		finish(0, "")
-		return nil
-	})
-	if !requestCall(func() { js.Fetch(url, opts.apply()).Call("then", onResp).Call("catch", onErr) }) {
-		finish(0, "")
-	}
 }
 
 // RequestBytes performs an uncached fetch like Request but delivers the raw
-// response bytes via arrayBuffer, so binary payloads (images, chunks,
-// downloads) survive intact; Request's text decoding would corrupt them.
+// response bytes via arrayBuffer, so binary payloads survive text decoding.
 func RequestBytes(url string, opts RequestOptions, cb func(status int, body []byte)) {
-	status := 0
-	var onResp, onBuf, onErr js.Func
-	done := false
-	finish := func(code int, body []byte) {
-		if done {
+	RequestBytesContext(context.Background(), url, opts, cb)
+}
+
+// RequestBytesContext is RequestBytes with the cancellation contract of
+// RequestContext. Cancellation also aborts a pending response-body read.
+func RequestBytesContext(ctx context.Context, url string, opts RequestOptions, cb func(status int, body []byte)) {
+	requestBody(ctx, url, opts, "arrayBuffer", func(status int, value js.Value) {
+		if cb == nil {
 			return
 		}
-		done = true
-		onResp.Release()
-		onBuf.Release()
-		onErr.Release()
-		if cb != nil {
-			cb(code, body)
+		if status == 0 {
+			cb(0, nil)
+			return
 		}
-	}
-	onBuf = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
 		var body []byte
 		if !requestCall(func() {
-			u8 := js.Uint8Array().New(a[0])
-			body = make([]byte, u8.Get("length").Int())
-			js.CopyBytesToGo(body, u8)
+			bytes := js.Uint8Array().New(value)
+			body = make([]byte, bytes.Get("length").Int())
+			js.CopyBytesToGo(body, bytes)
 		}) {
-			finish(0, nil)
-			return nil
+			cb(0, nil)
+			return
 		}
-		finish(status, body)
-		return nil
+		cb(status, body)
 	})
-	onResp = js.SafeFuncOf(func(_ js.Value, a []js.Value) any {
-		if !requestCall(func() {
-			status = a[0].Get("status").Int()
-			a[0].Call("arrayBuffer").Call("then", onBuf).Call("catch", onErr)
-		}) {
-			finish(0, nil)
+}
+
+func requestBody(ctx context.Context, url string, opts RequestOptions, read string, cb func(int, js.Value)) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if ctx.Err() != nil {
+		cb(0, js.Undefined())
+		return
+	}
+	var controller js.Value
+	if ctx.Done() != nil {
+		constructor := js.Get("AbortController")
+		if constructor.Type() != js.TypeFunction || !requestCall(func() { controller = constructor.New() }) {
+			cb(0, js.Undefined())
+			return
 		}
+	}
+	status := 0
+	var onResp, onBody, onErr js.Func
+	var stop func() bool
+	var once sync.Once
+	finish := func(code int, body js.Value) {
+		once.Do(func() {
+			if stop != nil {
+				stop()
+			}
+			onResp.Release()
+			onBody.Release()
+			onErr.Release()
+			if ctx.Err() != nil {
+				code, body = 0, js.Undefined()
+			}
+			cb(code, body)
+		})
+	}
+	// one promise chain reaches either onBody or onErr. Cancellation aborts
+	// fetch/body I/O; release callbacks only after that chain has settled.
+	onResp = js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
+		var body js.Value
+		if !requestCall(func() {
+			status = args[0].Get("status").Int()
+			body = args[0].Call(read)
+		}) {
+			return js.Get("Promise").Call("reject", js.Undefined())
+		}
+		return body
+	})
+	onBody = js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
+		finish(status, args[0])
 		return nil
 	})
 	onErr = js.SafeFuncOf(func(_ js.Value, _ []js.Value) any {
-		finish(0, nil)
+		finish(0, js.Undefined())
 		return nil
 	})
-	if !requestCall(func() { js.Fetch(url, opts.apply()).Call("then", onResp).Call("catch", onErr) }) {
-		finish(0, nil)
+	if controller.Truthy() {
+		stop = context.AfterFunc(ctx, func() { requestCall(func() { controller.Call("abort") }) })
+	}
+	if !requestCall(func() {
+		init := opts.apply()
+		if controller.Truthy() {
+			init.Set("signal", controller.Get("signal"))
+		}
+		js.Fetch(url, init).Call("then", onResp).Call("then", onBody, onErr)
+	}) {
+		finish(0, js.Undefined())
 	}
 }
 

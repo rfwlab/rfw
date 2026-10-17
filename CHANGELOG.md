@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add RequestContext and RequestBytesContext for cancellable browser fetch and
+  response-body reads. Preserve the existing unbounded Request APIs and options.
+  Cancellation reports status0 without retry or a server rollback guarantee.
+
 - Cut event-expansion allocations by reusing tag attribute offsets and parsing
   directive words directly. Keep HTML token boundaries and existing ASCII syntax.
 
