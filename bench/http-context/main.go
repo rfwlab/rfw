@@ -1,5 +1,6 @@
 //go:build js && wasm
 
+// Package main exposes HTTP probes to the browser contract harness.
 package main
 
 import (
@@ -34,11 +35,12 @@ func main() {
 			item.Set("body", body)
 			js.Get("requestResults").Call("push", item)
 		}
-		if mode == "bytes" {
+		switch mode {
+		case "bytes":
 			rhttp.RequestBytesContext(ctx, path, rhttp.RequestOptions{}, func(status int, body []byte) { done(status, hex.EncodeToString(body)) })
-		} else if mode == "legacy" {
+		case "legacy":
 			rhttp.Request(path, rhttp.RequestOptions{}, done)
-		} else {
+		default:
 			rhttp.RequestContext(ctx, path, rhttp.RequestOptions{}, done)
 		}
 		return nil
