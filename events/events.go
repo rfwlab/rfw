@@ -89,12 +89,19 @@ func On(event string, target js.Value, handler func(js.Value), opts ...any) func
 		return nil
 	})
 	callArgs := []any{event, fn}
+	capture := false
 	if len(opts) > 0 {
 		callArgs = append(callArgs, opts...)
+		opt := js.ValueOf(opts[0])
+		if opt.Type() == js.TypeObject {
+			capture = opt.Get("capture").Truthy()
+		} else {
+			capture = opt.Truthy()
+		}
 	}
 	target.Call("addEventListener", callArgs...)
 	return func() {
-		target.Call("removeEventListener", event, fn)
+		target.Call("removeEventListener", event, fn, capture)
 		fn.Release()
 	}
 }

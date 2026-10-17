@@ -25,7 +25,12 @@ func TestStreamBusWebTransportProtocol(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "index.html"), []byte("ok"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	mux := NewMux(root)
+	testStreamBusMux(t, NewMux(root))
+}
+
+func testStreamBusMux(t *testing.T, mux *http.ServeMux) {
+	t.Helper()
+	t.Cleanup(func() { streamEndpoints.Delete(mux) })
 	value, ok := streamEndpoints.Load(mux)
 	if !ok {
 		t.Fatal("StreamBus endpoint was not registered")

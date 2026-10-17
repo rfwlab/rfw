@@ -97,3 +97,37 @@ func TestValidateModulePath(t *testing.T) {
 		}
 	}
 }
+
+func TestInitProjectPinsSelectedVersionWithoutNetwork(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("GOPROXY", "off")
+	const selected = "v2.3.1-0.20261016153501-8ce9ba2d776b"
+	if err := InitProjectWithVersion("example.com/pinned", true, selected); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile("pinned/go.mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "require github.com/rfwlab/rfw/v2 "+selected) || strings.Contains(string(data), "replace") {
+		t.Fatalf("generated module: %s", data)
+	}
+}
+
+func TestInitProjectRequiresVersionBeforeCreatingDevelopmentProject(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := InitProjectWithVersion("example.com/unversioned", false, "(devel)"); err == nil {
+		t.Fatal("unversioned CLI initialized an unpinned project")
+	}
+	if _, err := os.Stat("unversioned"); !os.IsNotExist(err) {
+		t.Fatalf("unversioned project directory: %v", err)
+	}
+}
+
+func TestInitProjectRejectsInvalidVersion(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("GOPROXY", "off")
+	if err := InitProjectWithVersion("example.com/invalidversion", true, "v2.3.0\nreplace example.com/other => ../other"); err == nil {
+		t.Fatal("invalid framework version accepted")
+	}
+}

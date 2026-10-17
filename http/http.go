@@ -77,43 +77,20 @@ func FetchJSON(url string, v any) error {
 			hook := currentHTTPHook()
 			notifyHTTPHook(hook, true, url, 0, 0)
 			start := time.Now()
-			js.Fetch(url).Call("then",
-				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-					resp := args[0]
-					status := resp.Get("status").Int()
-					method := "json"
-					if status >= 400 {
-						method = "text"
-					}
-					resp.Call(method).Call("then",
-						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-							if status >= 400 {
-								ce.err = errors.New(args[0].String())
-							} else {
-								obj := args[0]
-								jsonStr := js.GlobalJSON().Call("stringify", obj).String()
-								ce.data = []byte(jsonStr)
-							}
-							notifyHTTPHook(hook, false, url, status, time.Since(start))
-							close(ce.ready)
-							return nil
-						}),
-						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-							ce.err = errors.New(args[0].String())
-							notifyHTTPHook(hook, false, url, status, time.Since(start))
-							close(ce.ready)
-							return nil
-						}),
-					)
-					return nil
-				}),
-				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-					ce.err = errors.New(args[0].String())
-					notifyHTTPHook(hook, false, url, 0, time.Since(start))
-					close(ce.ready)
-					return nil
-				}),
-			)
+			Request(url, RequestOptions{}, func(status int, body string) {
+				switch {
+				case status == 0:
+					ce.err = errors.New("http: request failed")
+				case status >= 400:
+					ce.err = errors.New(body)
+				case !json.Valid([]byte(body)):
+					ce.err = errors.New("http: invalid JSON response")
+				default:
+					ce.data = []byte(body)
+				}
+				notifyHTTPHook(hook, false, url, status, time.Since(start))
+				close(ce.ready)
+			})
 		}()
 	})
 
@@ -140,37 +117,18 @@ func FetchText(url string) (string, error) {
 			hook := currentHTTPHook()
 			notifyHTTPHook(hook, true, url, 0, 0)
 			start := time.Now()
-			js.Fetch(url).Call("then",
-				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-					resp := args[0]
-					status := resp.Get("status").Int()
-					resp.Call("text").Call("then",
-						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-							if status >= 400 {
-								ce.err = errors.New(args[0].String())
-							} else {
-								ce.text = args[0].String()
-							}
-							notifyHTTPHook(hook, false, url, status, time.Since(start))
-							close(ce.ready)
-							return nil
-						}),
-						js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-							ce.err = errors.New(args[0].String())
-							notifyHTTPHook(hook, false, url, status, time.Since(start))
-							close(ce.ready)
-							return nil
-						}),
-					)
-					return nil
-				}),
-				js.SafeFuncOf(func(_ js.Value, args []js.Value) any {
-					ce.err = errors.New(args[0].String())
-					notifyHTTPHook(hook, false, url, 0, time.Since(start))
-					close(ce.ready)
-					return nil
-				}),
-			)
+			Request(url, RequestOptions{}, func(status int, body string) {
+				switch {
+				case status == 0:
+					ce.err = errors.New("http: request failed")
+				case status >= 400:
+					ce.err = errors.New(body)
+				default:
+					ce.text = body
+				}
+				notifyHTTPHook(hook, false, url, status, time.Since(start))
+				close(ce.ready)
+			})
 		}()
 	})
 

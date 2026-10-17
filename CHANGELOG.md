@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Add RequestContext and RequestBytesContext for cancellable browser fetch and
+  response-body reads. Preserve the existing unbounded Request APIs and options.
+  Cancellation reports status0 without retry or a server rollback guarantee.
+
+- Cut event-expansion allocations by reusing tag attribute offsets and parsing
+  directive words directly. Keep HTML token boundaries and existing ASCII syntax.
+
+- Apply the directory server's compressed-WASM negotiation, SPA entry cache policy
+  and selected StreamBus registration to embedded NewMuxFS deployments. Both
+  transport paths share the configured origin/identity guard.
+
+- Add a runnable Notes HTTP CRUD example and tutorial with stable IDs, stale-write
+  refusal, draft retention and mount-scoped response handling. The loopback API
+  is an in-memory teaching server, not a production authentication/persistence layer.
+- Reset the dashboard example's paused flag on remount so its live label and feed
+  state agree after leaving a paused page.
+
+- Expand event directives only in whole, valueless tag attributes. Preserve
+  literal SSH URLs, quoted/unquoted values, comments and raw-text contents.
+  Existing explicit data-on-* attributes and event modifiers keep their syntax.
+
 - Run configured mount/unmount callbacks on plain HTMLComponent values as well
   as components registered with SetComponent. Explicit registration still invokes
   each callback once per lifecycle event.
