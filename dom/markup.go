@@ -1,15 +1,10 @@
 package dom
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
 )
-
-// only a whole, valueless attribute can be an event directive.
-var reExpandEvent = regexp.MustCompile(`^@(on:)?(\w+(?:\.\w+)*):(\w+)$`)
 
 // ExpandEvents rewrites @on:event:handler and @event:handler attributes into
 // data-on-* attributes. Literal text, attribute values and raw-text elements
@@ -24,6 +19,7 @@ func ExpandEvents(markup string) string {
 	// token boundaries keep comments and raw-text states out of the attribute
 	// scan. Keep original bytes; serializing tokens would normalize user data.
 	z := html.NewTokenizer(strings.NewReader(markup))
+	var attrs [][2]int
 	offset := 0
 	for {
 		kind := z.Next()
@@ -32,16 +28,16 @@ func ExpandEvents(markup string) string {
 		}
 		size := len(z.Raw())
 		if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
-			attrs := eventTagAttributes(markup[offset : offset+size])
+			attrs = eventTagAttributes(markup[offset:offset+size], attrs[:0])
 			for _, attr := range attrs {
 				attr[0] += offset
 				attr[1] += offset
 				name := markup[attr[0]:attr[1]]
-				parts := reExpandEvent.FindStringSubmatchIndex(name)
-				if parts == nil {
+				event, handler := eventDirective(name)
+				if event == "" {
 					continue
 				}
-				event, modifiers := name[parts[4]:parts[5]], ""
+				modifiers := ""
 				if dot := strings.IndexByte(event, '.'); dot >= 0 {
 					modifiers = strings.ReplaceAll(event[dot+1:], ".", ",")
 					event = event[:dot]
@@ -50,9 +46,17 @@ func ExpandEvents(markup string) string {
 					sb.Grow(len(markup))
 				}
 				sb.WriteString(markup[last:attr[0]])
-				fmt.Fprintf(&sb, "data-on-%s=%q", event, name[parts[6]:parts[7]])
+				sb.WriteString("data-on-")
+				sb.WriteString(event)
+				sb.WriteString("=\"")
+				sb.WriteString(handler)
+				sb.WriteByte('"')
 				if modifiers != "" {
-					fmt.Fprintf(&sb, " data-on-%s-modifiers=%q", event, modifiers)
+					sb.WriteString(" data-on-")
+					sb.WriteString(event)
+					sb.WriteString("-modifiers=\"")
+					sb.WriteString(modifiers)
+					sb.WriteByte('"')
 				}
 				last = attr[1]
 			}
@@ -72,12 +76,11 @@ func eventTagSpace(c byte) bool {
 
 // scan values as well as names: matching a directive-shaped substring in a
 // URL or quoted value would turn data into event attributes.
-func eventTagAttributes(markup string) [][2]int {
+func eventTagAttributes(markup string, attrs [][2]int) [][2]int {
 	i := 1
 	for i < len(markup) && !eventTagSpace(markup[i]) && markup[i] != '/' && markup[i] != '>' {
 		i++
 	}
-	var attrs [][2]int
 	for i < len(markup) {
 		for i < len(markup) && eventTagSpace(markup[i]) {
 			i++
@@ -128,4 +131,39 @@ func eventTagAttributes(markup string) [][2]int {
 	}
 	// an unfinished tag has no attributes to rewrite.
 	return nil
+}
+
+func eventDirective(name string) (event, handler string) {
+	if len(name) < 4 || name[0] != '@' {
+		return "", ""
+	}
+	colon := strings.LastIndexByte(name, ':')
+	if colon < 2 || colon == len(name)-1 {
+		return "", ""
+	}
+	event, handler = name[1:colon], name[colon+1:]
+	event = strings.TrimPrefix(event, "on:")
+	if !eventWord(event, true) || !eventWord(handler, false) {
+		return "", ""
+	}
+	return event, handler
+}
+
+// directive words stay ASCII, as in the original event syntax. Validated words
+// need no quoting escapes when written into HTML attributes.
+func eventWord(word string, dots bool) bool {
+	if word == "" {
+		return false
+	}
+	for i := 0; i < len(word); i++ {
+		c := word[i]
+		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' {
+			continue
+		}
+		if dots && c == '.' && i > 0 && i < len(word)-1 && word[i-1] != '.' {
+			continue
+		}
+		return false
+	}
+	return true
 }

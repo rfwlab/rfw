@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Cut event-expansion allocations by reusing tag attribute offsets and parsing
+  directive words directly. Keep HTML token boundaries and existing ASCII syntax.
+
 - Apply the directory server's compressed-WASM negotiation, SPA entry cache policy
   and selected StreamBus registration to embedded NewMuxFS deployments. Both
   transport paths share the configured origin/identity guard.
