@@ -104,9 +104,13 @@ endpoint; reload old tabs after the upgrade. The default remains unchanged.
 
 This exchange authenticates connection establishment. It refuses resumption
 unless `WithSSCResumeAuthorizer` is configured, including on the WebSocket
-fallback of that mux. Keep message/action authorization configured and call `ResetSession`
-after unmounting user-owned scopes when changing identities. It does not turn
-the in-memory SSC session into durable application storage.
+fallback of that mux. Keep message/action authorization configured. When changing
+identities, unmount user-owned scopes, update the HTTP authentication state,
+call `hostclient.ResetSession()`, then mount the replacement scope. Reset ends
+pending typed calls with `ErrSessionReset` and reconnects without waiting for
+the old transport's remote close acknowledgement. Apply asynchronous results
+only to their still-mounted owner. Reset does not cancel work already executing
+on the host or turn the in-memory SSC session into durable application storage.
 
 The WebSocket endpoint remains mounted as a compatibility fallback. No
 application code or component API changes when the selected transport changes.

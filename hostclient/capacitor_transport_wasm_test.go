@@ -4,6 +4,7 @@ package hostclient
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -31,8 +32,8 @@ const fakeCapacitorSSCSource = `
       this.closes.push(options);
       if (this.closeDelayMs >= 0) {
         setTimeout(function () {
-          self.terminalCallbacks++;
           self.callback({ type: "close", code: 1000, reason: "closed" });
+          self.terminalCallbacks++;
         }, this.closeDelayMs);
       }
     }
@@ -164,8 +165,15 @@ func TestCapacitorTransportKeepsCallbackAliveThroughAsyncClose(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	if _, err := conn.read(ctx); err == nil || !strings.Contains(err.Error(), "code 1000") {
-		t.Fatalf("read error = %v, want native close", err)
+	if _, err := conn.read(ctx); !errors.Is(err, errConnectionClosed) {
+		t.Fatalf("read after local close: %v", err)
+	}
+	for plugin.Get("terminalCallbacks").Int() == 0 {
+		select {
+		case <-ctx.Done():
+			t.Fatal("native close callback did not complete")
+		case <-time.After(time.Millisecond):
+		}
 	}
 	if got := plugin.Get("terminalCallbacks").Int(); got != 1 {
 		t.Fatalf("terminal callbacks = %d, want 1", got)
