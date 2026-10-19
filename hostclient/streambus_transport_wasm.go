@@ -113,12 +113,9 @@ func dialStreamBus(ctx context.Context, endpoint string) (connection *hostConn, 
 	writer := &jsWriter{writer: stream.Get("writable").Call("getWriter")}
 	buffered := bufio.NewReader(reader)
 	c := newHostConn()
-	c.send = func(data string) error {
-		return writeStreamBusFrame(context.Background(), writer, []byte(data))
-	}
+	startStreamBusWriter(c, writer)
 	c.shutdown = func() error {
-		reader.reader.Call("cancel")
-		writer.writer.Call("close")
+		c.fail(errConnectionClosed)
 		return closeStreamBusTransport(transport)
 	}
 	c.openOnce.Do(func() { close(c.open) })

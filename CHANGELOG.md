@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Queue browser StreamBus writes outside DOM callbacks to prevent Go/WASM
+  deadlocks. Preserve frame order with per-connection frame and byte limits;
+  terminate failed or overflowing connections for SSC recovery.
+
 - Preserve SSC WebSocket fallback after synchronous WebTransport setup failures.
   Close partially created transports before returning the setup error.
 

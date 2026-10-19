@@ -42,6 +42,13 @@ stream. On the server, Warp StreamBus provides bounded queues, priorities,
 and explicit backpressure before frames reach the network. SSC keeps its own
 sequenced replay history above the transport.
 
+Browser StreamBus sends enqueue whole frames and return without waiting for a
+JavaScript stream promise, including when called inside a DOM event handler.
+One writer preserves frame order. Each connection admits at most 256 pending
+frames and 8 MiB of JSON payload, including its in-flight frame. Exceeding either
+limit or failing a native write ends the connection so SSC can reconnect and
+replay its unacknowledged outbox. Enqueue success is not a delivery acknowledgement.
+
 Browser constructor, readiness and stream-setup failures return to the same
 fallback path. A partially created WebTransport is closed before fallback;
 a synchronous JavaScript exception must not escape the connection attempt.
