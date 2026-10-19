@@ -25,7 +25,7 @@ func streamBusAuthRequest() *http.Request {
 	r := httptest.NewRequest(http.MethodPost, "https://app.test"+streamBusAuthPath, nil)
 	r.Header.Set("Origin", "https://app.test")
 	r.Header.Set("Content-Type", "application/json")
-	r.AddCookie(&http.Cookie{Name: "session", Value: "test-user"})
+	r.AddCookie(&http.Cookie{Name: "session", Value: "test-user", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	return r
 }
 
