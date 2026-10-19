@@ -305,6 +305,9 @@ func streamBusProtocolLoop(connection *streamBusConnection, runtime *WSRuntime) 
 			continue
 		}
 		if err := session.AcceptInbound(message.Sequence); err != nil {
+			if errors.Is(err, ErrSessionReleased) {
+				return err
+			}
 			if errors.Is(err, ErrDuplicateMessage) {
 				continue
 			}

@@ -74,6 +74,11 @@ func TestStreamBusUnknownCredentialCannotInitializeSession(t *testing.T) {
 
 func testStreamBusMuxCredential(t *testing.T, mux *http.ServeMux, token string, rejected bool) {
 	t.Helper()
+	testStreamBusMuxExchange(t, mux, token, rejected, nil)
+}
+
+func testStreamBusMuxExchange(t *testing.T, mux *http.ServeMux, token string, rejected bool, exchange func(*wt.Session, *wt.Stream, *bufio.Reader)) {
+	t.Helper()
 	t.Cleanup(func() { streamEndpoints.Delete(mux) })
 	value, ok := streamEndpoints.Load(mux)
 	if !ok {
@@ -186,4 +191,31 @@ func testStreamBusMuxCredential(t *testing.T, mux *http.ServeMux, token string, 
 	if outbound.Control != "ack" || outbound.Session == "" || outbound.Sequence == 0 {
 		t.Fatalf("unexpected response: %#v", outbound)
 	}
+	if exchange != nil {
+		exchange(session, stream, reader)
+	}
+}
+
+func TestStreamBusReleaseSessionClosesActiveTransport(t *testing.T) {
+	t.Setenv("RFW_TRANSPORT", "streambus")
+	initialized := make(chan *Session, 1)
+	mux := NewMux(t.TempDir(), WithSSCSessionInitializer(func(_ *http.Request, session *Session) error {
+		initialized <- session
+		return nil
+	}))
+	testStreamBusMuxExchange(t, mux, "", false, func(transport *wt.Session, stream *wt.Stream, reader *bufio.Reader) {
+		owner := <-initialized
+		ReleaseSession(owner)
+		select {
+		case <-transport.Context().Done():
+		case <-time.After(time.Second):
+			t.Fatal("released StreamBus transport stayed open")
+		}
+		if err := stream.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		if payload, err := readFrame(reader, 1<<20); err == nil {
+			t.Fatalf("released stream received %s", payload)
+		}
+	})
 }

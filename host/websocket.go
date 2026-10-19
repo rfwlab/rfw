@@ -265,6 +265,9 @@ func wsHandler(ws *websocket.Conn, runtime *WSRuntime) {
 			continue
 		}
 		if err := session.AcceptInbound(msg.Sequence); err != nil {
+			if errors.Is(err, ErrSessionReleased) {
+				return
+			}
 			if errors.Is(err, ErrDuplicateMessage) {
 				continue
 			}

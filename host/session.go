@@ -238,7 +238,8 @@ func (s *Session) markResumedLocked() {
 	}
 }
 
-// ReleaseSession removes a session from the registry.
+// ReleaseSession removes a session and closes its active transport. It does not
+// cancel a handler already admitted or revoke the application's credentials.
 func ReleaseSession(session *Session) {
 	releaseSession(session, time.Time{})
 }
@@ -256,6 +257,8 @@ func releaseSession(session *Session, expectedExpiry time.Time) {
 		return
 	}
 	session.released = true
+	connection := session.connection
+	streamConnection := session.streamConnection
 	if session.expiryTimer != nil {
 		session.expiryTimer.Stop()
 		session.expiryTimer = nil
@@ -275,6 +278,13 @@ func releaseSession(session *Session, expectedExpiry time.Time) {
 		delete(sessionByToken, session.resumeToken)
 	}
 	sessionMu.Unlock()
+	if connection != nil {
+		ForgetConnection(connection)
+		_ = connection.Close()
+	}
+	if streamConnection != nil {
+		streamConnection.Close()
+	}
 }
 
 // SessionByID retrieves a session for the given ID.
@@ -294,15 +304,23 @@ var (
 	ErrReplayUnavailable = errors.New("host: replay unavailable")
 	// ErrSessionLimit reports that the retained-session limit was reached.
 	ErrSessionLimit = errors.New("host: session limit reached")
+	// ErrSessionReleased reports delivery attempted after session release.
+	ErrSessionReleased = errors.New("host: session released")
 )
 
 // AcceptInbound validates and records an inbound sequence.
 func (s *Session) AcceptInbound(sequence uint64) error {
-	if s == nil || sequence == 0 {
+	if s == nil {
 		return nil
 	}
 	s.deliveryMu.Lock()
 	defer s.deliveryMu.Unlock()
+	if s.released {
+		return ErrSessionReleased
+	}
+	if sequence == 0 {
+		return nil
+	}
 	if sequence <= s.inboundSeq {
 		return ErrDuplicateMessage
 	}
@@ -315,11 +333,17 @@ func (s *Session) AcceptInbound(sequence uint64) error {
 
 // AllowMessage enforces a fixed per-session message window.
 func (s *Session) AllowMessage(limit int) bool {
-	if s == nil || limit <= 0 {
+	if s == nil {
 		return true
 	}
 	s.deliveryMu.Lock()
 	defer s.deliveryMu.Unlock()
+	if s.released {
+		return false
+	}
+	if limit <= 0 {
+		return true
+	}
 	now := time.Now()
 	if s.rateStart.IsZero() || now.Sub(s.rateStart) >= time.Minute {
 		s.rateStart = now
