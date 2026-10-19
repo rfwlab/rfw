@@ -42,6 +42,11 @@ stream. On the server, Warp StreamBus provides bounded queues, priorities,
 and explicit backpressure before frames reach the network. SSC keeps its own
 sequenced replay history above the transport.
 
+Browser constructor, readiness and stream-setup failures return to the same
+fallback path. A partially created WebTransport is closed before fallback;
+a synchronous JavaScript exception must not escape the connection attempt.
+Application retry and authorization policies remain the caller's responsibility.
+
 The WebSocket endpoint remains mounted as a compatibility fallback. No
 application code or component API changes when the selected transport changes.
 

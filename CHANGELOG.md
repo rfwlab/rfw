@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Preserve SSC WebSocket fallback after synchronous WebTransport setup failures.
+  Close partially created transports before returning the setup error.
+
 - Add RequestContext and RequestBytesContext for cancellable browser fetch and
   response-body reads. Preserve the existing unbounded Request APIs and options.
   Cancellation reports status0 without retry or a server rollback guarantee.

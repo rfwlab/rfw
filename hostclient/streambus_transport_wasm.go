@@ -78,7 +78,17 @@ func normalizeStreamBusURL(raw string, incrementHTTPPort bool) string {
 	return parsed.String()
 }
 
-func dialStreamBus(ctx context.Context, endpoint string) (*hostConn, error) {
+func dialStreamBus(ctx context.Context, endpoint string) (connection *hostConn, err error) {
+	var transport stdjs.Value
+	defer func() {
+		if recover() != nil {
+			connection = nil
+			err = errors.New("hostclient: WebTransport setup failed")
+		}
+		if err != nil {
+			_ = closeStreamBusTransport(transport)
+		}
+	}()
 	constructor := stdjs.Global().Get("WebTransport")
 	if constructor.Type() != stdjs.TypeFunction {
 		return nil, errors.New("hostclient: WebTransport API is unavailable")
@@ -87,19 +97,16 @@ func dialStreamBus(ctx context.Context, endpoint string) (*hostConn, error) {
 	if config.port != "" {
 		endpoint = replaceURLPort(endpoint, config.port)
 	}
-	var transport stdjs.Value
 	if config.options.Type() == stdjs.TypeObject {
 		transport = constructor.New(endpoint, config.options)
 	} else {
 		transport = constructor.New(endpoint)
 	}
 	if _, err := awaitPromise(ctx, transport.Get("ready")); err != nil {
-		transport.Call("close")
 		return nil, err
 	}
 	stream, err := awaitPromise(ctx, transport.Call("createBidirectionalStream"))
 	if err != nil {
-		transport.Call("close")
 		return nil, err
 	}
 	reader := &jsReader{reader: stream.Get("readable").Call("getReader")}
@@ -112,8 +119,7 @@ func dialStreamBus(ctx context.Context, endpoint string) (*hostConn, error) {
 	c.shutdown = func() error {
 		reader.reader.Call("cancel")
 		writer.writer.Call("close")
-		transport.Call("close")
-		return nil
+		return closeStreamBusTransport(transport)
 	}
 	c.openOnce.Do(func() { close(c.open) })
 	go func() {
@@ -127,6 +133,18 @@ func dialStreamBus(ctx context.Context, endpoint string) (*hostConn, error) {
 		}
 	}()
 	return c, nil
+}
+
+func closeStreamBusTransport(transport stdjs.Value) (err error) {
+	defer func() {
+		if recover() != nil {
+			err = errors.New("hostclient: WebTransport close failed")
+		}
+	}()
+	if transport.Type() == stdjs.TypeObject {
+		transport.Call("close")
+	}
+	return nil
 }
 
 type streamBusClientConfig struct {
