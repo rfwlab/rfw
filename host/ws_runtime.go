@@ -58,6 +58,7 @@ type WSRuntime struct {
 	authorize       MessageAuthorizer
 	initialize      SessionInitializer
 	authorizeResume ResumeAuthorizer
+	streamBusAuth   bool
 	limits          SSCLimits
 	connections     atomic.Int64
 }
@@ -74,6 +75,13 @@ func NewWSRuntime(opts ...MuxOption) *WSRuntime {
 // WithAuthFunc registers a callback invoked before the WebSocket upgrade.
 func WithAuthFunc(fn func(*http.Request) bool) MuxOption {
 	return func(runtime *WSRuntime) { runtime.authFunc = fn }
+}
+
+// WithSSCStreamBusAuth exchanges an authenticated same-origin HTTP request for
+// a single-use first-frame credential. Browser WebTransport omits cookies.
+// Configure WithAuthFunc; resumption requires WithSSCResumeAuthorizer.
+func WithSSCStreamBusAuth() MuxOption {
+	return func(runtime *WSRuntime) { runtime.streamBusAuth = true }
 }
 
 // WithOriginAllowlist restricts upgrades to exact Origin matches.
@@ -105,9 +113,9 @@ func WithSSCSessionInitializer(initialize SessionInitializer) MuxOption {
 // can still resume it while its TTL lasts, and the caller is served a fresh
 // session exactly like an unknown token.
 //
-// Without this option any client presenting a valid token resumes the session,
-// which is the historical behavior. An authenticated multi-user deployment must
-// configure a resume authorizer or disable resume with WithoutSSCResume.
+// Without this option, legacy transport mode accepts any valid resume token.
+// WithSSCStreamBusAuth refuses resumption until an authorizer is configured.
+// Authenticated deployments must configure one or use WithoutSSCResume.
 func WithSSCResumeAuthorizer(authorize ResumeAuthorizer) MuxOption {
 	return func(runtime *WSRuntime) { runtime.authorizeResume = authorize }
 }
@@ -254,6 +262,9 @@ func (runtime *WSRuntime) OpenSession(request *http.Request, resumeToken string)
 
 // resumeSession authorizes a reattachment before any session state changes.
 func (runtime *WSRuntime) resumeSession(request *http.Request, resumeToken string) (*Session, bool) {
+	if runtime != nil && runtime.streamBusAuth && runtime.authorizeResume == nil {
+		return nil, false
+	}
 	if runtime == nil || runtime.authorizeResume == nil {
 		return ResumeSession(resumeToken)
 	}

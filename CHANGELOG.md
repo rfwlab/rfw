@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add opt-in SSC StreamBus cookie authentication through an authenticated HTTP
+  bootstrap and single-use first-frame credential. Bound credential retention,
+  origin scope and handshake time; recheck authentication before consumption.
+
 - Queue browser StreamBus writes outside DOM callbacks to prevent Go/WASM
   deadlocks. Preserve frame order with per-connection frame and byte limits;
   terminate failed or overflowing connections for SSC recovery.

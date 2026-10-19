@@ -42,6 +42,7 @@ type streamBusEndpoint struct {
 	bus     *streambus.InMemory
 	mu      sync.RWMutex
 	server  *wt.Server
+	auth    *streamBusAuth
 }
 
 func newStreamBusEndpoint(runtime *WSRuntime) *streamBusEndpoint {
@@ -63,8 +64,16 @@ func registerStreamBus(mux *http.ServeMux, runtime *WSRuntime) {
 		return
 	}
 	endpoint := newStreamBusEndpoint(runtime)
-	mux.Handle(streamBusPath, runtime.Guard(endpoint))
+	if runtime.streamBusAuth {
+		endpoint.auth = &streamBusAuth{tickets: make(map[string]streamBusCredential)}
+		originGuard := &WSRuntime{origins: runtime.origins}
+		mux.Handle(streamBusPath, originGuard.Guard(endpoint))
+		mux.Handle(streamBusAuthPath, runtime.Guard(http.HandlerFunc(endpoint.issueCredential)))
+	} else {
+		mux.Handle(streamBusPath, runtime.Guard(endpoint))
+	}
 	mux.HandleFunc("/__rfw/streambus-config", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		hash, _ := streamCertHash.Load().(string)
 		port, _ := streamHTTP3Port.Load().(string)
 		if hash == "" || port == "" {
@@ -72,7 +81,11 @@ func registerStreamBus(mux *http.ServeMux, runtime *WSRuntime) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"certificateHash": hash, "port": port})
+		config := map[string]string{"certificateHash": hash, "port": port}
+		if runtime.streamBusAuth {
+			config["authentication"] = "first-frame"
+		}
+		_ = json.NewEncoder(w).Encode(config)
 	})
 	streamEndpoints.Store(mux, endpoint)
 }
@@ -100,14 +113,53 @@ func (e *streamBusEndpoint) serveSession(request *http.Request, transport *wt.Se
 		return errors.New("streambus: connection limit reached")
 	}
 	defer e.runtime.ReleaseConnection()
-	stream, err := transport.AcceptStream(transport.Context())
+	ctx := transport.Context()
+	if e.auth != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, streamBusAuthTimeout)
+		defer cancel()
+	}
+	stream, err := transport.AcceptStream(ctx)
 	if err != nil {
+		_ = transport.CloseWithError(1, "stream unavailable")
 		return err
+	}
+	reader := bufio.NewReader(stream)
+	if e.auth != nil {
+		defer func() { _ = transport.CloseWithError(0, "connection closed") }()
+		if err := stream.SetReadDeadline(time.Now().Add(streamBusAuthTimeout)); err != nil {
+			return err
+		}
+		payload, err := readFrame(reader, 4096)
+		if err != nil {
+			return errors.New("streambus: authentication refused")
+		}
+		token, err := decodeStreamBusCredential(payload)
+		if err != nil {
+			return err
+		}
+		request, err = e.consumeCredential(request, token)
+		if err != nil {
+			return err
+		}
+		if err := stream.SetReadDeadline(time.Time{}); err != nil {
+			return err
+		}
+		if err := stream.SetWriteDeadline(time.Now().Add(streamBusAuthTimeout)); err != nil {
+			return err
+		}
+		if err := writeFrame(stream, []byte(`{"control":"authenticated"}`)); err != nil {
+			return err
+		}
+		if err := stream.SetWriteDeadline(time.Time{}); err != nil {
+			return err
+		}
 	}
 	connection, err := newStreamBusConnection(transport.Context(), request, transport, stream, e.bus, e.runtime.limits.MaxMessageBytes)
 	if err != nil {
 		return err
 	}
+	connection.reader = reader
 	defer connection.Close()
 	return streamBusProtocolLoop(connection, e.runtime)
 }

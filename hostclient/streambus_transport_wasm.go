@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 	stdjs "syscall/js"
+
+	rfwhttp "github.com/rfwlab/rfw/v2/http"
 )
 
 const (
@@ -94,6 +97,13 @@ func dialStreamBus(ctx context.Context, endpoint string) (connection *hostConn, 
 		return nil, errors.New("hostclient: WebTransport API is unavailable")
 	}
 	config, _ := loadStreamBusConfig(ctx)
+	token := ""
+	if config.authenticate {
+		token, err = loadStreamBusCredential(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if config.port != "" {
 		endpoint = replaceURLPort(endpoint, config.port)
 	}
@@ -112,6 +122,27 @@ func dialStreamBus(ctx context.Context, endpoint string) (connection *hostConn, 
 	reader := &jsReader{reader: stream.Get("readable").Call("getReader")}
 	writer := &jsWriter{writer: stream.Get("writable").Call("getWriter")}
 	buffered := bufio.NewReader(reader)
+	if config.authenticate {
+		payload, err := json.Marshal(map[string]string{"token": token})
+		if err != nil {
+			return nil, err
+		}
+		if err := writeStreamBusFrame(ctx, writer, payload); err != nil {
+			return nil, err
+		}
+		reader.ctx = ctx
+		payload, err = readStreamBusFrame(buffered, 4096)
+		if err != nil {
+			return nil, err
+		}
+		var reply struct {
+			Control string `json:"control"`
+		}
+		if json.Unmarshal(payload, &reply) != nil || reply.Control != "authenticated" {
+			return nil, errors.New("hostclient: StreamBus authentication refused")
+		}
+		reader.ctx = nil
+	}
 	c := newHostConn()
 	startStreamBusWriter(c, writer)
 	c.shutdown = func() error {
@@ -145,8 +176,9 @@ func closeStreamBusTransport(transport stdjs.Value) (err error) {
 }
 
 type streamBusClientConfig struct {
-	options stdjs.Value
-	port    string
+	options      stdjs.Value
+	port         string
+	authenticate bool
 }
 
 func loadStreamBusConfig(ctx context.Context) (streamBusClientConfig, error) {
@@ -175,7 +207,36 @@ func loadStreamBusConfig(ctx context.Context) (streamBusClientConfig, error) {
 	list.Call("push", descriptor)
 	options := stdjs.Global().Get("Object").New()
 	options.Set("serverCertificateHashes", list)
-	return streamBusClientConfig{options: options, port: config.Get("port").String()}, nil
+	return streamBusClientConfig{options: options, port: config.Get("port").String(), authenticate: config.Get("authentication").Truthy()}, nil
+}
+
+func loadStreamBusCredential(ctx context.Context) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	type response struct {
+		status int
+		body   string
+	}
+	done := make(chan response, 1)
+	rfwhttp.RequestContext(ctx, "/__rfw/streambus-auth", rfwhttp.RequestOptions{
+		Method: "POST", Headers: map[string]string{"Content-Type": "application/json"},
+	}, func(status int, body string) { done <- response{status: status, body: body} })
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case result := <-done:
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		var credential struct {
+			Token string `json:"token"`
+		}
+		if result.status != 200 || json.Unmarshal([]byte(result.body), &credential) != nil || len(credential.Token) != 64 {
+			return "", errors.New("hostclient: StreamBus authentication refused")
+		}
+		return credential.Token, nil
+	}
 }
 
 func replaceURLPort(raw, port string) string {
@@ -217,11 +278,16 @@ func readStreamBusFrame(reader *bufio.Reader, maximum int) ([]byte, error) {
 type jsReader struct {
 	reader stdjs.Value
 	buffer []byte
+	ctx    context.Context
 }
 
 func (r *jsReader) Read(payload []byte) (int, error) {
 	if len(r.buffer) == 0 {
-		result, err := awaitPromise(context.Background(), r.reader.Call("read"))
+		ctx := r.ctx
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		result, err := awaitPromise(ctx, r.reader.Call("read"))
 		if err != nil {
 			return 0, err
 		}
