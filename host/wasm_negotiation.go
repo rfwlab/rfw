@@ -28,7 +28,7 @@ var wasmEncodings = []wasmEncoding{
 // to guess.
 //
 // It reports whether it wrote the response.
-func negotiateWasm(w http.ResponseWriter, r *http.Request, dir http.Dir, urlPath string) bool {
+func negotiateWasm(w http.ResponseWriter, r *http.Request, dir http.FileSystem, urlPath string) bool {
 	if !strings.HasSuffix(urlPath, ".wasm") {
 		return false
 	}
@@ -73,7 +73,7 @@ func negotiateWasm(w http.ResponseWriter, r *http.Request, dir http.Dir, urlPath
 }
 
 // openArtifact opens a compressed bundle and reports its size on disk.
-func openArtifact(dir http.Dir, name string) (http.File, int64, bool) {
+func openArtifact(dir http.FileSystem, name string) (http.File, int64, bool) {
 	file, err := dir.Open(filepath.ToSlash(name))
 	if err != nil {
 		return nil, 0, false

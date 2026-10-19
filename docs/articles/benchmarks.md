@@ -1,5 +1,14 @@
 # Benchmarks: rfw vs Svelte, Solid, and htmx
 
+> Historical snapshot: `bench/results.json` records 2026-07-12, three runs.
+> It does not record the exact SDK commit or toolchain provenance. The stack
+> versions and conclusions below describe that snapshot, not current releases.
+> Current local module replacements resolve to the checkout being built; they
+> cannot reproduce the stored binaries by themselves. No current cross-framework
+> comparison has been rerun for this update. See the separate
+> [event expansion measurement](event-expansion-benchmark.md) for a current,
+> narrowly scoped parser comparison.
+
 "Fine-grained reactivity" and "no virtual DOM" are claims. This page puts
 numbers next to them. The numbers are not flattering everywhere (rfw ships
 a WebAssembly binary that is two orders of magnitude larger than a compiled

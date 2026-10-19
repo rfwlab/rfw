@@ -10,6 +10,8 @@
   fix the PATH gotcha, and map npm mental models to the Go toolchain.
 - [Build a real-time dashboard in 30 minutes](guide/realtime-dashboard-tutorial.md):
   scaffold, stores, `@for` lists, event handlers, and a live data feed.
+- [HTTP CRUD with a Go API](guide/http-crud-tutorial.md): real requests, stable
+  identities, optimistic version checks, drafts and mount-scoped completions.
 - [Dynamic lists and events](guide/dynamic-lists.md): fetch data, render
   rows, handle clicks; the pattern behind every real page.
 - [Server Side Computed (SSC)](guide/ssc.md): host components, host
@@ -27,6 +29,12 @@
 - [How the bundle reaches the browser](guide/wasm-delivery.md): the compressed
   artifacts `rfw build` produces, content negotiation, static hosting, and the
   cache headers that let a release replace a bundle.
+- [Deployment](guide/deployment.md): complete asset generations, embedded/disk
+  serving, guarded transports and application-owned upgrade/rollback boundaries.
+- [Troubleshooting](guide/troubleshooting.md): status/header/lifecycle symptoms
+  and bounded reproduction paths.
+- [Updating a v2 consumer](guide/migration-v2.md): candidate compatibility changes
+  and application acceptance boundaries.
 - [Testing](testing.md): native tests, browser (wasm) tests with
   wasmbrowsertest, race testing and golden templates.
 

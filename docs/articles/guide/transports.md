@@ -1,8 +1,8 @@
 # SSC transports
 
-RFW keeps the SSC API independent from its network transport. Components,
-`hostclient.Send`, typed actions, hydration, session resumption and broadcasts
-behave the same with WebSocket and Warp StreamBus.
+Components, `hostclient.Send`, typed actions, hydration, resumption and
+broadcasts share the SSC message format over WebSocket and Warp StreamBus.
+Browser support and credential requirements differ between the transports.
 
 ## Selecting StreamBus
 
@@ -41,6 +41,76 @@ existing JSON SSC protocol and length-prefixes messages on a reliable QUIC
 stream. On the server, Warp StreamBus provides bounded queues, priorities,
 and explicit backpressure before frames reach the network. SSC keeps its own
 sequenced replay history above the transport.
+
+Browser StreamBus sends enqueue whole frames and return without waiting for a
+JavaScript stream promise, including when called inside a DOM event handler.
+One writer preserves frame order. Each connection admits at most 256 pending
+frames and 8 MiB of JSON payload, including its in-flight frame. Exceeding either
+limit or failing a native write ends the connection so SSC can reconnect and
+replay its unacknowledged outbox. Enqueue success is not a delivery acknowledgement.
+
+Browser constructor, readiness and stream-setup failures return to the same
+fallback path. A partially created WebTransport is closed before fallback;
+a synchronous JavaScript exception must not escape the connection attempt.
+Application retry and authorization policies remain the caller's responsibility.
+
+## Cookie authentication
+
+Browser WebTransport uses
+[credentials mode `omit`](https://www.w3.org/TR/webtransport/#dom-webtransport-webtransport)
+and does not send the application's session cookie. A cookie-based
+`WithAuthFunc` therefore rejects its upgrade; compatibility mode can fall back
+to an authenticated WebSocket. A working greeting on that fallback does not
+qualify authenticated StreamBus.
+
+Opt in to the first-frame authentication exchange on the host:
+
+```go
+mux := host.NewMux(root,
+    host.WithAuthFunc(validCookie),
+    host.WithSSCStreamBusAuth(),
+    host.WithSSCSessionInitializer(initializeIdentity),
+    host.WithSSCResumeAuthorizer(authorizeResume),
+)
+```
+
+The browser POSTs an empty `application/json` request to the same-origin
+`/__rfw/streambus-auth` endpoint with its normal HTTP credentials. The response
+is not cacheable. It holds a random single-use credential, not the cookie.
+The WASM client sends that credential in the first stream frame and waits for
+authentication acknowledgement before sending SSC messages. No credential is
+placed in the URL or browser storage.
+
+Credentials expire after 30 seconds and bind to the browser's exact Origin.
+Each endpoint retains at most 256 outstanding credentials with at most 16 KiB
+of request headers per credential. Consumption is atomic and rechecks
+`WithAuthFunc` against the captured identity and actual upgrade URL. The
+initializer and resume authorizer receive the authenticated headers. Identity
+middleware must work on both the bootstrap and upgrade paths; authorization
+must consult current server state rather than trusting cached identity claims.
+
+The option admits an origin-checked transport before identity is known, then
+requires authentication before creating an SSC session. Accepting a stream,
+reading its at-most-4-KiB authentication frame and writing acknowledgement have
+five-second bounds under the connection limit. Missing, expired, reused or
+revoked credentials close the transport. Existing consumers retain the original
+upgrade guard unless this option is enabled. Configure an explicit origin
+allowlist for reverse proxies or a separately hosted client; the bootstrap also
+requires its exact request origin or an explicitly configured allowed origin.
+
+Deploy the host and WASM client together before enabling the option. Older
+clients do not send the authentication frame and cannot use that opted-in
+endpoint; reload old tabs after the upgrade. The default remains unchanged.
+
+This exchange authenticates connection establishment. It refuses resumption
+unless `WithSSCResumeAuthorizer` is configured, including on the WebSocket
+fallback of that mux. Keep message/action authorization configured. When changing
+identities, unmount user-owned scopes, update the HTTP authentication state,
+call `hostclient.ResetSession()`, then mount the replacement scope. Reset ends
+pending typed calls with `ErrSessionReset` and reconnects without waiting for
+the old transport's remote close acknowledgement. Apply asynchronous results
+only to their still-mounted owner. Reset does not cancel work already executing
+on the host or turn the in-memory SSC session into durable application storage.
 
 The WebSocket endpoint remains mounted as a compatibility fallback. No
 application code or component API changes when the selected transport changes.

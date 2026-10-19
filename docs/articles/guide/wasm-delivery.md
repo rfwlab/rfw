@@ -57,7 +57,7 @@ driving new bundles. Tags the build does not recognise are left untouched.
 
 ## Serving it: a live host
 
-`host.NewMux` negotiates. A request for `/app.wasm` is answered with the best
+`host.NewMux` and `host.NewMuxFS` negotiate. A request for `/app.wasm` is answered with the best
 artifact the client advertised in `Accept-Encoding`, labelled with
 `Content-Encoding`, `Content-Type: application/wasm`, the compressed
 `Content-Length`, and `Vary: Accept-Encoding`.
@@ -71,6 +71,10 @@ bundle, which is the only body it is guaranteed to understand.
 Caching follows the URL. A request carrying `?v=<hash>` is immutable for a year;
 one without it must revalidate. `rfw_config.js` always revalidates, because it
 is the pointer that names the current version.
+
+The embedded fs.FS path applies the same entry/config cache policy. Its input
+must contain the complete public tree; it has no sibling static directory.
+See [deployment](deployment.md) for guarded startup and generation switching.
 
 ## Serving it: static hosting
 

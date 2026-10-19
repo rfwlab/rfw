@@ -107,6 +107,13 @@ result, err := hostclient.Call[RenameRequest, RenameResponse](
 )
 ```
 
+`Call` waits for a response. Start it in a goroutine when a DOM event initiates
+the operation, and apply its result only while the originating UI scope is
+still active. A context already cancelled or expired before admission is refused
+without queueing the command. After admission, its context limits the wait; it
+does not roll back server work or cancel delivery of a command already retained
+for replay. Reconcile unknown results before retrying a mutation.
+
 `host.RegisterForm` adds field validation before submission. Invalid values
 return `host.FormResponse` with `Valid == false` and a `Fields` map. The client
 counterpart is `hostclient.SubmitForm`.
@@ -150,6 +157,10 @@ host.ListenAndServeWithMux(":8080", mux)
 
 `ssc.NewSSCServer(addr, root, opts...)` accepts the same guard options and
 adds an event bus (`ssc.SubscribeSSC`) fed by every inbound message.
+
+For browser StreamBus with cookie authentication, enable the explicit
+[first-frame credential exchange](transports.md#cookie-authentication).
+A cookie upgrade guard alone qualifies the WebSocket fallback.
 
 `host.WithSSCLimits` overrides frame size, connection count, per-session
 message rate, handler and write deadlines, the bounded outbound queue, resume

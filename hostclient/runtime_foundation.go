@@ -1024,7 +1024,14 @@ func Call[Request, Response any](ctx context.Context, action string, request Req
 	if action == "" {
 		return zero, errors.New("hostclient: empty action name")
 	}
+	if err := ctx.Err(); err != nil {
+		return zero, err
+	}
 	lifecycleMu.RLock()
+	if err := ctx.Err(); err != nil {
+		lifecycleMu.RUnlock()
+		return zero, err
+	}
 	connect()
 	id := fmt.Sprintf("call-%d", callSequence.Add(1))
 	replyChannel := make(chan actionReply, 1)

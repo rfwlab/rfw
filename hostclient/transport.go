@@ -171,6 +171,7 @@ func (c *hostConn) writeJSON(payload any) error {
 }
 
 func (c *hostConn) close() error {
+	c.fail(errConnectionClosed)
 	var err error
 	if c.shutdown != nil {
 		err = c.shutdown()

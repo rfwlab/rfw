@@ -76,3 +76,90 @@ func TestNewMuxFSServesEmbeddedBuild(t *testing.T) {
 		t.Fatalf("/ws returned 404, endpoint not registered")
 	}
 }
+
+func TestNewMuxFSNegotiatesTheSameCompressedBundleAsDirectoryServing(t *testing.T) {
+	t.Setenv("RFW_DEV_BUILD", "")
+	mux := NewMuxFS(testClientFS())
+	request := httptest.NewRequest(http.MethodGet, "/app.wasm?v=build1", nil)
+	request.Header.Set("Accept-Encoding", "br, gzip")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != 200 || response.Body.String() != "brotli-bytes" {
+		t.Fatalf("negotiated response: code=%d body=%q", response.Code, response.Body.String())
+	}
+	if response.Header().Get("Content-Encoding") != "br" || response.Header().Get("Vary") != "Accept-Encoding" || response.Header().Get("Content-Type") != "application/wasm" {
+		t.Fatalf("negotiated headers: %v", response.Header())
+	}
+	if response.Header().Get("Cache-Control") != "public, max-age=31536000, immutable" || response.Header().Get("Content-Length") != "12" {
+		t.Fatalf("versioned artifact headers: %v", response.Header())
+	}
+	request = httptest.NewRequest(http.MethodHead, "/app.wasm", nil)
+	request.Header.Set("Accept-Encoding", "br")
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != 200 || response.Body.Len() != 0 || response.Header().Get("Content-Length") != "12" || response.Header().Get("Cache-Control") != "no-cache" {
+		t.Fatalf("HEAD response: code=%d body=%q headers=%v", response.Code, response.Body.String(), response.Header())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/app.wasm", nil)
+	request.Header.Set("Accept-Encoding", "br;q=0, gzip;q=0")
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Header().Get("Content-Encoding") != "" || response.Body.String() != "\x00asm" {
+		t.Fatalf("identity response: headers=%v body=%q", response.Header(), response.Body.String())
+	}
+}
+
+func TestNewMuxFSRevalidatesSPAEntriesAndDisablesDevelopmentCaching(t *testing.T) {
+	t.Setenv("RFW_DEV_BUILD", "")
+	mux := NewMuxFS(testClientFS())
+	request := httptest.NewRequest(http.MethodGet, "/nested/route", nil)
+	request.Header.Set("Accept", "text/html")
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != 200 || response.Header().Get("Cache-Control") != "no-cache" {
+		t.Fatalf("SPA entry: code=%d headers=%v", response.Code, response.Header())
+	}
+	t.Setenv("RFW_DEV_BUILD", "1")
+	request = httptest.NewRequest(http.MethodGet, "/", nil)
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != 200 || response.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("development entry: code=%d headers=%v", response.Code, response.Header())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/app.wasm?v=old", nil)
+	request.Header.Set("Accept-Encoding", "br")
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("development artifact: headers=%v", response.Header())
+	}
+}
+
+func TestNewMuxFSStreamBusUsesTheSameOriginAndIdentityGuard(t *testing.T) {
+	t.Setenv("RFW_TRANSPORT", "streambus")
+	mux := NewMuxFS(testClientFS(), WithOriginAllowlist("https://allowed.example"), WithAuthFunc(func(r *http.Request) bool { return r.Header.Get("Authorization") == "valid" }))
+	t.Cleanup(func() { streamEndpoints.Delete(mux) })
+	request := httptest.NewRequest(http.MethodConnect, streamBusPath, nil)
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("missing origin: %d", response.Code)
+	}
+	request.Header.Set("Origin", "https://allowed.example")
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("missing identity: %d", response.Code)
+	}
+	request.Header.Set("Authorization", "valid")
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, request)
+	if response.Code != http.StatusUpgradeRequired {
+		t.Fatalf("guarded non-HTTP3 request: %d", response.Code)
+	}
+}
+
+func TestNewMuxFSStreamBusWebTransportProtocol(t *testing.T) {
+	t.Setenv("RFW_TRANSPORT", "streambus")
+	testStreamBusMux(t, NewMuxFS(testClientFS()))
+}

@@ -2,15 +2,16 @@
 
 Server Side Computed (SSC) components split your app across a trust
 boundary: host components run in your Go server process, the wasm client
-runs in the user's browser, and a WebSocket connects them. This page
+runs in the user's browser, and a persistent transport connects them. This page
 documents exactly what crosses that boundary, what never does, and which
 security responsibilities remain yours. Everything here is grounded in the
 implementation (`host/`, `hostclient/`, `ssc/`).
 
 ## What travels over the wire
 
-All SSC traffic flows over a single WebSocket, served at `/ws` by
-`host.NewMux` (or `ssc.NewSSCServer`). Messages are JSON.
+SSC uses JSON over WebSocket at `/ws` or Warp StreamBus over WebTransport at
+`/streambus`, served by `host.NewMux` (or `ssc.NewSSCServer`). See
+[transports](transports.md) for selection, browser authentication and deployment.
 
 **Client to server** (`host.Inbound`):
 
@@ -159,6 +160,19 @@ Apply these controls together:
    a typed policy after an action request is decoded. Legacy component
    handlers should still perform their own object-level checks.
 
+An upgrade guard does not revalidate an already connected user's authority.
+Message and action authorizers must consult current application state. When
+revoking access, invalidate the application's authentication state and call
+`host.ReleaseSession(session)` for each affected SSC session. Release removes
+its registry entry and resume token, closes its active transport, stops its
+configured WebSocket writer and rejects subsequent message admission, including
+unsequenced messages. It does not invalidate an HTTP cookie, discover every
+session belonging to an application user, roll back an admitted handler or
+recall bytes already sent. Maintain that user-to-session association in the
+application, and make its upgrade and resume guards reject revoked credentials.
+An already admitted handler still needs application-level authorization and
+transaction boundaries before it commits changes.
+
 ## Threat notes
 
 - **All client input is untrusted.** Legacy handler payloads are
@@ -183,6 +197,8 @@ Apply these controls together:
   `host.WithSessionTarget(sessionID)` for per-user data; broadcasting a
   payload that contains one user's data sends it to all users on that
   component.
+  A session target identifies a recipient; it does not check current project
+  membership. Revalidate application grants before publishing private data.
 - **Client-side delivery scope.** A payload is applied only to the root the
   binding names (`[data-component-id]`) and to that component's host signals,
   and only while that binding is registered. A frame that arrives after its
