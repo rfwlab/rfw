@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Refuse typed SSC calls cancelled or expired before admission, including while
+  waiting for session reset. Do not queue or replay those commands.
+
 - Add opt-in SSC StreamBus cookie authentication through an authenticated HTTP
   bootstrap and single-use first-frame credential. Bound credential retention,
   origin scope and handshake time; recheck authentication before consumption.
